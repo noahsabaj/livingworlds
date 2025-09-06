@@ -1,0 +1,25 @@
+[package]
+name = "lw_game"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+# Core dependencies
+lw_core = { path = "../lw_core" }
+lw_procedural = { path = "../lw_procedural" }
+
+# Bevy - our complete game engine
+bevy.workspace = true
+
+# Serialization
+serde.workspace = true
+serde_json.workspace = true
+bincode.workspace = true
+
+# Utilities
+thiserror.workspace = true
+anyhow.workspace = true
+rand.workspace = true
+rand_chacha.workspace = true

@@ -1,0 +1,102 @@
+[workspace]
+members = [
+    "crates/lw_core",        # Fixed32 math, core types
+    "crates/lw_game",        # All game logic (ECS, systems)
+    "crates/lw_procedural",  # World generation algorithms
+    "crates/lw_platform",    # Platform-specific (Steam)
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Living Worlds Team"]
+license = "MIT"
+
+[workspace.dependencies]
+# Full Bevy framework - complete game engine!
+bevy = { version = "0.16.1", default-features = false, features = [
+    "animation",          # Animation system
+    "bevy_asset",         # Asset management
+    "bevy_audio",         # Audio system
+    "bevy_core_pipeline", # Core rendering pipeline
+    "bevy_gilrs",         # Gamepad support
+    "bevy_gizmos",        # Debug visualization
+    "bevy_pbr",           # Physically based rendering
+    "bevy_render",        # Rendering system
+    "bevy_scene",         # Scene management
+    "bevy_sprite",        # 2D sprites
+    "bevy_state",         # State management (States, NextState, etc.)
+    "bevy_text",          # Text rendering
+    "bevy_ui",            # UI system
+    "bevy_winit",         # Window management
+    "multi_threaded",     # Parallel systems
+    "png",                # PNG support
+    "x11",                # Linux X11
+    # "wayland",          # Linux Wayland (commented out - requires libwayland-dev)
+    "tonemapping_luts",   # Better colors
+    "dynamic_linking",    # Faster development builds
+] }
+
+# Keep our procedural approach - no GLTF or external assets needed!
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+bincode = "1.3"
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Math and utilities  
+fixed = "1.24"
+nalgebra = "0.32"
+noise = "0.8"
+rand = { version = "0.8", features = ["small_rng"] }
+rand_chacha = "0.3"
+
+# Audio
+rodio = "0.17"
+
+# Compression
+flate2 = "1.0"
+
+# Platform
+clap = { version = "4.4", features = ["derive"] }
+pollster = "0.3"
+
+# Steam support (optional in platform crate)
+steamworks = "0.10"
+
+[package]
+name = "living-worlds"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "living-worlds"
+path = "src/main.rs"
+
+[dependencies]
+# Import workspace crates (streamlined to 4)
+lw_core = { path = "crates/lw_core" }
+lw_game = { path = "crates/lw_game" }
+lw_procedural = { path = "crates/lw_procedural" }
+lw_platform = { path = "crates/lw_platform" }
+
+# Main app dependencies
+pollster.workspace = true
+clap.workspace = true
+anyhow.workspace = true
+bevy.workspace = true
+
+[profile.release]
+opt-level = 3       # Optimize for performance
+lto = true          # Link-time optimization
+codegen-units = 1   # Single codegen unit for better optimization
+strip = true        # Strip symbols for cleaner binary
+panic = "abort"     # No unwinding for better performance
+
+[profile.dev]
+opt-level = 0
+debug = true
+
+[profile.test]
+opt-level = 2       # Optimize tests for speed

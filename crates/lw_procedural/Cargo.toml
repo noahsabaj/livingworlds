@@ -1,0 +1,14 @@
+[package]
+name = "lw_procedural"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+noise.workspace = true
+rand.workspace = true
+rand_chacha.workspace = true
+serde.workspace = true
+lw_core = { path = "../lw_core" }
+# lw_procedural is standalone - doesn't need game types
