@@ -10,6 +10,14 @@ license.workspace = true
 lw_core = { path = "../lw_core" }
 lw_procedural = { path = "../lw_procedural" }
 
+# Domain crates
+lw_simulation = { path = "../lw_simulation" }
+lw_world = { path = "../lw_world" }
+lw_economics = { path = "../lw_economics" }
+lw_military = { path = "../lw_military" }
+lw_culture = { path = "../lw_culture" }
+lw_governance = { path = "../lw_governance" }
+
 # Bevy - our complete game engine
 bevy.workspace = true
 

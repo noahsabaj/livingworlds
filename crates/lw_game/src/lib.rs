@@ -1,31 +1,38 @@
-//! Living Worlds Game Logic
+//! Living Worlds - Main Integration Plugin
 //! 
-//! All game-specific components, systems, and logic consolidated here.
-//! Uses Bevy for ECS, rendering, UI, and input.
-
-pub mod components;
-pub mod systems;
-pub mod types;
+//! This crate now serves as the integration layer that combines
+//! all domain plugins into a cohesive game experience.
 
 use bevy::prelude::*;
 
-// Re-export key types
-pub use components::*;
-pub use types::*;
+// Import domain plugins
+use lw_simulation::SimulationPlugin;
+use lw_world::WorldPlugin;
+use lw_economics::EconomicsPlugin;
+use lw_military::MilitaryPlugin;
+use lw_culture::CulturePlugin;
+use lw_governance::GovernancePlugin;
 
-/// Main game plugin that adds all systems
+// Re-export TimeState for main.rs compatibility
+// TODO: TimeState was removed during refactoring - update main.rs
+// pub use lw_simulation::components::TimeState;
+
+/// Main game plugin that integrates all domain plugins
 pub struct LivingWorldsPlugin;
 
 impl Plugin for LivingWorldsPlugin {
     fn build(&self, app: &mut App) {
         app
-            // Add game systems
-            .add_systems(Update, (
-                systems::update_army_morale_system,
-                systems::army_movement_system,
-                systems::combat_resolution_system,
-                systems::economy_system,
-                systems::trade_route_system,
+            // Add all domain plugins
+            .add_plugins((
+                SimulationPlugin,  // Core simulation loop
+                WorldPlugin,       // Geography, terrain, climate
+                EconomicsPlugin,   // Markets, trade, production
+                MilitaryPlugin,    // Armies, combat, logistics
+                CulturePlugin,     // Cultural systems
+                GovernancePlugin,  // Government, diplomacy, AI
             ));
+        
+        // Any cross-domain integration logic goes here
     }
 }

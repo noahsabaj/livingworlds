@@ -4,7 +4,9 @@
 
 use bevy::prelude::*;
 use clap::Parser;
-use lw_game::{LivingWorldsPlugin, TimeState};
+use lw_game::LivingWorldsPlugin;
+// TODO: Add lw_simulation dependency to main Cargo.toml when needed
+// use lw_simulation::components::SimulationState;
 use lw_core::Fixed32;
 
 /// Living Worlds - A procedural civilization simulator
@@ -45,25 +47,24 @@ fn main() {
         // Insert world configuration
         .insert_resource(WorldSeed(args.seed))
         .insert_resource(WorldSize::from_str(&args.world_size))
-        // Insert time state
-        .insert_resource(TimeState {
-            current_year: 1000,
-            current_month: 1,
-            current_day: 1,
-            accumulated_time: Fixed32::ZERO,
-            tick: 0,
-            speed_multiplier: 1.0,
-            is_paused: false,
-            days_per_month: 30,
-            months_per_year: 12,
+        // Insert simulation state
+        // TODO: Create proper SimulationState initialization
+        /*
+        .insert_resource(SimulationState {
+            // SimulationState fields need to be initialized
+            current_turn: 0,
+            game_time: lw_core::shared_types::GameTime::new(1000, 1, 1),
+            paused: false,
+            // ... other fields
         })
+        */
         // Add our game plugin
         .add_plugins(LivingWorldsPlugin)
         // Add our game systems
         .add_systems(Startup, setup_world)
         .add_systems(Update, (
             handle_input,
-            update_calendar,
+            // update_calendar, // TODO: Update to use SimulationState
         ))
         .run();
 }
@@ -123,38 +124,44 @@ fn setup_world(
 fn handle_input(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut exit: EventWriter<AppExit>,
-    mut time_state: ResMut<TimeState>,
+    // TODO: Update to use SimulationState
+    // mut simulation: ResMut<SimulationState>,
 ) {
     // ESC to exit
     if keyboard.just_pressed(KeyCode::Escape) {
         exit.write(AppExit::Success);
     }
     
+    // TODO: Update pause and speed controls to use SimulationState
+    /*
     // Space to pause
     if keyboard.just_pressed(KeyCode::Space) {
-        time_state.is_paused = !time_state.is_paused;
-        println!("Game {}", if time_state.is_paused { "paused" } else { "resumed" });
+        simulation.paused = !simulation.paused;
+        println!("Game {}", if simulation.paused { "paused" } else { "resumed" });
     }
     
     // Number keys for speed control
     if keyboard.just_pressed(KeyCode::Digit1) {
-        time_state.speed_multiplier = 0.5;
+        simulation.simulation_speed = SimulationSpeed::Slow;
     }
     if keyboard.just_pressed(KeyCode::Digit2) {
-        time_state.speed_multiplier = 1.0;
+        simulation.simulation_speed = SimulationSpeed::Normal;
     }
     if keyboard.just_pressed(KeyCode::Digit3) {
-        time_state.speed_multiplier = 2.0;
+        simulation.simulation_speed = SimulationSpeed::Fast;
     }
     if keyboard.just_pressed(KeyCode::Digit4) {
-        time_state.speed_multiplier = 4.0;
+        simulation.simulation_speed = SimulationSpeed::VeryFast;
     }
+    */
 }
 
+// TODO: Update to use SimulationState
+/*
 /// Update the calendar system
 fn update_calendar(
     time: Res<Time>,
-    mut time_state: ResMut<TimeState>,
+    mut simulation: ResMut<SimulationState>,
 ) {
     if time_state.is_paused {
         return;
@@ -174,3 +181,4 @@ fn update_calendar(
     time_state.current_month = ((day_of_year / 30) + 1) as u8; // 30 days per month
     time_state.current_day = ((day_of_year % 30) + 1) as u8;
 }
+*/

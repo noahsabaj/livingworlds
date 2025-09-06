@@ -2777,6 +2777,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "lw_culture"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "lw_core",
+ "lw_economics",
+ "serde",
+]
+
+[[package]]
+name = "lw_economics"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "lw_core",
+ "serde",
+]
+
+[[package]]
 name = "lw_game"
 version = "0.1.0"
 dependencies = [
@@ -2784,12 +2803,37 @@ dependencies = [
  "bevy",
  "bincode",
  "lw_core",
+ "lw_culture",
+ "lw_economics",
+ "lw_governance",
+ "lw_military",
  "lw_procedural",
+ "lw_simulation",
+ "lw_world",
  "rand 0.8.5",
  "rand_chacha 0.3.1",
  "serde",
  "serde_json",
  "thiserror 1.0.69",
+]
+
+[[package]]
+name = "lw_governance"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "lw_core",
+ "lw_economics",
+ "serde",
+]
+
+[[package]]
+name = "lw_military"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "lw_core",
+ "serde",
 ]
 
 [[package]]
@@ -2804,6 +2848,30 @@ dependencies = [
  "noise",
  "rand 0.8.5",
  "rand_chacha 0.3.1",
+ "serde",
+]
+
+[[package]]
+name = "lw_simulation"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "lw_core",
+ "lw_culture",
+ "lw_economics",
+ "lw_governance",
+ "lw_military",
+ "lw_world",
+ "serde",
+]
+
+[[package]]
+name = "lw_world"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "lw_core",
+ "lw_economics",
  "serde",
 ]
 

@@ -1,0 +1,16 @@
+[package]
+name = "lw_simulation"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+bevy = { version = "0.16", default-features = false }
+lw_core = { path = "../lw_core" }
+lw_world = { path = "../lw_world" }
+lw_economics = { path = "../lw_economics" }
+lw_military = { path = "../lw_military" }
+lw_culture = { path = "../lw_culture" }
+lw_governance = { path = "../lw_governance" }
+serde = { version = "1.0", features = ["derive"] }
