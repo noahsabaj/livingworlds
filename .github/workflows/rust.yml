@@ -1,0 +1,91 @@
+name: Rust CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Run tests on multiple platforms
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    # Install Linux dependencies for Bevy
+    - name: Install Linux Dependencies
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev
+    
+    # Cache cargo registry and build artifacts
+    - name: Cache Cargo Registry
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/registry
+        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-registry-
+    
+    - name: Cache Cargo Build
+      uses: actions/cache@v4
+      with:
+        path: target
+        key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-build-
+    
+    # Build without dynamic linking for CI (more portable)
+    - name: Build
+      run: cargo build --verbose --release
+    
+    # Run tests
+    - name: Run Tests
+      run: cargo test --verbose
+    
+    # Check code formatting
+    - name: Check Formatting
+      run: cargo fmt -- --check
+      if: runner.os == 'Linux'  # Only check on one platform
+    
+    # Run clippy for linting
+    - name: Clippy
+      run: cargo clippy -- -D warnings
+      if: runner.os == 'Linux'  # Only check on one platform
+  
+  # Separate job for checking compilation with different feature sets
+  feature-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Linux Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev
+    
+    - name: Cache Cargo Registry
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/registry
+        key: ubuntu-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ubuntu-cargo-registry-
+    
+    # Check that dynamic linking feature works
+    - name: Check Dynamic Linking Feature
+      run: cargo check --features bevy/dynamic_linking
+    
+    # Check default features
+    - name: Check Default Features
+      run: cargo check
