@@ -9,6 +9,7 @@ pub mod camera;
 pub mod clouds;
 pub mod components;
 pub mod resources;
+pub mod setup;
 pub mod terrain;
 pub mod ui;
 
@@ -24,6 +25,7 @@ pub mod prelude {
         WorldSeed, WorldSize, ShowFps, GameTime,
         SelectedProvinceInfo, ProvincesSpatialIndex,
     };
+    pub use crate::setup::setup_world;
     pub use crate::terrain::{
         TerrainPlugin, TerrainType, ClimateZone,
         classify_terrain_with_climate, get_terrain_color_gradient,
