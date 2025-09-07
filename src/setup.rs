@@ -177,17 +177,17 @@ pub fn generate_elevation_with_edges(x: f32, y: f32, perlin: &Perlin, continent_
         let continent_seed = (idx as u32).wrapping_mul(2654435761) % 1000;
         let size_factor = continent_seed as f32 / 1000.0;
         
-        let base_radius = if idx >= 20 {
-            // Tiny islands
+        let base_radius = if idx >= 30 {
+            // Tiny islands (fewer of these)
             CONTINENT_TINY_BASE + size_factor * CONTINENT_TINY_VARIATION
-        } else if idx >= 12 {
+        } else if idx >= 18 {
             // Archipelagos and island chains
             CONTINENT_ARCHIPELAGO_BASE + size_factor * CONTINENT_ARCHIPELAGO_VARIATION
-        } else if idx >= 6 {
-            // Medium continents (Australia-sized)
+        } else if idx >= 8 {
+            // Medium continents (Australia-sized) - more of these
             CONTINENT_MEDIUM_BASE + size_factor * CONTINENT_MEDIUM_VARIATION
         } else {
-            // Massive continents (Eurasia-sized)
+            // Massive continents (Eurasia-sized) - more of these too
             CONTINENT_MASSIVE_BASE + size_factor * CONTINENT_MASSIVE_VARIATION
         };
         
@@ -271,8 +271,8 @@ pub fn setup_world(
         let py = rng.gen_range(map_y_min * 0.95..map_y_max * 0.95);
         plate_centers.push((px, py));
         
-        // 80% chance this plate has a continent on it for better ocean distribution
-        if rng.gen_range(0.0..1.0) < 0.8 {
+        // 90% chance this plate has a continent on it for 25% land coverage
+        if rng.gen_range(0.0..1.0) < 0.9 {
             // Continent offset from plate center (for variety)
             let offset_x = rng.gen_range(-200.0..200.0);
             let offset_y = rng.gen_range(-150.0..150.0);

@@ -164,10 +164,10 @@ pub const TECTONIC_PLATES_VARIATION: u32 = 10;
 pub const ISLAND_CHAIN_COUNT: usize = 15;
 
 /// Number of archipelagos between continents
-pub const ARCHIPELAGO_COUNT: usize = 10;
+pub const ARCHIPELAGO_COUNT: usize = 8;
 
-/// Continent size multiplier (1.0 = original, 1.3 = 30% larger for ~25% land coverage)
-pub const CONTINENT_SIZE_MULTIPLIER: f32 = 1.3;
+/// Continent size multiplier (1.0 = original, 1.5 = 50% larger for 25% land coverage)
+pub const CONTINENT_SIZE_MULTIPLIER: f32 = 1.5;
 
 /// Massive continent base radius (Eurasia-sized)
 pub const CONTINENT_MASSIVE_BASE: f32 = 1800.0;
@@ -186,8 +186,8 @@ pub const CONTINENT_TINY_BASE: f32 = 400.0;
 pub const CONTINENT_TINY_VARIATION: f32 = 200.0;
 
 /// Falloff power for continent edges (higher = sharper edges, less land)
-pub const CONTINENT_FALLOFF_BASE: f32 = 1.2;
-pub const CONTINENT_FALLOFF_VARIATION: f32 = 0.6;
+pub const CONTINENT_FALLOFF_BASE: f32 = 1.1;
+pub const CONTINENT_FALLOFF_VARIATION: f32 = 0.5;
 
 /// Number of rivers to generate
 pub const RIVER_COUNT: usize = 50;
