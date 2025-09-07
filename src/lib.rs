@@ -9,6 +9,9 @@ pub mod camera;
 pub mod clouds;
 pub mod components;
 pub mod constants;
+pub mod minerals;
+pub mod music;
+pub mod overlay;
 pub mod resources;
 pub mod setup;
 pub mod terrain;
@@ -21,10 +24,12 @@ pub mod prelude {
     pub use crate::components::{
         Province, Nation, SelectedProvince, GhostProvince,
         TileInfoPanel, TileInfoText,
+        ProvinceResources, ProvinceInfrastructure, NationStockpile,
+        NationTechnology, MineralType, TechnologyAge, EquipmentTier,
     };
     pub use crate::constants::*;
     pub use crate::resources::{
-        WorldSeed, WorldSize, ShowFps, GameTime,
+        WorldSeed, WorldSize, GameTime,
         SelectedProvinceInfo, ProvincesSpatialIndex,
     };
     pub use crate::setup::setup_world;
@@ -34,16 +39,21 @@ pub mod prelude {
         generate_elevation, generate_continent_centers,
         get_terrain_population_multiplier,
     };
-    pub use crate::ui::{UIPlugin, FpsText};
+    pub use crate::ui::{UIPlugin};
+    pub use crate::music::{ProceduralMusicPlugin, MusicState};
+    pub use crate::minerals::{MineralPlugin, generate_ore_veins, calculate_province_resources};
+    pub use crate::overlay::OverlayPlugin;
 }
 
 use bevy::prelude::*;
-use bevy::audio::AudioPlugin;
 use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
 
 // Import our plugins
 use crate::camera::CameraPlugin;
 use crate::clouds::CloudPlugin;
+use crate::minerals::MineralPlugin;
+use crate::music::ProceduralMusicPlugin;
+use crate::overlay::OverlayPlugin;
 use crate::terrain::TerrainPlugin;
 use crate::ui::UIPlugin;
 
@@ -65,22 +75,23 @@ pub fn build_app() -> App {
                 }),
                 ..default()
             })
-            // Disable audio to avoid ALSA underrun errors during development
-            .disable::<AudioPlugin>()
     )
     .add_plugins(FrameTimeDiagnosticsPlugin::default());
     
     // Add all Living Worlds game plugins
     app.add_plugins(CloudPlugin)
         .add_plugins(TerrainPlugin)
+        .add_plugins(MineralPlugin)
+        .add_plugins(OverlayPlugin)
         .add_plugins(UIPlugin)
-        .add_plugins(CameraPlugin);
+        .add_plugins(CameraPlugin)
+        .add_plugins(ProceduralMusicPlugin);
     
     app
 }
 
 // Re-export resources for backward compatibility
-pub use resources::{WorldSeed, WorldSize, ShowFps, GameTime};
+pub use resources::{WorldSeed, WorldSize, GameTime};
 
 // Re-export commonly used constants for backward compatibility
 pub use constants::{HEX_SIZE_PIXELS, PROVINCES_PER_ROW, PROVINCES_PER_COL};

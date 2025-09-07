@@ -54,6 +54,8 @@ rand_chacha = "0.3"
 
 # Audio
 rodio = "0.17"
+fundsp = "0.18"
+hound = "3.5"  # For WAV file generation
 
 # Compression
 flate2 = "1.0"

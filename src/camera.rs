@@ -48,9 +48,9 @@ pub fn camera_control_system(
     // Calculate map dimensions - MASSIVE world
     let provinces_per_row = PROVINCES_PER_ROW as usize;
     let provinces_per_col = PROVINCES_PER_COL as usize;
-    // POINTY-TOP hexagon dimensions (correct spacing)
-    let map_width_pixels = provinces_per_row as f32 * HEX_SIZE_PIXELS * SQRT3; // sqrt(3) horizontal
-    let map_height_pixels = provinces_per_col as f32 * HEX_SIZE_PIXELS * 1.5; // 3/2 vertical
+    // FLAT-TOP hexagon dimensions for honeycomb pattern
+    let map_width_pixels = provinces_per_row as f32 * HEX_SIZE_PIXELS * 1.5; // Column spacing = 3/2 * radius
+    let map_height_pixels = provinces_per_col as f32 * HEX_SIZE_PIXELS * SQRT3; // Row spacing = sqrt(3) * radius
     
     for (mut projection, mut transform) in query.iter_mut() {
         // Handle zoom only for orthographic projections
@@ -131,19 +131,23 @@ pub fn camera_control_system(
         }
         
         // Handle Y-axis clamping (no wrapping on Y)
-        let max_y = (map_height_pixels / 2.0 - window.height() * current_scale / 2.0).max(0.0);
-        if max_y <= 0.0 {
-            // Map fits vertically, center it
-            transform.translation.y = 0.0;
-        } else {
-            // Clamp Y position to map bounds
-            transform.translation.y = transform.translation.y.clamp(-max_y, max_y);
-        }
+        // Calculate how much of the world is visible at current zoom
+        let visible_height = window.height() * current_scale;
+        
+        // Calculate maximum camera movement
+        // Allow some extra margin so you can pan even when zoomed out
+        // This lets you move the map to focus on different areas
+        let margin_factor = 0.3; // Allow 30% extra movement beyond strict bounds
+        let max_y = (map_height_pixels / 2.0 - visible_height / 2.0 + map_height_pixels * margin_factor).max(0.0);
+        
+        // Always clamp to the calculated bounds (no hard center-lock)
+        transform.translation.y = transform.translation.y.clamp(-max_y, max_y);
         
         // Handle X-axis wrapping (the world wraps horizontally)
         let half_map_width = map_width_pixels / 2.0;
         
-        // Wrap camera X position for seamless horizontal scrolling
+        // Wrap camera X position at the actual map edges for seamless scrolling
+        // This prevents dead space - wrapping happens immediately at map boundaries
         if transform.translation.x > half_map_width {
             transform.translation.x -= map_width_pixels;
             // Camera wrapped from right to left edge

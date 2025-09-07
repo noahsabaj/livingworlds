@@ -11,13 +11,20 @@ use bevy::image::ImageSampler;
 use noise::{NoiseFn, Perlin};
 use rand::prelude::*;
 use rand::rngs::StdRng;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
-use crate::components::{Province, Nation};
+use crate::components::{Province, Nation, ProvinceResources, ProvinceInfrastructure, MineralType};
 use crate::resources::{WorldSeed, WorldSize, ProvincesSpatialIndex, SelectedProvinceInfo};
 use crate::terrain::{TerrainType, classify_terrain_with_climate, get_terrain_color_gradient};
 use crate::clouds::spawn_clouds;
 use crate::constants::*;
+use crate::minerals::{
+    generate_ore_veins, calculate_province_resources,
+    iron_terrain_bias, copper_terrain_bias, tin_terrain_bias,
+    gold_terrain_bias, coal_terrain_bias, gem_terrain_bias,
+    IRON_VEIN_COUNT, COPPER_VEIN_COUNT, TIN_VEIN_COUNT,
+    GOLD_VEIN_COUNT, COAL_DEPOSIT_COUNT, GEM_VEIN_COUNT,
+};
 
 // ============================================================================
 // TEXTURE GENERATION
@@ -251,11 +258,11 @@ pub fn setup_world(
     let provinces_per_col = PROVINCES_PER_COL;
     
     // Calculate actual map bounds based on hex grid coordinates
-    // POINTY-TOP hexagon map bounds (correct spacing)
-    let map_x_min = -(provinces_per_row as f32 / 2.0) * HEX_SIZE_PIXELS * SQRT3; // sqrt(3) horizontal
-    let map_x_max = (provinces_per_row as f32 / 2.0) * HEX_SIZE_PIXELS * SQRT3;
-    let map_y_min = -(provinces_per_col as f32 / 2.0) * HEX_SIZE_PIXELS * 1.5; // 3/2 vertical
-    let map_y_max = (provinces_per_col as f32 / 2.0) * HEX_SIZE_PIXELS * 1.5;
+    // FLAT-TOP hexagon map bounds for honeycomb pattern
+    let map_x_min = -(provinces_per_row as f32 / 2.0) * HEX_SIZE_PIXELS * 1.5; // Column spacing = 3/2 * radius
+    let map_x_max = (provinces_per_row as f32 / 2.0) * HEX_SIZE_PIXELS * 1.5;
+    let map_y_min = -(provinces_per_col as f32 / 2.0) * HEX_SIZE_PIXELS * SQRT3; // Row spacing = sqrt(3) * radius
+    let map_y_max = (provinces_per_col as f32 / 2.0) * HEX_SIZE_PIXELS * SQRT3;
     
     println!("Map bounds: X({:.0} to {:.0}), Y({:.0} to {:.0})", 
              map_x_min, map_x_max, map_y_min, map_y_max);
@@ -339,7 +346,7 @@ pub fn setup_world(
             
             // Generate elevation and terrain with climate
             let elevation = generate_elevation_with_edges(x, y, &perlin, &continent_centers);
-            let map_height = provinces_per_col as f32 * HEX_SIZE_PIXELS * 1.5; // POINTY-TOP height (3/2)
+            let map_height = provinces_per_col as f32 * HEX_SIZE_PIXELS * SQRT3; // FLAT-TOP height (sqrt(3))
             let terrain = classify_terrain_with_climate(elevation, y, map_height);
             let _terrain_color = get_terrain_color_gradient(terrain, elevation);
             
@@ -530,6 +537,110 @@ pub fn setup_world(
     
     println!("Generated {} river tiles", river_tiles.len());
     
+    // ============================================================================
+    // MINERAL RESOURCE GENERATION
+    // ============================================================================
+    
+    println!("Generating mineral resources...");
+    
+    // Generate ore veins for each mineral type
+    let mut ore_veins: HashMap<MineralType, Vec<_>> = HashMap::new();
+    
+    // Iron - common in mountains and hills
+    ore_veins.insert(
+        MineralType::Iron,
+        generate_ore_veins(
+            MineralType::Iron,
+            IRON_VEIN_COUNT,
+            seed.0.wrapping_add(1000),
+            &all_provinces,
+            iron_terrain_bias,
+        ),
+    );
+    
+    // Copper - less common, in mountains and hills
+    ore_veins.insert(
+        MineralType::Copper,
+        generate_ore_veins(
+            MineralType::Copper,
+            COPPER_VEIN_COUNT,
+            seed.0.wrapping_add(2000),
+            &all_provinces,
+            copper_terrain_bias,
+        ),
+    );
+    
+    // Tin - rare, essential for bronze
+    ore_veins.insert(
+        MineralType::Tin,
+        generate_ore_veins(
+            MineralType::Tin,
+            TIN_VEIN_COUNT,
+            seed.0.wrapping_add(3000),
+            &all_provinces,
+            tin_terrain_bias,
+        ),
+    );
+    
+    // Gold - rare, in high mountains
+    ore_veins.insert(
+        MineralType::Gold,
+        generate_ore_veins(
+            MineralType::Gold,
+            GOLD_VEIN_COUNT,
+            seed.0.wrapping_add(4000),
+            &all_provinces,
+            gold_terrain_bias,
+        ),
+    );
+    
+    // Coal - in ancient swamps (lowland forests)
+    ore_veins.insert(
+        MineralType::Coal,
+        generate_ore_veins(
+            MineralType::Coal,
+            COAL_DEPOSIT_COUNT,
+            seed.0.wrapping_add(5000),
+            &all_provinces,
+            coal_terrain_bias,
+        ),
+    );
+    
+    // Gems - very rare, highest peaks only
+    ore_veins.insert(
+        MineralType::Gems,
+        generate_ore_veins(
+            MineralType::Gems,
+            GEM_VEIN_COUNT,
+            seed.0.wrapping_add(6000),
+            &all_provinces,
+            gem_terrain_bias,
+        ),
+    );
+    
+    // Calculate resources for each province
+    let mut province_resources: HashMap<u32, ProvinceResources> = HashMap::new();
+    for province in all_provinces.iter() {
+        let resources = calculate_province_resources(province, &ore_veins);
+        province_resources.insert(province.id, resources);
+    }
+    
+    // Log mineral distribution statistics
+    let total_iron: u32 = province_resources.values().map(|r| r.iron as u32).sum();
+    let total_copper: u32 = province_resources.values().map(|r| r.copper as u32).sum();
+    let total_tin: u32 = province_resources.values().map(|r| r.tin as u32).sum();
+    let total_gold: u32 = province_resources.values().map(|r| r.gold as u32).sum();
+    let total_coal: u32 = province_resources.values().map(|r| r.coal as u32).sum();
+    let total_gems: u32 = province_resources.values().map(|r| r.gems as u32).sum();
+    
+    println!("Mineral distribution:");
+    println!("  Iron: {} units across provinces", total_iron);
+    println!("  Copper: {} units", total_copper);
+    println!("  Tin: {} units", total_tin);
+    println!("  Gold: {} units", total_gold);
+    println!("  Coal: {} units", total_coal);
+    println!("  Gems: {} units", total_gems);
+    
     // Now spawn all provinces with correct depths
     for province in all_provinces.iter() {
         let row = province.id / provinces_per_row;
@@ -558,10 +669,17 @@ pub fn setup_world(
             get_terrain_color_gradient(province.terrain, province.elevation)
         };
         
+        // Get the mineral resources for this province
+        let resources = province_resources.get(&province.id)
+            .cloned()
+            .unwrap_or_default();
+        
         // Spawn province entity with SPRITE (much faster than Mesh2d!)
         // Sprites batch automatically when using the same texture
         let entity = commands.spawn((
             province.clone(),
+            resources,  // Add mineral resources
+            ProvinceInfrastructure::default(),  // Start with no infrastructure
             Sprite {
                 image: hexagon_handle.clone(),  // Share the SAME texture handle for batching!
                 color: province_color,  // Tint with nation or terrain color

@@ -8,7 +8,8 @@ use bevy::window::PrimaryWindow;
 // Import from our library
 use living_worlds::prelude::*;
 use living_worlds::{
-    build_app, WorldSeed, WorldSize, ShowFps, GameTime,
+    build_app, WorldSeed, WorldSize, GameTime,
+    resources::{WorldTension, ResourceOverlay},
 };
 use clap::Parser;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -53,8 +54,8 @@ fn main() {
     // Add game-specific resources and configuration
     app.insert_resource(WorldSeed(args.seed.unwrap()))
         .insert_resource(WorldSize::from_str(&args.world_size))
-        .insert_resource(ShowFps(true))  // FPS display always on for now
         .insert_resource(GameTime::default())
+        .insert_resource(ResourceOverlay::default())
         // Add our game systems
         .add_systems(Startup, setup_world)
         .add_systems(Update, (
@@ -63,6 +64,7 @@ fn main() {
             draw_hexagon_borders,
             update_provinces,
             simulate_time,
+            calculate_world_tension,
             update_tile_info_ui,
         ))
         .run();
@@ -73,15 +75,10 @@ fn main() {
 // All terrain functions are now imported from terrain module
 // All setup functions are now imported from setup module
 
-
-
-// ShowFps is now defined in lib.rs
-
 /// Handle keyboard input
 fn handle_input(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut exit: EventWriter<AppExit>,
-    _show_fps: ResMut<ShowFps>,
     // TODO: Update to use SimulationState
     // mut simulation: ResMut<SimulationState>,
 ) {
@@ -254,10 +251,8 @@ fn handle_tile_selection(
 
 /// Update UI panel showing selected tile info
 fn update_tile_info_ui(
-    mut commands: Commands,
     selected_info: Res<SelectedProvinceInfo>,
     provinces: Query<&Province>,
-    ui_root: Query<Entity, With<TileInfoPanel>>,
     mut text_query: Query<&mut Text, With<TileInfoText>>,
 ) {
     // Update text if we have a UI panel
@@ -277,30 +272,8 @@ fn update_tile_info_ui(
         } else {
             text.0 = "Click a tile to see info".to_string();
         }
-    } else if ui_root.is_empty() {
-        // Create UI panel if it doesn't exist - BUG #7 FIX: Responsive scaling
-        commands.spawn((
-            Node {
-                position_type: PositionType::Absolute,
-                bottom: Val::Percent(2.0),   // 2% from bottom
-                left: Val::Percent(2.0),     // 2% from left
-                padding: UiRect::all(Val::Percent(1.0)),  // 1% padding
-                ..default()
-            },
-            BackgroundColor(COLOR_TILE_INFO_BACKGROUND),
-            TileInfoPanel,
-        )).with_children(|parent| {
-            parent.spawn((
-                Text::new("Click a tile to see info"),
-                TextFont {
-                    font_size: 18.0,  // Slightly larger for readability
-                    ..default()
-                },
-                TextColor(Color::WHITE),
-                TileInfoText,
-            ));
-        });
     }
+    // Note: UI panel creation has been moved to ui.rs module to avoid duplication
 }
 
 /// Simulate time passing and nations expanding
@@ -309,6 +282,7 @@ fn simulate_time(
     time: Res<Time>,
     mut provinces: Query<&mut Province>,
     keyboard: Res<ButtonInput<KeyCode>>,
+    mut overlay_res: ResMut<ResourceOverlay>,
     mut last_year: Local<u64>, // BUG #2 FIX: Thread-safe local state instead of unsafe static
 ) {
     // Space to pause
@@ -333,6 +307,12 @@ fn simulate_time(
     if keyboard.just_pressed(KeyCode::Digit4) {
         game_time.speed = 10.0;
         println!("Speed: 10x");
+    }
+    
+    // M key to cycle resource overlay modes
+    if keyboard.just_pressed(KeyCode::KeyM) {
+        overlay_res.cycle();
+        println!("Resource Overlay: {}", overlay_res.display_name());
     }
     
     if game_time.paused {
@@ -361,7 +341,63 @@ fn simulate_time(
     }
 }
 
-// FPS display is now handled by UIPlugin
+/// Calculate world tension based on simulated nation conflicts
+/// This is a mock implementation until nations are fully implemented
+fn calculate_world_tension(
+    mut tension: ResMut<WorldTension>,
+    game_time: Res<GameTime>,
+    provinces: Query<&Province>,
+) {
+    // Skip if paused
+    if game_time.paused {
+        return;
+    }
+    
+    // Mock simulation of world events based on game time
+    // This creates a dynamic tension pattern that evolves over time
+    let years = game_time.current_date / 365.0;
+    
+    // Base tension from time progression (civilizations naturally develop conflicts)
+    let time_factor = (years / 1000.0).min(0.3); // Max 30% from time
+    
+    // Cyclic war patterns (wars tend to come in waves)
+    let war_cycle = ((years / 50.0).sin() + 1.0) / 2.0; // 50-year war cycles
+    let minor_conflicts = ((years / 7.0).sin() + 1.0) / 4.0; // 7-year minor conflicts
+    
+    // Random events (simplified - would be event-driven in real implementation)
+    let crisis_chance = if years as i32 % 100 < 5 { 0.2 } else { 0.0 }; // Major crisis every ~100 years
+    
+    // Count land provinces (proxy for number of nations)
+    let _land_provinces = provinces.iter()
+        .filter(|p| p.terrain != TerrainType::Ocean)
+        .count() as f32;
+    
+    // Simulate percentage of nations at war
+    // This would be calculated from actual nation states in the full implementation
+    let base_war_percentage = (time_factor + war_cycle * 0.3 + minor_conflicts * 0.1 + crisis_chance).min(1.0);
+    
+    // Apply the exponential curve for tension calculation
+    let calculated_tension = WorldTension::calculate_from_war_percentage(base_war_percentage);
+    
+    // Update the contributing factors (mock values)
+    tension.war_factor = base_war_percentage;
+    tension.power_imbalance = war_cycle * 0.2; // Some nations becoming too powerful
+    tension.economic_stress = minor_conflicts * 0.15; // Economic disruption from conflicts
+    tension.instability_factor = crisis_chance; // Major events causing instability
+    
+    // Set the target tension (physics system will smoothly interpolate to it)
+    tension.target = calculated_tension;
+    
+    // Debug output occasionally
+    if game_time.current_date as i32 % 1000 == 0 {
+        println!("World Tension: {:.1}% (Target: {:.1}%, Wars: {:.1}%)",
+            tension.current * 100.0,
+            tension.target * 100.0,
+            base_war_percentage * 100.0
+        );
+    }
+}
+
 // animate_clouds is now handled by CloudPlugin
 
 // Camera control is now handled by CameraPlugin

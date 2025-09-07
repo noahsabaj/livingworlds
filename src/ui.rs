@@ -1,15 +1,16 @@
 //! User Interface module for Living Worlds
 //! 
-//! Handles all UI elements including FPS display, simulation controls,
+//! Handles all UI elements including simulation controls,
 //! and game state information display.
 
 use bevy::prelude::*;
-use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
-use crate::constants::*;
+use crate::resources::ResourceOverlay;
+use crate::components::{TileInfoPanel, TileInfoText, MineralType};
+use crate::constants::COLOR_TILE_INFO_BACKGROUND;
 
-/// Marker component for FPS text display
+/// Marker component for the resource overlay display text
 #[derive(Component)]
-pub struct FpsText;
+pub struct ResourceOverlayText;
 
 /// UI Plugin that handles all user interface elements
 pub struct UIPlugin;
@@ -18,75 +19,213 @@ impl Plugin for UIPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_systems(Startup, setup_ui)
-            .add_systems(Update, fps_display_system);
+            .add_systems(Update, update_overlay_display);
     }
 }
 
-/// Setup the UI elements including FPS counter
+/// Setup the UI elements
 pub fn setup_ui(mut commands: Commands) {
-    // Setup FPS display in bottom-right corner with responsive scaling
-    let _fps_container = commands.spawn((
+    // Resource overlay legend in top-left with colored squares
+    commands.spawn((
         Node {
             position_type: PositionType::Absolute,
-            bottom: Val::Percent(UI_MARGIN_PERCENT),
-            right: Val::Percent(UI_MARGIN_PERCENT),
-            padding: UiRect::all(Val::Percent(UI_PADDING_PERCENT)),
-            width: Val::Auto,
-            height: Val::Auto,
+            top: Val::Px(10.0),
+            left: Val::Px(10.0),
+            flex_direction: FlexDirection::Column,
+            padding: UiRect::all(Val::Px(8.0)),
+            min_width: Val::Px(180.0),
             ..default()
         },
-        BackgroundColor(COLOR_UI_BACKGROUND),
-        Visibility::Visible,
+        BackgroundColor(Color::srgba(0.05, 0.05, 0.05, 0.85)),
+        ZIndex(100),
     )).with_children(|parent| {
+        // Current overlay display
         parent.spawn((
-            Text::new("FPS: LOADING"),  // Initial loading text
-            TextFont {
-                font_size: UI_FPS_TEXT_SIZE,
+            Node {
+                margin: UiRect::bottom(Val::Px(4.0)),
                 ..default()
             },
-            TextColor(COLOR_FPS_ACCEPTABLE),
-            FpsText,
+            BackgroundColor(Color::NONE),
+        )).with_children(|p| {
+            p.spawn((
+                Text::new("Political Map"),
+                TextFont {
+                    font_size: 20.0,
+                    ..default()
+                },
+                TextColor(Color::WHITE),
+                ResourceOverlayText,
+            ));
+        });
+        
+        // Divider line
+        parent.spawn((
+            Node {
+                height: Val::Px(1.0),
+                width: Val::Percent(100.0),
+                margin: UiRect::vertical(Val::Px(4.0)),
+                ..default()
+            },
+            BackgroundColor(Color::srgba(1.0, 1.0, 1.0, 0.2)),
         ));
-    }).id();
-    
-    // UI initialized with FPS display
-}
-
-/// FPS display update system - Updates the FPS counter with color coding
-pub fn fps_display_system(
-    diagnostics: Res<DiagnosticsStore>,
-    mut text_query: Query<(&mut Text, &mut TextColor), With<FpsText>>,
-) {
-    for (mut text, mut text_color) in &mut text_query {
-        // Always update FPS text
-        if let Some(fps) = diagnostics.get(&FrameTimeDiagnosticsPlugin::FPS) {
-            if let Some(value) = fps.smoothed() {
-                // Update the text content
-                *text = Text::new(format!("FPS: {:.1}", value));
+        
+        // Mineral legend with colored squares
+        // Title for legend
+        parent.spawn((
+            Node {
+                margin: UiRect::bottom(Val::Px(4.0)),
+                ..default()
+            },
+            BackgroundColor(Color::NONE),
+        )).with_children(|p| {
+            p.spawn((
+                Text::new("Mineral Legend:"),
+                TextFont {
+                    font_size: 14.0,
+                    ..default()
+                },
+                TextColor(Color::srgba(0.8, 0.8, 0.8, 1.0)),
+            ));
+        });
+        
+        // Define minerals with their colors and chemical symbols
+        let minerals = [
+            (MineralType::Iron, "Fe", Color::srgb(0.7, 0.3, 0.2)),      // Rusty brown
+            (MineralType::Copper, "Cu", Color::srgb(0.7, 0.4, 0.2)),    // Copper orange
+            (MineralType::Tin, "Sn", Color::srgb(0.6, 0.6, 0.7)),       // Silver-grey
+            (MineralType::Gold, "Au", Color::srgb(1.0, 0.84, 0.0)),     // Gold
+            (MineralType::Coal, "C", Color::srgb(0.2, 0.2, 0.2)),       // Black
+            (MineralType::Stone, "Si", Color::srgb(0.5, 0.5, 0.5)),     // Grey
+            (MineralType::Gems, "💎", Color::srgb(0.5, 0.2, 0.9)),      // Purple
+        ];
+        
+        // Create a row for each mineral
+        for (_mineral_type, symbol, color) in minerals.iter() {
+            parent.spawn((
+                Node {
+                    flex_direction: FlexDirection::Row,
+                    align_items: AlignItems::Center,
+                    margin: UiRect::bottom(Val::Px(2.0)),
+                    ..default()
+                },
+                BackgroundColor(Color::NONE),
+            )).with_children(|row| {
+                // Colored square
+                row.spawn((
+                    Node {
+                        width: Val::Px(16.0),
+                        height: Val::Px(16.0),
+                        margin: UiRect::right(Val::Px(6.0)),
+                        border: UiRect::all(Val::Px(1.0)),
+                        ..default()
+                    },
+                    BackgroundColor(*color),
+                    BorderColor(Color::srgba(0.3, 0.3, 0.3, 1.0)),
+                )).with_children(|square| {
+                    // Chemical symbol in the square
+                    square.spawn((
+                        Node {
+                            position_type: PositionType::Absolute,
+                            width: Val::Percent(100.0),
+                            height: Val::Percent(100.0),
+                            justify_content: JustifyContent::Center,
+                            align_items: AlignItems::Center,
+                            ..default()
+                        },
+                        BackgroundColor(Color::NONE),
+                    )).with_children(|s| {
+                        s.spawn((
+                            Text::new(*symbol),
+                            TextFont {
+                                font_size: 10.0,
+                                ..default()
+                            },
+                            TextColor(Color::WHITE),
+                        ));
+                    });
+                });
                 
-                // Color code based on performance
-                // Color based on FPS thresholds
-                let color = if value >= FPS_GOOD_THRESHOLD as f64 {
-                    COLOR_FPS_GOOD
-                } else if value >= FPS_ACCEPTABLE_THRESHOLD as f64 {
-                    COLOR_FPS_ACCEPTABLE
-                } else {
-                    COLOR_FPS_POOR
+                // Mineral name
+                let name = match symbol {
+                    &"Fe" => "Iron",
+                    &"Cu" => "Copper",
+                    &"Sn" => "Tin",
+                    &"Au" => "Gold",
+                    &"C" => "Coal",
+                    &"Si" => "Stone",
+                    _ => "Gems",
                 };
                 
-                // Update the text color
-                text_color.0 = color;
-            } else {
-                // No smoothed data yet, show raw FPS
-                if let Some(value) = fps.value() {
-                    *text = Text::new(format!("FPS: {:.1}", value));
-                    text_color.0 = COLOR_FPS_ACCEPTABLE;
-                }
-            }
-        } else {
-            // Diagnostics not available yet
-            *text = Text::new("FPS: Initializing...");
-            text_color.0 = COLOR_FPS_INITIALIZING;
+                row.spawn((
+                    Text::new(name),
+                    TextFont {
+                        font_size: 12.0,
+                        ..default()
+                    },
+                    TextColor(Color::srgba(0.7, 0.7, 0.7, 1.0)),
+                ));
+            });
         }
+    });
+    
+    // Tile info panel - moved to bottom-right to avoid overlap
+    commands.spawn((
+        Node {
+            position_type: PositionType::Absolute,
+            bottom: Val::Px(10.0),
+            right: Val::Px(10.0),  // Changed from left to right
+            padding: UiRect::all(Val::Px(10.0)),
+            min_width: Val::Px(250.0),
+            ..default()
+        },
+        BackgroundColor(COLOR_TILE_INFO_BACKGROUND),
+        TileInfoPanel,
+        ZIndex(100),
+    )).with_children(|parent| {
+        parent.spawn((
+            Text::new("Click a tile to see info"),
+            TextFont {
+                font_size: 16.0,
+                ..default()
+            },
+            TextColor(Color::WHITE),
+            TileInfoText,
+        ));
+    });
+    
+    // Controls help text in bottom-left
+    commands.spawn((
+        Node {
+            position_type: PositionType::Absolute,
+            bottom: Val::Px(10.0),
+            left: Val::Px(10.0),
+            padding: UiRect::all(Val::Px(8.0)),
+            ..default()
+        },
+        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.6)),
+        ZIndex(100),
+    )).with_children(|parent| {
+        parent.spawn((
+            Text::new("M - Cycle Resource Overlay | Space - Pause | 1-4 - Speed | ESC - Exit"),
+            TextFont {
+                font_size: 14.0,
+                ..default()
+            },
+            TextColor(Color::srgba(0.9, 0.9, 0.9, 1.0)),  // Brighter text
+        ));
+    });
+}
+
+/// Update the resource overlay display text
+pub fn update_overlay_display(
+    overlay: Res<ResourceOverlay>,
+    mut query: Query<&mut Text, With<ResourceOverlayText>>,
+) {
+    if !overlay.is_changed() {
+        return;
+    }
+    
+    for mut text in query.iter_mut() {
+        *text = Text::new(overlay.display_name());
     }
 }

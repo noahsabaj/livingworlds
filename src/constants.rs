@@ -59,15 +59,12 @@ pub const CAMERA_EDGE_PAN_THRESHOLD: f32 = 10.0;
 /// Base speed for edge panning (pixels per second)
 pub const CAMERA_EDGE_PAN_SPEED_BASE: f32 = 800.0;
 
-/// Padding factor when fitting map to screen (1.1 = 10% padding)
-pub const CAMERA_MAP_PADDING_FACTOR: f32 = 1.1;
+/// Padding factor when fitting map to screen (1.25 = 25% padding for better overview)
+pub const CAMERA_MAP_PADDING_FACTOR: f32 = 1.25;
 
 // ============================================================================
 // UI CONSTANTS
 // ============================================================================
-
-/// Font size for FPS display
-pub const UI_FPS_TEXT_SIZE: f32 = 48.0;
 
 /// Font size for tile info panel
 pub const UI_TILE_INFO_TEXT_SIZE: f32 = 18.0;
@@ -77,12 +74,6 @@ pub const UI_PADDING_PERCENT: f32 = 1.0;
 
 /// UI margin from screen edges as percentage
 pub const UI_MARGIN_PERCENT: f32 = 2.0;
-
-/// FPS threshold for good performance (green)
-pub const FPS_GOOD_THRESHOLD: f32 = 30.0;
-
-/// FPS threshold for acceptable performance (yellow)
-pub const FPS_ACCEPTABLE_THRESHOLD: f32 = 15.0;
 
 // ============================================================================
 // SIMULATION CONSTANTS
@@ -122,18 +113,6 @@ pub const CLOUD_BASE_SPEED: f32 = 10.0;
 
 /// Deep ocean background color
 pub const COLOR_OCEAN_BACKGROUND: Color = Color::srgb(0.02, 0.08, 0.15);
-
-/// FPS counter color for good performance (>30 FPS)
-pub const COLOR_FPS_GOOD: Color = Color::srgb(0.0, 1.0, 0.0);  // Green
-
-/// FPS counter color for acceptable performance (15-30 FPS)
-pub const COLOR_FPS_ACCEPTABLE: Color = Color::srgb(1.0, 1.0, 0.0);  // Yellow
-
-/// FPS counter color for poor performance (<15 FPS)
-pub const COLOR_FPS_POOR: Color = Color::srgb(1.0, 0.0, 0.0);  // Red
-
-/// FPS counter color while initializing
-pub const COLOR_FPS_INITIALIZING: Color = Color::srgb(0.5, 0.5, 0.5);  // Gray
 
 /// UI panel background color
 pub const COLOR_UI_BACKGROUND: Color = Color::srgba(0.0, 0.0, 0.0, 0.9);  // Dark semi-transparent
