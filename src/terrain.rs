@@ -268,7 +268,7 @@ pub fn generate_elevation(
     elevation = (elevation + 1.0) / 2.0;
     
     // Apply continent influence - land masses form around continent centers
-    let mut continent_influence = 0.0;
+    let mut continent_influence: f32 = 0.0;
     for &(cx, cy) in continent_centers {
         let distance = ((x - cx).powi(2) + (y - cy).powi(2)).sqrt();
         let max_influence_distance = 3000.0; // How far continents extend

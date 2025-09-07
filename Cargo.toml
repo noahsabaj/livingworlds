@@ -5,6 +5,10 @@ edition = "2021"
 authors = ["Living Worlds Team"]
 license = "MIT"
 
+[lib]
+name = "living_worlds"
+path = "src/lib.rs"
+
 [[bin]]
 name = "living-worlds"
 path = "src/main.rs"

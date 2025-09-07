@@ -2,40 +2,15 @@
 //! 
 //! An observer civilization simulation built with Bevy
 
-// Module declarations
-mod clouds;
-mod terrain;
-
 use bevy::prelude::*;
-use bevy::input::mouse::{MouseWheel, MouseScrollUnit};
-use bevy::render::camera::Projection;
-use bevy::audio::AudioPlugin;
-use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
-// In Bevy 0.16, Parent was renamed to ChildOf
-
-// Import our modules
-use clouds::{CloudPlugin, spawn_clouds};
-use terrain::{TerrainPlugin, TerrainType, ClimateZone,
-              classify_terrain_with_climate, get_terrain_color_gradient,
-              generate_continent_centers, get_terrain_population_multiplier};
-
-// World scale constants
-const KILOMETERS_PER_HEX: f32 = 50.0; // Each hexagon represents 50km across
-const HEX_SIZE_PIXELS: f32 = 50.0; // Visual size in pixels (radius)
-
-// Map dimensions - no more magic numbers! (BUG #10 FIX)
-const PROVINCES_PER_ROW: u32 = 300;  // Massive world width
-const PROVINCES_PER_COL: u32 = 200;  // Massive world height
-const EDGE_BUFFER: f32 = 200.0; // Force ocean within this distance from edge
-const SQRT3: f32 = 1.732050808; // sqrt(3) for hexagon math
-
-// FLAT-TOP hexagon HONEYCOMB pattern:
-// Hexagon width (point-to-point): radius * 2
-// Hexagon height (flat-to-flat): radius * sqrt(3)
-// Column spacing (center-to-center): radius * 1.5 (hexagons overlap by 0.5 width)
-// Row spacing (center-to-center): radius * sqrt(3)
-// Odd columns shift UP by half row spacing: radius * sqrt(3) / 2
 use bevy::window::PrimaryWindow;
+
+// Import from our library
+use living_worlds::prelude::*;
+use living_worlds::{
+    build_app, WorldSeed, WorldSize, ShowFps, GameTime,
+    HEX_SIZE_PIXELS, PROVINCES_PER_ROW, PROVINCES_PER_COL,
+};
 use clap::Parser;
 use std::time::{SystemTime, UNIX_EPOCH};
 use rand::prelude::*;
@@ -77,90 +52,28 @@ fn main() {
     
     // Platform integration can be added here later
     
-    // Build the Bevy app
-    let mut app = App::new();
+    // Build the Bevy app using our library function
+    let mut app = build_app();
     
-    // Platform integration will be added here when needed
-    
-    // Default plugins with proper window settings and audio disabled
-    app.add_plugins(
-        DefaultPlugins
-            .set(WindowPlugin {
-                primary_window: Some(Window {
-                    title: "Living Worlds".into(),
-                    resolution: (1920.0, 1080.0).into(),
-                    resizable: true,
-                    mode: bevy::window::WindowMode::Windowed, // Start windowed for easier testing
-                    ..default()
-                }),
-                ..default()
-            })
-            .disable::<AudioPlugin>()  // Disable audio to avoid ALSA underrun errors
-    )
-    .add_plugins(FrameTimeDiagnosticsPlugin::default());
-    
-    // Insert world configuration
+    // Add game-specific resources and configuration
     app.insert_resource(WorldSeed(args.seed.unwrap()))
         .insert_resource(WorldSize::from_str(&args.world_size))
         .insert_resource(ShowFps(true))  // FPS display always on for now
-        // Insert simulation state
-        // TODO: Create proper SimulationState initialization
-        /*
-        .insert_resource(SimulationState {
-            // SimulationState fields need to be initialized
-            current_turn: 0,
-            game_time: lw_core::shared_types::GameTime::new(1000, 1, 1),
-            paused: false,
-            // ... other fields
-        })
-        */
-        // Add plugins for modular systems
-        .add_plugins(CloudPlugin)
-        .add_plugins(TerrainPlugin)
+        .insert_resource(GameTime::default())
         // Add our game systems
         .add_systems(Startup, setup_world)
         .add_systems(Update, (
             handle_input,
-            camera_control_system,
             handle_tile_selection,
             draw_hexagon_borders,
             update_provinces,
             simulate_time,
             update_tile_info_ui,
-            fps_display_system,
         ))
         .run();
 }
 
-/// Resource holding the world generation seed
-#[derive(Resource)]
-struct WorldSeed(u32);
-
-/// Resource for world size configuration
-#[derive(Resource)]
-enum WorldSize {
-    Small,  // 1000 provinces
-    Medium, // 2000 provinces
-    Large,  // 5000 provinces
-}
-
-impl WorldSize {
-    fn from_str(s: &str) -> Self {
-        match s.to_lowercase().as_str() {
-            "small" => WorldSize::Small,
-            "large" => WorldSize::Large,
-            _ => WorldSize::Medium,
-        }
-    }
-    
-    fn province_count(&self) -> usize {
-        match self {
-            WorldSize::Small => 1000,
-            WorldSize::Medium => 2000,
-            WorldSize::Large => 5000,
-        }
-    }
-}
+// Resources are now defined in lib.rs
 
 // TerrainType and ClimateZone are now imported from terrain module
 
@@ -265,13 +178,7 @@ struct Nation {
     color: Color,
 }
 
-/// Resource tracking time
-#[derive(Resource)]
-struct GameTime {
-    tick: u64,
-    speed: f32,
-    paused: bool,
-}
+// GameTime is now defined in lib.rs
 
 /// Generate elevation using advanced noise techniques for main game logic
 /// This version includes map edge handling specific to our game
@@ -401,9 +308,7 @@ fn generate_elevation_with_edges(x: f32, y: f32, perlin: &Perlin, continent_cent
 // All terrain functions are now imported from terrain module
 
 
-/// Marker for FPS text
-#[derive(Component)]
-struct FpsText;
+// FpsText component is now in ui module
 
 // Cloud system components and resources are now in clouds module
 
@@ -483,44 +388,12 @@ fn setup_world(
     seed: Res<WorldSeed>,
     _size: Res<WorldSize>,
 ) {
-    // Add 2D camera - Camera2d already includes the projection internally
-    commands.spawn((
-        Camera2d,
-        Camera {
-            clear_color: ClearColorConfig::Custom(Color::srgb(0.02, 0.08, 0.15)), // Deep ocean background
-            ..default()
-        },
-    ));
+    // Camera setup is now handled by CameraPlugin
     
     // Initialize spatial index for fast province lookups
     let mut spatial_index = ProvincesSpatialIndex::default();
     
-    // Setup FPS display in bottom-right corner with responsive scaling - BUG #7 FIX
-    let fps_container = commands.spawn((
-        Node {
-            position_type: PositionType::Absolute,
-            bottom: Val::Percent(2.0),  // 2% from bottom
-            right: Val::Percent(2.0),   // 2% from right
-            padding: UiRect::all(Val::Percent(1.0)),  // 1% padding
-            width: Val::Auto,
-            height: Val::Auto,
-            ..default()
-        },
-        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.9)), // Darker black background
-        Visibility::Visible,
-    )).with_children(|parent| {
-        parent.spawn((
-            Text::new("FPS: LOADING"),  // Start with visible loading text
-            TextFont {
-                font_size: 48.0,  // Still large but more reasonable
-                ..default()
-            },
-            TextColor(Color::srgb(1.0, 1.0, 0.0)), // YELLOW for maximum contrast
-            FpsText,
-        ));
-    }).id();
-    
-    println!("FPS display entity spawned with ID: {:?}", fps_container);
+    // UI setup is now handled by UIPlugin
     
     // Initialize Perlin noise with seed
     let perlin = Perlin::new(seed.0);
@@ -835,12 +708,7 @@ fn setup_world(
         }
     }
     
-    // Initialize game time
-    commands.insert_resource(GameTime {
-        tick: 0,
-        speed: 1.0,
-        paused: false,
-    });
+    // Game time is already initialized by main()
     
     // Initialize selected province resource
     commands.insert_resource(SelectedProvinceInfo::default());
@@ -858,9 +726,7 @@ fn setup_world(
 }
 
 
-/// Resource to track FPS display visibility
-#[derive(Resource)]
-struct ShowFps(bool);
+// ShowFps is now defined in lib.rs
 
 /// Handle keyboard input
 fn handle_input(
@@ -1124,12 +990,12 @@ fn simulate_time(
         return;
     }
     
-    // Advance time
-    game_time.tick += (time.delta().as_secs_f32() * game_time.speed) as u64;
+    // Advance time (in days)
+    game_time.current_date += time.delta().as_secs_f32() * game_time.speed;
     
-    // Every 100 ticks, simulate population growth
-    if game_time.tick % 100 == 0 {
-        let year = 1000 + game_time.tick / 365;
+    // Every 100 days, simulate population growth
+    if game_time.current_date as u64 % 100 == 0 {
+        let year = 1000 + (game_time.current_date / 365.0) as u64;
         
         // Only print year when it actually changes - BUG #2 FIX: Using Local instead of unsafe static
         if year != *last_year {
@@ -1146,150 +1012,7 @@ fn simulate_time(
     }
 }
 
-/// FPS display system - Always updates the FPS counter
-fn fps_display_system(
-    diagnostics: Res<DiagnosticsStore>,
-    mut text_query: Query<(&mut Text, &mut TextColor), With<FpsText>>,
-) {
-    for (mut text, mut text_color) in &mut text_query {
-        // Always update FPS text
-        if let Some(fps) = diagnostics.get(&FrameTimeDiagnosticsPlugin::FPS) {
-            if let Some(value) = fps.smoothed() {
-                // Update the text content
-                *text = Text::new(format!("FPS: {:.1}", value));
-                
-                // Color code based on performance
-                // Green > 30 FPS, Yellow 15-30 FPS, Red < 15 FPS
-                let color = if value >= 30.0 {
-                    Color::srgb(0.0, 1.0, 0.0) // Green
-                } else if value >= 15.0 {
-                    Color::srgb(1.0, 1.0, 0.0) // Yellow  
-                } else {
-                    Color::srgb(1.0, 0.0, 0.0) // Red
-                };
-                
-                // Update the text color
-                text_color.0 = color;
-            }
-        }
-    }
-}
-
+// FPS display is now handled by UIPlugin
 // animate_clouds is now handled by CloudPlugin
 
-/// Camera control system for zoom and pan with edge scrolling
-fn camera_control_system(
-    mut query: Query<(&mut Projection, &mut Transform), With<Camera>>,
-    keyboard: Res<ButtonInput<KeyCode>>,
-    mut mouse_wheel: EventReader<MouseWheel>,
-    windows: Query<&Window, With<PrimaryWindow>>,
-    time: Res<Time>,
-) {
-    // Get window for mouse position and dimensions
-    let Ok(window) = windows.single() else { return; };
-    
-    // Calculate map dimensions - MASSIVE world
-    let provinces_per_row = PROVINCES_PER_ROW;
-    let provinces_per_col = PROVINCES_PER_COL;
-    // POINTY-TOP hexagon dimensions (correct spacing)
-    let map_width_pixels = provinces_per_row as f32 * HEX_SIZE_PIXELS * SQRT3; // sqrt(3) horizontal
-    let map_height_pixels = provinces_per_col as f32 * HEX_SIZE_PIXELS * 1.5; // 3/2 vertical
-    
-    for (mut projection, mut transform) in query.iter_mut() {
-        // Handle zoom only for orthographic projections
-        if let Projection::Orthographic(ref mut ortho) = projection.as_mut() {
-            // Zoom with mouse wheel
-            for event in mouse_wheel.read() {
-                let zoom_speed = 0.1;
-                let zoom_delta = match event.unit {
-                    MouseScrollUnit::Line => event.y,
-                    MouseScrollUnit::Pixel => event.y * 0.01,
-                };
-                
-                // Apply zoom (inverted so scrolling up zooms in)
-                let old_scale = ortho.scale;
-                ortho.scale *= 1.0 - zoom_delta * zoom_speed;
-                
-                // Calculate minimum zoom to show entire map
-                // The scale should fit the map within the window
-                let min_zoom_x = map_width_pixels / window.width();
-                let min_zoom_y = map_height_pixels / window.height();
-                let min_zoom = min_zoom_x.max(min_zoom_y) * 1.1; // Add 10% padding
-                
-                // Clamp zoom levels - min zoom shows entire map
-                ortho.scale = ortho.scale.clamp(0.2, min_zoom.max(3.0));
-                
-                // Debug logging
-                if old_scale != ortho.scale {
-                    println!("Camera zoom: {} -> {}", old_scale, ortho.scale);
-                }
-            }
-        }
-        
-        // Get current scale for pan speed calculation
-        let current_scale = if let Projection::Orthographic(ref ortho) = projection.as_ref() {
-            ortho.scale
-        } else {
-            1.0
-        };
-        
-        // Pan with WASD or arrow keys
-        // SHIFT modifier for 3x faster movement
-        let speed_multiplier = if keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight) {
-            3.0
-        } else {
-            1.0
-        };
-        let pan_speed = 500.0 * current_scale * time.delta_secs() * speed_multiplier;
-        
-        if keyboard.pressed(KeyCode::KeyW) || keyboard.pressed(KeyCode::ArrowUp) {
-            transform.translation.y += pan_speed;
-        }
-        if keyboard.pressed(KeyCode::KeyS) || keyboard.pressed(KeyCode::ArrowDown) {
-            transform.translation.y -= pan_speed;
-        }
-        if keyboard.pressed(KeyCode::KeyA) || keyboard.pressed(KeyCode::ArrowLeft) {
-            transform.translation.x -= pan_speed;
-        }
-        if keyboard.pressed(KeyCode::KeyD) || keyboard.pressed(KeyCode::ArrowRight) {
-            transform.translation.x += pan_speed;
-        }
-        
-        // Mouse edge panning (like HOI4)
-        if let Some(cursor_pos) = window.cursor_position() {
-            let edge_threshold = 10.0; // Pixels from edge to trigger panning
-            let edge_speed = 800.0 * current_scale * time.delta_secs();
-            
-            // Check each edge
-            if cursor_pos.x <= edge_threshold {
-                transform.translation.x -= edge_speed; // Pan left
-            }
-            if cursor_pos.x >= window.width() - edge_threshold {
-                transform.translation.x += edge_speed; // Pan right
-            }
-            if cursor_pos.y <= edge_threshold {
-                transform.translation.y += edge_speed; // Pan up (Y is inverted in screen space)
-            }
-            if cursor_pos.y >= window.height() - edge_threshold {
-                transform.translation.y -= edge_speed; // Pan down
-            }
-        }
-        
-        // Handle Y-axis clamping (no wrapping on Y)
-        let max_y = (map_height_pixels / 2.0 - window.height() * current_scale / 2.0).max(0.0);
-        if max_y <= 0.0 {
-            transform.translation.y = 0.0;
-        } else {
-            transform.translation.y = transform.translation.y.clamp(-max_y, max_y);
-        }
-        
-        // BUG #5 FIX: Disable X-axis wrapping since ghost provinces are disabled
-        // Clamp X-axis movement to map boundaries (no infinite scrolling)
-        let max_x = (map_width_pixels / 2.0 - window.width() * current_scale / 2.0).max(0.0);
-        if max_x <= 0.0 {
-            transform.translation.x = 0.0;
-        } else {
-            transform.translation.x = transform.translation.x.clamp(-max_x, max_x);
-        }
-    }
-}
+// Camera control is now handled by CameraPlugin
