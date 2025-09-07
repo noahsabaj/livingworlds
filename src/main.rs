@@ -9,7 +9,6 @@ use bevy::window::PrimaryWindow;
 use living_worlds::prelude::*;
 use living_worlds::{
     build_app, WorldSeed, WorldSize, ShowFps, GameTime,
-    HEX_SIZE_PIXELS,
 };
 use clap::Parser;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -288,7 +287,7 @@ fn update_tile_info_ui(
                 padding: UiRect::all(Val::Percent(1.0)),  // 1% padding
                 ..default()
             },
-            BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.9)),
+            BackgroundColor(COLOR_TILE_INFO_BACKGROUND),
             TileInfoPanel,
         )).with_children(|parent| {
             parent.spawn((

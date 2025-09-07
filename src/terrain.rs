@@ -8,10 +8,6 @@ use noise::{NoiseFn, Perlin};
 use rand::prelude::*;
 use rand::rngs::StdRng;
 
-/// Constants for terrain generation
-pub const EDGE_BUFFER: f32 = 200.0; // Force ocean within this distance from edge
-pub const SQRT3: f32 = 1.732050808; // sqrt(3) for hexagon math
-
 /// TerrainType represents the physical terrain of a province
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TerrainType {

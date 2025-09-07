@@ -7,6 +7,7 @@ use bevy::prelude::*;
 use noise::{NoiseFn, Perlin};
 use rand::prelude::*;
 use rand::rngs::StdRng;
+use crate::constants::*;
 
 /// Cloud layer depth for parallax effect
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -143,7 +144,7 @@ pub fn spawn_clouds(
         for _ in 0..num_clouds {
             let x = rng.gen_range(-map_width..map_width);
             let y = rng.gen_range(-map_height..map_height);
-            let scale = rng.gen_range(3.0..6.0);  // Vary cloud sizes
+            let scale = rng.gen_range(CLOUD_MIN_SCALE..CLOUD_MAX_SCALE);
             
             commands.spawn((
                 Sprite {
@@ -170,9 +171,9 @@ pub fn animate_clouds(
     _cloud_settings: Res<CloudSettings>,
     time: Res<Time>,
 ) {
-    // Use constants from parent module (will be passed as parameters later)
-    const MAP_WIDTH: f32 = 300.0 * 50.0 * 1.5;
-    const MAP_HEIGHT: f32 = 200.0 * 50.0 * 1.732050808;
+    // Use global constants for map dimensions
+    const MAP_WIDTH: f32 = MAP_WIDTH_PIXELS;
+    const MAP_HEIGHT: f32 = MAP_HEIGHT_PIXELS;
     
     for (cloud, mut transform) in &mut clouds {
         // Move cloud based on its layer's speed and wind direction

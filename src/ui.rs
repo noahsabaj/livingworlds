@@ -5,6 +5,7 @@
 
 use bevy::prelude::*;
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
+use crate::constants::*;
 
 /// Marker component for FPS text display
 #[derive(Component)]
@@ -24,26 +25,26 @@ impl Plugin for UIPlugin {
 /// Setup the UI elements including FPS counter
 pub fn setup_ui(mut commands: Commands) {
     // Setup FPS display in bottom-right corner with responsive scaling
-    let fps_container = commands.spawn((
+    let _fps_container = commands.spawn((
         Node {
             position_type: PositionType::Absolute,
-            bottom: Val::Percent(2.0),  // 2% from bottom
-            right: Val::Percent(2.0),   // 2% from right
-            padding: UiRect::all(Val::Percent(1.0)),  // 1% padding
+            bottom: Val::Percent(UI_MARGIN_PERCENT),
+            right: Val::Percent(UI_MARGIN_PERCENT),
+            padding: UiRect::all(Val::Percent(UI_PADDING_PERCENT)),
             width: Val::Auto,
             height: Val::Auto,
             ..default()
         },
-        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.9)), // Dark background
+        BackgroundColor(COLOR_UI_BACKGROUND),
         Visibility::Visible,
     )).with_children(|parent| {
         parent.spawn((
             Text::new("FPS: LOADING"),  // Initial loading text
             TextFont {
-                font_size: 48.0,  // Large but reasonable size
+                font_size: UI_FPS_TEXT_SIZE,
                 ..default()
             },
-            TextColor(Color::srgb(1.0, 1.0, 0.0)), // Yellow for initial visibility
+            TextColor(COLOR_FPS_ACCEPTABLE),
             FpsText,
         ));
     }).id();
@@ -64,13 +65,13 @@ pub fn fps_display_system(
                 *text = Text::new(format!("FPS: {:.1}", value));
                 
                 // Color code based on performance
-                // Green > 30 FPS, Yellow 15-30 FPS, Red < 15 FPS
-                let color = if value >= 30.0 {
-                    Color::srgb(0.0, 1.0, 0.0) // Green - good performance
-                } else if value >= 15.0 {
-                    Color::srgb(1.0, 1.0, 0.0) // Yellow - acceptable
+                // Color based on FPS thresholds
+                let color = if value >= FPS_GOOD_THRESHOLD as f64 {
+                    COLOR_FPS_GOOD
+                } else if value >= FPS_ACCEPTABLE_THRESHOLD as f64 {
+                    COLOR_FPS_ACCEPTABLE
                 } else {
-                    Color::srgb(1.0, 0.0, 0.0) // Red - poor performance
+                    COLOR_FPS_POOR
                 };
                 
                 // Update the text color
@@ -79,13 +80,13 @@ pub fn fps_display_system(
                 // No smoothed data yet, show raw FPS
                 if let Some(value) = fps.value() {
                     *text = Text::new(format!("FPS: {:.1}", value));
-                    text_color.0 = Color::srgb(1.0, 1.0, 0.0); // Yellow while warming up
+                    text_color.0 = COLOR_FPS_ACCEPTABLE;
                 }
             }
         } else {
             // Diagnostics not available yet
             *text = Text::new("FPS: Initializing...");
-            text_color.0 = Color::srgb(0.5, 0.5, 0.5); // Gray for initializing
+            text_color.0 = COLOR_FPS_INITIALIZING;
         }
     }
 }

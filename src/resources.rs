@@ -90,9 +90,9 @@ pub struct ProvincesSpatialIndex {
 
 impl Default for ProvincesSpatialIndex {
     fn default() -> Self {
-        use crate::HEX_SIZE_PIXELS;
+        use crate::constants::{HEX_SIZE_PIXELS, SPATIAL_INDEX_CELL_SIZE_MULTIPLIER};
         Self {
-            cell_size: HEX_SIZE_PIXELS * 2.0, // 2x hex size for good coverage
+            cell_size: HEX_SIZE_PIXELS * SPATIAL_INDEX_CELL_SIZE_MULTIPLIER,
             grid: HashMap::new(),
         }
     }

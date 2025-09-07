@@ -8,6 +8,7 @@
 pub mod camera;
 pub mod clouds;
 pub mod components;
+pub mod constants;
 pub mod resources;
 pub mod setup;
 pub mod terrain;
@@ -21,6 +22,7 @@ pub mod prelude {
         Province, Nation, SelectedProvince, GhostProvince,
         TileInfoPanel, TileInfoText,
     };
+    pub use crate::constants::*;
     pub use crate::resources::{
         WorldSeed, WorldSize, ShowFps, GameTime,
         SelectedProvinceInfo, ProvincesSpatialIndex,
@@ -30,7 +32,7 @@ pub mod prelude {
         TerrainPlugin, TerrainType, ClimateZone,
         classify_terrain_with_climate, get_terrain_color_gradient,
         generate_elevation, generate_continent_centers,
-        get_terrain_population_multiplier, EDGE_BUFFER, SQRT3,
+        get_terrain_population_multiplier,
     };
     pub use crate::ui::{UIPlugin, FpsText};
 }
@@ -80,7 +82,5 @@ pub fn build_app() -> App {
 // Re-export resources for backward compatibility
 pub use resources::{WorldSeed, WorldSize, ShowFps, GameTime};
 
-// Game constants - these should eventually move to a constants.rs file
-pub const HEX_SIZE_PIXELS: f32 = 50.0;
-pub const PROVINCES_PER_ROW: u32 = 300;
-pub const PROVINCES_PER_COL: u32 = 200;
+// Re-export commonly used constants for backward compatibility
+pub use constants::{HEX_SIZE_PIXELS, PROVINCES_PER_ROW, PROVINCES_PER_COL};

@@ -17,10 +17,7 @@ use crate::components::{Province, Nation};
 use crate::resources::{WorldSeed, WorldSize, ProvincesSpatialIndex, SelectedProvinceInfo};
 use crate::terrain::{TerrainType, classify_terrain_with_climate, get_terrain_color_gradient};
 use crate::clouds::spawn_clouds;
-use crate::{HEX_SIZE_PIXELS, PROVINCES_PER_ROW, PROVINCES_PER_COL};
-
-// Re-export these constants from terrain module
-use crate::terrain::{EDGE_BUFFER, SQRT3};
+use crate::constants::*;
 
 // ============================================================================
 // TEXTURE GENERATION
@@ -56,21 +53,21 @@ pub fn create_hexagon_texture(size: f32) -> Image {
             let distance_from_edge = dist_horizontal.max(dist_diagonal);
             
             // Apply antialiasing using smooth transition
-            let aa_width = 1.5; // Width of antialiasing in pixels
+            let aa_width = HEXAGON_AA_WIDTH;
             let alpha = if distance_from_edge <= -aa_width {
-                255 // Fully inside
+                TEXTURE_ALPHA_OPAQUE // Fully inside
             } else if distance_from_edge >= aa_width {
-                0 // Fully outside
+                TEXTURE_ALPHA_TRANSPARENT // Fully outside
             } else {
                 // Smooth transition zone
                 let t = (aa_width - distance_from_edge) / (aa_width * 2.0);
-                (t * 255.0) as u8
+                (t * TEXTURE_ALPHA_OPAQUE as f32) as u8
             };
             
             let idx = ((y * texture_width + x) * 4) as usize;
-            pixels[idx] = 255;     // R (white, will be tinted)
-            pixels[idx + 1] = 255; // G
-            pixels[idx + 2] = 255; // B
+            pixels[idx] = TEXTURE_ALPHA_OPAQUE;     // R (white, will be tinted)
+            pixels[idx + 1] = TEXTURE_ALPHA_OPAQUE; // G
+            pixels[idx + 2] = TEXTURE_ALPHA_OPAQUE; // B
             pixels[idx + 3] = alpha; // A (smooth edges)
         }
     }
@@ -261,7 +258,7 @@ pub fn setup_world(
              map_x_min, map_x_max, map_y_min, map_y_max);
     
     // Tectonic plate system for realistic continent distribution
-    let num_plates = 15 + (seed.0 % 10) as usize; // 15-25 plates for bigger map
+    let num_plates = TECTONIC_PLATES_BASE + (seed.0 % TECTONIC_PLATES_VARIATION) as usize;
     let mut plate_centers = Vec::new();
     let mut continent_centers = Vec::new();
     
@@ -281,7 +278,7 @@ pub fn setup_world(
     }
     
     // Add island chains at plate boundaries (convergent zones)
-    for _ in 0..8 {
+    for _ in 0..ISLAND_CHAIN_COUNT {
         if plate_centers.len() >= 2 {
             let idx1 = rng.gen_range(0..plate_centers.len());
             let idx2 = rng.gen_range(0..plate_centers.len());
@@ -356,7 +353,7 @@ pub fn setup_world(
                     TerrainType::Ice => 0.0,     // No permanent population on ice
                     _ => 1.0,
                 };
-                1000.0 + pop_factor * 49000.0 * terrain_multiplier
+                PROVINCE_MIN_POPULATION + pop_factor * PROVINCE_MAX_ADDITIONAL_POPULATION * terrain_multiplier
             };
             
             let province = Province {
@@ -374,7 +371,7 @@ pub fn setup_world(
     
     // Second pass: calculate ocean depths more efficiently
     // Build spatial grid for land positions for O(1) lookups
-    let grid_size = hex_size * 3.0; // Grid cells of 3 hex sizes
+    let grid_size = hex_size * OCEAN_DEPTH_GRID_SIZE_MULTIPLIER;
     let mut land_grid: HashMap<(i32, i32), Vec<Vec2>> = HashMap::new();
     
     for land_pos in land_positions.iter() {
@@ -472,7 +469,7 @@ pub fn setup_world(
     
     // Place nations on land using flood fill from random capitals
     if !land_provinces.is_empty() {
-        let nation_count = 8.min(land_provinces.len());
+        let nation_count = NATION_COUNT.min(land_provinces.len());
         let mut nations = Vec::new();
         let mut nation_capitals = Vec::new();
         

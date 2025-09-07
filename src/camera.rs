@@ -6,12 +6,7 @@
 use bevy::prelude::*;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::window::PrimaryWindow;
-
-// Import constants from parent module - will be passed as resources later
-const HEX_SIZE_PIXELS: f32 = 50.0;
-const SQRT3: f32 = 1.732050808;
-const PROVINCES_PER_ROW: usize = 300;
-const PROVINCES_PER_COL: usize = 200;
+use crate::constants::*;
 
 /// Camera control plugin for managing viewport and camera movement
 pub struct CameraPlugin;
@@ -30,7 +25,7 @@ pub fn setup_camera(mut commands: Commands) {
     commands.spawn((
         Camera2d,
         Camera {
-            clear_color: ClearColorConfig::Custom(Color::srgb(0.02, 0.08, 0.15)), // Deep ocean background
+            clear_color: ClearColorConfig::Custom(COLOR_OCEAN_BACKGROUND),
             ..default()
         },
         Name::new("Main Camera"),
@@ -51,8 +46,8 @@ pub fn camera_control_system(
     let Ok(window) = windows.single() else { return; };
     
     // Calculate map dimensions - MASSIVE world
-    let provinces_per_row = PROVINCES_PER_ROW;
-    let provinces_per_col = PROVINCES_PER_COL;
+    let provinces_per_row = PROVINCES_PER_ROW as usize;
+    let provinces_per_col = PROVINCES_PER_COL as usize;
     // POINTY-TOP hexagon dimensions (correct spacing)
     let map_width_pixels = provinces_per_row as f32 * HEX_SIZE_PIXELS * SQRT3; // sqrt(3) horizontal
     let map_height_pixels = provinces_per_col as f32 * HEX_SIZE_PIXELS * 1.5; // 3/2 vertical
@@ -62,24 +57,24 @@ pub fn camera_control_system(
         if let Projection::Orthographic(ref mut ortho) = projection.as_mut() {
             // Zoom with mouse wheel
             for event in mouse_wheel.read() {
-                let zoom_speed = 0.1;
+                let zoom_speed = CAMERA_ZOOM_SPEED;
                 let zoom_delta = match event.unit {
                     MouseScrollUnit::Line => event.y,
                     MouseScrollUnit::Pixel => event.y * 0.01,
                 };
                 
                 // Apply zoom (inverted so scrolling up zooms in)
-                let old_scale = ortho.scale;
+                let _old_scale = ortho.scale;
                 ortho.scale *= 1.0 - zoom_delta * zoom_speed;
                 
                 // Calculate minimum zoom to show entire map
                 // The scale should fit the map within the window
                 let min_zoom_x = map_width_pixels / window.width();
                 let min_zoom_y = map_height_pixels / window.height();
-                let min_zoom = min_zoom_x.max(min_zoom_y) * 1.1; // Add 10% padding
+                let min_zoom = min_zoom_x.max(min_zoom_y) * CAMERA_MAP_PADDING_FACTOR;
                 
                 // Clamp zoom levels - min zoom shows entire map
-                ortho.scale = ortho.scale.clamp(0.2, min_zoom.max(3.0));
+                ortho.scale = ortho.scale.clamp(CAMERA_MIN_ZOOM, min_zoom.max(CAMERA_MAX_ZOOM));
                 
                 // Zoom applied
             }
@@ -95,11 +90,11 @@ pub fn camera_control_system(
         // Pan with WASD or arrow keys
         // SHIFT modifier for 3x faster movement
         let speed_multiplier = if keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight) {
-            3.0
+            CAMERA_SPEED_MULTIPLIER
         } else {
             1.0
         };
-        let pan_speed = 500.0 * current_scale * time.delta_secs() * speed_multiplier;
+        let pan_speed = CAMERA_PAN_SPEED_BASE * current_scale * time.delta_secs() * speed_multiplier;
         
         // Keyboard panning
         if keyboard.pressed(KeyCode::KeyW) || keyboard.pressed(KeyCode::ArrowUp) {
@@ -117,8 +112,8 @@ pub fn camera_control_system(
         
         // Mouse edge panning (like strategy games)
         if let Some(cursor_pos) = window.cursor_position() {
-            let edge_threshold = 10.0; // Pixels from edge to trigger panning
-            let edge_speed = 800.0 * current_scale * time.delta_secs();
+            let edge_threshold = CAMERA_EDGE_PAN_THRESHOLD;
+            let edge_speed = CAMERA_EDGE_PAN_SPEED_BASE * current_scale * time.delta_secs();
             
             // Check each edge
             if cursor_pos.x <= edge_threshold {
