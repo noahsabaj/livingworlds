@@ -8,6 +8,7 @@
 pub mod camera;
 pub mod clouds;
 pub mod components;
+pub mod resources;
 pub mod terrain;
 pub mod ui;
 
@@ -17,8 +18,11 @@ pub mod prelude {
     pub use crate::clouds::{CloudPlugin, spawn_clouds};
     pub use crate::components::{
         Province, Nation, SelectedProvince, GhostProvince,
-        TileInfoPanel, TileInfoText, SelectedProvinceInfo,
-        ProvincesSpatialIndex,
+        TileInfoPanel, TileInfoText,
+    };
+    pub use crate::resources::{
+        WorldSeed, WorldSize, ShowFps, GameTime,
+        SelectedProvinceInfo, ProvincesSpatialIndex,
     };
     pub use crate::terrain::{
         TerrainPlugin, TerrainType, ClimateZone,
@@ -71,57 +75,8 @@ pub fn build_app() -> App {
     app
 }
 
-/// Configuration for world generation
-#[derive(Resource)]
-pub struct WorldSeed(pub u32);
-
-/// World size configuration
-#[derive(Resource, Clone, Copy)]
-pub enum WorldSize {
-    Small,   // 150x100 provinces
-    Medium,  // 300x200 provinces (default)
-    Large,   // 450x300 provinces
-}
-
-impl WorldSize {
-    pub fn from_str(s: &str) -> Self {
-        match s.to_lowercase().as_str() {
-            "small" => WorldSize::Small,
-            "large" => WorldSize::Large,
-            _ => WorldSize::Medium,
-        }
-    }
-    
-    pub fn dimensions(&self) -> (usize, usize) {
-        match self {
-            WorldSize::Small => (150, 100),
-            WorldSize::Medium => (300, 200),
-            WorldSize::Large => (450, 300),
-        }
-    }
-}
-
-/// Whether to show FPS counter
-#[derive(Resource)]
-pub struct ShowFps(pub bool);
-
-/// Current game time and speed
-#[derive(Resource)]
-pub struct GameTime {
-    pub current_date: f32, // Days since start
-    pub speed: f32,        // Time multiplier
-    pub paused: bool,
-}
-
-impl Default for GameTime {
-    fn default() -> Self {
-        Self {
-            current_date: 0.0,
-            speed: 1.0,
-            paused: false,
-        }
-    }
-}
+// Re-export resources for backward compatibility
+pub use resources::{WorldSeed, WorldSize, ShowFps, GameTime};
 
 // Game constants - these should eventually move to a constants.rs file
 pub const HEX_SIZE_PIXELS: f32 = 50.0;
