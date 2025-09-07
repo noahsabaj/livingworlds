@@ -1,6 +1,12 @@
 # Living Worlds
 
-A hands-off observer simulation built with Bevy where you WATCH (not control) empires rise and fall eternally through emergent gameplay.
+<p align="center">
+  <img src="images/world-generation-hero.png" alt="Living Worlds - Procedurally generated world with continents, rivers, and archipelagos" width="100%">
+</p>
+
+<p align="center">
+  <i>A hands-off observer simulation built with Bevy where you WATCH (not control) empires rise and fall eternally through emergent gameplay.</i>
+</p>
 
 ## Overview
 
