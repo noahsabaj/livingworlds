@@ -1,161 +1,180 @@
 # Living Worlds
 
 <p align="center">
-  <img src="images/world-generation-hero.png" alt="Living Worlds - Procedurally generated world with continents, rivers, and archipelagos" width="100%">
+  <img src="images/world-generation-hero.png" alt="Living Worlds - Procedurally generated world with realistic ocean depths, continents, and dynamic weather" width="100%">
 </p>
 
 <p align="center">
-  <i>A hands-off observer simulation built with Bevy where you WATCH (not control) empires rise and fall eternally through emergent gameplay.</i>
+  <i>A hands-off civilization observer simulation built with Bevy where you WATCH (not control) empires rise and fall eternally through emergent gameplay.</i>
 </p>
 
 ## Overview
 
 Living Worlds is a fully procedural civilization OBSERVER - like Fantasy Map Simulator, you have zero control over the civilizations. You can only watch as they emerge, grow, fight, and collapse. Every texture, sound, and piece of text is generated at runtime. Observe as civilizations develop organically, advance through technologies at their own pace, build infrastructure that permanently marks the landscape, and manage complex economies based on Austrian economic principles. There is no victory condition and no player interaction - only the eternal cycle of rise and fall that you witness as a passive observer.
 
-## Features
+## 🎮 Features
 
-- **Pure Observer Mode**: Like watching a digital ant farm - you cannot control anything
-- **Fully Procedural**: Everything generated at runtime - no pre-made assets
-- **Individual Simulation**: Every person is simulated with needs, skills, and decisions  
-- **Austrian Economics**: Prices emerge from individual actions, not abstract models
-- **Emergent Stories**: No scripted events - watch unique histories unfold
-- **Time Controls Only**: Your only power is pause/play/speed up time
-- **Prototype-First Development**: Entire game in main.rs for rapid iteration
-- **Deterministic Simulation**: Fixed-point math ensures cross-platform consistency
+### Currently Implemented
+- **🗺️ Hexagonal World Map**: 60,000 provinces (300x200) with flat-top honeycomb layout
+- **🌊 Realistic Ocean Depths**: Three-tier water depth system with beautiful gradients
+  - Shallow coastal waters
+  - Medium depth continental shelves  
+  - Deep ocean trenches
+- **🏔️ Procedural Terrain**: 10 terrain types with climate zones
+  - Dynamic biome distribution based on latitude
+  - Rivers flowing from mountains to ocean
+  - Forests, jungles, deserts, tundra, and ice caps
+- **☁️ Dynamic Weather**: Multi-layer procedural cloud system with wind
+- **⛏️ Mineral Resources**: 7 mineral types with realistic vein distribution
+  - Iron, Copper, Tin, Gold, Coal, Gems, Stone
+  - Heat map overlays for resource visualization
+- **🎵 Procedural Music**: World tension-based soundtrack that evolves with conflicts
+- **🏛️ Nations**: Territory-based civilizations with expansion mechanics
+- **⏱️ Time Simulation**: Pause/play with 1x, 3x, 6x, 9x speed controls
+- **📊 Map Overlays**: Political, mineral resources, infrastructure views
 
-## Technology Stack
+### Controls
+- **Camera**: WASD/Arrow keys for panning, mouse wheel for zoom, edge scrolling
+- **Time**: Space to pause, 1-4 keys for speed control
+- **Overlays**: M to cycle through map modes
+- **Music Testing**: T/G to adjust world tension, Y/H for crisis events
 
-- **Engine**: Bevy 0.16.1 (Rust game engine)
+## 🛠️ Technology Stack
+
+- **Engine**: Bevy 0.16.1 (Modern Rust game engine)
 - **Language**: Rust 2021 Edition
-- **Graphics**: wgpu (modern GPU API)
-- **Math**: Fixed-point arithmetic for determinism
-- **Platform**: Windows, Linux (Steam distribution)
+- **Graphics**: wgpu (Modern GPU API)
+- **Audio**: Procedural generation with Bevy audio
+- **Platform**: Windows, Linux, MacOS (Steam distribution planned)
 
-## Architecture
+## 📁 Architecture
 
-Currently in **prototype phase** with the entire game in a single `src/main.rs` file. This allows for:
-- Rapid experimentation and iteration
-- Easy refactoring without cross-crate concerns  
-- Fast compile times
-- Clear view of all game logic in one place
+The project uses a **modular plugin architecture** with Bevy's ECS (Entity Component System):
 
-### What's Implemented
-- Hexagonal province grid (300x200 = 60,000 provinces)
-- Procedural terrain generation with Perlin noise
-- Nation spawning and territory assignment
-- Camera controls and province border visualization
-- Time simulation with pause/play/speed controls
-- Responsive UI with simulation statistics
+```
+livingworlds/
+├── src/                    # Source code (14 modules, ~165 KB)
+│   ├── lib.rs             # Library root, plugin orchestration
+│   ├── main.rs            # Binary entry point, input handling
+│   ├── setup.rs           # World generation (terrain, rivers, nations)
+│   ├── simulation.rs      # Time simulation, world tension, population
+│   ├── terrain.rs         # Terrain types, climate zones, biomes
+│   ├── minerals.rs        # Resource generation and extraction
+│   ├── overlay.rs         # Map overlay rendering system
+│   ├── clouds.rs          # Procedural cloud generation
+│   ├── music.rs           # Dynamic tension-based music
+│   ├── camera.rs          # Camera controls and viewport
+│   ├── ui.rs              # User interface and HUD
+│   ├── components.rs      # ECS components definitions
+│   ├── resources.rs       # Global game resources
+│   └── constants.rs       # Game configuration constants
+├── images/                 # Screenshots and documentation
+├── Cargo.toml             # Rust dependencies
+├── CLAUDE.md              # Detailed technical documentation
+└── README.md              # This file
 
-### Future Architecture
-Once core mechanics are proven, we'll refactor into a proper crate structure with specialized layers for core math, simulation, platform integration, and game orchestration.
+NOTE: No assets/ directory - everything is procedurally generated!
+```
 
-## Getting Started
+### Key Systems
+- **ECS Architecture**: Leverages Bevy's parallel processing
+- **Plugin System**: Each module is a self-contained Bevy plugin
+- **Deterministic Simulation**: Fixed-point math for consistency
+- **Spatial Indexing**: O(1) province lookups for performance
+
+## 🚀 Getting Started
 
 ### Prerequisites
 
 - Rust 1.75 or later
 - Cargo (comes with Rust)
 
-### Building
+### Building & Running
 
 ```bash
 # Clone the repository
 git clone https://github.com/yourusername/livingworlds.git
 cd livingworlds
 
-# Build the project
-cargo build --release
-
-# Run the game
+# Run the game (optimized)
 cargo run --release
-```
 
-### Development
-
-```bash
-# Fast iterative development with dynamic linking
+# For faster compilation during development
 cargo run --features bevy/dynamic_linking
 
-# Run with hot reloading
-cargo run --features bevy/file_watcher
+# Run with specific seed for reproducible worlds
+cargo run --release -- --seed 42
 
+# Run with different world sizes
+cargo run --release -- --world-size large
+```
+
+### Development Commands
+
+```bash
 # Run tests
 cargo test
 
-# Check the project
+# Check code without building
 cargo check
+
+# Format code
+cargo fmt
+
+# Lint code
+cargo clippy
 ```
 
-## Project Structure
+## 🎯 Design Philosophy
 
-```
-livingworlds/
-├── src/
-│   └── main.rs         # ENTIRE GAME - All components, systems, and logic
-├── Cargo.toml          # Project configuration
-├── Cargo.lock          # Dependency lock file  
-├── CLAUDE.md           # Detailed technical documentation
-├── README.md           # This file
-├── .gitignore          # Git ignore configuration
-└── target/             # Build output (git-ignored)
+- **Pure Observer**: You cannot control anything - only watch
+- **Bottom-up Emergence**: Complex behaviors from simple rules
+- **No Abstraction**: Model individuals, not statistics
+- **Infinite Replayability**: Every world tells unique stories
+- **Performance First**: Optimized for simulating thousands of entities
 
-NOTE: No crates/ directory - deleted to focus on prototyping
-NOTE: No assets/ directory - everything is procedurally generated
-```
+## 🗺️ Roadmap
 
-## Documentation
+### Near Term
+- [ ] Individual agent simulation (every person as an entity)
+- [ ] Austrian economics implementation
+- [ ] Cultural emergence and language evolution
+- [ ] Technology tree progression
+- [ ] Infrastructure that modifies terrain
 
-- See `CLAUDE.md` for detailed technical documentation and development guidelines
-- The entire game logic is in `src/main.rs` with inline comments
-- Follow the "don't buy the wagon before the horse" principle - prototype first!
+### Long Term
+- [ ] Save/load system with Bevy Scenes
+- [ ] Steam integration (achievements, cloud saves)
+- [ ] Mod support through dynamic plugins
+- [ ] Multiplayer observer mode
+- [ ] Historical record export
 
-## Contributing
+## 🤝 Contributing
 
-Living Worlds is currently in early development. Contributions are welcome!
+Living Worlds welcomes contributions! Please see `CLAUDE.md` for technical details.
 
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
 4. Run tests (`cargo test`)
 5. Submit a pull request
 
-## Design Philosophy
+## 📚 Documentation
 
-- **Bottom-up Emergence**: Complex behaviors emerge from simple rules
-- **No Abstraction**: Model individuals, not statistics
-- **Player as Observer**: Watch civilizations evolve naturally
-- **Infinite Replayability**: Every world is unique
-- **Historical Authenticity**: Grounded in real historical processes
+- **CLAUDE.md**: Comprehensive technical documentation
+- **Code Comments**: Extensive inline documentation
+- **Bevy Book**: https://bevyengine.org/learn/
 
-## License
+## 📝 License
 
 [License information to be added]
 
-## Status
+## 🌟 Acknowledgments
 
-🚧 **Early Development** - Core systems being implemented
-
-### Completed
-- Layer-based architecture (refactored from 10 to 4 crates)
-- Fixed-point math system
-- ECS component consolidation
-- Procedural generation framework (integrated with Bevy)
-
-### In Progress
-- System implementations
-- Bevy rendering pipeline
-- UI development
-
-### Upcoming
-- Save/load system
-- Steam integration
-- Multiplayer support
-
-## Contact
-
-[Contact information to be added]
+- Built with [Bevy](https://bevyengine.org/) - A refreshingly simple data-driven game engine
+- Inspired by Fantasy Map Simulator and similar observer games
+- Hexagon math from [Red Blob Games](https://www.redblobgames.com/grids/hexagons/)
 
 ---
 
-*Built with [Bevy](https://bevyengine.org/) - A refreshingly simple data-driven game engine built in Rust*
+*Living Worlds - Watch civilizations rise and fall in an endless dance of history*
