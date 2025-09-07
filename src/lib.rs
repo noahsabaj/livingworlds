@@ -7,6 +7,7 @@
 // Module declarations - these are our game systems
 pub mod camera;
 pub mod clouds;
+pub mod components;
 pub mod terrain;
 pub mod ui;
 
@@ -14,6 +15,11 @@ pub mod ui;
 pub mod prelude {
     pub use crate::camera::CameraPlugin;
     pub use crate::clouds::{CloudPlugin, spawn_clouds};
+    pub use crate::components::{
+        Province, Nation, SelectedProvince, GhostProvince,
+        TileInfoPanel, TileInfoText, SelectedProvinceInfo,
+        ProvincesSpatialIndex,
+    };
     pub use crate::terrain::{
         TerrainPlugin, TerrainType, ClimateZone,
         classify_terrain_with_climate, get_terrain_color_gradient,
