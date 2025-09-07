@@ -11,7 +11,7 @@ use bevy::image::ImageSampler;
 use noise::{NoiseFn, Perlin};
 use rand::prelude::*;
 use rand::rngs::StdRng;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::components::{Province, Nation};
 use crate::resources::{WorldSeed, WorldSize, ProvincesSpatialIndex, SelectedProvinceInfo};
@@ -177,23 +177,26 @@ pub fn generate_elevation_with_edges(x: f32, y: f32, perlin: &Perlin, continent_
         let continent_seed = (idx as u32).wrapping_mul(2654435761) % 1000;
         let size_factor = continent_seed as f32 / 1000.0;
         
-        let base_radius = if idx >= 12 {
+        let base_radius = if idx >= 20 {
             // Tiny islands
-            300.0 + size_factor * 200.0  // 300-500 (doubled)
-        } else if idx >= 7 {
+            CONTINENT_TINY_BASE + size_factor * CONTINENT_TINY_VARIATION
+        } else if idx >= 12 {
             // Archipelagos and island chains
-            600.0 + size_factor * 400.0  // 600-1000 (doubled)
-        } else if idx >= 4 {
+            CONTINENT_ARCHIPELAGO_BASE + size_factor * CONTINENT_ARCHIPELAGO_VARIATION
+        } else if idx >= 6 {
             // Medium continents (Australia-sized)
-            1200.0 + size_factor * 600.0  // 1200-1800 (doubled)
+            CONTINENT_MEDIUM_BASE + size_factor * CONTINENT_MEDIUM_VARIATION
         } else {
             // Massive continents (Eurasia-sized)
-            2000.0 + size_factor * 1000.0  // 2000-3000 (doubled)
+            CONTINENT_MASSIVE_BASE + size_factor * CONTINENT_MASSIVE_VARIATION
         };
         
+        // Apply size multiplier for more land
+        let adjusted_radius = base_radius * CONTINENT_SIZE_MULTIPLIER;
+        
         // Smooth falloff with varying sharpness for different edge types
-        let falloff = 1.0 - (distorted_dist / base_radius).clamp(0.0, 1.0);
-        let shaped_falloff = falloff.powf(1.2 + size_factor * 0.8);
+        let falloff = 1.0 - (distorted_dist / adjusted_radius).clamp(0.0, 1.0);
+        let shaped_falloff = falloff.powf(CONTINENT_FALLOFF_BASE + size_factor * CONTINENT_FALLOFF_VARIATION);
         
         // Allow overlapping continents to merge naturally
         continent_influence = continent_influence.max(shaped_falloff);
@@ -268,8 +271,8 @@ pub fn setup_world(
         let py = rng.gen_range(map_y_min * 0.95..map_y_max * 0.95);
         plate_centers.push((px, py));
         
-        // 100% chance this plate has a continent on it (was 70%)
-        if rng.gen_range(0.0..1.0) < 1.0 {
+        // 80% chance this plate has a continent on it for better ocean distribution
+        if rng.gen_range(0.0..1.0) < 0.8 {
             // Continent offset from plate center (for variety)
             let offset_x = rng.gen_range(-200.0..200.0);
             let offset_y = rng.gen_range(-150.0..150.0);
@@ -291,6 +294,20 @@ pub fn setup_world(
                 let island_y = p1y * (1.0 - mix) + p2y * mix;
                 continent_centers.push((island_x, island_y));
             }
+        }
+    }
+    
+    // Add archipelagos between major continents
+    for _ in 0..ARCHIPELAGO_COUNT {
+        // Place archipelagos in open ocean areas
+        let arch_x = rng.gen_range(map_x_min * 0.8..map_x_max * 0.8);
+        let arch_y = rng.gen_range(map_y_min * 0.8..map_y_max * 0.8);
+        
+        // Create a cluster of small islands
+        for _ in 0..rng.gen_range(3..7) {
+            let offset_x = rng.gen_range(-300.0..300.0);
+            let offset_y = rng.gen_range(-300.0..300.0);
+            continent_centers.push((arch_x + offset_x, arch_y + offset_y));
         }
     }
     
@@ -417,6 +434,101 @@ pub fn setup_world(
             }
         }
     }
+    
+    // Generate rivers from mountains to ocean
+    println!("Generating rivers...");
+    let mut river_tiles = Vec::new();
+    let mut mountain_provinces = Vec::new();
+    
+    // Find all mountain provinces that could be river sources
+    for province in all_provinces.iter() {
+        if province.terrain == TerrainType::Mountains && province.elevation >= RIVER_MIN_ELEVATION {
+            mountain_provinces.push((province.id, province.position));
+        }
+    }
+    
+    // Randomly select some mountains to be river sources
+    let num_rivers = RIVER_COUNT.min(mountain_provinces.len());
+    let mut selected_sources: Vec<(u32, Vec2)> = Vec::new();
+    
+    for _ in 0..num_rivers {
+        if !mountain_provinces.is_empty() {
+            let idx = rng.gen_range(0..mountain_provinces.len());
+            let source = mountain_provinces.remove(idx);
+            selected_sources.push(source);
+        }
+    }
+    
+    // Trace rivers from each source to the ocean
+    for (_source_id, source_pos) in selected_sources {
+        let mut current_pos = source_pos;
+        let mut river_path = Vec::new();
+        let mut visited = std::collections::HashSet::new();
+        visited.insert((current_pos.x as i32, current_pos.y as i32));
+        
+        // Follow downhill gradient until we reach ocean
+        let mut steps = 0;
+        const MAX_RIVER_LENGTH: usize = 100;
+        
+        while steps < MAX_RIVER_LENGTH {
+            steps += 1;
+            
+            // Find the lowest neighboring province
+            let mut lowest_neighbor: Option<(Vec2, f32, u32)> = None;
+            let search_radius = hex_size * 1.8; // Look at immediate neighbors
+            
+            for province in all_provinces.iter() {
+                let dist = province.position.distance(current_pos);
+                if dist > 0.1 && dist <= search_radius {
+                    let grid_pos = (province.position.x as i32, province.position.y as i32);
+                    
+                    // Skip if we've already visited this tile
+                    if visited.contains(&grid_pos) {
+                        continue;
+                    }
+                    
+                    // If we hit ocean, we're done
+                    if province.terrain == TerrainType::Ocean {
+                        river_path.push(province.id);
+                        steps = MAX_RIVER_LENGTH; // Exit outer loop
+                        break;
+                    }
+                    
+                    // Otherwise, find the lowest elevation neighbor
+                    if lowest_neighbor.is_none() || province.elevation < lowest_neighbor.as_ref().unwrap().1 {
+                        lowest_neighbor = Some((province.position, province.elevation, province.id));
+                    }
+                }
+            }
+            
+            // If we found a lower neighbor, continue the river
+            if let Some((next_pos, _elev, next_id)) = lowest_neighbor {
+                river_path.push(next_id);
+                current_pos = next_pos;
+                visited.insert((next_pos.x as i32, next_pos.y as i32));
+            } else {
+                // No lower neighbor found, end the river
+                break;
+            }
+        }
+        
+        // Add this river's path to our collection
+        river_tiles.extend(river_path);
+    }
+    
+    // Convert river tiles to River terrain type
+    for river_id in river_tiles.iter() {
+        if let Some(province) = all_provinces.iter_mut().find(|p| p.id == *river_id) {
+            // Only convert non-ocean tiles to rivers
+            if province.terrain != TerrainType::Ocean {
+                province.terrain = TerrainType::River;
+                // Rivers increase population in surrounding areas
+                province.population *= 1.5;
+            }
+        }
+    }
+    
+    println!("Generated {} river tiles", river_tiles.len());
     
     // Now spawn all provinces with correct depths
     for province in all_provinces.iter() {

@@ -21,6 +21,7 @@ pub enum TerrainType {
     Desert,   // Hot dry areas
     Forest,   // Temperate forests
     Jungle,   // Tropical rainforests
+    River,    // Rivers flowing from mountains to ocean
 }
 
 /// ClimateZone represents the climate of a province
@@ -240,6 +241,10 @@ pub fn get_terrain_color_gradient(terrain: TerrainType, elevation: f32) -> Color
             let b = 0.08 + jungle_var * 0.5;
             Color::srgb(r, g, b)
         },
+        TerrainType::River => {
+            // River - lighter freshwater blue-green, shallower than ocean
+            Color::srgb(0.2, 0.45, 0.55)
+        },
     };
     
     color
@@ -332,6 +337,7 @@ pub fn get_terrain_population_multiplier(terrain: TerrainType) -> f32 {
         TerrainType::Tundra => 0.2,   // Very low in tundra
         TerrainType::Ice => 0.0,      // No permanent population on ice
         TerrainType::Ocean => 0.0,    // No population in ocean
+        TerrainType::River => 2.0,    // Rivers attract high population
     }
 }
 
