@@ -1,6 +1,0 @@
-{
-    find_program = {
-        xrepo = "/home/nsabaj/.local/bin/xrepo",
-        curl = "/usr/bin/curl"
-    }
-}

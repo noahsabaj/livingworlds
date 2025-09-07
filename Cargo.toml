@@ -1,19 +1,15 @@
-[workspace]
-members = [
-    "crates/lw_core",        # Fixed32 math, core types
-    "crates/lw_game",        # All game logic (ECS, systems)
-    "crates/lw_procedural",  # World generation algorithms
-    "crates/lw_platform", "crates/lw_simulation", "crates/lw_economics", "crates/lw_military", "crates/lw_culture", "crates/lw_governance", "crates/lw_world",    # Platform-specific (Steam)
-]
-resolver = "2"
-
-[workspace.package]
+[package]
+name = "living-worlds"
 version = "0.1.0"
 edition = "2021"
 authors = ["Living Worlds Team"]
 license = "MIT"
 
-[workspace.dependencies]
+[[bin]]
+name = "living-worlds"
+path = "src/main.rs"
+
+[dependencies]
 # Full Bevy framework - complete game engine!
 bevy = { version = "0.16.1", default-features = false, features = [
     "animation",          # Animation system
@@ -62,30 +58,8 @@ flate2 = "1.0"
 clap = { version = "4.4", features = ["derive"] }
 pollster = "0.3"
 
-# Steam support (optional in platform crate)
-steamworks = "0.10"
-
-[package]
-name = "living-worlds"
-version.workspace = true
-edition.workspace = true
-
-[[bin]]
-name = "living-worlds"
-path = "src/main.rs"
-
-[dependencies]
-# Import workspace crates (streamlined to 4)
-lw_core = { path = "crates/lw_core" }
-lw_game = { path = "crates/lw_game" }
-lw_procedural = { path = "crates/lw_procedural" }
-lw_platform = { path = "crates/lw_platform" }
-
-# Main app dependencies
-pollster.workspace = true
-clap.workspace = true
-anyhow.workspace = true
-bevy.workspace = true
+# Steam support (optional - will add when needed)
+# steamworks = "0.10"
 
 [profile.release]
 opt-level = 3       # Optimize for performance
