@@ -2,12 +2,22 @@
 //! 
 //! An observer civilization simulation built with Bevy
 
+// Module declarations
+mod clouds;
+mod terrain;
+
 use bevy::prelude::*;
 use bevy::input::mouse::{MouseWheel, MouseScrollUnit};
 use bevy::render::camera::Projection;
 use bevy::audio::AudioPlugin;
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 // In Bevy 0.16, Parent was renamed to ChildOf
+
+// Import our modules
+use clouds::{CloudPlugin, spawn_clouds};
+use terrain::{TerrainPlugin, TerrainType, ClimateZone,
+              classify_terrain_with_climate, get_terrain_color_gradient,
+              generate_continent_centers, get_terrain_population_multiplier};
 
 // World scale constants
 const KILOMETERS_PER_HEX: f32 = 50.0; // Each hexagon represents 50km across
@@ -29,6 +39,7 @@ use bevy::window::PrimaryWindow;
 use clap::Parser;
 use std::time::{SystemTime, UNIX_EPOCH};
 use rand::prelude::*;
+use rand::rngs::StdRng;
 use std::collections::HashMap;
 use noise::{NoiseFn, Perlin};
 
@@ -103,6 +114,9 @@ fn main() {
             // ... other fields
         })
         */
+        // Add plugins for modular systems
+        .add_plugins(CloudPlugin)
+        .add_plugins(TerrainPlugin)
         // Add our game systems
         .add_systems(Startup, setup_world)
         .add_systems(Update, (
@@ -148,31 +162,7 @@ impl WorldSize {
     }
 }
 
-/// BUG #9 FIX: These enums are fine as province fields, adding more derives for ECS compatibility
-/// TerrainType represents the physical terrain of a province
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum TerrainType {
-    Ocean,
-    Beach,
-    Plains,
-    Hills,
-    Mountains,
-    Ice,      // Polar ice caps
-    Tundra,   // Cold plains
-    Desert,   // Hot dry areas
-    Forest,   // Temperate forests
-    Jungle,   // Tropical rainforests
-}
-
-/// ClimateZone represents the climate of a province
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum ClimateZone {
-    Arctic,      // Ice and tundra
-    Subarctic,   // Mostly tundra  
-    Temperate,   // Normal terrain
-    Subtropical, // Warmer, some deserts
-    Tropical,    // Hot and humid
-}
+// TerrainType and ClimateZone are now imported from terrain module
 
 #[derive(Component, Clone)]
 struct Province {
@@ -283,8 +273,9 @@ struct GameTime {
     paused: bool,
 }
 
-/// Generate elevation using advanced noise techniques
-fn generate_elevation(x: f32, y: f32, perlin: &Perlin, continent_centers: &[(f32, f32)]) -> f32 {
+/// Generate elevation using advanced noise techniques for main game logic
+/// This version includes map edge handling specific to our game
+fn generate_elevation_with_edges(x: f32, y: f32, perlin: &Perlin, continent_centers: &[(f32, f32)]) -> f32 {
     // Calculate map bounds dynamically based on grid dimensions
     let hex_size = HEX_SIZE_PIXELS;
     let provinces_per_row = PROVINCES_PER_ROW;
@@ -407,222 +398,14 @@ fn generate_elevation(x: f32, y: f32, perlin: &Perlin, continent_centers: &[(f32
     elevation
 }
 
-/// Calculate climate zone based on latitude (Y position)
-fn get_climate_zone(y: f32, map_height: f32) -> ClimateZone {
-    let latitude = (y.abs() / (map_height / 2.0)).min(1.0); // 0.0 at equator, 1.0 at poles
-    
-    if latitude > 0.85 {
-        ClimateZone::Arctic
-    } else if latitude > 0.65 {
-        ClimateZone::Subarctic
-    } else if latitude > 0.35 {
-        ClimateZone::Temperate
-    } else if latitude > 0.15 {
-        ClimateZone::Subtropical
-    } else {
-        ClimateZone::Tropical
-    }
-}
-
-/// Classify terrain based on elevation and climate
-fn classify_terrain_with_climate(elevation: f32, y: f32, map_height: f32) -> TerrainType {
-    let climate = get_climate_zone(y, map_height);
-    
-    // Arctic zones are ice or tundra
-    if matches!(climate, ClimateZone::Arctic) {
-        if elevation < 0.15 {
-            return TerrainType::Ocean;
-        } else if elevation < 0.25 {
-            return TerrainType::Ice;
-        } else {
-            return TerrainType::Tundra;
-        }
-    }
-    
-    // Subarctic has tundra and some forests
-    if matches!(climate, ClimateZone::Subarctic) {
-        if elevation < 0.15 {
-            return TerrainType::Ocean;
-        } else if elevation < 0.22 {
-            return TerrainType::Tundra;
-        } else if elevation < 0.35 {
-            // Boreal forests in subarctic regions
-            let forest_factor = ((y * 0.007).sin() * (y * 0.004).cos()).abs();
-            if forest_factor > 0.4 {
-                return TerrainType::Forest;
-            }
-        }
-    }
-    
-    // Temperate zones have mixed forests and plains
-    if matches!(climate, ClimateZone::Temperate) {
-        if elevation < 0.15 {
-            return TerrainType::Ocean;
-        } else if elevation < 0.18 {
-            return TerrainType::Beach;
-        } else if elevation < 0.35 {
-            // Mix of forests and plains based on moisture patterns
-            let moisture = ((y * 0.006).sin() * (y * 0.008).cos() + (y * 0.003).sin()).abs();
-            if moisture > 0.55 {
-                return TerrainType::Forest;
-            } else {
-                return TerrainType::Plains;
-            }
-        } else if elevation < 0.5 {
-            // Higher elevations are hills with some forests
-            let forest_chance = ((y * 0.005).cos() * (y * 0.007).sin()).abs();
-            if forest_chance > 0.6 {
-                return TerrainType::Forest;
-            } else {
-                return TerrainType::Hills;
-            }
-        } else {
-            return TerrainType::Mountains;
-        }
-    }
-    
-    // Subtropical can have deserts and dry forests
-    if matches!(climate, ClimateZone::Subtropical) {
-        if elevation > 0.2 && elevation < 0.35 {
-            // Desert bands based on position
-            let desert_factor = ((y * 0.005).sin() * (y * 0.003).cos()).abs();
-            if desert_factor > 0.6 {
-                return TerrainType::Desert;
-            } else if desert_factor < 0.3 {
-                // Dry subtropical forests
-                return TerrainType::Forest;
-            }
-        }
-    }
-    
-    // Tropical zones have jungles
-    if matches!(climate, ClimateZone::Tropical) {
-        if elevation < 0.15 {
-            return TerrainType::Ocean;
-        } else if elevation < 0.18 {
-            return TerrainType::Beach;
-        } else if elevation < 0.4 {
-            // Most tropical land is jungle
-            let jungle_factor = ((y * 0.004).sin() * (y * 0.006).cos()).abs();
-            if jungle_factor > 0.2 {
-                return TerrainType::Jungle;
-            } else {
-                return TerrainType::Plains;
-            }
-        } else if elevation < 0.5 {
-            // Higher tropical elevations might be jungle or hills
-            let jungle_chance = ((y * 0.005).cos()).abs();
-            if jungle_chance > 0.5 {
-                return TerrainType::Jungle;
-            } else {
-                return TerrainType::Hills;
-            }
-        } else {
-            return TerrainType::Mountains;
-        }
-    }
-    
-    // Default terrain classification
-    classify_terrain(elevation)
-}
-
-/// Classify terrain based on elevation
-fn classify_terrain(elevation: f32) -> TerrainType {
-    if elevation < 0.15 {
-        TerrainType::Ocean
-    } else if elevation < 0.20 {
-        TerrainType::Beach
-    } else if elevation < 0.45 {
-        TerrainType::Plains
-    } else if elevation < 0.65 {
-        TerrainType::Hills
-    } else {
-        TerrainType::Mountains
-    }
-}
-
-/// Get smooth color gradient based on terrain and elevation
-fn get_terrain_color_gradient(terrain: TerrainType, elevation: f32) -> Color {
-    // Define base colors with smoother transitions
-    let color = match terrain {
-        TerrainType::Ocean => {
-            // Three distinct ocean depth colors based on elevation
-            if elevation >= 0.10 {
-                // Shallow water (coastal)
-                Color::srgb(0.15, 0.35, 0.55)
-            } else if elevation >= 0.05 {
-                // Medium depth
-                Color::srgb(0.08, 0.25, 0.45)
-            } else {
-                // Deep ocean
-                Color::srgb(0.02, 0.15, 0.35)
-            }
-        },
-        TerrainType::Beach => {
-            // Sandy beach with slight variation
-            let sand_var = elevation * 2.0;
-            Color::srgb(0.9 + sand_var * 0.05, 0.85 + sand_var * 0.05, 0.65 + sand_var * 0.1)
-        },
-        TerrainType::Plains => {
-            // Lush green plains with elevation-based variation
-            let green_factor = (elevation - 0.2) / 0.25;
-            let r = 0.25 + green_factor * 0.1;
-            let g = 0.55 + green_factor * 0.1;
-            let b = 0.25 + green_factor * 0.05;
-            Color::srgb(r, g, b)
-        },
-        TerrainType::Hills => {
-            // Brown hills transitioning to grey at higher elevations
-            let hill_factor = (elevation - 0.45) / 0.2;
-            let r = 0.45 + hill_factor * 0.1;
-            let g = 0.4 + hill_factor * 0.05;
-            let b = 0.3 + hill_factor * 0.15;
-            Color::srgb(r, g, b)
-        },
-        TerrainType::Mountains => {
-            // Rocky grey to snow white based on height
-            let snow_factor = ((elevation - 0.65) / 0.35).clamp(0.0, 1.0);
-            let grey = 0.6 + snow_factor * 0.35;
-            Color::srgb(grey, grey, grey + snow_factor * 0.05)
-        },
-        TerrainType::Ice => {
-            // Polar ice - bright white with blue tint
-            Color::srgb(0.92, 0.95, 1.0)
-        },
-        TerrainType::Tundra => {
-            // Cold barren land - gray-brown
-            Color::srgb(0.65, 0.6, 0.55)
-        },
-        TerrainType::Desert => {
-            // Sandy desert - warm tan
-            let variation = (elevation * 3.0).sin() * 0.05;
-            Color::srgb(0.9 + variation, 0.8 + variation, 0.6)
-        },
-        TerrainType::Forest => {
-            // Temperate forest - rich green with variation
-            let forest_var = (elevation - 0.3) / 0.2;
-            let r = 0.15 + forest_var * 0.05;
-            let g = 0.35 + forest_var * 0.1;
-            let b = 0.12 + forest_var * 0.03;
-            Color::srgb(r, g, b)
-        },
-        TerrainType::Jungle => {
-            // Tropical jungle - deep vibrant green
-            let jungle_var = ((elevation * 5.0).sin() * 0.1).abs();
-            let r = 0.05 + jungle_var;
-            let g = 0.3 + jungle_var * 1.5;
-            let b = 0.08 + jungle_var * 0.5;
-            Color::srgb(r, g, b)
-        },
-    };
-    
-    color
-}
+// All terrain functions are now imported from terrain module
 
 
 /// Marker for FPS text
 #[derive(Component)]
 struct FpsText;
+
+// Cloud system components and resources are now in clouds module
 
 /// Create a hexagon texture for sprite rendering with antialiasing
 /// BUG #8 FIX: This is intentionally called only once to create a shared texture for ALL sprites
@@ -821,7 +604,7 @@ fn setup_world(
             let y = (row as f32 - provinces_per_col as f32 / 2.0) * hex_size * SQRT3 + y_offset;
             
             // Generate elevation and terrain with climate
-            let elevation = generate_elevation(x, y, &perlin, &continent_centers);
+            let elevation = generate_elevation_with_edges(x, y, &perlin, &continent_centers);
             let map_height = provinces_per_col as f32 * HEX_SIZE_PIXELS * 1.5; // POINTY-TOP height (3/2)
             let terrain = classify_terrain_with_climate(elevation, y, map_height);
             let _terrain_color = get_terrain_color_gradient(terrain, elevation);
@@ -1064,6 +847,11 @@ fn setup_world(
     
     // Insert spatial index as a resource for O(1) province lookups
     commands.insert_resource(spatial_index);
+    
+    // Initialize cloud system using the clouds module
+    let map_width = provinces_per_row as f32 * hex_size * 1.5;
+    let map_height = provinces_per_col as f32 * hex_size * SQRT3;
+    spawn_clouds(&mut commands, &mut images, seed.0, map_width, map_height);
     
     println!("Generated world with {} provinces, {} land tiles", 
              provinces_per_row * provinces_per_col, land_provinces.len());
@@ -1386,6 +1174,8 @@ fn fps_display_system(
         }
     }
 }
+
+// animate_clouds is now handled by CloudPlugin
 
 /// Camera control system for zoom and pan with edge scrolling
 fn camera_control_system(
