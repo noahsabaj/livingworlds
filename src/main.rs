@@ -8,8 +8,8 @@ use bevy::window::PrimaryWindow;
 // Import from our library
 use living_worlds::prelude::*;
 use living_worlds::{
-    build_app, WorldSeed, WorldSize, GameTime,
-    resources::{WorldTension, ResourceOverlay},
+    build_app, WorldSeed, WorldSize,
+    resources::ResourceOverlay,
 };
 use clap::Parser;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -54,17 +54,15 @@ fn main() {
     // Add game-specific resources and configuration
     app.insert_resource(WorldSeed(args.seed.unwrap()))
         .insert_resource(WorldSize::from_str(&args.world_size))
-        .insert_resource(GameTime::default())
         .insert_resource(ResourceOverlay::default())
         // Add our game systems
         .add_systems(Startup, setup_world)
         .add_systems(Update, (
             handle_input,
+            handle_overlay_input,
             handle_tile_selection,
             draw_hexagon_borders,
             update_provinces,
-            simulate_time,
-            calculate_world_tension,
             update_tile_info_ui,
         ))
         .run();
@@ -276,127 +274,18 @@ fn update_tile_info_ui(
     // Note: UI panel creation has been moved to ui.rs module to avoid duplication
 }
 
-/// Simulate time passing and nations expanding
-fn simulate_time(
-    mut game_time: ResMut<GameTime>,
-    time: Res<Time>,
-    mut provinces: Query<&mut Province>,
+/// Handle overlay mode cycling input
+fn handle_overlay_input(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut overlay_res: ResMut<ResourceOverlay>,
-    mut last_year: Local<u64>, // BUG #2 FIX: Thread-safe local state instead of unsafe static
 ) {
-    // Space to pause
-    if keyboard.just_pressed(KeyCode::Space) {
-        game_time.paused = !game_time.paused;
-        println!("Game {}", if game_time.paused { "paused" } else { "resumed" });
-    }
-    
-    // Number keys for speed control
-    if keyboard.just_pressed(KeyCode::Digit1) {
-        game_time.speed = 0.5;
-        println!("Speed: 0.5x");
-    }
-    if keyboard.just_pressed(KeyCode::Digit2) {
-        game_time.speed = 1.0;
-        println!("Speed: 1x");
-    }
-    if keyboard.just_pressed(KeyCode::Digit3) {
-        game_time.speed = 3.0;
-        println!("Speed: 3x");
-    }
-    if keyboard.just_pressed(KeyCode::Digit4) {
-        game_time.speed = 10.0;
-        println!("Speed: 10x");
-    }
-    
     // M key to cycle resource overlay modes
     if keyboard.just_pressed(KeyCode::KeyM) {
         overlay_res.cycle();
         println!("Resource Overlay: {}", overlay_res.display_name());
     }
-    
-    if game_time.paused {
-        return;
-    }
-    
-    // Advance time (in days)
-    game_time.current_date += time.delta().as_secs_f32() * game_time.speed;
-    
-    // Every 100 days, simulate population growth
-    if game_time.current_date as u64 % 100 == 0 {
-        let year = 1000 + (game_time.current_date / 365.0) as u64;
-        
-        // Only print year when it actually changes - BUG #2 FIX: Using Local instead of unsafe static
-        if year != *last_year {
-            println!("Year {}", year);
-            *last_year = year;
-        }
-        
-        // Population growth for land provinces
-        for mut province in provinces.iter_mut() {
-            if province.terrain != TerrainType::Ocean {
-                province.population *= 1.001;
-            }
-        }
-    }
 }
 
-/// Calculate world tension based on simulated nation conflicts
-/// This is a mock implementation until nations are fully implemented
-fn calculate_world_tension(
-    mut tension: ResMut<WorldTension>,
-    game_time: Res<GameTime>,
-    provinces: Query<&Province>,
-) {
-    // Skip if paused
-    if game_time.paused {
-        return;
-    }
-    
-    // Mock simulation of world events based on game time
-    // This creates a dynamic tension pattern that evolves over time
-    let years = game_time.current_date / 365.0;
-    
-    // Base tension from time progression (civilizations naturally develop conflicts)
-    let time_factor = (years / 1000.0).min(0.3); // Max 30% from time
-    
-    // Cyclic war patterns (wars tend to come in waves)
-    let war_cycle = ((years / 50.0).sin() + 1.0) / 2.0; // 50-year war cycles
-    let minor_conflicts = ((years / 7.0).sin() + 1.0) / 4.0; // 7-year minor conflicts
-    
-    // Random events (simplified - would be event-driven in real implementation)
-    let crisis_chance = if years as i32 % 100 < 5 { 0.2 } else { 0.0 }; // Major crisis every ~100 years
-    
-    // Count land provinces (proxy for number of nations)
-    let _land_provinces = provinces.iter()
-        .filter(|p| p.terrain != TerrainType::Ocean)
-        .count() as f32;
-    
-    // Simulate percentage of nations at war
-    // This would be calculated from actual nation states in the full implementation
-    let base_war_percentage = (time_factor + war_cycle * 0.3 + minor_conflicts * 0.1 + crisis_chance).min(1.0);
-    
-    // Apply the exponential curve for tension calculation
-    let calculated_tension = WorldTension::calculate_from_war_percentage(base_war_percentage);
-    
-    // Update the contributing factors (mock values)
-    tension.war_factor = base_war_percentage;
-    tension.power_imbalance = war_cycle * 0.2; // Some nations becoming too powerful
-    tension.economic_stress = minor_conflicts * 0.15; // Economic disruption from conflicts
-    tension.instability_factor = crisis_chance; // Major events causing instability
-    
-    // Set the target tension (physics system will smoothly interpolate to it)
-    tension.target = calculated_tension;
-    
-    // Debug output occasionally
-    if game_time.current_date as i32 % 1000 == 0 {
-        println!("World Tension: {:.1}% (Target: {:.1}%, Wars: {:.1}%)",
-            tension.current * 100.0,
-            tension.target * 100.0,
-            base_war_percentage * 100.0
-        );
-    }
-}
 
 // animate_clouds is now handled by CloudPlugin
 

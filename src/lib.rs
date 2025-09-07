@@ -13,6 +13,7 @@ pub mod minerals;
 pub mod music;
 pub mod overlay;
 pub mod resources;
+pub mod simulation;
 pub mod setup;
 pub mod terrain;
 pub mod ui;
@@ -43,6 +44,7 @@ pub mod prelude {
     pub use crate::music::{ProceduralMusicPlugin, MusicState};
     pub use crate::minerals::{MineralPlugin, generate_ore_veins, calculate_province_resources};
     pub use crate::overlay::OverlayPlugin;
+    pub use crate::simulation::SimulationPlugin;
 }
 
 use bevy::prelude::*;
@@ -54,6 +56,7 @@ use crate::clouds::CloudPlugin;
 use crate::minerals::MineralPlugin;
 use crate::music::ProceduralMusicPlugin;
 use crate::overlay::OverlayPlugin;
+use crate::simulation::SimulationPlugin;
 use crate::terrain::TerrainPlugin;
 use crate::ui::UIPlugin;
 
@@ -83,6 +86,7 @@ pub fn build_app() -> App {
         .add_plugins(TerrainPlugin)
         .add_plugins(MineralPlugin)
         .add_plugins(OverlayPlugin)
+        .add_plugins(SimulationPlugin)
         .add_plugins(UIPlugin)
         .add_plugins(CameraPlugin)
         .add_plugins(ProceduralMusicPlugin);
