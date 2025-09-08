@@ -20,9 +20,9 @@ pub struct WorldSeed(pub u32);
 /// World size configuration controlling map dimensions
 #[derive(Resource, Clone, Copy)]
 pub enum WorldSize {
-    Small,   // 150x100 provinces
-    Medium,  // 300x200 provinces (default)
-    Large,   // 450x300 provinces
+    Small,   // 600x500 provinces (300,000 hexagons)
+    Medium,  // 800x750 provinces (600,000 hexagons) 
+    Large,   // 1000x900 provinces (900,000 hexagons)
 }
 
 impl WorldSize {
@@ -36,9 +36,9 @@ impl WorldSize {
     
     pub fn dimensions(&self) -> (usize, usize) {
         match self {
-            WorldSize::Small => (150, 100),
-            WorldSize::Medium => (300, 200),
-            WorldSize::Large => (450, 300),
+            WorldSize::Small => (600, 500),   // 300,000 hexagons
+            WorldSize::Medium => (800, 750),  // 600,000 hexagons
+            WorldSize::Large => (1000, 900),  // 900,000 hexagons
         }
     }
 }

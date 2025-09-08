@@ -18,6 +18,7 @@ use crate::colors::{
     combined_richness_color, infrastructure_level_color
 };
 use crate::setup::ProvinceStorage;
+use crate::resources::MapDimensions;
 use crate::constants::*;
 
 /// System that updates province colors in the mega-mesh based on active overlay mode
@@ -26,6 +27,7 @@ pub fn update_province_colors(
     overlay: Res<ResourceOverlay>,
     province_storage: Res<ProvinceStorage>,
     mesh_handle: Res<crate::setup::WorldMeshHandle>,
+    map_dimensions: Res<MapDimensions>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
     // System already only runs when overlay changes due to run_if condition
@@ -35,13 +37,9 @@ pub fn update_province_colors(
         return;
     };
     
-    // Calculate world dimensions
-    let (provinces_per_row, provinces_per_col) = match province_storage.provinces.len() {
-        15000 => (150, 100),  // Small world
-        60000 => (300, 200),  // Medium world
-        135000 => (450, 300), // Large world
-        _ => (150, 100),      // Default to small
-    };
+    // Get world dimensions from resource (single source of truth!)
+    let provinces_per_row = map_dimensions.provinces_per_row;
+    let provinces_per_col = map_dimensions.provinces_per_col;
     
     // Rebuild color buffer for all provinces
     let mut colors = Vec::with_capacity(province_storage.provinces.len() * 7);

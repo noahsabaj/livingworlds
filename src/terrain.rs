@@ -209,10 +209,17 @@ pub fn generate_elevation_with_edges(x: f32, y: f32, perlin: &Perlin, continent_
     let detail = perlin.get([nx as f64 * 2.0, ny as f64 * 2.0]) as f32 * 0.5;
     let fine = perlin.get([nx as f64 * 4.0, ny as f64 * 4.0]) as f32 * 0.25;
     
-    // Ridge noise for mountain chains (inverted absolute value)
+    // Tectonic plate boundaries for realistic mountain chains
+    // Simulate plate tectonics with voronoi-like regions
+    let plate_scale = 0.0008;
+    let plate_x = ((wx as f64 * plate_scale).sin() + (wy as f64 * plate_scale * 0.7).cos()) as f32;
+    let plate_y = ((wx as f64 * plate_scale * 0.9).cos() + (wy as f64 * plate_scale).sin()) as f32;
+    let plate_boundary = 1.0 - (plate_x * plate_y).abs().min(1.0);
+    
+    // Ridge noise along plate boundaries for mountain chains
     let ridge_scale = 0.003;
     let ridge = 1.0 - (perlin.get([wx as f64 * ridge_scale, wy as f64 * ridge_scale]) as f32 * 2.0).abs();
-    let ridge_contribution = ridge * 0.3;
+    let ridge_contribution = ridge * 0.3 * plate_boundary; // Mountains form along plate boundaries
     
     // Combine noise layers
     let mut elevation = (base + detail + fine + ridge_contribution) / 2.0 + 0.5;
@@ -284,10 +291,32 @@ pub fn generate_elevation_with_edges(x: f32, y: f32, perlin: &Perlin, continent_
         elevation *= edge_factor * edge_factor; // Quadratic falloff to ocean
     }
     
-    // For ocean tiles, set a base ocean elevation
-    // We'll calculate proper depth in a second pass after we know all land positions
+    // Continental shelf effect - create gradual depth transitions near land
+    if elevation < 0.15 && elevation > 0.08 {
+        // Near-shore areas become shallow continental shelf
+        let shelf_gradient = (elevation - 0.08) / 0.07; // Normalize to 0-1
+        elevation = 0.10 + shelf_gradient * 0.08; // Compress to shallow water range (0.10-0.18)
+    }
+    
+    // Volcanic island chains and seamounts in deep ocean
+    if elevation < 0.08 {
+        // Create hotspot island chains
+        let hotspot_scale = 0.0012;
+        let hotspot = perlin.get([x as f64 * hotspot_scale + 500.0, y as f64 * hotspot_scale]) as f32;
+        
+        // Strong hotspots create islands
+        if hotspot > 0.75 {
+            elevation = 0.20 + (hotspot - 0.75) * 1.2; // Small volcanic islands
+        }
+        // Weaker hotspots create seamounts (underwater mountains)
+        else if hotspot > 0.6 {
+            elevation = 0.08 + (hotspot - 0.6) * 0.3; // Shallow seamounts
+        }
+    }
+    
+    // For very deep ocean, ensure it stays deep
     if elevation < 0.01 {
-        elevation = 0.05; // Temporary ocean value
+        elevation = 0.02; // Deep ocean floor
     }
     
     elevation

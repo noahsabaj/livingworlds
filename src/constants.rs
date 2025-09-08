@@ -55,10 +55,10 @@ pub const OCEAN_DEPTH_DEEP: f32 = 0.02;
 pub const CAMERA_ZOOM_SPEED: f32 = 0.1;
 
 /// Minimum zoom level (zoomed in, 1.0 = normal)
-pub const CAMERA_MIN_ZOOM: f32 = 0.2;
+pub const CAMERA_MIN_ZOOM: f32 = 0.3;
 
 /// Maximum zoom level (zoomed out, higher = see more)
-pub const CAMERA_MAX_ZOOM: f32 = 3.0;
+pub const CAMERA_MAX_ZOOM: f32 = 6.0;  // Increased for massive 900k hex worlds
 
 /// Base pan speed for keyboard movement (pixels per second)
 pub const CAMERA_PAN_SPEED_BASE: f32 = 500.0;
