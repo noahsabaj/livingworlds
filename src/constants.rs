@@ -152,8 +152,8 @@ pub const TECTONIC_PLATES_BASE: usize = 4;  // Realistic number like Earth
 /// Maximum additional tectonic plates
 pub const TECTONIC_PLATES_VARIATION: u32 = 3;  // Results in 4-7 major landmasses
 
-/// Number of island chains to generate
-pub const ISLAND_CHAIN_COUNT: usize = 3;  // Much fewer islands
+/// Number of island chains to generate (disabled to reduce ocean clutter)
+pub const ISLAND_CHAIN_COUNT: usize = 0;  // No small islands - rely on rare volcanic hotspots
 
 /// Number of archipelagos between continents
 pub const ARCHIPELAGO_COUNT: usize = 2;  // Minimal archipelagos
@@ -181,11 +181,11 @@ pub const CONTINENT_TINY_VARIATION: f32 = 400.0;
 pub const CONTINENT_FALLOFF_BASE: f32 = 0.8;  // Gentler falloff for larger continents
 pub const CONTINENT_FALLOFF_VARIATION: f32 = 0.3;
 
-/// Number of rivers to generate
-pub const RIVER_COUNT: usize = 50;
+/// Number of rivers to generate (increased for better coverage)
+pub const RIVER_COUNT: usize = 200;
 
-/// Minimum mountain elevation to spawn a river
-pub const RIVER_MIN_ELEVATION: f32 = 0.7;
+/// Minimum mountain elevation to spawn a river (lowered for more rivers)
+pub const RIVER_MIN_ELEVATION: f32 = 0.5;
 
 // ============================================================================
 // SPATIAL INDEX CONSTANTS

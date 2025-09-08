@@ -243,7 +243,7 @@ pub fn setup_world(
                 map_width, 
                 map_height
             );
-            let terrain = classify_terrain_with_climate(elevation, y, map_height);
+            let terrain = classify_terrain_with_climate(elevation, x, y, map_height);
             
             // Create province data with deterministic population based on ID
             let base_pop = if terrain == TerrainType::Ocean { 
@@ -359,9 +359,10 @@ pub fn setup_world(
     let mut delta_tiles = Vec::new();  // Track where rivers meet ocean
     let mut mountain_provinces = Vec::new();
     
-    // Find all mountain provinces that could be river sources
+    // Find all highland provinces that could be river sources (mountains and high hills)
     for province in all_provinces.iter() {
-        if province.terrain == TerrainType::Mountains && province.elevation >= RIVER_MIN_ELEVATION {
+        if (province.terrain == TerrainType::Mountains || 
+            (province.terrain == TerrainType::Hills && province.elevation >= RIVER_MIN_ELEVATION)) {
             mountain_provinces.push((province.id, province.position));
         }
     }
@@ -395,7 +396,7 @@ pub fn setup_world(
         
         // Follow downhill gradient until we reach ocean
         let mut steps = 0;
-        const MAX_RIVER_LENGTH: usize = 100;
+        const MAX_RIVER_LENGTH: usize = 500;  // Increased for longer rivers
         
         while steps < MAX_RIVER_LENGTH {
             steps += 1;
@@ -405,50 +406,87 @@ pub fn setup_world(
             let current_grid_x = (current_pos.x / hex_size).round() as i32;
             let current_grid_y = (current_pos.y / hex_size).round() as i32;
             
-            // Check only the 6 neighboring hexagons (much faster!)
-            for dx in -1..=1 {
-                for dy in -1..=1 {
-                    if dx == 0 && dy == 0 { continue; }
-                    
-                    if let Some(province) = position_to_province.get(&(current_grid_x + dx, current_grid_y + dy)) {
-                        let dist = province.position.distance(current_pos);
-                        if dist > 0.1 && dist <= hex_size * 1.8 {
-                    let grid_pos = (province.position.x as i32, province.position.y as i32);
-                    
-                    // Skip if we've already visited this tile
-                    if visited.contains(&grid_pos) {
-                        continue;
-                    }
-                    
-                    // If we hit ocean, we're done - mark as delta
-                    if province.terrain == TerrainType::Ocean {
-                        // The last river tile becomes a delta
-                        if !river_path.is_empty() {
-                            delta_tiles.push(*river_path.last().unwrap());
+            // Check the 6 hexagonal neighbors (flat-top, odd-q offset)
+            // Hex neighbors depend on whether column is odd or even
+            let neighbors = if current_grid_x % 2 == 0 {
+                // Even column neighbors
+                vec![(0, -1), (1, -1), (1, 0), (0, 1), (-1, 0), (-1, -1)]
+            } else {
+                // Odd column neighbors  
+                vec![(0, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0)]
+            };
+            
+            for (dx, dy) in neighbors.iter() {
+                if let Some(province) = position_to_province.get(&(current_grid_x + dx, current_grid_y + dy)) {
+                    let dist = province.position.distance(current_pos);
+                    if dist > 0.1 && dist <= hex_size * 1.8 {
+                        let grid_pos = (province.position.x as i32, province.position.y as i32);
+                        
+                        // Skip if we've already visited this tile
+                        if visited.contains(&grid_pos) {
+                            continue;
                         }
-                        // Also mark ocean tiles adjacent to the river mouth
-                        delta_tiles.push(province.id);
-                        steps = MAX_RIVER_LENGTH; // Exit outer loop
-                        break;
-                    }
-                    
-                            // Otherwise, find the lowest elevation neighbor
-                            if lowest_neighbor.is_none() || province.elevation < lowest_neighbor.as_ref().unwrap().1 {
-                                lowest_neighbor = Some((province.position, province.elevation, province.id));
+                        
+                        // If we hit ocean, we're done - mark as delta
+                        if province.terrain == TerrainType::Ocean {
+                            // The last river tile becomes a delta
+                            if !river_path.is_empty() {
+                                delta_tiles.push(*river_path.last().unwrap());
                             }
+                            // Also mark ocean tiles adjacent to the river mouth
+                            delta_tiles.push(province.id);
+                            steps = MAX_RIVER_LENGTH; // Exit outer loop
+                            break;
+                        }
+                        
+                        // Otherwise, find the lowest elevation neighbor
+                        if lowest_neighbor.is_none() || province.elevation < lowest_neighbor.as_ref().unwrap().1 {
+                            lowest_neighbor = Some((province.position, province.elevation, province.id));
                         }
                     }
                 }
             }
             
             // If we found a lower neighbor, continue the river
-            if let Some((next_pos, _elev, next_id)) = lowest_neighbor {
+            if let Some((next_pos, next_elev, next_id)) = lowest_neighbor {
                 river_path.push(next_id);
                 current_pos = next_pos;
                 visited.insert((next_pos.x as i32, next_pos.y as i32));
             } else {
-                // No lower neighbor found, end the river
-                break;
+                // No lower neighbor found - try broader search or carve through
+                let mut best_option: Option<(Vec2, f32, u32)> = None;
+                let search_radius = 2; // Search in a wider radius
+                
+                for dx in -search_radius..=search_radius {
+                    for dy in -search_radius..=search_radius {
+                        if dx == 0 && dy == 0 { continue; }
+                        
+                        if let Some(province) = position_to_province.get(&(current_grid_x + dx, current_grid_y + dy)) {
+                            let grid_pos = (province.position.x as i32, province.position.y as i32);
+                            if !visited.contains(&grid_pos) {
+                                // Prefer ocean, then lower elevation, then any non-mountain
+                                if province.terrain == TerrainType::Ocean {
+                                    best_option = Some((province.position, 0.0, province.id));
+                                    break;
+                                } else if best_option.is_none() || province.elevation < best_option.as_ref().unwrap().1 {
+                                    best_option = Some((province.position, province.elevation, province.id));
+                                }
+                            }
+                        }
+                    }
+                    if best_option.is_some() && best_option.as_ref().unwrap().1 == 0.0 {
+                        break; // Found ocean, stop searching
+                    }
+                }
+                
+                if let Some((next_pos, _elev, next_id)) = best_option {
+                    river_path.push(next_id);
+                    current_pos = next_pos;
+                    visited.insert((next_pos.x as i32, next_pos.y as i32));
+                } else {
+                    // Truly stuck, end the river
+                    break;
+                }
             }
         }
         

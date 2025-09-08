@@ -52,7 +52,7 @@ pub fn get_climate_zone(y: f32, map_height: f32) -> ClimateZone {
 }
 
 /// Classify terrain based on elevation and climate
-pub fn classify_terrain_with_climate(elevation: f32, y: f32, map_height: f32) -> TerrainType {
+pub fn classify_terrain_with_climate(elevation: f32, x: f32, y: f32, map_height: f32) -> TerrainType {
     let climate = get_climate_zone(y, map_height);
     
     // Arctic zones are ice or tundra
@@ -88,8 +88,8 @@ pub fn classify_terrain_with_climate(elevation: f32, y: f32, map_height: f32) ->
         } else if elevation < 0.18 {
             return TerrainType::Beach;
         } else if elevation < 0.35 {
-            // Mix of forests and plains based on moisture patterns
-            let moisture = ((y * 0.006).sin() * (y * 0.008).cos() + (y * 0.003).sin()).abs();
+            // Mix of forests and plains based on moisture patterns (use both x and y to avoid banding)
+            let moisture = ((y * 0.006).sin() * (x * 0.005).cos() + (x * 0.004).sin() * (y * 0.003).cos()).abs();
             if moisture > 0.55 {
                 return TerrainType::Forest;
             } else {
@@ -111,8 +111,8 @@ pub fn classify_terrain_with_climate(elevation: f32, y: f32, map_height: f32) ->
     // Subtropical can have deserts and dry forests
     if matches!(climate, ClimateZone::Subtropical) {
         if elevation > 0.2 && elevation < 0.35 {
-            // Desert bands based on position
-            let desert_factor = ((y * 0.005).sin() * (y * 0.003).cos()).abs();
+            // Desert bands based on position (use x and y to avoid horizontal banding)
+            let desert_factor = ((x * 0.004).sin() * (y * 0.005).cos() + (y * 0.003).sin() * (x * 0.003).cos()).abs();
             if desert_factor > 0.6 {
                 return TerrainType::Desert;
             } else if desert_factor < 0.3 {
@@ -129,8 +129,8 @@ pub fn classify_terrain_with_climate(elevation: f32, y: f32, map_height: f32) ->
         } else if elevation < 0.18 {
             return TerrainType::Beach;
         } else if elevation < 0.4 {
-            // Most tropical land is jungle
-            let jungle_factor = ((y * 0.004).sin() * (y * 0.006).cos()).abs();
+            // Most tropical land is jungle (use x and y to avoid banding)
+            let jungle_factor = ((x * 0.003).sin() * (y * 0.004).cos() + (y * 0.006).sin() * (x * 0.005).cos()).abs();
             if jungle_factor > 0.2 {
                 return TerrainType::Jungle;
             } else {
@@ -138,7 +138,7 @@ pub fn classify_terrain_with_climate(elevation: f32, y: f32, map_height: f32) ->
             }
         } else if elevation < 0.5 {
             // Higher tropical elevations might be jungle or hills
-            let jungle_chance = ((y * 0.005).cos()).abs();
+            let jungle_chance = ((x * 0.004).sin() * (y * 0.005).cos()).abs();
             if jungle_chance > 0.5 {
                 return TerrainType::Jungle;
             } else {
@@ -228,25 +228,36 @@ pub fn generate_elevation_with_edges(x: f32, y: f32, perlin: &Perlin, continent_
     let mut continent_influence: f32 = 0.0;
     
     for (idx, &(cx, cy)) in continent_centers.iter().enumerate() {
-        let dist = ((x - cx).powi(2) + (y - cy).powi(2)).sqrt();
+        // Add elongation and rotation to continents for varied shapes
+        let continent_seed = (idx as u32).wrapping_mul(2654435761);
+        let angle = (continent_seed % 360) as f32 * 0.0174533; // Random rotation
+        let elongation = 1.0 + (continent_seed % 100) as f32 / 50.0; // 1.0 to 3.0 elongation
+        
+        // Rotate and elongate the coordinate space
+        let dx = x - cx;
+        let dy = y - cy;
+        let rotated_x = dx * angle.cos() - dy * angle.sin();
+        let rotated_y = (dx * angle.sin() + dy * angle.cos()) * elongation;
+        
+        let dist = (rotated_x.powi(2) + rotated_y.powi(2)).sqrt();
         
         // Add multi-scale noise distortion for realistic coastlines (but less breakup)
         let distortion_scale = 0.001;
-        // Large scale features (continents/peninsulas) - reduced to keep continents coherent
+        // Large scale features (continents/peninsulas) - further reduced to prevent holes
         let distortion1 = perlin.get([
             (x + cx * 0.1) as f64 * distortion_scale * 0.3, 
             (y + cy * 0.1) as f64 * distortion_scale * 0.3
-        ]) as f32 * 200.0;  // Reduced from 400
+        ]) as f32 * 150.0;  // Reduced from 200 to prevent inland lakes
         // Medium scale features (bays/capes)
         let distortion2 = perlin.get([
             x as f64 * distortion_scale * 1.5, 
             y as f64 * distortion_scale * 1.5
-        ]) as f32 * 100.0;  // Reduced from 200
+        ]) as f32 * 80.0;  // Reduced from 100
         // Fine detail (rough coastline)
         let distortion3 = perlin.get([
             x as f64 * distortion_scale * 6.0, 
             y as f64 * distortion_scale * 6.0
-        ]) as f32 * 30.0;  // Reduced from 50
+        ]) as f32 * 25.0;  // Reduced from 30
         
         // Apply fractal distortion
         let distorted_dist = dist + distortion1 + distortion2 * 0.5 + distortion3 * 0.25;
@@ -298,19 +309,19 @@ pub fn generate_elevation_with_edges(x: f32, y: f32, perlin: &Perlin, continent_
         elevation = 0.10 + shelf_gradient * 0.08; // Compress to shallow water range (0.10-0.18)
     }
     
-    // Volcanic island chains - VERY RARE to avoid polka-dot effect
+    // Volcanic island chains - EXTREMELY RARE to eliminate polka-dot effect
     if elevation < 0.08 {
-        // Create hotspot island chains - much rarer
-        let hotspot_scale = 0.0004;  // Much larger scale = fewer islands
+        // Create hotspot island chains - extremely rare
+        let hotspot_scale = 0.0002;  // Even larger scale = even fewer islands
         let hotspot = perlin.get([x as f64 * hotspot_scale + 500.0, y as f64 * hotspot_scale]) as f32;
         
-        // Only the strongest hotspots create islands (very rare)
-        if hotspot > 0.92 {
-            elevation = 0.20 + (hotspot - 0.92) * 2.0; // Rare volcanic islands
+        // Only the most extreme hotspots create islands (extremely rare)
+        if hotspot > 0.98 {
+            elevation = 0.20 + (hotspot - 0.98) * 5.0; // Extremely rare volcanic islands
         }
-        // Seamounts also much rarer
-        else if hotspot > 0.85 {
-            elevation = 0.08 + (hotspot - 0.85) * 0.5; // Rare seamounts
+        // Seamounts virtually eliminated
+        else if hotspot > 0.95 {
+            elevation = 0.08 + (hotspot - 0.95) * 0.4; // Very rare seamounts
         }
     }
     
