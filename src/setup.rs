@@ -159,11 +159,11 @@ pub fn setup_world(
         let py = rng.gen_range(map_y_min * 0.95..map_y_max * 0.95);
         plate_centers.push((px, py));
         
-        // 90% chance this plate has a continent on it for 25% land coverage
-        if rng.gen_range(0.0..1.0) < 0.9 {
-            // Continent offset from plate center (for variety)
-            let offset_x = rng.gen_range(-200.0..200.0);
-            let offset_y = rng.gen_range(-150.0..150.0);
+        // 80% chance this plate has a major continent (fewer but larger landmasses)
+        if rng.gen_range(0.0..1.0) < 0.8 {
+            // Continent offset from plate center (larger offset for variety)
+            let offset_x = rng.gen_range(-800.0..800.0);
+            let offset_y = rng.gen_range(-600.0..600.0);
             continent_centers.push((px + offset_x, py + offset_y));
         }
     }
@@ -185,18 +185,14 @@ pub fn setup_world(
         }
     }
     
-    // Add archipelagos between major continents
+    // Add archipelagos between major continents (but just one landmass per archipelago)
     for _ in 0..ARCHIPELAGO_COUNT {
         // Place archipelagos in open ocean areas
         let arch_x = rng.gen_range(map_x_min * 0.8..map_x_max * 0.8);
         let arch_y = rng.gen_range(map_y_min * 0.8..map_y_max * 0.8);
         
-        // Create a cluster of small islands
-        for _ in 0..rng.gen_range(3..7) {
-            let offset_x = rng.gen_range(-300.0..300.0);
-            let offset_y = rng.gen_range(-300.0..300.0);
-            continent_centers.push((arch_x + offset_x, arch_y + offset_y));
-        }
+        // Just one sizable archipelago landmass, not a cluster of tiny islands
+        continent_centers.push((arch_x, arch_y));
     }
     
     println!("Generated {} tectonic plates with {} landmasses", 

@@ -147,39 +147,39 @@ pub const PROVINCE_MAX_ADDITIONAL_POPULATION: f32 = 49000.0;
 pub const NATION_COUNT: usize = 8;
 
 /// Number of tectonic plates (base value, actual is base + seed variation)
-pub const TECTONIC_PLATES_BASE: usize = 20;
+pub const TECTONIC_PLATES_BASE: usize = 4;  // Realistic number like Earth
 
 /// Maximum additional tectonic plates
-pub const TECTONIC_PLATES_VARIATION: u32 = 10;
+pub const TECTONIC_PLATES_VARIATION: u32 = 3;  // Results in 4-7 major landmasses
 
 /// Number of island chains to generate
-pub const ISLAND_CHAIN_COUNT: usize = 15;
+pub const ISLAND_CHAIN_COUNT: usize = 3;  // Much fewer islands
 
 /// Number of archipelagos between continents
-pub const ARCHIPELAGO_COUNT: usize = 8;
+pub const ARCHIPELAGO_COUNT: usize = 2;  // Minimal archipelagos
 
 /// Continent size multiplier (1.0 = original, 1.5 = 50% larger for 25% land coverage)
 pub const CONTINENT_SIZE_MULTIPLIER: f32 = 1.5;
 
-/// Massive continent base radius (Eurasia-sized)
-pub const CONTINENT_MASSIVE_BASE: f32 = 1800.0;
-pub const CONTINENT_MASSIVE_VARIATION: f32 = 600.0;
+/// Massive continent base radius (Eurasia-sized) - scaled for 900k hex worlds
+pub const CONTINENT_MASSIVE_BASE: f32 = 8000.0;  // MUCH larger for huge worlds
+pub const CONTINENT_MASSIVE_VARIATION: f32 = 3000.0;
 
 /// Medium continent base radius (Australia-sized)
-pub const CONTINENT_MEDIUM_BASE: f32 = 1200.0;
-pub const CONTINENT_MEDIUM_VARIATION: f32 = 400.0;
+pub const CONTINENT_MEDIUM_BASE: f32 = 5000.0;  // Scaled up significantly
+pub const CONTINENT_MEDIUM_VARIATION: f32 = 2000.0;
 
 /// Archipelago base radius (Indonesia-sized)
-pub const CONTINENT_ARCHIPELAGO_BASE: f32 = 800.0;
-pub const CONTINENT_ARCHIPELAGO_VARIATION: f32 = 300.0;
+pub const CONTINENT_ARCHIPELAGO_BASE: f32 = 2000.0;  // Still sizable
+pub const CONTINENT_ARCHIPELAGO_VARIATION: f32 = 800.0;
 
 /// Tiny island base radius (Hawaii-sized)
-pub const CONTINENT_TINY_BASE: f32 = 400.0;
-pub const CONTINENT_TINY_VARIATION: f32 = 200.0;
+pub const CONTINENT_TINY_BASE: f32 = 800.0;  // Even tiny islands are bigger
+pub const CONTINENT_TINY_VARIATION: f32 = 400.0;
 
 /// Falloff power for continent edges (higher = sharper edges, less land)
-pub const CONTINENT_FALLOFF_BASE: f32 = 1.1;
-pub const CONTINENT_FALLOFF_VARIATION: f32 = 0.5;
+pub const CONTINENT_FALLOFF_BASE: f32 = 0.8;  // Gentler falloff for larger continents
+pub const CONTINENT_FALLOFF_VARIATION: f32 = 0.3;
 
 /// Number of rivers to generate
 pub const RIVER_COUNT: usize = 50;

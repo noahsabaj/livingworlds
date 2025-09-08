@@ -230,23 +230,23 @@ pub fn generate_elevation_with_edges(x: f32, y: f32, perlin: &Perlin, continent_
     for (idx, &(cx, cy)) in continent_centers.iter().enumerate() {
         let dist = ((x - cx).powi(2) + (y - cy).powi(2)).sqrt();
         
-        // Add multi-scale noise distortion for realistic, fractal coastlines
+        // Add multi-scale noise distortion for realistic coastlines (but less breakup)
         let distortion_scale = 0.001;
-        // Large scale features (continents/peninsulas)
+        // Large scale features (continents/peninsulas) - reduced to keep continents coherent
         let distortion1 = perlin.get([
-            (x + cx * 0.1) as f64 * distortion_scale * 0.5, 
-            (y + cy * 0.1) as f64 * distortion_scale * 0.5
-        ]) as f32 * 400.0;
+            (x + cx * 0.1) as f64 * distortion_scale * 0.3, 
+            (y + cy * 0.1) as f64 * distortion_scale * 0.3
+        ]) as f32 * 200.0;  // Reduced from 400
         // Medium scale features (bays/capes)
         let distortion2 = perlin.get([
-            x as f64 * distortion_scale * 2.0, 
-            y as f64 * distortion_scale * 2.0
-        ]) as f32 * 200.0;
+            x as f64 * distortion_scale * 1.5, 
+            y as f64 * distortion_scale * 1.5
+        ]) as f32 * 100.0;  // Reduced from 200
         // Fine detail (rough coastline)
         let distortion3 = perlin.get([
-            x as f64 * distortion_scale * 8.0, 
-            y as f64 * distortion_scale * 8.0
-        ]) as f32 * 50.0;
+            x as f64 * distortion_scale * 6.0, 
+            y as f64 * distortion_scale * 6.0
+        ]) as f32 * 30.0;  // Reduced from 50
         
         // Apply fractal distortion
         let distorted_dist = dist + distortion1 + distortion2 * 0.5 + distortion3 * 0.25;
@@ -298,19 +298,19 @@ pub fn generate_elevation_with_edges(x: f32, y: f32, perlin: &Perlin, continent_
         elevation = 0.10 + shelf_gradient * 0.08; // Compress to shallow water range (0.10-0.18)
     }
     
-    // Volcanic island chains and seamounts in deep ocean
+    // Volcanic island chains - VERY RARE to avoid polka-dot effect
     if elevation < 0.08 {
-        // Create hotspot island chains
-        let hotspot_scale = 0.0012;
+        // Create hotspot island chains - much rarer
+        let hotspot_scale = 0.0004;  // Much larger scale = fewer islands
         let hotspot = perlin.get([x as f64 * hotspot_scale + 500.0, y as f64 * hotspot_scale]) as f32;
         
-        // Strong hotspots create islands
-        if hotspot > 0.75 {
-            elevation = 0.20 + (hotspot - 0.75) * 1.2; // Small volcanic islands
+        // Only the strongest hotspots create islands (very rare)
+        if hotspot > 0.92 {
+            elevation = 0.20 + (hotspot - 0.92) * 2.0; // Rare volcanic islands
         }
-        // Weaker hotspots create seamounts (underwater mountains)
-        else if hotspot > 0.6 {
-            elevation = 0.08 + (hotspot - 0.6) * 0.3; // Shallow seamounts
+        // Seamounts also much rarer
+        else if hotspot > 0.85 {
+            elevation = 0.08 + (hotspot - 0.85) * 0.5; // Rare seamounts
         }
     }
     
