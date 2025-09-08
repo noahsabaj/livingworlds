@@ -15,6 +15,7 @@ use crate::components::{
 };
 use crate::terrain::TerrainType;
 use crate::constants::*;
+use crate::resources::GameTime;
 
 // ============================================================================
 // MINERAL GENERATION CONSTANTS
@@ -597,6 +598,11 @@ pub fn generate_world_minerals(
 // PLUGIN
 // ============================================================================
 
+/// Check if we should update mineral systems (every 50 days)
+fn should_update_minerals(game_time: Res<GameTime>) -> bool {
+    !game_time.paused && game_time.current_date as u64 % 50 == 0
+}
+
 /// Plugin that manages all mineral-related systems
 pub struct MineralPlugin;
 
@@ -604,9 +610,9 @@ impl Plugin for MineralPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_systems(Update, (
-                resource_extraction_system,
-                technology_progression_system,
-                resource_processing_system,
+                resource_extraction_system.run_if(should_update_minerals),
+                technology_progression_system.run_if(should_update_minerals),
+                resource_processing_system.run_if(should_update_minerals),
             ).chain());
     }
 }

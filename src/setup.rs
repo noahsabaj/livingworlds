@@ -7,19 +7,35 @@
 use bevy::prelude::*;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use bevy::render::render_asset::RenderAssetUsages;
+use bevy::render::mesh::{Mesh, Mesh2d};
+use bevy::sprite::MeshMaterial2d;
 use bevy::image::ImageSampler;
 use noise::Perlin;
 use rand::prelude::*;
 use rand::rngs::StdRng;
+use rayon::prelude::*;  // For parallel iteration
 use std::collections::HashMap;
+use std::sync::Arc;
 
-use crate::components::{Province, Nation, ProvinceInfrastructure};
+use crate::components::{Province, Nation, ProvinceInfrastructure, ProvinceResources};
 use crate::resources::{WorldSeed, WorldSize, ProvincesSpatialIndex, SelectedProvinceInfo};
 use crate::terrain::{TerrainType, classify_terrain_with_climate, generate_elevation_with_edges, get_terrain_population_multiplier};
 use crate::colors::get_terrain_color_gradient;
 use crate::clouds::spawn_clouds;
 use crate::constants::*;
 use crate::minerals::generate_world_minerals;
+
+/// Storage for all province data (since we no longer have province entities)
+#[derive(Resource, Default)]
+pub struct ProvinceStorage {
+    pub provinces: HashMap<u32, Province>,
+    pub resources: HashMap<u32, ProvinceResources>,
+    pub infrastructure: HashMap<u32, ProvinceInfrastructure>,
+}
+
+/// Resource to store the world mesh handle for overlay updates
+#[derive(Resource)]
+pub struct WorldMeshHandle(pub Handle<Mesh>);
 
 // ============================================================================
 // TEXTURE GENERATION
@@ -100,8 +116,8 @@ pub fn create_hexagon_texture(size: f32) -> Image {
 /// Initial world setup - generates the entire game world
 pub fn setup_world(
     mut commands: Commands,
-    _meshes: ResMut<Assets<Mesh>>,
-    _materials: ResMut<Assets<ColorMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
     mut images: ResMut<Assets<Image>>,
     seed: Res<WorldSeed>,
     size: Res<WorldSize>,
@@ -188,38 +204,50 @@ pub fn setup_world(
     
     // Create a single hexagon texture to be shared by ALL sprites (massive performance boost!)
     let hexagon_texture = create_hexagon_texture(HEX_SIZE_PIXELS);
-    let hexagon_handle = images.add(hexagon_texture);
+    let _hexagon_handle = images.add(hexagon_texture);
     
     // Generate provinces with terrain using the dimensions defined above
     let hex_size = HEX_SIZE_PIXELS;
     
     let mut land_provinces = Vec::new();
-    let mut all_provinces = Vec::new();
     let mut ocean_positions = Vec::new();
     let mut land_positions = Vec::new();
     
-    // First pass: generate terrain and collect positions
-    for row in 0..provinces_per_col {
-        for col in 0..provinces_per_row {
-            let province_id = row * provinces_per_row + col;
+    // First pass: generate terrain in PARALLEL for massive speedup!
+    // Wrap shared data in Arc for thread safety
+    let perlin_arc = Arc::new(perlin.clone());
+    let continent_centers_arc = Arc::new(continent_centers.clone());
+    
+    // Generate all province IDs and process them in parallel
+    let total_provinces = provinces_per_row * provinces_per_col;
+    let map_width = provinces_per_row as f32 * HEX_SIZE_PIXELS * 1.5;
+    let map_height = provinces_per_col as f32 * HEX_SIZE_PIXELS * SQRT3;
+    
+    // Rayon thread pool is configured in main.rs to leave cores for audio
+    println!("Generating {} provinces using {} CPU threads...", 
+             total_provinces, rayon::current_num_threads());
+    
+    let start_time = std::time::Instant::now();
+    
+    // Process provinces in parallel - rayon automatically chunks for efficiency
+    let all_provinces: Vec<Province> = (0..total_provinces)
+        .into_par_iter()
+        .map(|province_id| {
+            let row = province_id / provinces_per_row;
+            let col = province_id % provinces_per_row;
             
             // Calculate FLAT-TOP hexagon position for HONEYCOMB pattern
             let (x, y) = calculate_hex_position(col, row, hex_size, provinces_per_row, provinces_per_col);
             
             // Generate elevation and terrain with climate
-            let map_width = provinces_per_row as f32 * HEX_SIZE_PIXELS * 1.5;
-            let map_height = provinces_per_col as f32 * HEX_SIZE_PIXELS * SQRT3;
-            let elevation = generate_elevation_with_edges(x, y, &perlin, &continent_centers, map_width, map_height);
+            let elevation = generate_elevation_with_edges(
+                x, y, 
+                &perlin_arc, 
+                &continent_centers_arc, 
+                map_width, 
+                map_height
+            );
             let terrain = classify_terrain_with_climate(elevation, y, map_height);
-            let _terrain_color = get_terrain_color_gradient(terrain, elevation);
-            
-            // Track land and ocean positions for depth calculation
-            if terrain != TerrainType::Ocean {
-                land_provinces.push((province_id, Vec2::new(x, y)));
-                land_positions.push(Vec2::new(x, y));
-            } else {
-                ocean_positions.push((province_id, Vec2::new(x, y)));
-            }
             
             // Create province data with deterministic population based on ID
             let base_pop = if terrain == TerrainType::Ocean { 
@@ -232,7 +260,7 @@ pub fn setup_world(
                 PROVINCE_MIN_POPULATION + pop_factor * PROVINCE_MAX_ADDITIONAL_POPULATION * terrain_multiplier
             };
             
-            let province = Province {
+            Province {
                 id: province_id,
                 position: Vec2::new(x, y),
                 nation_id: None,  // Will assign nations later
@@ -241,13 +269,25 @@ pub fn setup_world(
                 elevation,
                 agriculture: 0.0,  // Will be calculated later based on rivers
                 fresh_water_distance: f32::MAX,  // Will be calculated after rivers
-            };
-            
-            all_provinces.push(province.clone());
+            }
+        })
+        .collect();  // Collect parallel results back into a Vec
+    
+    // Now split the provinces into land and ocean for further processing
+    for province in &all_provinces {
+        if province.terrain != TerrainType::Ocean {
+            land_provinces.push((province.id, province.position));
+            land_positions.push(province.position);
+        } else {
+            ocean_positions.push((province.id, province.position));
         }
     }
     
+    println!("Terrain generation completed in {:.2}s", start_time.elapsed().as_secs_f32());
+    
     // Second pass: calculate ocean depths more efficiently
+    let ocean_depth_start = std::time::Instant::now();
+    println!("Calculating ocean depths for {} ocean tiles...", ocean_positions.len());
     // Build spatial grid for land positions for O(1) lookups
     let grid_size = hex_size * OCEAN_DEPTH_GRID_SIZE_MULTIPLIER;
     let mut land_grid: HashMap<(i32, i32), Vec<Vec2>> = HashMap::new();
@@ -260,9 +300,11 @@ pub fn setup_world(
             .push(*land_pos);
     }
     
-    // Now calculate ocean depths with spatial lookup
-    for (ocean_id, ocean_pos) in ocean_positions.iter() {
-        if let Some(province) = all_provinces.iter_mut().find(|p| p.id == *ocean_id) {
+    // Calculate ocean depths in PARALLEL for faster processing
+    let land_grid_arc = Arc::new(land_grid);
+    let ocean_depth_updates: Vec<(u32, f32)> = ocean_positions
+        .par_iter()  // Parallel iterator over ocean positions
+        .map(|(ocean_id, ocean_pos)| {
             // Check nearby grid cells only (9-cell neighborhood)
             let grid_x = (ocean_pos.x / grid_size).floor() as i32;
             let grid_y = (ocean_pos.y / grid_size).floor() as i32;
@@ -270,7 +312,7 @@ pub fn setup_world(
             let mut min_dist_to_land = f32::MAX;
             for dx in -1..=1 {
                 for dy in -1..=1 {
-                    if let Some(land_tiles) = land_grid.get(&(grid_x + dx, grid_y + dy)) {
+                    if let Some(land_tiles) = land_grid_arc.get(&(grid_x + dx, grid_y + dy)) {
                         for land_pos in land_tiles {
                             let dist = ocean_pos.distance(*land_pos);
                             min_dist_to_land = min_dist_to_land.min(dist);
@@ -279,24 +321,43 @@ pub fn setup_world(
                 }
             }
             
-            // If no land found nearby, it's deep ocean
-            if min_dist_to_land == f32::MAX {
-                province.elevation = 0.02;  // Deep ocean
+            // Calculate depth based on distance
+            let depth = if min_dist_to_land == f32::MAX {
+                0.02  // Deep ocean
             } else {
-                // Assign depth based on distance
                 let hex_distance = min_dist_to_land / hex_size;
                 if hex_distance <= 1.8 {
-                    province.elevation = 0.12;  // Shallow water
+                    0.12  // Shallow water
                 } else if hex_distance <= 5.0 {
-                    province.elevation = 0.07;  // Medium depth
+                    0.07  // Medium depth
                 } else {
-                    province.elevation = 0.02;  // Deep ocean
+                    0.02  // Deep ocean
                 }
-            }
-        }
+            };
+            
+            (*ocean_id, depth)
+        })
+        .collect();
+    
+    // Apply the depth updates to provinces (must be sequential for mutable access)
+    let mut all_provinces = all_provinces;  // Make mutable for updates
+    
+    // Build index for O(1) lookups instead of O(n) searches
+    let mut id_to_index: HashMap<u32, usize> = HashMap::new();
+    for (idx, province) in all_provinces.iter().enumerate() {
+        id_to_index.insert(province.id, idx);
     }
     
-    // Generate rivers from mountains to ocean
+    // Apply depth updates using the index
+    for (ocean_id, depth) in ocean_depth_updates {
+        if let Some(&idx) = id_to_index.get(&ocean_id) {
+            all_provinces[idx].elevation = depth;
+        }
+    }
+    println!("Ocean depth calculation completed in {:.2}s", ocean_depth_start.elapsed().as_secs_f32());
+    
+    // Generate rivers from mountains to ocean  
+    let river_start = std::time::Instant::now();
     println!("Generating rivers...");
     let mut river_tiles = Vec::new();
     let mut delta_tiles = Vec::new();  // Track where rivers meet ocean
@@ -321,6 +382,14 @@ pub fn setup_world(
         }
     }
     
+    // Build a spatial index for fast neighbor lookups
+    let mut position_to_province: HashMap<(i32, i32), &Province> = HashMap::new();
+    for province in &all_provinces {
+        let grid_x = (province.position.x / hex_size).round() as i32;
+        let grid_y = (province.position.y / hex_size).round() as i32;
+        position_to_province.insert((grid_x, grid_y), province);
+    }
+    
     // Trace rivers from each source to the ocean
     for (_source_id, source_pos) in selected_sources {
         let mut current_pos = source_pos;
@@ -335,13 +404,19 @@ pub fn setup_world(
         while steps < MAX_RIVER_LENGTH {
             steps += 1;
             
-            // Find the lowest neighboring province
+            // Find the lowest neighboring province using spatial lookup
             let mut lowest_neighbor: Option<(Vec2, f32, u32)> = None;
-            let search_radius = hex_size * 1.8; // Look at immediate neighbors
+            let current_grid_x = (current_pos.x / hex_size).round() as i32;
+            let current_grid_y = (current_pos.y / hex_size).round() as i32;
             
-            for province in all_provinces.iter() {
-                let dist = province.position.distance(current_pos);
-                if dist > 0.1 && dist <= search_radius {
+            // Check only the 6 neighboring hexagons (much faster!)
+            for dx in -1..=1 {
+                for dy in -1..=1 {
+                    if dx == 0 && dy == 0 { continue; }
+                    
+                    if let Some(province) = position_to_province.get(&(current_grid_x + dx, current_grid_y + dy)) {
+                        let dist = province.position.distance(current_pos);
+                        if dist > 0.1 && dist <= hex_size * 1.8 {
                     let grid_pos = (province.position.x as i32, province.position.y as i32);
                     
                     // Skip if we've already visited this tile
@@ -361,9 +436,11 @@ pub fn setup_world(
                         break;
                     }
                     
-                    // Otherwise, find the lowest elevation neighbor
-                    if lowest_neighbor.is_none() || province.elevation < lowest_neighbor.as_ref().unwrap().1 {
-                        lowest_neighbor = Some((province.position, province.elevation, province.id));
+                            // Otherwise, find the lowest elevation neighbor
+                            if lowest_neighbor.is_none() || province.elevation < lowest_neighbor.as_ref().unwrap().1 {
+                                lowest_neighbor = Some((province.position, province.elevation, province.id));
+                            }
+                        }
                     }
                 }
             }
@@ -394,6 +471,8 @@ pub fn setup_world(
             }
         }
     }
+    
+    println!("River generation completed in {:.2}s", river_start.elapsed().as_secs_f32());
     
     // Create river deltas at river mouths
     for delta_id in delta_tiles.iter() {
@@ -494,20 +573,40 @@ pub fn setup_world(
     // Generate all mineral resources using centralized function in minerals.rs
     let province_resources = generate_world_minerals(seed.0, &all_provinces);
     
-    // Now spawn all provinces with correct depths
-    for province in all_provinces.iter() {
+    // Build ONE mega-mesh containing all provinces (Graphics Engineering!)
+    let spawn_start = std::time::Instant::now();
+    println!("Building mega-mesh with {} hexagons...", all_provinces.len());
+    
+    // Pre-allocate vertex and index buffers
+    // Each hexagon: 7 vertices (center + 6 corners), 18 indices (6 triangles * 3 indices)
+    let mut positions = Vec::with_capacity(all_provinces.len() * 7);
+    let mut colors = Vec::with_capacity(all_provinces.len() * 7);
+    let mut indices = Vec::with_capacity(all_provinces.len() * 18);
+    
+    // Hexagon vertex offsets (flat-top)
+    const HEX_CORNERS: [(f32, f32); 6] = [
+        (1.0, 0.0),           // 0° - Right
+        (0.5, 0.866025404),   // 60° - Top-Right  
+        (-0.5, 0.866025404),  // 120° - Top-Left
+        (-1.0, 0.0),          // 180° - Left
+        (-0.5, -0.866025404), // 240° - Bottom-Left
+        (0.5, -0.866025404),  // 300° - Bottom-Right
+    ];
+    
+    // Store province data in a resource for game logic
+    let mut province_storage = ProvinceStorage::default();
+    
+    for (idx, province) in all_provinces.iter().enumerate() {
         let row = province.id / provinces_per_row;
         let col = province.id % provinces_per_row;
         
-        // Recalculate position (MUST match first pass exactly!)
+        // Calculate position
         let (x, y) = calculate_hex_position(col, row, hex_size, provinces_per_row, provinces_per_col);
         
-        // Get the color based on nation ownership or terrain
+        // Determine color
         let province_color = if let Some(nation_id) = province.nation_id {
-            // Use nation color with slight terrain tinting
             let hue = nation_id as f32 / 8.0;
             let nation_color = Color::hsl(hue * 360.0, 0.7, 0.5);
-            // Blend with terrain for variation
             let terrain_color = get_terrain_color_gradient(province.terrain, province.elevation);
             Color::srgb(
                 nation_color.to_srgba().red * 0.8 + terrain_color.to_srgba().red * 0.2,
@@ -515,37 +614,86 @@ pub fn setup_world(
                 nation_color.to_srgba().blue * 0.8 + terrain_color.to_srgba().blue * 0.2,
             )
         } else {
-            // Ocean or unowned - use terrain color
             get_terrain_color_gradient(province.terrain, province.elevation)
         };
         
-        // Get the mineral resources for this province
+        // Convert to vertex color (use linear for proper color mixing)
+        let linear = province_color.to_linear();
+        let color_array = [
+            linear.red,
+            linear.green,
+            linear.blue,
+            linear.alpha,
+        ];
+        
+        // Add vertices: center, then 6 corners
+        let vertex_base = idx * 7;
+        
+        // Center vertex
+        positions.push([x, y, 0.0]);
+        colors.push(color_array);
+        
+        // Corner vertices
+        for corner in HEX_CORNERS.iter() {
+            positions.push([
+                x + corner.0 * hex_size,
+                y + corner.1 * hex_size,
+                0.0
+            ]);
+            colors.push(color_array);
+        }
+        
+        // Add indices for 6 triangles (fan from center)
+        for i in 0..6 {
+            let next = (i + 1) % 6;
+            indices.push((vertex_base) as u32);        // Center
+            indices.push((vertex_base + 1 + i) as u32); // Current corner
+            indices.push((vertex_base + 1 + next) as u32); // Next corner
+        }
+        
+        // Store province data and resources
         let resources = province_resources.get(&province.id)
             .cloned()
             .unwrap_or_default();
         
-        // Spawn province entity with SPRITE (much faster than Mesh2d!)
-        // Sprites batch automatically when using the same texture
-        let entity = commands.spawn((
-            province.clone(),
-            resources,  // Add mineral resources
-            ProvinceInfrastructure::default(),  // Start with no infrastructure
-            Sprite {
-                image: hexagon_handle.clone(),  // Share the SAME texture handle for batching!
-                color: province_color,  // Tint with nation or terrain color
-                // FLAT-TOP: Width = 2 * radius, Height = sqrt(3) * radius
-                custom_size: Some(Vec2::new(hex_size * 2.0, hex_size * SQRT3)),
-                ..default()
-            },
-            Transform::from_xyz(x, y, 0.0),
-            Name::new(format!("Province {}", province.id)),
-        )).id();
+        province_storage.provinces.insert(province.id, province.clone());
+        province_storage.resources.insert(province.id, resources);
+        province_storage.infrastructure.insert(province.id, ProvinceInfrastructure::default());
         
-        // Add to spatial index for O(1) lookups
-        spatial_index.insert(entity, Vec2::new(x, y), province.id);
+        // Add to spatial index with position (no entity needed!)
+        spatial_index.insert_position_only(Vec2::new(x, y), province.id);
     }
     
+    // Create the mega-mesh (with MAIN_WORLD usage to allow CPU-side updates for overlays)
+    let mut mesh = Mesh::new(
+        bevy::render::mesh::PrimitiveTopology::TriangleList,
+        bevy::render::render_asset::RenderAssetUsages::RENDER_WORLD | bevy::render::render_asset::RenderAssetUsages::MAIN_WORLD,
+    );
+    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors);
+    mesh.insert_indices(bevy::render::mesh::Indices::U32(indices));
+    
+    // Spawn the SINGLE entity for all provinces!
+    // Create mesh handle and material handle
+    let mesh_handle = meshes.add(mesh);
+    let material_handle = materials.add(ColorMaterial::from(Color::WHITE)); // Vertex colors provide actual colors
+    
+    // Use individual components for Bevy 0.16 (no more bundles)
+    commands.spawn((
+        Mesh2d(mesh_handle.clone()),
+        MeshMaterial2d(material_handle),
+        Transform::from_xyz(0.0, 0.0, 0.0),
+        Name::new("World Mega-Mesh (135k hexagons)"),
+    ));
+    
+    // Insert province storage and mesh handle as resources
+    commands.insert_resource(province_storage);
+    commands.insert_resource(WorldMeshHandle(mesh_handle));
+    
+    println!("Mega-mesh built in {:.2}s - ONE entity instead of 135,000!", spawn_start.elapsed().as_secs_f32());
+    
     // Place nations on land using flood fill from random capitals
+    let nation_start = std::time::Instant::now();
     if !land_provinces.is_empty() {
         let nation_count = NATION_COUNT.min(land_provinces.len());
         let mut nations = Vec::new();
@@ -587,6 +735,7 @@ pub fn setup_world(
             }
         }
     }
+    println!("Nation assignment completed in {:.2}s", nation_start.elapsed().as_secs_f32());
     
     // Game time is already initialized by main()
     
@@ -597,10 +746,15 @@ pub fn setup_world(
     commands.insert_resource(spatial_index);
     
     // Initialize cloud system using the clouds module
+    let cloud_start = std::time::Instant::now();
     let map_width = provinces_per_row as f32 * HEX_SIZE_PIXELS * 1.5;
     let map_height = provinces_per_col as f32 * HEX_SIZE_PIXELS * SQRT3;
     spawn_clouds(&mut commands, &mut images, seed.0, map_width, map_height);
+    println!("Cloud generation completed in {:.2}s", cloud_start.elapsed().as_secs_f32());
     
     println!("Generated world with {} provinces, {} land tiles", 
              provinces_per_row * provinces_per_col, land_provinces.len());
+    
+    let total_time = std::time::Instant::now().duration_since(start_time).as_secs_f32();
+    println!("Total setup_world completed in {:.2}s", total_time);
 }

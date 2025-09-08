@@ -10,7 +10,9 @@ use living_worlds::prelude::*;
 use living_worlds::{
     build_app, WorldSeed, WorldSize,
     resources::{ResourceOverlay, MapDimensions},
+    setup::ProvinceStorage,
 };
+use std::sync::Once;
 use clap::Parser;
 use rand::prelude::*;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -33,7 +35,26 @@ struct Args {
 }
 
 fn main() {
+    unsafe {
+        STARTUP_TIME = Some(std::time::Instant::now());
+    }
+    
     let mut args = Args::parse();
+    
+    // Configure rayon thread pool for optimal performance
+    // Use 75% of cores to leave room for rendering and OS
+    let num_threads = std::thread::available_parallelism()
+        .map(|n| ((n.get() * 3) / 4).max(2))  // Use 75% of cores, minimum 2
+        .unwrap_or(4);
+    
+    rayon::ThreadPoolBuilder::new()
+        .num_threads(num_threads)
+        .build_global()
+        .expect("Failed to initialize rayon thread pool");
+    
+    println!("Initialized with {} parallel threads (of {} cores total)", 
+             num_threads, 
+             std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4));
     
     // Use system time as seed if not provided
     let seed = args.seed.unwrap_or_else(|| {
@@ -70,12 +91,12 @@ fn main() {
         // Add our game systems
         .add_systems(Startup, setup_world)
         .add_systems(Update, (
+            track_first_frame,
             handle_input,
             handle_overlay_input,
             handle_tile_selection,
-            draw_hexagon_borders,
-            update_provinces,
-            update_tile_info_ui,
+            // update_provinces,  // Currently does nothing, commented out for performance
+            update_tile_info_ui.run_if(resource_changed::<SelectedProvinceInfo>),
         ))
         .run();
 }
@@ -85,17 +106,34 @@ fn main() {
 // All terrain functions are now imported from terrain module
 // All setup functions are now imported from setup module
 
+static FIRST_FRAME: Once = Once::new();
+static mut STARTUP_TIME: Option<std::time::Instant> = None;
+
+/// Track when the first frame renders
+fn track_first_frame() {
+    FIRST_FRAME.call_once(|| {
+        unsafe {
+            if let Some(start) = STARTUP_TIME {
+                println!("First frame rendered after {:.2}s from startup", start.elapsed().as_secs_f32());
+            }
+        }
+    });
+}
+
+// Border rendering is now handled by the BorderPlugin in borders.rs
+// Using GPU-instanced rendering for 135,000 borders in a single draw call
+
 /// Handle keyboard input
 fn handle_input(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut exit: EventWriter<AppExit>,
-    // TODO: Update to use SimulationState
-    // mut simulation: ResMut<SimulationState>,
 ) {
     // ESC to exit
     if keyboard.just_pressed(KeyCode::Escape) {
         exit.write(AppExit::Success);
     }
+    
+    // B key toggles borders - handled by BorderPlugin in borders.rs
 }
 
 /// Update province colors based on nation control
@@ -106,107 +144,15 @@ fn update_provinces(
     // For now just keep the colors - later we'll change nation control
 }
 
-/// Draw hexagon borders using Gizmos (with LOD support) - BUG #4 FIX: Limit draw calls
-fn draw_hexagon_borders(
-    mut gizmos: Gizmos,
-    provinces: Query<(&Province, &Transform, Option<&SelectedProvince>, &ViewVisibility)>,
-    camera_query: Query<(&Camera, &GlobalTransform, &Projection)>,
-) {
-    // Get camera zoom level and position to determine what to draw
-    let Ok((camera, camera_transform, projection)) = camera_query.single() else { return; };
-    let current_scale = match projection {
-        Projection::Orthographic(ortho) => ortho.scale,
-        _ => return,
-    };
-    
-    // Don't draw normal borders when zoomed out too far (improves performance)
-    // But check if we have a selected province that should always be visible
-    const BORDER_HIDE_THRESHOLD: f32 = 1.5;
-    let has_selected_province = provinces.iter().any(|(_, _, selected, _)| selected.is_some());
-    
-    // Skip border drawing only if zoomed out AND no province is selected
-    if current_scale > BORDER_HIDE_THRESHOLD && !has_selected_province {
-        return; // Skip all border drawing when zoomed out
-    }
-    
-    let hex_size = HEX_SIZE_PIXELS;
-    let camera_pos = camera_transform.translation().truncate();
-    
-    // Only draw borders for provinces near the camera (BUG #4 FIX)
-    let max_draw_distance = camera.viewport.as_ref()
-        .map(|vp| vp.physical_size.x.max(vp.physical_size.y) as f32)
-        .unwrap_or(2000.0) * current_scale;
-    
-    let mut borders_drawn = 0;
-    const MAX_BORDERS: usize = 500; // Limit number of borders drawn per frame
-    
-    for (_province, transform, selected, visibility) in provinces.iter() {
-        // Skip invisible provinces
-        if !visibility.get() {
-            continue;
-        }
-        
-        // For selected provinces, always draw them regardless of distance or zoom
-        if selected.is_none() {
-            // Skip provinces too far from camera (BUG #4 FIX)
-            let distance = camera_pos.distance(transform.translation.truncate());
-            if distance > max_draw_distance {
-                continue;
-            }
-            
-            // Stop if we've drawn too many borders (BUG #4 FIX)
-            if borders_drawn >= MAX_BORDERS {
-                break;
-            }
-            
-            // Skip normal borders when zoomed out
-            if current_scale > BORDER_HIDE_THRESHOLD {
-                continue;
-            }
-        }
-        
-        // Calculate hexagon vertices for FLAT-TOP hexagons
-        // Derive from ACTUAL transform position to ensure alignment!
-        let mut vertices = Vec::new();
-        for i in 0..=6 {
-            // FLAT-TOP starts with flat edge at top (no offset needed)
-            let angle = (i as f32 * 60.0).to_radians();
-            let x = transform.translation.x + hex_size * angle.cos();
-            let y = transform.translation.y + hex_size * angle.sin();
-            vertices.push(Vec2::new(x, y));
-        }
-        
-        // Choose color based on selection
-        let color = if selected.is_some() {
-            // Static golden glow for selected tile - no distracting animation
-            // Make it brighter when zoomed out for better visibility
-            let brightness = if current_scale > 1.0 {
-                1.0  // Full brightness when zoomed out
-            } else {
-                0.9  // Slightly dimmer when zoomed in
-            };
-            Color::srgb(1.0 * brightness, 0.84 * brightness, 0.0)  // Golden color
-        } else {
-            // Darker but thinner borders (using lower alpha for visual thinness)
-            // Fade out borders as we zoom out
-            let alpha = ((BORDER_HIDE_THRESHOLD - current_scale) / BORDER_HIDE_THRESHOLD).clamp(0.0, 0.5);
-            Color::srgba(0.3, 0.3, 0.3, alpha)
-        };
-        
-        // Draw the hexagon border
-        gizmos.linestrip_2d(vertices, color);
-        borders_drawn += 1;
-    }
-}
+// Hexagon border rendering has been moved to borders.rs using GPU instancing
+// This eliminates the performance bottleneck of drawing 135,000 Gizmos every frame
 
 /// Handle mouse clicks for tile selection
-fn handle_tile_selection(
-    mut commands: Commands,
+pub fn handle_tile_selection(
     mouse_button: Res<ButtonInput<MouseButton>>,
     windows: Query<&Window, With<PrimaryWindow>>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
-    provinces: Query<&Province>,
-    selected: Query<Entity, With<SelectedProvince>>,
+    province_storage: Res<ProvinceStorage>,
     mut selected_info: ResMut<SelectedProvinceInfo>,
     spatial_index: Res<ProvincesSpatialIndex>,
 ) {
@@ -223,9 +169,6 @@ fn handle_tile_selection(
     let world_pos = ray.origin.truncate();
     
     // Clear previous selection
-    for entity in selected.iter() {
-        commands.entity(entity).remove::<SelectedProvince>();
-    }
     selected_info.entity = None;
     selected_info.province_id = None;
     
@@ -240,7 +183,7 @@ fn handle_tile_selection(
     let mut closest_province = None;
     let mut closest_distance = f32::MAX;
     
-    for (entity, pos, province_id) in nearby_provinces {
+    for (_entity, pos, province_id) in nearby_provinces {
         let dx = world_pos.x - pos.x;
         let dy = world_pos.y - pos.y;
         
@@ -256,19 +199,18 @@ fn handle_tile_selection(
             let distance = (dx * dx + dy * dy).sqrt();
             if distance < closest_distance {
                 closest_distance = distance;
-                closest_province = Some((entity, province_id));
+                closest_province = Some(province_id);
             }
         }
     }
     
     // Select the closest province if found
-    if let Some((entity, province_id)) = closest_province {
-        commands.entity(entity).insert(SelectedProvince);
-        selected_info.entity = Some(entity);
+    if let Some(province_id) = closest_province {
+        selected_info.entity = None;  // No entity in mega-mesh architecture
         selected_info.province_id = Some(province_id);
         
         // Get province data for debug output
-        if let Ok(province) = provinces.get(entity) {
+        if let Some(province) = province_storage.provinces.get(&province_id) {
             println!("Selected province {} at ({:.0}, {:.0}), terrain: {:?}", 
                      province_id, province.position.x, province.position.y, province.terrain);
         }
@@ -278,13 +220,13 @@ fn handle_tile_selection(
 /// Update UI panel showing selected tile info
 fn update_tile_info_ui(
     selected_info: Res<SelectedProvinceInfo>,
-    provinces: Query<&Province>,
+    province_storage: Res<ProvinceStorage>,
     mut text_query: Query<&mut Text, With<TileInfoText>>,
 ) {
     // Update text if we have a UI panel
     if let Ok(mut text) = text_query.single_mut() {
-        if let Some(entity) = selected_info.entity {
-            if let Ok(province) = provinces.get(entity) {
+        if let Some(province_id) = selected_info.province_id {
+            if let Some(province) = province_storage.provinces.get(&province_id) {
                 text.0 = format!(
                     "Province #{}\nTerrain: {:?}\nElevation: {:.2}\nPopulation: {:.0}\nAgriculture: {:.1}\nWater Distance: {:.1} hex\nPosition: ({:.0}, {:.0})",
                     province.id,

@@ -281,6 +281,18 @@ impl ProvincesSpatialIndex {
             .push((entity, position, province_id));
     }
     
+    /// Insert a province position without an entity (for mega-mesh architecture)
+    pub fn insert_position_only(&mut self, position: Vec2, province_id: u32) {
+        let grid_x = (position.x / self.cell_size).floor() as i32;
+        let grid_y = (position.y / self.cell_size).floor() as i32;
+        
+        // Use Entity::PLACEHOLDER for position-only entries
+        self.grid
+            .entry((grid_x, grid_y))
+            .or_insert_with(Vec::new)
+            .push((Entity::PLACEHOLDER, position, province_id));
+    }
+    
     /// Query provinces near a world position
     /// Returns all provinces within search_radius of the given position
     pub fn query_near(&self, world_pos: Vec2, search_radius: f32) -> Vec<(Entity, Vec2, u32)> {

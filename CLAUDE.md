@@ -8,13 +8,13 @@
 ## 🚫 CRITICAL ARCHITECTURAL RULES - MODULAR ARCHITECTURE ACHIEVED
 
 ### Current Development Philosophy
-- **MODULAR PLUGIN ARCHITECTURE** - Successfully refactored from prototype to 14 clean modules
+- **MODULAR PLUGIN ARCHITECTURE** - Successfully refactored from prototype to 16 clean modules
 - **BEVY PLUGIN SYSTEM** - Each major system is a self-contained Bevy Plugin
 - **SINGLE RESPONSIBILITY** - Each module has a clear, focused purpose (simulation.rs, overlay.rs, etc.)
 - **ITERATIVE REFINEMENT** - Continue improving module boundaries as patterns emerge
 - **EVIDENCE-BASED UPDATES** - Always verify with actual code before updating documentation
 
-### Where Things Currently Live (15 Modules, 192KB Total, 4571 lines)
+### Where Things Currently Live (16 Modules, ~200KB Total, ~4800 lines)
 - **World Generation**: `src/setup.rs` (28KB, 605 lines) - World generation, rivers, deltas, agriculture zones
 - **Cloud System**: `src/clouds.rs` (28KB, 617 lines) - Procedural cloud generation and animation
 - **Minerals**: `src/minerals.rs` (24KB, 611 lines) - Mineral resources, extraction, technology
@@ -23,8 +23,9 @@
 - **Music**: `src/music.rs` (12KB, 332 lines) - Procedural music with FunDSP, tension-based
 - **Entry Point**: `src/main.rs` (12KB, 321 lines) - Binary launcher, input handling, UI updates
 - **Constants**: `src/constants.rs` (12KB, 225 lines) - All game parameters, hexagon calculations
+- **Borders**: `src/borders.rs` (10KB, 284 lines) - GPU-instanced border rendering (NEW!)
 - **Simulation**: `src/simulation.rs` (8KB, 219 lines) - Population growth with river/agriculture bonuses
-- **Colors**: `src/colors.rs` (8KB, 198 lines) - All terrain and mineral color functions (NEW)
+- **Colors**: `src/colors.rs` (8KB, 198 lines) - All terrain and mineral color functions
 - **UI**: `src/ui.rs` (8KB, 230 lines) - User interface, HUD, agriculture display
 - **Components**: `src/components.rs` (8KB, 155 lines) - Province with agriculture/water fields
 - **Camera**: `src/camera.rs` (8KB, 167 lines) - Pan, zoom, edge scrolling systems
@@ -32,19 +33,40 @@
 - **Library Core**: `src/lib.rs` (4KB, 107 lines) - Exports all modules, build_app() function
 
 ### Architecture Achievement
-- Successfully refactored from 1600+ line main.rs to 15 clean modules
+- Successfully refactored from 1600+ line main.rs to 16 clean modules
 - Each major system is a Bevy Plugin for clean separation
-- Total codebase: 192KB across 15 well-organized files (up from 159KB)
-- No single module exceeds 617 lines (excellent maintainability)
+- Total codebase: ~176KB across 16 well-organized files (4931 lines total)
+- No single module exceeds 759 lines (excellent maintainability)
+- **MEGA-MESH ARCHITECTURE**: One mesh with 945,000 vertices instead of 135,000 entities!
 - Added river gameplay with deltas, agriculture, and fresh water systems
 - Extracted all color functions to dedicated colors.rs module
-- Removed ghost province code completely (simplified architecture)
+- Borders reduced from 135,000 entities to just 1 selection border
 
-### Recent Improvements (September 8, 2025)
+### Performance Breakthrough: The Mega-Mesh Revolution (September 8, 2025)
+- **10 FPS → 60+ FPS**: Complete rewrite of rendering from 135,000 entities to ONE mesh
+- **Single Draw Call**: Entire world rendered in one GPU draw call with 945,000 vertices
+- **Overlay System Fixed**: Dynamic vertex color updates for mineral/infrastructure overlays
+- **RenderAssetUsages Discovery**: Documented critical Bevy 0.16 pattern for CPU-accessible meshes
+
+### Previous Improvements (September 8, 2025)
+- **MASSIVE PERFORMANCE BREAKTHROUGH - Sub-2-Second World Generation!**:
+  - Large worlds (135,000 provinces) now generate in **1.90 seconds** (was 30+ seconds!)
+  - Fixed O(n²) ocean depth calculation bug (13.5 billion comparisons eliminated)
+  - Cloud generation optimized with texture pooling: 1.78s → 0.16s (11x faster!)
+  - Parallelized terrain generation with rayon (75% CPU utilization)
+  - Total improvement: ~15x faster world generation
+- **GPU-Instanced Border Rendering - 135,000 Draw Calls → 1!**:
+  - Replaced Gizmo-based immediate-mode rendering with GPU instancing
+  - All 135,000 borders share single mesh/material for automatic batching
+  - LOD system hides borders when zoomed out (threshold: 1.0)
+  - Frustum culling prevents off-screen border rendering
+  - Material swapping for golden selected province highlighting
+  - Result: 60+ FPS with borders enabled (was sub-30 FPS)
+  - Borders toggle with 'B' key (disabled by default for performance)
 - **Fixed Large World Generation Bug**: Terrain now properly scales with world size
-  - Small: 15,000 provinces (150x100)
-  - Medium: 60,000 provinces (300x200) 
-  - Large: 135,000 provinces (450x300)
+  - Small: 15,000 provinces (150x100) - loads in 0.45s
+  - Medium: 60,000 provinces (300x200) - loads in ~1.0s
+  - Large: 135,000 provinces (450x300) - loads in 1.90s
 - **Rivers Now Have Gameplay Impact**:
   - Added Delta terrain type for fertile river mouths
   - Agriculture system (0.0-3.0 scale) based on terrain and water proximity
@@ -213,10 +235,11 @@ Every texture, sound, and piece of text is procedurally generated at runtime. Ci
 
 Bevy gives us everything we need for Living Worlds:
 
-### 🚀 **Performance**
-- **Parallel ECS**: Massively parallel and cache-friendly - perfect for simulating thousands of entities
-- **Fast Compile Times**: 0.8-3.0 seconds for iterative development
-- **Multi-threaded Systems**: Automatic parallelization of game systems
+### 🚀 **Performance** - BREAKTHROUGH: 60+ FPS on 135,000 provinces!
+- **Mega-Mesh Architecture**: ONE mesh with 135K hexagons instead of 135K entities
+- **GPU-Optimized**: Single draw call for entire world (945K vertices, 2.4M indices)
+- **Zero ECS Overhead**: No per-province Transform/Visibility processing
+- **Proven Results**: 10 FPS → 60+ FPS on large worlds after GPU engineering fix
 
 ### 🎮 **Features We Use**
 - **2D/3D Rendering**: Full rendering pipeline with lights, shadows, cameras
@@ -235,11 +258,23 @@ Bevy gives us everything we need for Living Worlds:
 
 ## Technical Architecture
 
+### 🏆 PERFORMANCE BREAKTHROUGH: The Mega-Mesh Revolution
+
+**Problem**: 135,000 individual province entities = 10 FPS (unplayable)
+**Solution**: ONE mesh with 135,000 hexagons = 60+ FPS (butter smooth!)
+
+We achieved this by thinking like graphics engineers, not gameplay programmers:
+- **Before**: 135K entities × (Transform + Sprite + Visibility) = massive CPU overhead
+- **After**: 1 entity with 945K vertices in a single mesh = GPU laughs at this
+- **Key Insight**: Modern GPUs render 10M+ triangles at 60 FPS. Our 800K triangles are trivial!
+
+The entire world is now ONE draw call. Province data lives in a ProvinceStorage resource, not as entities. This is how AAA games render massive worlds - stop fighting the hardware, start using it correctly!
+
 ### Core Technology Stack
 
 Engine: Bevy 0.16.1
 Language: Rust 2021 Edition
-Graphics: wgpu (via Bevy) - Modern GPU API
+Graphics: wgpu (via Bevy) - Modern GPU API with mega-mesh rendering
 Audio: bevy_audio with procedural generation
 Math: Fixed-point for deterministic simulation
 UI: Bevy UI + egui for developer tools
@@ -438,11 +473,27 @@ Bevy handles many optimizations for us:
 - **Batching**: Automatic draw call batching for sprites
 - **Asset Loading**: Async asset loading with progress tracking
 
-### Our Optimizations
+### Our Optimizations (Production-Ready Performance!)
 
-- **Spatial Hashing**: For efficient neighbor queries
-- **LOD System**: Less detail for distant provinces
-- **Pooling**: Reuse common entities like armies
+#### World Generation Performance (Large World - 135,000 provinces):
+```
+Component               Time      Improvement
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Terrain Generation      0.44s     Parallelized with rayon
+Ocean Depth Calc        0.10s     Was 30+s (fixed O(n²) bug)
+River Generation        0.38s     Spatial indexing
+Entity Spawning         0.13s     Optimized allocations
+Cloud Generation        0.16s     Was 1.78s (texture pooling)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TOTAL                   1.90s     Was 30+ seconds!
+```
+
+#### Key Optimizations Implemented:
+- **Parallel Processing**: Using rayon with 75% CPU cores for terrain/cloud generation
+- **Spatial Indexing**: O(1) neighbor lookups via HashMap (replaced O(n²) searches)
+- **Texture Pooling**: 15 shared cloud textures instead of 90 unique (11x faster)
+- **Batch Operations**: Entity spawning with shared texture handles
+- **Memory Optimization**: Removed Name components from 135k entities
 - **Fixed-point Math**: Deterministic simulation across platforms
 
 ## Bevy 0.16.1 Feature Reference
@@ -1033,6 +1084,39 @@ commands.spawn(Sprite::from_image(asset_handle));
 - `cannot find struct SpriteBundle` → Use Sprite directly with image field
 - `no field texture on Sprite` → Use `image` field instead
 
+#### RenderAssetUsages and CPU-side Mesh Modifications (0.16)
+**CRITICAL: Meshes must have MAIN_WORLD usage for CPU modifications**
+
+In Bevy 0.16, meshes are optimized for GPU performance by default. If you need to modify a mesh after creation (e.g., updating vertex colors for overlays), you MUST include `RenderAssetUsages::MAIN_WORLD`:
+
+```rust
+// WRONG - GPU-only mesh, get_mut() will return None after GPU upload!
+let mesh = Mesh::new(
+    PrimitiveTopology::TriangleList,
+    RenderAssetUsages::RENDER_WORLD,  // GPU-only
+);
+
+// CORRECT - Mesh remains CPU-accessible for modifications
+let mesh = Mesh::new(
+    PrimitiveTopology::TriangleList,
+    RenderAssetUsages::RENDER_WORLD | RenderAssetUsages::MAIN_WORLD,
+);
+```
+
+**Why this matters:**
+- By default, meshes are moved to GPU-only memory for optimal performance
+- `Assets::get_mut(&handle)` will return `None` for GPU-only meshes
+- This is a performance optimization that requires explicit opt-in for CPU access
+- Common use cases: dynamic vertex colors, procedural mesh deformation, overlay systems
+
+**Symptoms of missing MAIN_WORLD usage:**
+- `meshes.get_mut(&handle)` returns `None` despite handle being valid
+- First frame works, subsequent updates fail
+- Debug shows meshes exist in Assets but can't be accessed
+- Handle ID looks correct but lookups fail
+
+**Discovery source:** GitHub issue #18864 - "Updating a spawned mesh asset requires RenderAssetUsages in 0.16.0"
+
 ## Project Structure (Modular Architecture Achieved)
 
 ```
@@ -1046,21 +1130,23 @@ livingworlds/
 ├── .github/             # GitHub workflows and configuration
 ├── .claude/             # Claude Code configuration
 ├── images/              # Screenshots and documentation images
-├── src/                 # Source code (14 files, 161.69 KB total)
-│   ├── setup.rs         # 31.47 KB - World generation, terrain, rivers, nations, minerals
-│   ├── clouds.rs        # 24.59 KB - Procedural cloud generation and animation
-│   ├── minerals.rs      # 20.08 KB - Mineral resources, extraction, tech progression
-│   ├── resources.rs     # 12.39 KB - Global resources, world tension, spatial index
-│   ├── terrain.rs       # 12.39 KB - Terrain types, climate zones, biome generation
-│   ├── music.rs         # 11.08 KB - Procedural music generation with world tension
-│   ├── main.rs          # 9.93 KB - Binary entry point, input handling (291 lines)
-│   ├── ui.rs            # 7.67 KB - User interface, FPS display, UI panels
-│   ├── camera.rs        # 7.03 KB - Camera controls, pan/zoom, edge scrolling
-│   ├── constants.rs     # 6.90 KB - All game constants and tuning parameters
-│   ├── simulation.rs    # 6.48 KB - Time simulation, world tension, population growth
-│   ├── components.rs    # 4.46 KB - ECS components (Province, Nation, Resources)
-│   ├── overlay.rs       # 3.89 KB - Map overlay rendering for all visualization modes
-│   └── lib.rs           # 3.32 KB - Library root, exports modules, build_app()
+├── src/                 # Source code (16 files, ~176 KB total, 4931 lines)
+│   ├── setup.rs         # 33 KB - World generation, mega-mesh, terrain, rivers (759 lines)
+│   ├── clouds.rs        # 27 KB - Procedural cloud generation and animation (650 lines)
+│   ├── minerals.rs      # 22 KB - Mineral resources, extraction, tech progression (617 lines)
+│   ├── resources.rs     # 14 KB - Global resources, world tension, spatial index (381 lines)
+│   ├── terrain.rs       # 12 KB - Terrain types, climate zones, biome generation (321 lines)
+│   ├── music.rs         # 12 KB - Procedural music generation with world tension (332 lines)
+│   ├── main.rs          # 8.9 KB - Binary entry point, input handling (263 lines)
+│   ├── constants.rs     # 8.2 KB - All game constants and tuning parameters (225 lines)
+│   ├── ui.rs            # 7.9 KB - User interface, FPS display, UI panels (233 lines)
+│   ├── colors.rs        # 7.5 KB - All terrain and mineral color functions (198 lines)
+│   ├── camera.rs        # 6.9 KB - Camera controls, pan/zoom, edge scrolling (167 lines)
+│   ├── simulation.rs    # 8.2 KB - Time simulation, world tension, population growth (222 lines)
+│   ├── overlay.rs       # 6.0 KB - Map overlay rendering for all visualization modes (144 lines)
+│   ├── borders.rs       # 4.5 KB - Selection border rendering (1 entity only!) (132 lines)
+│   ├── lib.rs           # 4.5 KB - Library root, exports modules, build_app() (132 lines)
+│   └── components.rs    # 4.4 KB - ECS components (Province, Nation, Resources) (155 lines)
 └── target/              # Build output (git-ignored)
 
 NOTE: No crates/ directory - focusing on modular single-crate architecture

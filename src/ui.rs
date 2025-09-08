@@ -25,6 +25,7 @@ impl Plugin for UIPlugin {
 
 /// Setup the UI elements
 pub fn setup_ui(mut commands: Commands) {
+    let ui_start = std::time::Instant::now();
     // Resource overlay legend in top-left with colored squares
     commands.spawn((
         Node {
@@ -214,6 +215,8 @@ pub fn setup_ui(mut commands: Commands) {
             TextColor(Color::srgba(0.9, 0.9, 0.9, 1.0)),  // Brighter text
         ));
     });
+    
+    println!("UI setup completed in {:.2}s", ui_start.elapsed().as_secs_f32());
 }
 
 /// Update the resource overlay display text

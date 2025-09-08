@@ -15,23 +15,33 @@ Living Worlds is a fully procedural civilization OBSERVER - like Fantasy Map Sim
 ## 🎮 Features
 
 ### Currently Implemented
-- **🗺️ Hexagonal World Map**: 60,000 provinces (300x200) with flat-top honeycomb layout
+- **🗺️ Hexagonal World Map**: Configurable sizes with flat-top honeycomb layout
+  - Small: 15,000 provinces (150x100)
+  - Medium: 60,000 provinces (300x200)
+  - Large: 135,000 provinces (450x300)
+- **⚡ Mega-Mesh Rendering**: Revolutionary performance breakthrough
+  - **60+ FPS** on large worlds (135,000 provinces)
+  - Single mesh with 945,000 vertices instead of 135,000 entities
+  - One GPU draw call for entire world
+  - Dynamic vertex color updates for overlays
 - **🌊 Realistic Ocean Depths**: Three-tier water depth system with beautiful gradients
   - Shallow coastal waters
   - Medium depth continental shelves  
   - Deep ocean trenches
-- **🏔️ Procedural Terrain**: 10 terrain types with climate zones
+- **🏔️ Procedural Terrain**: 12 terrain types including rivers and deltas
   - Dynamic biome distribution based on latitude
-  - Rivers flowing from mountains to ocean
+  - Rivers flowing from mountains to ocean with gameplay impact
+  - Agriculture zones near water sources
   - Forests, jungles, deserts, tundra, and ice caps
 - **☁️ Dynamic Weather**: Multi-layer procedural cloud system with wind
-- **⛏️ Mineral Resources**: 7 mineral types with realistic vein distribution
-  - Iron, Copper, Tin, Gold, Coal, Gems, Stone
+- **⛏️ Mineral Resources**: 9 mineral types with realistic vein distribution
+  - Iron, Copper, Tin, Gold, Coal, Gems, Stone, Bronze, Steel
   - Heat map overlays for resource visualization
+  - Combined richness view for all minerals
 - **🎵 Procedural Music**: World tension-based soundtrack that evolves with conflicts
 - **🏛️ Nations**: Territory-based civilizations with expansion mechanics
 - **⏱️ Time Simulation**: Pause/play with 1x, 3x, 6x, 9x speed controls
-- **📊 Map Overlays**: Political, mineral resources, infrastructure views
+- **📊 Map Overlays**: Political, individual minerals, all minerals, infrastructure views
 
 ### Controls
 - **Camera**: WASD/Arrow keys for panning, mouse wheel for zoom, edge scrolling
@@ -53,18 +63,20 @@ The project uses a **modular plugin architecture** with Bevy's ECS (Entity Compo
 
 ```
 livingworlds/
-├── src/                    # Source code (14 modules, 159.44 KB)
+├── src/                    # Source code (16 modules, ~176 KB, 4931 lines)
 │   ├── lib.rs             # Library root, plugin orchestration
-│   ├── main.rs            # Binary entry point, input handling
-│   ├── setup.rs           # World generation (terrain, rivers, nations)
+│   ├── main.rs            # Binary entry point, input handling  
+│   ├── setup.rs           # World generation, MEGA-MESH creation
 │   ├── simulation.rs      # Time simulation, world tension, population
 │   ├── terrain.rs         # Terrain types, climate zones, biomes
 │   ├── minerals.rs        # Resource generation and extraction
-│   ├── overlay.rs         # Map overlay rendering system
+│   ├── overlay.rs         # Map overlay rendering with vertex colors
 │   ├── clouds.rs          # Procedural cloud generation
 │   ├── music.rs           # Dynamic tension-based music
 │   ├── camera.rs          # Camera controls and viewport
 │   ├── ui.rs              # User interface and HUD
+│   ├── colors.rs          # All terrain and mineral color functions
+│   ├── borders.rs         # Selection border (1 entity only!)
 │   ├── components.rs      # ECS components definitions
 │   ├── resources.rs       # Global game resources
 │   └── constants.rs       # Game configuration constants
@@ -77,10 +89,12 @@ NOTE: No assets/ directory - everything is procedurally generated!
 ```
 
 ### Key Systems
+- **Mega-Mesh Renderer**: Single mesh with 945,000 vertices for 60+ FPS
 - **ECS Architecture**: Leverages Bevy's parallel processing
 - **Plugin System**: Each module is a self-contained Bevy plugin
 - **Deterministic Simulation**: Fixed-point math for consistency
 - **Spatial Indexing**: O(1) province lookups for performance
+- **Dynamic Vertex Colors**: Real-time overlay updates without recreating mesh
 
 ## 🚀 Getting Started
 

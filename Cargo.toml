@@ -51,6 +51,7 @@ nalgebra = "0.32"
 noise = "0.8"
 rand = { version = "0.8", features = ["small_rng"] }
 rand_chacha = "0.3"
+rayon = "1.10"  # Parallel iteration for massive performance gains
 
 # Audio
 rodio = "0.17"

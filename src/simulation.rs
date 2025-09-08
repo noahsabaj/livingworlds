@@ -24,8 +24,8 @@ impl Plugin for SimulationPlugin {
             .add_systems(Update, (
                 time_control_system,
                 advance_time_system,
-                population_growth_system,
-                calculate_world_tension,
+                population_growth_system.run_if(should_update_population),
+                calculate_world_tension.run_if(should_update_tension),
             ).chain());
     }
 }
@@ -82,54 +82,57 @@ fn advance_time_system(
     }
 }
 
+/// Check if we should update population (every 100 days)
+fn should_update_population(game_time: Res<GameTime>) -> bool {
+    !game_time.paused && game_time.current_date as u64 % 100 == 0
+}
+
+/// Check if we should update world tension (every 10 days)
+fn should_update_tension(game_time: Res<GameTime>) -> bool {
+    !game_time.paused && game_time.current_date as u64 % 10 == 0
+}
+
 /// Simulate population growth for all provinces
 fn population_growth_system(
-    game_time: Res<GameTime>,
+    _game_time: Res<GameTime>,
     mut provinces: Query<&mut Province>,
 ) {
-    // Skip if paused
-    if game_time.paused {
-        return;
-    }
-    
-    // Every 100 days, simulate population growth
-    if game_time.current_date as u64 % 100 == 0 {
-        for mut province in provinces.iter_mut() {
-            // Only land provinces have population that grows
-            if province.terrain != TerrainType::Ocean {
-                // Base growth rate depends on agriculture (food production)
-                let base_growth = 0.001; // 0.1% base growth per 100 days
-                
-                // Agriculture bonus: more food = more growth
-                let agriculture_multiplier = 0.5 + (province.agriculture * 0.5); // 0.5x to 2.0x
-                
-                // River/Delta bonus: rivers and deltas grow faster
-                let terrain_growth_bonus = match province.terrain {
-                    TerrainType::Delta => 2.0,  // Deltas grow very fast
-                    TerrainType::River => 1.5,  // Rivers grow fast
-                    _ => 1.0,
-                };
-                
-                // Fresh water penalty: far from water = slower growth
-                let water_penalty = if province.fresh_water_distance <= 2.0 {
-                    1.0  // Close to water - no penalty
-                } else if province.fresh_water_distance <= 5.0 {
-                    0.8  // Moderate distance - small penalty
-                } else {
-                    0.6  // Far from water - significant penalty
-                };
-                
-                // Calculate total growth rate
-                let growth_rate = base_growth * agriculture_multiplier * terrain_growth_bonus * water_penalty;
-                
-                // Apply growth with soft population cap based on agriculture
-                let carrying_capacity = province.agriculture * 100000.0; // Each agriculture point supports 100k people
-                if province.population < carrying_capacity {
-                    province.population *= 1.0 + growth_rate;
-                } else {
-                    // Over capacity - very slow growth or decline
-                    province.population *= 1.0 + (growth_rate * 0.1);
-                }
+    // We know we should update because of run_if condition
+    for mut province in provinces.iter_mut() {
+        // Only land provinces have population that grows
+        if province.terrain != TerrainType::Ocean {
+            // Base growth rate depends on agriculture (food production)
+            let base_growth = 0.001; // 0.1% base growth per 100 days
+            
+            // Agriculture bonus: more food = more growth
+            let agriculture_multiplier = 0.5 + (province.agriculture * 0.5); // 0.5x to 2.0x
+            
+            // River/Delta bonus: rivers and deltas grow faster
+            let terrain_growth_bonus = match province.terrain {
+                TerrainType::Delta => 2.0,  // Deltas grow very fast
+                TerrainType::River => 1.5,  // Rivers grow fast
+                _ => 1.0,
+            };
+            
+            // Fresh water penalty: far from water = slower growth
+            let water_penalty = if province.fresh_water_distance <= 2.0 {
+                1.0  // Close to water - no penalty
+            } else if province.fresh_water_distance <= 5.0 {
+                0.8  // Moderate distance - small penalty
+            } else {
+                0.6  // Far from water - significant penalty
+            };
+            
+            // Calculate total growth rate
+            let growth_rate = base_growth * agriculture_multiplier * terrain_growth_bonus * water_penalty;
+            
+            // Apply growth with soft population cap based on agriculture
+            let carrying_capacity = province.agriculture * 100000.0; // Each agriculture point supports 100k people
+            if province.population < carrying_capacity {
+                province.population *= 1.0 + growth_rate;
+            } else {
+                // Over capacity - very slow growth or decline
+                province.population *= 1.0 + (growth_rate * 0.1);
             }
         }
     }
@@ -146,10 +149,7 @@ fn calculate_world_tension(
     game_time: Res<GameTime>,
     provinces: Query<&Province>,
 ) {
-    // Skip if paused
-    if game_time.paused {
-        return;
-    }
+    // We know we should update because of run_if condition
     
     // Calculate years elapsed for various cycles
     let years = game_time.current_date / 365.0;
@@ -198,7 +198,9 @@ fn calculate_world_tension(
     // Set target tension (physics system smoothly interpolates)
     tension.target = calculated_tension;
     
-    // Periodic debug output
+    // Periodic debug output - commented out to reduce console spam
+    // Uncomment if you need to debug world tension
+    /*
     if game_time.current_date as i32 % 1000 == 0 {
         println!("World Tension: {:.1}% (Target: {:.1}%, Wars: {:.1}%)",
             tension.current * 100.0,
@@ -206,6 +208,7 @@ fn calculate_world_tension(
             base_war_percentage * 100.0
         );
     }
+    */
 }
 
 // Future simulation systems to add:
