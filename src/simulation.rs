@@ -97,13 +97,39 @@ fn population_growth_system(
         for mut province in provinces.iter_mut() {
             // Only land provinces have population that grows
             if province.terrain != TerrainType::Ocean {
-                // Simple exponential growth model (0.1% per 100 days)
-                // TODO: Replace with more sophisticated model considering:
-                // - Food availability
-                // - Technology level
-                // - War/peace status
-                // - Disease/disasters
-                province.population *= 1.001;
+                // Base growth rate depends on agriculture (food production)
+                let base_growth = 0.001; // 0.1% base growth per 100 days
+                
+                // Agriculture bonus: more food = more growth
+                let agriculture_multiplier = 0.5 + (province.agriculture * 0.5); // 0.5x to 2.0x
+                
+                // River/Delta bonus: rivers and deltas grow faster
+                let terrain_growth_bonus = match province.terrain {
+                    TerrainType::Delta => 2.0,  // Deltas grow very fast
+                    TerrainType::River => 1.5,  // Rivers grow fast
+                    _ => 1.0,
+                };
+                
+                // Fresh water penalty: far from water = slower growth
+                let water_penalty = if province.fresh_water_distance <= 2.0 {
+                    1.0  // Close to water - no penalty
+                } else if province.fresh_water_distance <= 5.0 {
+                    0.8  // Moderate distance - small penalty
+                } else {
+                    0.6  // Far from water - significant penalty
+                };
+                
+                // Calculate total growth rate
+                let growth_rate = base_growth * agriculture_multiplier * terrain_growth_bonus * water_penalty;
+                
+                // Apply growth with soft population cap based on agriculture
+                let carrying_capacity = province.agriculture * 100000.0; // Each agriculture point supports 100k people
+                if province.population < carrying_capacity {
+                    province.population *= 1.0 + growth_rate;
+                } else {
+                    // Over capacity - very slow growth or decline
+                    province.population *= 1.0 + (growth_rate * 0.1);
+                }
             }
         }
     }

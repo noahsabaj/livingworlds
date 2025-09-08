@@ -20,18 +20,13 @@ pub struct Province {
     pub population: f32,
     pub terrain: TerrainType,
     pub elevation: f32,
+    pub agriculture: f32,         // Food production capacity (0.0 to 3.0)
+    pub fresh_water_distance: f32, // Distance to nearest river/delta in hex units
 }
 
 /// Marker component for the currently selected province
 #[derive(Component)]
 pub struct SelectedProvince;
-
-/// Marker for ghost provinces (duplicates for world wrapping)
-/// These are visual duplicates shown at map edges for seamless scrolling
-#[derive(Component)]
-pub struct GhostProvince {
-    pub original_col: u32,  // Original column this is a ghost of
-}
 
 /// Nation represents a political entity that controls provinces
 #[derive(Component, Clone)]

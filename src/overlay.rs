@@ -8,12 +8,13 @@
 use bevy::prelude::*;
 use crate::components::{Province, ProvinceResources, ProvinceInfrastructure};
 use crate::resources::ResourceOverlay;
-use crate::terrain::{TerrainType, get_terrain_color_gradient};
+use crate::terrain::TerrainType;
 use crate::components::MineralType;
-use crate::minerals::{
-    get_mineral_abundance, calculate_total_richness,
-    mineral_abundance_color, stone_abundance_color, combined_richness_color,
-    infrastructure_level_color
+use crate::minerals::{get_mineral_abundance, calculate_total_richness};
+use crate::colors::{
+    get_terrain_color_gradient,
+    mineral_abundance_color, stone_abundance_color, 
+    combined_richness_color, infrastructure_level_color
 };
 
 /// System that updates province colors based on active overlay mode

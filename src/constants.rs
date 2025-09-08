@@ -35,6 +35,19 @@ pub const MAP_WIDTH_PIXELS: f32 = PROVINCES_PER_ROW as f32 * HEX_SIZE_PIXELS * 1
 pub const MAP_HEIGHT_PIXELS: f32 = PROVINCES_PER_COL as f32 * HEX_SIZE_PIXELS * SQRT3;
 
 // ============================================================================
+// OCEAN DEPTH CONSTANTS
+// ============================================================================
+
+/// Ocean depth threshold for shallow water (0-12% of max depth)
+pub const OCEAN_DEPTH_SHALLOW: f32 = 0.12;
+
+/// Ocean depth threshold for medium depth (12-7% of max depth) 
+pub const OCEAN_DEPTH_MEDIUM: f32 = 0.07;
+
+/// Ocean depth threshold for deep ocean (below 7% of max depth)
+pub const OCEAN_DEPTH_DEEP: f32 = 0.02;
+
+// ============================================================================
 // CAMERA CONSTANTS
 // ============================================================================
 
@@ -196,3 +209,18 @@ pub const TEXTURE_ALPHA_OPAQUE: u8 = 255;
 
 /// Full transparency value for texture pixels
 pub const TEXTURE_ALPHA_TRANSPARENT: u8 = 0;
+
+// ============================================================================
+// HEXAGON CALCULATIONS
+// ============================================================================
+
+/// Calculate hexagon position for a given grid coordinate
+/// Uses flat-top hexagon with odd-q offset coordinate system
+#[inline]
+pub fn calculate_hex_position(col: u32, row: u32, hex_size: f32, provinces_per_row: u32, provinces_per_col: u32) -> (f32, f32) {
+    // FLAT-TOP HONEYCOMB: Odd columns shift UP by half the vertical spacing
+    let y_offset = if col % 2 == 1 { hex_size * SQRT3 / 2.0 } else { 0.0 };
+    let x = (col as f32 - provinces_per_row as f32 / 2.0) * hex_size * 1.5;
+    let y = (row as f32 - provinces_per_col as f32 / 2.0) * hex_size * SQRT3 + y_offset;
+    (x, y)
+}

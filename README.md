@@ -53,7 +53,7 @@ The project uses a **modular plugin architecture** with Bevy's ECS (Entity Compo
 
 ```
 livingworlds/
-├── src/                    # Source code (14 modules, ~165 KB)
+├── src/                    # Source code (14 modules, 159.44 KB)
 │   ├── lib.rs             # Library root, plugin orchestration
 │   ├── main.rs            # Binary entry point, input handling
 │   ├── setup.rs           # World generation (terrain, rivers, nations)

@@ -7,6 +7,7 @@
 // Module declarations - these are our game systems
 pub mod camera;
 pub mod clouds;
+pub mod colors;
 pub mod components;
 pub mod constants;
 pub mod minerals;
@@ -23,7 +24,7 @@ pub mod prelude {
     pub use crate::camera::CameraPlugin;
     pub use crate::clouds::{CloudPlugin, spawn_clouds};
     pub use crate::components::{
-        Province, Nation, SelectedProvince, GhostProvince,
+        Province, Nation, SelectedProvince,
         TileInfoPanel, TileInfoText,
         ProvinceResources, ProvinceInfrastructure, NationStockpile,
         NationTechnology, MineralType, TechnologyAge, EquipmentTier,
@@ -36,9 +37,15 @@ pub mod prelude {
     pub use crate::setup::setup_world;
     pub use crate::terrain::{
         TerrainPlugin, TerrainType, ClimateZone,
-        classify_terrain_with_climate, get_terrain_color_gradient,
-        generate_elevation, generate_continent_centers,
+        classify_terrain_with_climate,
+        generate_elevation_with_edges,
         get_terrain_population_multiplier,
+    };
+    pub use crate::colors::{
+        get_terrain_color_gradient,
+        mineral_abundance_color, stone_abundance_color,
+        combined_richness_color, infrastructure_level_color,
+        get_mineral_color,
     };
     pub use crate::ui::{UIPlugin};
     pub use crate::music::{ProceduralMusicPlugin, MusicState};

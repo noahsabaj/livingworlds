@@ -43,6 +43,34 @@ impl WorldSize {
     }
 }
 
+/// Map dimensions calculated from world size
+#[derive(Resource, Debug, Clone, Copy)]
+pub struct MapDimensions {
+    pub provinces_per_row: u32,
+    pub provinces_per_col: u32,
+    pub width_pixels: f32,
+    pub height_pixels: f32,
+}
+
+impl MapDimensions {
+    pub fn from_world_size(size: &WorldSize) -> Self {
+        let (provinces_per_row, provinces_per_col) = size.dimensions();
+        let provinces_per_row = provinces_per_row as u32;
+        let provinces_per_col = provinces_per_col as u32;
+        
+        use crate::constants::{HEX_SIZE_PIXELS, SQRT3};
+        let width_pixels = provinces_per_row as f32 * HEX_SIZE_PIXELS * 1.5;
+        let height_pixels = provinces_per_col as f32 * HEX_SIZE_PIXELS * SQRT3;
+        
+        Self {
+            provinces_per_row,
+            provinces_per_col,
+            width_pixels,
+            height_pixels,
+        }
+    }
+}
+
 // ============================================================================
 // GAME STATE RESOURCES
 // ============================================================================

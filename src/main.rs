@@ -9,9 +9,10 @@ use bevy::window::PrimaryWindow;
 use living_worlds::prelude::*;
 use living_worlds::{
     build_app, WorldSeed, WorldSize,
-    resources::ResourceOverlay,
+    resources::{ResourceOverlay, MapDimensions},
 };
 use clap::Parser;
+use rand::prelude::*;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Living Worlds - A procedural civilization simulator
@@ -22,9 +23,9 @@ struct Args {
     #[arg(short, long)]
     seed: Option<u32>,
 
-    /// World size (small=1000, medium=2000, large=5000)
-    #[arg(short, long, default_value = "medium")]
-    world_size: String,
+    /// World size (small, medium, large) - random if not specified
+    #[arg(short, long)]
+    world_size: Option<String>,
 
     /// Run in test mode
     #[arg(long)]
@@ -43,8 +44,15 @@ fn main() {
     });
     args.seed = Some(seed);
     
+    // Randomly select world size if not provided
+    let world_size = args.world_size.unwrap_or_else(|| {
+        let mut rng = thread_rng();
+        let sizes = ["small", "medium", "large"];
+        sizes.choose(&mut rng).unwrap().to_string()
+    });
+    
     println!("Living Worlds - Starting with seed: {}", seed);
-    println!("World size: {}", args.world_size);
+    println!("World size: {}", world_size);
     
     // Platform integration can be added here later
     
@@ -52,8 +60,12 @@ fn main() {
     let mut app = build_app();
     
     // Add game-specific resources and configuration
+    let world_size_enum = WorldSize::from_str(&world_size);
+    let map_dimensions = MapDimensions::from_world_size(&world_size_enum);
+    
     app.insert_resource(WorldSeed(args.seed.unwrap()))
-        .insert_resource(WorldSize::from_str(&args.world_size))
+        .insert_resource(world_size_enum)
+        .insert_resource(map_dimensions)
         .insert_resource(ResourceOverlay::default())
         // Add our game systems
         .add_systems(Startup, setup_world)
@@ -99,7 +111,6 @@ fn draw_hexagon_borders(
     mut gizmos: Gizmos,
     provinces: Query<(&Province, &Transform, Option<&SelectedProvince>, &ViewVisibility)>,
     camera_query: Query<(&Camera, &GlobalTransform, &Projection)>,
-    time: Res<Time>,
 ) {
     // Get camera zoom level and position to determine what to draw
     let Ok((camera, camera_transform, projection)) = camera_query.single() else { return; };
@@ -108,9 +119,13 @@ fn draw_hexagon_borders(
         _ => return,
     };
     
-    // Don't draw borders when zoomed out too far (improves performance)
+    // Don't draw normal borders when zoomed out too far (improves performance)
+    // But check if we have a selected province that should always be visible
     const BORDER_HIDE_THRESHOLD: f32 = 1.5;
-    if current_scale > BORDER_HIDE_THRESHOLD {
+    let has_selected_province = provinces.iter().any(|(_, _, selected, _)| selected.is_some());
+    
+    // Skip border drawing only if zoomed out AND no province is selected
+    if current_scale > BORDER_HIDE_THRESHOLD && !has_selected_province {
         return; // Skip all border drawing when zoomed out
     }
     
@@ -131,15 +146,23 @@ fn draw_hexagon_borders(
             continue;
         }
         
-        // Skip provinces too far from camera (BUG #4 FIX)
-        let distance = camera_pos.distance(transform.translation.truncate());
-        if distance > max_draw_distance {
-            continue;
-        }
-        
-        // Stop if we've drawn too many borders (BUG #4 FIX)
-        if borders_drawn >= MAX_BORDERS && selected.is_none() {
-            break;
+        // For selected provinces, always draw them regardless of distance or zoom
+        if selected.is_none() {
+            // Skip provinces too far from camera (BUG #4 FIX)
+            let distance = camera_pos.distance(transform.translation.truncate());
+            if distance > max_draw_distance {
+                continue;
+            }
+            
+            // Stop if we've drawn too many borders (BUG #4 FIX)
+            if borders_drawn >= MAX_BORDERS {
+                break;
+            }
+            
+            // Skip normal borders when zoomed out
+            if current_scale > BORDER_HIDE_THRESHOLD {
+                continue;
+            }
         }
         
         // Calculate hexagon vertices for FLAT-TOP hexagons
@@ -155,9 +178,14 @@ fn draw_hexagon_borders(
         
         // Choose color based on selection
         let color = if selected.is_some() {
-            // Golden shimmer for selected tile - looks professional!
-            let shimmer = (time.elapsed_secs() * 3.0).sin() * 0.3 + 0.7;
-            Color::srgb(1.0 * shimmer, 0.8 * shimmer, 0.0)
+            // Static golden glow for selected tile - no distracting animation
+            // Make it brighter when zoomed out for better visibility
+            let brightness = if current_scale > 1.0 {
+                1.0  // Full brightness when zoomed out
+            } else {
+                0.9  // Slightly dimmer when zoomed in
+            };
+            Color::srgb(1.0 * brightness, 0.84 * brightness, 0.0)  // Golden color
         } else {
             // Darker but thinner borders (using lower alpha for visual thinness)
             // Fade out borders as we zoom out
@@ -258,11 +286,13 @@ fn update_tile_info_ui(
         if let Some(entity) = selected_info.entity {
             if let Ok(province) = provinces.get(entity) {
                 text.0 = format!(
-                    "Province #{}\nTerrain: {:?}\nElevation: {:.2}\nPopulation: {:.0}\nPosition: ({:.0}, {:.0})",
+                    "Province #{}\nTerrain: {:?}\nElevation: {:.2}\nPopulation: {:.0}\nAgriculture: {:.1}\nWater Distance: {:.1} hex\nPosition: ({:.0}, {:.0})",
                     province.id,
                     province.terrain,
                     province.elevation,
                     province.population,
+                    province.agriculture,
+                    province.fresh_water_distance,
                     province.position.x,
                     province.position.y,
                 );

@@ -447,52 +447,7 @@ pub fn get_mineral_abundance(resources: &ProvinceResources, mineral_type: Minera
     }
 }
 
-/// Calculate color for mineral abundance (0-100)
-pub fn mineral_abundance_color(abundance: u8) -> Color {
-    if abundance == 0 {
-        // No resources - dark grey
-        Color::srgb(0.15, 0.15, 0.15)
-    } else {
-        // Heat map: black -> red -> yellow -> white
-        let normalized = abundance as f32 / 100.0;
-        
-        if normalized < 0.33 {
-            // Black to red
-            let t = normalized * 3.0;
-            Color::srgb(t, 0.0, 0.0)
-        } else if normalized < 0.67 {
-            // Red to yellow
-            let t = (normalized - 0.33) * 3.0;
-            Color::srgb(1.0, t, 0.0)
-        } else {
-            // Yellow to white
-            let t = (normalized - 0.67) * 3.0;
-            Color::srgb(1.0, 1.0, t)
-        }
-    }
-}
 
-/// Special color scale for stone (which ranges from 20-80, not 0-100)
-pub fn stone_abundance_color(abundance: u8) -> Color {
-    if abundance == 0 {
-        // Ocean - show as dark blue
-        Color::srgb(0.0, 0.1, 0.2)
-    } else {
-        // Normalize stone's 20-80 range to 0-1
-        let normalized = ((abundance as f32 - 20.0) / 60.0).clamp(0.0, 1.0);
-        
-        // Use earth tones: dark brown -> tan -> light yellow
-        if normalized < 0.5 {
-            // Dark brown to medium brown
-            let t = normalized * 2.0;
-            Color::srgb(0.3 + t * 0.2, 0.2 + t * 0.2, 0.1 + t * 0.1)
-        } else {
-            // Medium brown to light tan
-            let t = (normalized - 0.5) * 2.0;
-            Color::srgb(0.5 + t * 0.3, 0.4 + t * 0.3, 0.2 + t * 0.3)
-        }
-    }
-}
 
 /// Calculate total mineral richness
 pub fn calculate_total_richness(resources: &ProvinceResources) -> f32 {
@@ -514,40 +469,129 @@ pub fn calculate_total_richness(resources: &ProvinceResources) -> f32 {
      resources.gems as f32 * gems_weight) / 100.0
 }
 
-/// Color for combined mineral richness
-pub fn combined_richness_color(richness: f32) -> Color {
-    let clamped = richness.clamp(0.0, 10.0) / 10.0;
+
+
+
+// ============================================================================
+// WORLD GENERATION
+// ============================================================================
+
+/// Generate mineral resources for the entire world during setup
+/// This centralizes all mineral generation logic that was previously in setup.rs
+pub fn generate_world_minerals(
+    seed: u32,
+    provinces: &[Province],
+) -> HashMap<u32, ProvinceResources> {
+    println!("Generating mineral resources...");
     
-    if clamped < 0.2 {
-        // Poor - brown
-        Color::srgb(0.4, 0.2, 0.1)
-    } else if clamped < 0.4 {
-        // Below average - dark orange
-        Color::srgb(0.6, 0.3, 0.1)
-    } else if clamped < 0.6 {
-        // Average - orange
-        Color::srgb(0.8, 0.5, 0.2)
-    } else if clamped < 0.8 {
-        // Rich - gold
-        Color::srgb(1.0, 0.8, 0.3)
-    } else {
-        // Extremely rich - bright gold
-        Color::srgb(1.0, 0.95, 0.5)
+    // Generate ore veins for each mineral type
+    let mut ore_veins: HashMap<MineralType, Vec<_>> = HashMap::new();
+    
+    // Iron - common in mountains and hills
+    ore_veins.insert(
+        MineralType::Iron,
+        generate_ore_veins(
+            MineralType::Iron,
+            IRON_VEIN_COUNT,
+            seed.wrapping_add(1000),
+            provinces,
+            iron_terrain_bias,
+        ),
+    );
+    
+    // Copper - less common, in mountains and hills
+    ore_veins.insert(
+        MineralType::Copper,
+        generate_ore_veins(
+            MineralType::Copper,
+            COPPER_VEIN_COUNT,
+            seed.wrapping_add(2000),
+            provinces,
+            copper_terrain_bias,
+        ),
+    );
+    
+    // Tin - rare, essential for bronze
+    ore_veins.insert(
+        MineralType::Tin,
+        generate_ore_veins(
+            MineralType::Tin,
+            TIN_VEIN_COUNT,
+            seed.wrapping_add(3000),
+            provinces,
+            tin_terrain_bias,
+        ),
+    );
+    
+    // Gold - rare, in high mountains
+    ore_veins.insert(
+        MineralType::Gold,
+        generate_ore_veins(
+            MineralType::Gold,
+            GOLD_VEIN_COUNT,
+            seed.wrapping_add(4000),
+            provinces,
+            gold_terrain_bias,
+        ),
+    );
+    
+    // Coal - in ancient swamps (lowland forests)
+    ore_veins.insert(
+        MineralType::Coal,
+        generate_ore_veins(
+            MineralType::Coal,
+            COAL_DEPOSIT_COUNT,
+            seed.wrapping_add(5000),
+            provinces,
+            coal_terrain_bias,
+        ),
+    );
+    
+    // Gems - very rare, highest peaks only
+    ore_veins.insert(
+        MineralType::Gems,
+        generate_ore_veins(
+            MineralType::Gems,
+            GEM_VEIN_COUNT,
+            seed.wrapping_add(6000),
+            provinces,
+            gem_terrain_bias,
+        ),
+    );
+    
+    // Calculate resources for each province
+    let mut province_resources: HashMap<u32, ProvinceResources> = HashMap::new();
+    for province in provinces.iter() {
+        let resources = calculate_province_resources(province, &ore_veins);
+        province_resources.insert(province.id, resources);
     }
+    
+    // Log mineral distribution statistics
+    let total_iron: u32 = province_resources.values().map(|r| r.iron as u32).sum();
+    let total_copper: u32 = province_resources.values().map(|r| r.copper as u32).sum();
+    let total_tin: u32 = province_resources.values().map(|r| r.tin as u32).sum();
+    let total_gold: u32 = province_resources.values().map(|r| r.gold as u32).sum();
+    let total_coal: u32 = province_resources.values().map(|r| r.coal as u32).sum();
+    let total_gems: u32 = province_resources.values().map(|r| r.gems as u32).sum();
+    
+    println!("Mineral distribution:");
+    println!("  Iron: {} units across provinces", total_iron);
+    println!("  Copper: {} units", total_copper);
+    println!("  Tin: {} units (rare!)", if total_tin < 60000 { 
+        format!("{}", total_tin) 
+    } else { 
+        total_tin.to_string() 
+    });
+    println!("  Gold: {} units", total_gold);
+    println!("  Coal: {} units", total_coal);
+    println!("  Gems: {} units (very rare!)", if total_gems < 20000 { 
+        format!("{}", total_gems) 
+    } else { 
+        total_gems.to_string() 
+    });
+    
+    province_resources
 }
-
-/// Color for mining infrastructure level
-pub fn infrastructure_level_color(level: u8) -> Color {
-    match level {
-        0 => Color::srgb(0.2, 0.2, 0.2),  // No infrastructure - dark grey
-        1 => Color::srgb(0.4, 0.3, 0.2),  // Basic mine - brown
-        2 => Color::srgb(0.5, 0.4, 0.3),  // Improved mine - light brown
-        3 => Color::srgb(0.6, 0.5, 0.4),  // Advanced mine - tan
-        4 => Color::srgb(0.7, 0.6, 0.5),  // Industrial mine - light tan
-        _ => Color::srgb(0.9, 0.8, 0.6),  // Max level - almost white
-    }
-}
-
 
 // ============================================================================
 // PLUGIN

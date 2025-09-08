@@ -8,23 +8,18 @@ use bevy::prelude::*;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use bevy::render::render_asset::RenderAssetUsages;
 use bevy::image::ImageSampler;
-use noise::{NoiseFn, Perlin};
+use noise::Perlin;
 use rand::prelude::*;
 use rand::rngs::StdRng;
 use std::collections::HashMap;
 
-use crate::components::{Province, Nation, ProvinceResources, ProvinceInfrastructure, MineralType};
+use crate::components::{Province, Nation, ProvinceInfrastructure};
 use crate::resources::{WorldSeed, WorldSize, ProvincesSpatialIndex, SelectedProvinceInfo};
-use crate::terrain::{TerrainType, classify_terrain_with_climate, get_terrain_color_gradient};
+use crate::terrain::{TerrainType, classify_terrain_with_climate, generate_elevation_with_edges, get_terrain_population_multiplier};
+use crate::colors::get_terrain_color_gradient;
 use crate::clouds::spawn_clouds;
 use crate::constants::*;
-use crate::minerals::{
-    generate_ore_veins, calculate_province_resources,
-    iron_terrain_bias, copper_terrain_bias, tin_terrain_bias,
-    gold_terrain_bias, coal_terrain_bias, gem_terrain_bias,
-    IRON_VEIN_COUNT, COPPER_VEIN_COUNT, TIN_VEIN_COUNT,
-    GOLD_VEIN_COUNT, COAL_DEPOSIT_COUNT, GEM_VEIN_COUNT,
-};
+use crate::minerals::generate_world_minerals;
 
 // ============================================================================
 // TEXTURE GENERATION
@@ -97,137 +92,6 @@ pub fn create_hexagon_texture(size: f32) -> Image {
     image
 }
 
-// ============================================================================
-// TERRAIN GENERATION
-// ============================================================================
-
-/// Generate elevation using advanced noise techniques with map edge handling
-/// This version includes map edge handling to force ocean at the boundaries
-pub fn generate_elevation_with_edges(x: f32, y: f32, perlin: &Perlin, continent_centers: &[(f32, f32)]) -> f32 {
-    // Calculate map bounds dynamically based on grid dimensions
-    let hex_size = HEX_SIZE_PIXELS;
-    let provinces_per_row = PROVINCES_PER_ROW;
-    let provinces_per_col = PROVINCES_PER_COL;
-    // FLAT-TOP HONEYCOMB: Column spacing is 1.5 * radius, row spacing is sqrt(3) * radius
-    let map_bound_x = (provinces_per_row as f32 * hex_size * 1.5) / 2.0;
-    let map_bound_y = (provinces_per_col as f32 * hex_size * SQRT3) / 2.0;
-    let edge_buffer = EDGE_BUFFER;
-    
-    // Force ocean at map edges
-    let dist_from_edge_x = map_bound_x - x.abs();
-    let dist_from_edge_y = map_bound_y - y.abs();
-    let min_edge_dist = dist_from_edge_x.min(dist_from_edge_y);
-    
-    if min_edge_dist < edge_buffer {
-        // Smooth transition to ocean at edges
-        let edge_factor = (min_edge_dist / edge_buffer).max(0.0);
-        if edge_factor < 0.3 {
-            return 0.0; // Deep ocean at very edge
-        }
-        // Will apply this factor at the end
-    }
-    
-    // Domain warping for organic shapes
-    let warp_scale = 0.002;
-    let warp_x = perlin.get([x as f64 * warp_scale, y as f64 * warp_scale]) as f32 * 150.0;
-    let warp_y = perlin.get([x as f64 * warp_scale + 100.0, y as f64 * warp_scale]) as f32 * 150.0;
-    
-    // Apply warping to coordinates
-    let wx = x + warp_x;
-    let wy = y + warp_y;
-    
-    // Normalize warped coordinates
-    let nx = wx / 1000.0;
-    let ny = wy / 1000.0;
-    
-    // Layered octaves with different characteristics
-    let base = perlin.get([nx as f64 * 0.7, ny as f64 * 0.7]) as f32;
-    let detail = perlin.get([nx as f64 * 2.0, ny as f64 * 2.0]) as f32 * 0.5;
-    let fine = perlin.get([nx as f64 * 4.0, ny as f64 * 4.0]) as f32 * 0.25;
-    
-    // Ridge noise for mountain chains (inverted absolute value)
-    let ridge_scale = 0.003;
-    let ridge = 1.0 - (perlin.get([wx as f64 * ridge_scale, wy as f64 * ridge_scale]) as f32 * 2.0).abs();
-    let ridge_contribution = ridge * 0.3;
-    
-    // Combine noise layers
-    let mut elevation = (base + detail + fine + ridge_contribution) / 2.0 + 0.5;
-    
-    // Multiple continent masks with fractal distortion for natural coastlines  
-    let mut continent_influence: f32 = 0.0;
-    
-    for (idx, &(cx, cy)) in continent_centers.iter().enumerate() {
-        let dist = ((x - cx).powi(2) + (y - cy).powi(2)).sqrt();
-        
-        // Add multi-scale noise distortion for realistic, fractal coastlines
-        let distortion_scale = 0.001;
-        // Large scale features (continents/peninsulas)
-        let distortion1 = perlin.get([
-            (x + cx * 0.1) as f64 * distortion_scale * 0.5, 
-            (y + cy * 0.1) as f64 * distortion_scale * 0.5
-        ]) as f32 * 400.0;
-        // Medium scale features (bays/capes)
-        let distortion2 = perlin.get([
-            x as f64 * distortion_scale * 2.0, 
-            y as f64 * distortion_scale * 2.0
-        ]) as f32 * 200.0;
-        // Fine detail (rough coastline)
-        let distortion3 = perlin.get([
-            x as f64 * distortion_scale * 8.0, 
-            y as f64 * distortion_scale * 8.0
-        ]) as f32 * 50.0;
-        
-        // Apply fractal distortion
-        let distorted_dist = dist + distortion1 + distortion2 * 0.5 + distortion3 * 0.25;
-        
-        // Vary continent sizes dramatically based on index
-        let continent_seed = (idx as u32).wrapping_mul(2654435761) % 1000;
-        let size_factor = continent_seed as f32 / 1000.0;
-        
-        let base_radius = if idx >= 30 {
-            // Tiny islands (fewer of these)
-            CONTINENT_TINY_BASE + size_factor * CONTINENT_TINY_VARIATION
-        } else if idx >= 18 {
-            // Archipelagos and island chains
-            CONTINENT_ARCHIPELAGO_BASE + size_factor * CONTINENT_ARCHIPELAGO_VARIATION
-        } else if idx >= 8 {
-            // Medium continents (Australia-sized) - more of these
-            CONTINENT_MEDIUM_BASE + size_factor * CONTINENT_MEDIUM_VARIATION
-        } else {
-            // Massive continents (Eurasia-sized) - more of these too
-            CONTINENT_MASSIVE_BASE + size_factor * CONTINENT_MASSIVE_VARIATION
-        };
-        
-        // Apply size multiplier for more land
-        let adjusted_radius = base_radius * CONTINENT_SIZE_MULTIPLIER;
-        
-        // Smooth falloff with varying sharpness for different edge types
-        let falloff = 1.0 - (distorted_dist / adjusted_radius).clamp(0.0, 1.0);
-        let shaped_falloff = falloff.powf(CONTINENT_FALLOFF_BASE + size_factor * CONTINENT_FALLOFF_VARIATION);
-        
-        // Allow overlapping continents to merge naturally
-        continent_influence = continent_influence.max(shaped_falloff);
-    }
-    
-    let mask = continent_influence;
-    
-    // Apply continent mask
-    elevation *= mask;
-    
-    // Apply edge fade if near map boundary
-    if min_edge_dist < edge_buffer {
-        let edge_factor = (min_edge_dist / edge_buffer).clamp(0.0, 1.0);
-        elevation *= edge_factor * edge_factor; // Quadratic falloff to ocean
-    }
-    
-    // For ocean tiles, set a base ocean elevation
-    // We'll calculate proper depth in a second pass after we know all land positions
-    if elevation < 0.01 {
-        elevation = 0.05; // Temporary ocean value
-    }
-    
-    elevation
-}
 
 // ============================================================================
 // WORLD SETUP
@@ -240,7 +104,7 @@ pub fn setup_world(
     _materials: ResMut<Assets<ColorMaterial>>,
     mut images: ResMut<Assets<Image>>,
     seed: Res<WorldSeed>,
-    _size: Res<WorldSize>,
+    size: Res<WorldSize>,
 ) {
     // Camera setup is now handled by CameraPlugin
     
@@ -253,9 +117,10 @@ pub fn setup_world(
     let perlin = Perlin::new(seed.0);
     let mut rng = StdRng::seed_from_u64(seed.0 as u64);
     
-    // Define map dimensions first - MASSIVE world
-    let provinces_per_row = PROVINCES_PER_ROW;
-    let provinces_per_col = PROVINCES_PER_COL;
+    // Define map dimensions based on selected world size
+    let (provinces_per_row, provinces_per_col) = size.dimensions();
+    let provinces_per_row = provinces_per_row as u32;
+    let provinces_per_col = provinces_per_col as u32;
     
     // Calculate actual map bounds based on hex grid coordinates
     // FLAT-TOP hexagon map bounds for honeycomb pattern
@@ -339,14 +204,12 @@ pub fn setup_world(
             let province_id = row * provinces_per_row + col;
             
             // Calculate FLAT-TOP hexagon position for HONEYCOMB pattern
-            // Odd columns shift UP by half the vertical spacing for tessellation
-            let y_offset = if col % 2 == 1 { hex_size * SQRT3 / 2.0 } else { 0.0 };
-            let x = (col as f32 - provinces_per_row as f32 / 2.0) * hex_size * 1.5;
-            let y = (row as f32 - provinces_per_col as f32 / 2.0) * hex_size * SQRT3 + y_offset;
+            let (x, y) = calculate_hex_position(col, row, hex_size, provinces_per_row, provinces_per_col);
             
             // Generate elevation and terrain with climate
-            let elevation = generate_elevation_with_edges(x, y, &perlin, &continent_centers);
-            let map_height = provinces_per_col as f32 * HEX_SIZE_PIXELS * SQRT3; // FLAT-TOP height (sqrt(3))
+            let map_width = provinces_per_row as f32 * HEX_SIZE_PIXELS * 1.5;
+            let map_height = provinces_per_col as f32 * HEX_SIZE_PIXELS * SQRT3;
+            let elevation = generate_elevation_with_edges(x, y, &perlin, &continent_centers, map_width, map_height);
             let terrain = classify_terrain_with_climate(elevation, y, map_height);
             let _terrain_color = get_terrain_color_gradient(terrain, elevation);
             
@@ -365,18 +228,7 @@ pub fn setup_world(
                 // Deterministic population based on province ID and terrain
                 let pop_seed = (province_id as u32).wrapping_mul(2654435761); // Golden ratio hash
                 let pop_factor = (pop_seed % 1000) as f32 / 1000.0; // 0.0 to 1.0
-                let terrain_multiplier = match terrain {
-                    TerrainType::Plains => 1.5,  // More population in plains
-                    TerrainType::Beach => 1.2,   // Coastal areas attract people
-                    TerrainType::Forest => 1.0,  // Moderate population in forests
-                    TerrainType::Jungle => 0.6,  // Dense jungle is harder to settle
-                    TerrainType::Hills => 0.8,   // Less in hills
-                    TerrainType::Mountains => 0.3, // Few in mountains
-                    TerrainType::Desert => 0.4,  // Low in deserts
-                    TerrainType::Tundra => 0.2,  // Very low in tundra
-                    TerrainType::Ice => 0.0,     // No permanent population on ice
-                    _ => 1.0,
-                };
+                let terrain_multiplier = get_terrain_population_multiplier(terrain);
                 PROVINCE_MIN_POPULATION + pop_factor * PROVINCE_MAX_ADDITIONAL_POPULATION * terrain_multiplier
             };
             
@@ -387,6 +239,8 @@ pub fn setup_world(
                 population: base_pop,
                 terrain,
                 elevation,
+                agriculture: 0.0,  // Will be calculated later based on rivers
+                fresh_water_distance: f32::MAX,  // Will be calculated after rivers
             };
             
             all_provinces.push(province.clone());
@@ -445,6 +299,7 @@ pub fn setup_world(
     // Generate rivers from mountains to ocean
     println!("Generating rivers...");
     let mut river_tiles = Vec::new();
+    let mut delta_tiles = Vec::new();  // Track where rivers meet ocean
     let mut mountain_provinces = Vec::new();
     
     // Find all mountain provinces that could be river sources
@@ -494,9 +349,14 @@ pub fn setup_world(
                         continue;
                     }
                     
-                    // If we hit ocean, we're done
+                    // If we hit ocean, we're done - mark as delta
                     if province.terrain == TerrainType::Ocean {
-                        river_path.push(province.id);
+                        // The last river tile becomes a delta
+                        if !river_path.is_empty() {
+                            delta_tiles.push(*river_path.last().unwrap());
+                        }
+                        // Also mark ocean tiles adjacent to the river mouth
+                        delta_tiles.push(province.id);
                         steps = MAX_RIVER_LENGTH; // Exit outer loop
                         break;
                     }
@@ -535,111 +395,104 @@ pub fn setup_world(
         }
     }
     
-    println!("Generated {} river tiles", river_tiles.len());
+    // Create river deltas at river mouths
+    for delta_id in delta_tiles.iter() {
+        if let Some(delta_province) = all_provinces.iter_mut().find(|p| p.id == *delta_id) {
+            // Convert river mouths and adjacent tiles to fertile deltas
+            if delta_province.terrain != TerrainType::Ocean {
+                delta_province.terrain = TerrainType::Delta;
+                // Deltas are extremely fertile - huge population boost
+                delta_province.population *= 2.0;
+            }
+            
+            // Also convert nearby land tiles to delta (spreading fertility)
+            let delta_pos = delta_province.position;
+            let delta_radius = hex_size * 2.5; // Affect 2-hex radius
+            
+            for nearby_province in all_provinces.iter_mut() {
+                if nearby_province.position.distance(delta_pos) <= delta_radius {
+                    // Convert beach/plains near river mouths to delta
+                    if matches!(nearby_province.terrain, TerrainType::Beach | TerrainType::Plains) {
+                        nearby_province.terrain = TerrainType::Delta;
+                        nearby_province.population *= 1.5;
+                    }
+                }
+            }
+        }
+    }
+    
+    println!("Generated {} river tiles and {} delta tiles", river_tiles.len(), delta_tiles.len());
+    
+    // ============================================================================
+    // CALCULATE FRESH WATER DISTANCE AND AGRICULTURE
+    // ============================================================================
+    
+    println!("Calculating fresh water distance and agriculture zones...");
+    
+    // First, collect all fresh water sources (rivers and deltas)
+    let mut fresh_water_positions = Vec::new();
+    for province in all_provinces.iter() {
+        if matches!(province.terrain, TerrainType::River | TerrainType::Delta) {
+            fresh_water_positions.push(province.position);
+        }
+    }
+    
+    // Calculate distance to nearest fresh water for each province
+    for province in all_provinces.iter_mut() {
+        if province.terrain != TerrainType::Ocean {
+            // Find minimum distance to any fresh water source
+            let mut min_distance = f32::MAX;
+            for water_pos in fresh_water_positions.iter() {
+                let distance = province.position.distance(*water_pos) / hex_size; // Convert to hex units
+                min_distance = min_distance.min(distance);
+            }
+            province.fresh_water_distance = min_distance;
+            
+            // Calculate agriculture based on terrain and water proximity
+            province.agriculture = match province.terrain {
+                TerrainType::Delta => 3.0,  // Deltas are extremely fertile
+                TerrainType::River => 2.5,  // Rivers have excellent agriculture
+                TerrainType::Plains | TerrainType::Forest => {
+                    // Agriculture decreases with distance from water
+                    if min_distance <= 1.0 {
+                        2.0  // Adjacent to water - very fertile
+                    } else if min_distance <= 2.0 {
+                        1.5  // 1 hex from water - good farming
+                    } else if min_distance <= 3.0 {
+                        1.0  // 2 hexes from water - moderate farming
+                    } else {
+                        0.5  // Far from water - poor farming
+                    }
+                },
+                TerrainType::Beach => {
+                    if min_distance <= 1.0 { 1.0 } else { 0.5 }
+                },
+                TerrainType::Desert => {
+                    // Desert farming only possible near water (oases)
+                    if min_distance <= 1.0 { 1.0 } else { 0.1 }
+                },
+                TerrainType::Jungle => {
+                    if min_distance <= 2.0 { 1.2 } else { 0.6 }
+                },
+                TerrainType::Hills => {
+                    if min_distance <= 2.0 { 0.8 } else { 0.4 }
+                },
+                _ => 0.1,  // Mountains, Ice, Tundra - minimal agriculture
+            };
+        }
+    }
+    
+    let high_agriculture_count = all_provinces.iter()
+        .filter(|p| p.agriculture >= 1.5)
+        .count();
+    println!("Set up {} provinces with high agriculture (>= 1.5)", high_agriculture_count);
     
     // ============================================================================
     // MINERAL RESOURCE GENERATION
     // ============================================================================
     
-    println!("Generating mineral resources...");
-    
-    // Generate ore veins for each mineral type
-    let mut ore_veins: HashMap<MineralType, Vec<_>> = HashMap::new();
-    
-    // Iron - common in mountains and hills
-    ore_veins.insert(
-        MineralType::Iron,
-        generate_ore_veins(
-            MineralType::Iron,
-            IRON_VEIN_COUNT,
-            seed.0.wrapping_add(1000),
-            &all_provinces,
-            iron_terrain_bias,
-        ),
-    );
-    
-    // Copper - less common, in mountains and hills
-    ore_veins.insert(
-        MineralType::Copper,
-        generate_ore_veins(
-            MineralType::Copper,
-            COPPER_VEIN_COUNT,
-            seed.0.wrapping_add(2000),
-            &all_provinces,
-            copper_terrain_bias,
-        ),
-    );
-    
-    // Tin - rare, essential for bronze
-    ore_veins.insert(
-        MineralType::Tin,
-        generate_ore_veins(
-            MineralType::Tin,
-            TIN_VEIN_COUNT,
-            seed.0.wrapping_add(3000),
-            &all_provinces,
-            tin_terrain_bias,
-        ),
-    );
-    
-    // Gold - rare, in high mountains
-    ore_veins.insert(
-        MineralType::Gold,
-        generate_ore_veins(
-            MineralType::Gold,
-            GOLD_VEIN_COUNT,
-            seed.0.wrapping_add(4000),
-            &all_provinces,
-            gold_terrain_bias,
-        ),
-    );
-    
-    // Coal - in ancient swamps (lowland forests)
-    ore_veins.insert(
-        MineralType::Coal,
-        generate_ore_veins(
-            MineralType::Coal,
-            COAL_DEPOSIT_COUNT,
-            seed.0.wrapping_add(5000),
-            &all_provinces,
-            coal_terrain_bias,
-        ),
-    );
-    
-    // Gems - very rare, highest peaks only
-    ore_veins.insert(
-        MineralType::Gems,
-        generate_ore_veins(
-            MineralType::Gems,
-            GEM_VEIN_COUNT,
-            seed.0.wrapping_add(6000),
-            &all_provinces,
-            gem_terrain_bias,
-        ),
-    );
-    
-    // Calculate resources for each province
-    let mut province_resources: HashMap<u32, ProvinceResources> = HashMap::new();
-    for province in all_provinces.iter() {
-        let resources = calculate_province_resources(province, &ore_veins);
-        province_resources.insert(province.id, resources);
-    }
-    
-    // Log mineral distribution statistics
-    let total_iron: u32 = province_resources.values().map(|r| r.iron as u32).sum();
-    let total_copper: u32 = province_resources.values().map(|r| r.copper as u32).sum();
-    let total_tin: u32 = province_resources.values().map(|r| r.tin as u32).sum();
-    let total_gold: u32 = province_resources.values().map(|r| r.gold as u32).sum();
-    let total_coal: u32 = province_resources.values().map(|r| r.coal as u32).sum();
-    let total_gems: u32 = province_resources.values().map(|r| r.gems as u32).sum();
-    
-    println!("Mineral distribution:");
-    println!("  Iron: {} units across provinces", total_iron);
-    println!("  Copper: {} units", total_copper);
-    println!("  Tin: {} units", total_tin);
-    println!("  Gold: {} units", total_gold);
-    println!("  Coal: {} units", total_coal);
-    println!("  Gems: {} units", total_gems);
+    // Generate all mineral resources using centralized function in minerals.rs
+    let province_resources = generate_world_minerals(seed.0, &all_provinces);
     
     // Now spawn all provinces with correct depths
     for province in all_provinces.iter() {
@@ -647,10 +500,7 @@ pub fn setup_world(
         let col = province.id % provinces_per_row;
         
         // Recalculate position (MUST match first pass exactly!)
-        // FLAT-TOP HONEYCOMB: Odd columns shift UP
-        let y_offset = if col % 2 == 1 { hex_size * SQRT3 / 2.0 } else { 0.0 };
-        let x = (col as f32 - provinces_per_row as f32 / 2.0) * hex_size * 1.5;
-        let y = (row as f32 - provinces_per_col as f32 / 2.0) * hex_size * SQRT3 + y_offset;
+        let (x, y) = calculate_hex_position(col, row, hex_size, provinces_per_row, provinces_per_col);
         
         // Get the color based on nation ownership or terrain
         let province_color = if let Some(nation_id) = province.nation_id {
@@ -693,8 +543,6 @@ pub fn setup_world(
         
         // Add to spatial index for O(1) lookups
         spatial_index.insert(entity, Vec2::new(x, y), province.id);
-        
-        // Ghost provinces are temporarily disabled to avoid rendering issues
     }
     
     // Place nations on land using flood fill from random capitals
@@ -749,8 +597,8 @@ pub fn setup_world(
     commands.insert_resource(spatial_index);
     
     // Initialize cloud system using the clouds module
-    let map_width = provinces_per_row as f32 * hex_size * 1.5;
-    let map_height = provinces_per_col as f32 * hex_size * SQRT3;
+    let map_width = provinces_per_row as f32 * HEX_SIZE_PIXELS * 1.5;
+    let map_height = provinces_per_col as f32 * HEX_SIZE_PIXELS * SQRT3;
     spawn_clouds(&mut commands, &mut images, seed.0, map_width, map_height);
     
     println!("Generated world with {} provinces, {} land tiles", 

@@ -135,7 +135,7 @@ impl Default for CloudTextureParams {
 }
 
 /// Create a procedural cloud texture with enhanced variety
-pub fn create_cloud_texture_enhanced(params: CloudTextureParams) -> Image {
+pub fn create_cloud_texture(params: CloudTextureParams) -> Image {
     let perlin = Perlin::new(params.seed);
     let mut pixels = vec![0u8; (params.size * params.size * 4) as usize];
     
@@ -223,17 +223,6 @@ pub fn create_cloud_texture_enhanced(params: CloudTextureParams) -> Image {
         bevy::render::render_resource::TextureFormat::Rgba8UnormSrgb,
         bevy::render::render_asset::RenderAssetUsages::default(),
     )
-}
-
-/// Legacy wrapper for backward compatibility
-pub fn create_cloud_texture(size: u32, seed: u32, octaves: usize, coverage: f32) -> Image {
-    create_cloud_texture_enhanced(CloudTextureParams {
-        size,
-        seed,
-        octaves,
-        coverage,
-        ..default()
-    })
 }
 
 /// Spawn cloud sprites across the map
@@ -364,7 +353,7 @@ pub fn spawn_clouds(
                 let edge_hardness = rng.gen_range(0.0..0.3);
                 
                 // Generate unique texture with enhanced variety
-                let cloud_texture = create_cloud_texture_enhanced(CloudTextureParams {
+                let cloud_texture = create_cloud_texture(CloudTextureParams {
                     size: texture_size,
                     seed: unique_seed,
                     octaves,
@@ -568,7 +557,13 @@ pub fn dynamic_cloud_spawn_system(
             // Spawn new clouds near camera
             for i in 0..to_spawn {
                 let seed = (weather.time_since_change * 1000.0) as u32 + i as u32;
-                let texture = create_cloud_texture(256, seed, 4, weather.cloud_coverage);
+                let texture = create_cloud_texture(CloudTextureParams {
+                    size: 256,
+                    seed,
+                    octaves: 4,
+                    coverage: weather.cloud_coverage,
+                    ..default()
+                });
                 let handle = images.add(texture);
                 
                 let mut rng = StdRng::seed_from_u64(seed as u64);

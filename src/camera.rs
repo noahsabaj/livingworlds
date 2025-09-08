@@ -7,6 +7,7 @@ use bevy::prelude::*;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::window::PrimaryWindow;
 use crate::constants::*;
+use crate::resources::MapDimensions;
 
 /// Camera control plugin for managing viewport and camera movement
 pub struct CameraPlugin;
@@ -41,16 +42,14 @@ pub fn camera_control_system(
     mut mouse_wheel: EventReader<MouseWheel>,
     windows: Query<&Window, With<PrimaryWindow>>,
     time: Res<Time>,
+    map_dimensions: Res<MapDimensions>,
 ) {
     // Get window for mouse position and dimensions
     let Ok(window) = windows.single() else { return; };
     
-    // Calculate map dimensions - MASSIVE world
-    let provinces_per_row = PROVINCES_PER_ROW as usize;
-    let provinces_per_col = PROVINCES_PER_COL as usize;
-    // FLAT-TOP hexagon dimensions for honeycomb pattern
-    let map_width_pixels = provinces_per_row as f32 * HEX_SIZE_PIXELS * 1.5; // Column spacing = 3/2 * radius
-    let map_height_pixels = provinces_per_col as f32 * HEX_SIZE_PIXELS * SQRT3; // Row spacing = sqrt(3) * radius
+    // Use dynamic map dimensions from resource
+    let map_width_pixels = map_dimensions.width_pixels;
+    let map_height_pixels = map_dimensions.height_pixels;
     
     for (mut projection, mut transform) in query.iter_mut() {
         // Handle zoom only for orthographic projections

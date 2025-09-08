@@ -5,8 +5,7 @@
 
 use bevy::prelude::*;
 use noise::{NoiseFn, Perlin};
-use rand::prelude::*;
-use rand::rngs::StdRng;
+use crate::constants::*;
 
 /// TerrainType represents the physical terrain of a province
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -22,6 +21,7 @@ pub enum TerrainType {
     Forest,   // Temperate forests
     Jungle,   // Tropical rainforests
     River,    // Rivers flowing from mountains to ocean
+    Delta,    // Fertile river mouths where rivers meet ocean
 }
 
 /// ClimateZone represents the climate of a province
@@ -168,160 +168,129 @@ fn classify_terrain(elevation: f32) -> TerrainType {
     }
 }
 
-/// Get smooth color gradient based on terrain and elevation
-pub fn get_terrain_color_gradient(terrain: TerrainType, elevation: f32) -> Color {
-    // Define base colors with smoother transitions
-    let color = match terrain {
-        TerrainType::Ocean => {
-            // Three distinct ocean depth colors based on elevation
-            if elevation >= 0.10 {
-                // Shallow water (coastal)
-                Color::srgb(0.15, 0.35, 0.55)
-            } else if elevation >= 0.05 {
-                // Medium depth
-                Color::srgb(0.08, 0.25, 0.45)
-            } else {
-                // Deep ocean
-                Color::srgb(0.02, 0.15, 0.35)
-            }
-        },
-        TerrainType::Beach => {
-            // Sandy beach with slight variation
-            let sand_var = elevation * 2.0;
-            Color::srgb(0.9 + sand_var * 0.05, 0.85 + sand_var * 0.05, 0.65 + sand_var * 0.1)
-        },
-        TerrainType::Plains => {
-            // Lush green plains with elevation-based variation
-            let green_factor = (elevation - 0.2) / 0.25;
-            let r = 0.25 + green_factor * 0.1;
-            let g = 0.55 + green_factor * 0.1;
-            let b = 0.25 + green_factor * 0.05;
-            Color::srgb(r, g, b)
-        },
-        TerrainType::Hills => {
-            // Brown hills transitioning to grey at higher elevations
-            let hill_factor = (elevation - 0.45) / 0.2;
-            let r = 0.45 + hill_factor * 0.1;
-            let g = 0.4 + hill_factor * 0.05;
-            let b = 0.3 + hill_factor * 0.15;
-            Color::srgb(r, g, b)
-        },
-        TerrainType::Mountains => {
-            // Rocky grey to snow white based on height
-            let snow_factor = ((elevation - 0.65) / 0.35).clamp(0.0, 1.0);
-            let grey = 0.6 + snow_factor * 0.35;
-            Color::srgb(grey, grey, grey + snow_factor * 0.05)
-        },
-        TerrainType::Ice => {
-            // Polar ice - bright white with blue tint
-            Color::srgb(0.92, 0.95, 1.0)
-        },
-        TerrainType::Tundra => {
-            // Cold barren land - gray-brown
-            Color::srgb(0.65, 0.6, 0.55)
-        },
-        TerrainType::Desert => {
-            // Sandy desert - warm tan
-            let variation = (elevation * 3.0).sin() * 0.05;
-            Color::srgb(0.9 + variation, 0.8 + variation, 0.6)
-        },
-        TerrainType::Forest => {
-            // Temperate forest - rich green with variation
-            let forest_var = (elevation - 0.3) / 0.2;
-            let r = 0.15 + forest_var * 0.05;
-            let g = 0.35 + forest_var * 0.1;
-            let b = 0.12 + forest_var * 0.03;
-            Color::srgb(r, g, b)
-        },
-        TerrainType::Jungle => {
-            // Tropical jungle - deep vibrant green
-            let jungle_var = ((elevation * 5.0).sin() * 0.1).abs();
-            let r = 0.05 + jungle_var;
-            let g = 0.3 + jungle_var * 1.5;
-            let b = 0.08 + jungle_var * 0.5;
-            Color::srgb(r, g, b)
-        },
-        TerrainType::River => {
-            // River - lighter freshwater blue-green, shallower than ocean
-            Color::srgb(0.2, 0.45, 0.55)
-        },
-    };
-    
-    color
-}
 
-/// Generate elevation with continents and tectonic plates
-pub fn generate_elevation(
-    x: f32,
-    y: f32,
-    perlin: &Perlin,
-    continent_centers: &[(f32, f32)],
-) -> f32 {
-    // Base noise for terrain variation
-    let scale = 0.001;
-    let mut elevation = perlin.get([x as f64 * scale, y as f64 * scale]) as f32;
+/// Generate elevation using advanced noise techniques with map edge handling
+/// This version includes map edge handling to force ocean at the boundaries
+pub fn generate_elevation_with_edges(x: f32, y: f32, perlin: &Perlin, continent_centers: &[(f32, f32)], map_width: f32, map_height: f32) -> f32 {
+    // Use dynamic map dimensions for bounds calculation
+    let map_bound_x = map_width / 2.0;
+    let map_bound_y = map_height / 2.0;
+    let edge_buffer = EDGE_BUFFER;
     
-    // Add multiple octaves for detail
-    elevation += 0.5 * perlin.get([x as f64 * scale * 2.0, y as f64 * scale * 2.0]) as f32;
-    elevation += 0.25 * perlin.get([x as f64 * scale * 4.0, y as f64 * scale * 4.0]) as f32;
+    // Force ocean at map edges
+    let dist_from_edge_x = map_bound_x - x.abs();
+    let dist_from_edge_y = map_bound_y - y.abs();
+    let min_edge_dist = dist_from_edge_x.min(dist_from_edge_y);
     
-    // Normalize to 0-1 range
-    elevation = (elevation + 1.0) / 2.0;
-    
-    // Apply continent influence - land masses form around continent centers
-    let mut continent_influence: f32 = 0.0;
-    for &(cx, cy) in continent_centers {
-        let distance = ((x - cx).powi(2) + (y - cy).powi(2)).sqrt();
-        let max_influence_distance = 3000.0; // How far continents extend
-        
-        if distance < max_influence_distance {
-            // Influence decreases with distance, creating natural coastlines
-            let influence = 1.0 - (distance / max_influence_distance);
-            // Use smoothstep for better coastline shapes
-            let smooth_influence = influence * influence * (3.0 - 2.0 * influence);
-            continent_influence = continent_influence.max(smooth_influence * 0.6);
+    if min_edge_dist < edge_buffer {
+        // Smooth transition to ocean at edges
+        let edge_factor = (min_edge_dist / edge_buffer).max(0.0);
+        if edge_factor < 0.3 {
+            return 0.0; // Deep ocean at very edge
         }
+        // Will apply this factor at the end
     }
     
-    // Combine base elevation with continent influence
-    elevation = (elevation * 0.4 + continent_influence * 0.6).clamp(0.0, 1.0);
+    // Domain warping for organic shapes
+    let warp_scale = 0.002;
+    let warp_x = perlin.get([x as f64 * warp_scale, y as f64 * warp_scale]) as f32 * 150.0;
+    let warp_y = perlin.get([x as f64 * warp_scale + 100.0, y as f64 * warp_scale]) as f32 * 150.0;
     
-    // Add some noise to break up perfect circles
-    let coastline_noise = perlin.get([x as f64 * 0.002, y as f64 * 0.002]) as f32 * 0.15;
-    elevation = (elevation + coastline_noise).clamp(0.0, 1.0);
+    // Apply warping to coordinates
+    let wx = x + warp_x;
+    let wy = y + warp_y;
+    
+    // Normalize warped coordinates
+    let nx = wx / 1000.0;
+    let ny = wy / 1000.0;
+    
+    // Layered octaves with different characteristics
+    let base = perlin.get([nx as f64 * 0.7, ny as f64 * 0.7]) as f32;
+    let detail = perlin.get([nx as f64 * 2.0, ny as f64 * 2.0]) as f32 * 0.5;
+    let fine = perlin.get([nx as f64 * 4.0, ny as f64 * 4.0]) as f32 * 0.25;
+    
+    // Ridge noise for mountain chains (inverted absolute value)
+    let ridge_scale = 0.003;
+    let ridge = 1.0 - (perlin.get([wx as f64 * ridge_scale, wy as f64 * ridge_scale]) as f32 * 2.0).abs();
+    let ridge_contribution = ridge * 0.3;
+    
+    // Combine noise layers
+    let mut elevation = (base + detail + fine + ridge_contribution) / 2.0 + 0.5;
+    
+    // Multiple continent masks with fractal distortion for natural coastlines  
+    let mut continent_influence: f32 = 0.0;
+    
+    for (idx, &(cx, cy)) in continent_centers.iter().enumerate() {
+        let dist = ((x - cx).powi(2) + (y - cy).powi(2)).sqrt();
+        
+        // Add multi-scale noise distortion for realistic, fractal coastlines
+        let distortion_scale = 0.001;
+        // Large scale features (continents/peninsulas)
+        let distortion1 = perlin.get([
+            (x + cx * 0.1) as f64 * distortion_scale * 0.5, 
+            (y + cy * 0.1) as f64 * distortion_scale * 0.5
+        ]) as f32 * 400.0;
+        // Medium scale features (bays/capes)
+        let distortion2 = perlin.get([
+            x as f64 * distortion_scale * 2.0, 
+            y as f64 * distortion_scale * 2.0
+        ]) as f32 * 200.0;
+        // Fine detail (rough coastline)
+        let distortion3 = perlin.get([
+            x as f64 * distortion_scale * 8.0, 
+            y as f64 * distortion_scale * 8.0
+        ]) as f32 * 50.0;
+        
+        // Apply fractal distortion
+        let distorted_dist = dist + distortion1 + distortion2 * 0.5 + distortion3 * 0.25;
+        
+        // Vary continent sizes dramatically based on index
+        let continent_seed = (idx as u32).wrapping_mul(2654435761) % 1000;
+        let size_factor = continent_seed as f32 / 1000.0;
+        
+        let base_radius = if idx >= 30 {
+            // Tiny islands (fewer of these)
+            CONTINENT_TINY_BASE + size_factor * CONTINENT_TINY_VARIATION
+        } else if idx >= 18 {
+            // Archipelagos and island chains
+            CONTINENT_ARCHIPELAGO_BASE + size_factor * CONTINENT_ARCHIPELAGO_VARIATION
+        } else if idx >= 8 {
+            // Medium continents (Australia-sized) - more of these
+            CONTINENT_MEDIUM_BASE + size_factor * CONTINENT_MEDIUM_VARIATION
+        } else {
+            // Massive continents (Eurasia-sized) - more of these too
+            CONTINENT_MASSIVE_BASE + size_factor * CONTINENT_MASSIVE_VARIATION
+        };
+        
+        // Apply size multiplier for more land
+        let adjusted_radius = base_radius * CONTINENT_SIZE_MULTIPLIER;
+        
+        // Smooth falloff with varying sharpness for different edge types
+        let falloff = 1.0 - (distorted_dist / adjusted_radius).clamp(0.0, 1.0);
+        let shaped_falloff = falloff.powf(CONTINENT_FALLOFF_BASE + size_factor * CONTINENT_FALLOFF_VARIATION);
+        
+        // Allow overlapping continents to merge naturally
+        continent_influence = continent_influence.max(shaped_falloff);
+    }
+    
+    let mask = continent_influence;
+    
+    // Apply continent mask
+    elevation *= mask;
+    
+    // Apply edge fade if near map boundary
+    if min_edge_dist < edge_buffer {
+        let edge_factor = (min_edge_dist / edge_buffer).clamp(0.0, 1.0);
+        elevation *= edge_factor * edge_factor; // Quadratic falloff to ocean
+    }
+    
+    // For ocean tiles, set a base ocean elevation
+    // We'll calculate proper depth in a second pass after we know all land positions
+    if elevation < 0.01 {
+        elevation = 0.05; // Temporary ocean value
+    }
     
     elevation
-}
-
-/// Generate tectonic plates and continent centers
-pub fn generate_continent_centers(
-    seed: u32,
-    num_plates: usize,
-    map_width: f32,
-    map_height: f32,
-    edge_buffer: f32,
-) -> Vec<(f32, f32)> {
-    let mut rng = StdRng::seed_from_u64(seed as u64);
-    let mut continent_centers = Vec::new();
-    
-    // Create major continental landmasses
-    for _ in 0..num_plates {
-        let x = rng.gen_range((-map_width + edge_buffer)..(map_width - edge_buffer));
-        let y = rng.gen_range((-map_height + edge_buffer)..(map_height - edge_buffer));
-        continent_centers.push((x, y));
-        
-        // Sometimes add smaller nearby landmasses (islands)
-        if rng.gen_bool(0.3) {
-            let island_x = x + rng.gen_range(-1000.0..1000.0);
-            let island_y = y + rng.gen_range(-1000.0..1000.0);
-            if island_x.abs() < map_width - edge_buffer && 
-               island_y.abs() < map_height - edge_buffer {
-                continent_centers.push((island_x, island_y));
-            }
-        }
-    }
-    
-    continent_centers
 }
 
 /// Get terrain population multiplier
@@ -338,6 +307,7 @@ pub fn get_terrain_population_multiplier(terrain: TerrainType) -> f32 {
         TerrainType::Ice => 0.0,      // No permanent population on ice
         TerrainType::Ocean => 0.0,    // No population in ocean
         TerrainType::River => 2.0,    // Rivers attract high population
+        TerrainType::Delta => 3.0,    // River deltas are extremely fertile
     }
 }
 
