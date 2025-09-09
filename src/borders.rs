@@ -31,7 +31,7 @@ impl Plugin for BorderPlugin {
             .init_resource::<SelectedProvinceInfo>()
             
             // Systems
-            .add_systems(Startup, setup_selection_border.after(crate::setup::setup_world))
+            .add_systems(PostStartup, setup_selection_border)
             .add_systems(Update, (
                 handle_tile_selection,
                 update_selection_border,
@@ -99,8 +99,10 @@ fn setup_selection_border(
     let entity = commands.spawn((
         Mesh2d(mesh_handle),
         MeshMaterial2d(golden_material),
-        Transform::from_xyz(0.0, 0.0, 10.0), // High Z to render above everything
+        Transform::from_xyz(0.0, 0.0, 100.0), // Very high Z to render above everything
         Visibility::Hidden, // Start hidden until something is selected
+        ViewVisibility::default(),
+        InheritedVisibility::default()
     )).id();
     
     selection_border.entity = Some(entity);
@@ -126,9 +128,11 @@ fn update_selection_border(
     // If something is selected, show the border at that position
     if let Some(province_id) = selected_info.province_id {
         if let Some(province) = province_storage.provinces.iter().find(|p| p.id == province_id) {
+            println!("Showing selection border for province {} at ({:.0}, {:.0})", 
+                     province_id, province.position.x, province.position.y);
             // Move border to selected province and make visible
             commands.entity(border_entity)
-                .insert(Transform::from_xyz(province.position.x, province.position.y, 10.0))
+                .insert(Transform::from_xyz(province.position.x, province.position.y, 100.0))
                 .insert(Visibility::Inherited);
         }
     } else {
@@ -150,7 +154,6 @@ pub fn handle_tile_selection(
     if !mouse_button.just_pressed(MouseButton::Left) {
         return;
     }
-    
     let Ok(window) = windows.get_single() else { return; };
     let Some(cursor_pos) = window.cursor_position() else { return; };
     let Ok((camera, camera_transform)) = camera_q.get_single() else { return; };
@@ -165,7 +168,7 @@ pub fn handle_tile_selection(
     
     // Find clicked province using spatial index (O(1) instead of O(n))
     let hex_size = HEX_SIZE_PIXELS;
-    let search_radius = hex_size; // Search within one hex radius
+    let search_radius = hex_size * 1.5; // Search within 1.5 hex radius for better coverage
     
     // Query spatial index for provinces near click position
     let nearby_provinces = spatial_index.query_near(world_pos, search_radius);

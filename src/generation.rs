@@ -134,12 +134,18 @@ impl WorldGenerator {
         let minerals = crate::minerals::generate_world_minerals(self.seed, &provinces);
         
         // Step 7: Build spatial index for fast lookups
+        // Use the same cell size calculation as ProvincesSpatialIndex
+        use crate::constants::SPATIAL_INDEX_CELL_SIZE_MULTIPLIER;
+        let spatial_cell_size = self.dimensions.hex_size * SPATIAL_INDEX_CELL_SIZE_MULTIPLIER;
+        
         let mut spatial_index = HashMap::new();
         for province in &provinces {
-            let grid_x = (province.position.x / self.dimensions.hex_size).round() as i32;
-            let grid_y = (province.position.y / self.dimensions.hex_size).round() as i32;
+            let grid_x = (province.position.x / spatial_cell_size).floor() as i32;
+            let grid_y = (province.position.y / spatial_cell_size).floor() as i32;
             spatial_index.insert((grid_x, grid_y), province.id);
         }
+        println!("Spatial index built with {} grid cells for {} provinces (cell size: {:.1})", 
+                 spatial_index.len(), provinces.len(), spatial_cell_size);
         
         let total_time = start_time.elapsed().as_secs_f32();
         println!("World generation completed in {:.2}s", total_time);
