@@ -221,12 +221,15 @@ mod provinces {
                 let row = idx / dimensions.provinces_per_row;
                 let province_id = idx;
                 
-                // Calculate position using hexagon grid
-                let position = hex_position(col, row, dimensions.hex_size);
+                // Calculate position using the SINGLE canonical hex position function
+                let (pos_x, pos_y) = crate::constants::calculate_hex_position(
+                    col, row, dimensions.hex_size, 
+                    dimensions.provinces_per_row, dimensions.provinces_per_col
+                );
                 
-                // Adjust position to center the map
-                let x = position.x - dimensions.bounds.x_max;
-                let y = position.y - dimensions.bounds.y_max;
+                // Position is already centered by calculate_hex_position
+                let x = pos_x;
+                let y = pos_y;
                 
                 // Generate elevation with improved continental generation
                 let elevation = crate::terrain::generate_elevation_with_edges(
@@ -250,7 +253,7 @@ mod provinces {
                 
                 Province {
                     id: province_id,
-                    position: Vec2::new(x, y),
+                    position: Vec2::new(pos_x, pos_y),  // Use proper hex grid position
                     nation_id: None,
                     population: base_pop,
                     terrain,
@@ -561,21 +564,7 @@ mod agriculture {
 // HELPER FUNCTIONS
 // ============================================================================
 
-/// Calculate hexagon position for flat-top, odd-q offset coordinates
-pub fn hex_position(col: u32, row: u32, hex_size: f32) -> Vec2 {
-    let sqrt3 = SQRT3;
-    
-    // Odd columns shift down by half the vertical spacing
-    let y_offset = if col % 2 == 1 { hex_size * 0.75 } else { 0.0 };
-    
-    // Horizontal: columns are sqrt(3) * radius apart
-    let x = col as f32 * hex_size * sqrt3;
-    
-    // Vertical: rows are 3/2 * radius apart, plus offset
-    let y = row as f32 * hex_size * 1.5 + y_offset;
-    
-    Vec2::new(x, y)
-}
+// DELETED: Duplicate hex position function - use crate::constants::calculate_hex_position instead!
 
 /// Get the 6 neighbors of a hexagon in odd-q offset coordinates
 pub fn hex_neighbors(col: i32, row: i32) -> Vec<(i32, i32)> {
