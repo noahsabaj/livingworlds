@@ -6,7 +6,6 @@ use bevy::prelude::*;
 use bevy::sprite::MeshMaterial2d;
 use bevy::render::mesh::Mesh2d;
 use std::collections::HashMap;
-use crate::components::Province;
 use crate::resources::{WorldSeed, WorldSize, ProvincesSpatialIndex};
 use crate::terrain::TerrainType;
 use crate::generation::WorldGenerator;
@@ -19,7 +18,6 @@ pub fn setup_world(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    mut images: ResMut<Assets<Image>>,
     seed: Res<WorldSeed>,
     size: Res<WorldSize>,
 ) {
@@ -64,7 +62,6 @@ pub fn setup_world(
     // PREPARE PROVINCES
     // =========================================================================
     
-    let provinces = generated_world.provinces.clone();
     // NATIONS DISABLED - Not ready for this feature yet
     // All provinces start with no nation - just the natural world
     
@@ -79,32 +76,37 @@ pub fn setup_world(
     // STORE RESOURCES
     // =========================================================================
     
-    // Store provinces for later access
+    // Calculate statistics before moving provinces
+    let total_provinces = generated_world.provinces.len();
+    let land_count = generated_world.provinces.iter()
+        .filter(|p| p.terrain != TerrainType::Ocean)
+        .count();
+    
+    // Build HashMap for O(1) province position lookups (avoiding O(n²) bug!)
+    let province_positions: HashMap<u32, Vec2> = generated_world.provinces.iter()
+        .map(|p| (p.id, p.position))
+        .collect();
+    
+    // Build spatial index using the HashMap for fast lookups
+    let mut spatial_index = ProvincesSpatialIndex::default();
+    for (grid_pos, province_id) in generated_world.spatial_index {
+        // In mega-mesh architecture, we use Entity::PLACEHOLDER since provinces aren't entities
+        // The province_id is what matters for lookups
+        if let Some(&position) = province_positions.get(&province_id) {
+            let entry = spatial_index.grid.entry(grid_pos).or_insert_with(Vec::new);
+            entry.push((Entity::PLACEHOLDER, position, province_id));
+        }
+    }
+    commands.insert_resource(spatial_index);
+    
+    // Store provinces for later access - MOVE ownership instead of cloning!
     commands.insert_resource(ProvinceStorage {
-        provinces: provinces.clone(),
+        provinces: generated_world.provinces,  // Move, not clone - saves 36MB!
         mesh_handle: mesh_handle.clone(),
     });
     
     // Store mesh handle for overlay system
     commands.insert_resource(WorldMeshHandle(mesh_handle));
-    
-    // Initialize spatial index with mega-mesh architecture (no entities per province)
-    let mut spatial_index = ProvincesSpatialIndex::default();
-    
-    // Build HashMap for O(1) province lookups by ID
-    let province_by_id: HashMap<u32, &Province> = provinces.iter()
-        .map(|p| (p.id, p))
-        .collect();
-    
-    for (grid_pos, province_id) in generated_world.spatial_index {
-        // In mega-mesh architecture, we use Entity::PLACEHOLDER since provinces aren't entities
-        // The province_id is what matters for lookups
-        if let Some(province) = province_by_id.get(&province_id) {
-            let entry = spatial_index.grid.entry(grid_pos).or_insert_with(Vec::new);
-            entry.push((Entity::PLACEHOLDER, province.position, province_id));
-        }
-    }
-    commands.insert_resource(spatial_index);
     
     // Store minerals in the MineralStorage resource for overlay access
     let mineral_storage = crate::resources::MineralStorage {
@@ -115,9 +117,8 @@ pub fn setup_world(
     // Initialize empty infrastructure storage (will be populated during gameplay)
     commands.insert_resource(crate::resources::InfrastructureStorage::default());
     
-    let land_count = provinces.iter().filter(|p| p.terrain != TerrainType::Ocean).count();
     println!("Generated world with {} provinces, {} land tiles", 
-             provinces.len(), land_count);
+             total_provinces, land_count);
     
     let total_time = start_time.elapsed().as_secs_f32();
     println!("Total setup_world completed in {:.2}s", total_time);

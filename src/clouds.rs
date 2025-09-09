@@ -443,10 +443,10 @@ fn spawn_clouds_from_data(
     mut commands: Commands,
     cloud_system: Res<CloudSystem>,
     mut images: ResMut<Assets<Image>>,
-    mut texture_cache: Local<Option<Vec<Vec<Handle<Image>>>>>,
+    mut clouds_spawned: Local<bool>,
 ) {
     // Only spawn if we have cloud data and haven't spawned yet
-    if texture_cache.is_none() {
+    if !*clouds_spawned {
         println!("Spawning {} clouds from generated data...", cloud_system.clouds.len());
         
         // Create texture pools (5 textures per layer, 3 layers)
@@ -475,9 +475,6 @@ fn spawn_clouds_from_data(
             
             texture_pools.push(layer_textures);
         }
-        
-        // Cache the texture pools
-        *texture_cache = Some(texture_pools.clone());
         
         // Spawn cloud entities
         for cloud_data in &cloud_system.clouds {
@@ -508,6 +505,9 @@ fn spawn_clouds_from_data(
                 Name::new(format!("Cloud_{:?}", cloud_data.layer)),
             ));
         }
+        
+        // Mark clouds as spawned to prevent re-spawning
+        *clouds_spawned = true;
         
         println!("Cloud entities spawned successfully");
     }
