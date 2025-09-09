@@ -1,8 +1,9 @@
-//! Selection Border Rendering Module
+//! Province Selection and Border Rendering Module
 //! 
-//! This module provides a single golden border that highlights the currently
-//! selected province. Instead of rendering 135,000 borders, we have just ONE
-//! entity that moves to the selected province position.
+//! This module handles both province selection (mouse picking) and visual feedback
+//! (border rendering). It provides a single golden border that highlights the 
+//! currently selected province, using just ONE entity that moves to the selected 
+//! province position.
 //! 
 //! Performance impact:
 //! - Old system: 135,000 border entities
@@ -13,9 +14,10 @@ use bevy::prelude::*;
 use bevy::render::mesh::PrimitiveTopology;
 use bevy::render::render_asset::RenderAssetUsages;
 use bevy::sprite::MeshMaterial2d;
+use bevy::window::PrimaryWindow;
 
-use crate::constants::HEX_SIZE_PIXELS;
-use crate::resources::SelectedProvinceInfo;
+use crate::constants::{HEX_SIZE_PIXELS, SQRT3};
+use crate::resources::{SelectedProvinceInfo, ProvincesSpatialIndex};
 use crate::setup::ProvinceStorage;
 
 /// Plugin that manages selection border rendering
@@ -24,12 +26,16 @@ pub struct BorderPlugin;
 impl Plugin for BorderPlugin {
     fn build(&self, app: &mut App) {
         app
-            // Resource for the single border entity
+            // Resources
             .init_resource::<SelectionBorder>()
+            .init_resource::<SelectedProvinceInfo>()
             
             // Systems
             .add_systems(Startup, setup_selection_border.after(crate::setup::setup_world))
-            .add_systems(Update, update_selection_border);
+            .add_systems(Update, (
+                handle_tile_selection,
+                update_selection_border,
+            ));
     }
 }
 
@@ -119,7 +125,7 @@ fn update_selection_border(
     
     // If something is selected, show the border at that position
     if let Some(province_id) = selected_info.province_id {
-        if let Some(province) = province_storage.provinces.get(&province_id) {
+        if let Some(province) = province_storage.provinces.iter().find(|p| p.id == province_id) {
             // Move border to selected province and make visible
             commands.entity(border_entity)
                 .insert(Transform::from_xyz(province.position.x, province.position.y, 10.0))
@@ -129,5 +135,75 @@ fn update_selection_border(
         // Nothing selected - hide the border
         commands.entity(border_entity)
             .insert(Visibility::Hidden);
+    }
+}
+
+/// Handle mouse clicks for tile selection using hexagonal grid math
+pub fn handle_tile_selection(
+    mouse_button: Res<ButtonInput<MouseButton>>,
+    windows: Query<&Window, With<PrimaryWindow>>,
+    camera_q: Query<(&Camera, &GlobalTransform)>,
+    province_storage: Res<ProvinceStorage>,
+    mut selected_info: ResMut<SelectedProvinceInfo>,
+    spatial_index: Res<ProvincesSpatialIndex>,
+) {
+    if !mouse_button.just_pressed(MouseButton::Left) {
+        return;
+    }
+    
+    let Ok(window) = windows.get_single() else { return; };
+    let Some(cursor_pos) = window.cursor_position() else { return; };
+    let Ok((camera, camera_transform)) = camera_q.get_single() else { return; };
+    
+    // Convert screen position to world position
+    let Ok(ray) = camera.viewport_to_world(camera_transform, cursor_pos) else { return; };
+    let world_pos = ray.origin.truncate();
+    
+    // Clear previous selection
+    selected_info.entity = None;
+    selected_info.province_id = None;
+    
+    // Find clicked province using spatial index (O(1) instead of O(n))
+    let hex_size = HEX_SIZE_PIXELS;
+    let search_radius = hex_size; // Search within one hex radius
+    
+    // Query spatial index for provinces near click position
+    let nearby_provinces = spatial_index.query_near(world_pos, search_radius);
+    
+    // Find the closest province that contains the point
+    let mut closest_province = None;
+    let mut closest_distance = f32::MAX;
+    
+    for (_entity, pos, province_id) in nearby_provinces {
+        let dx = world_pos.x - pos.x;
+        let dy = world_pos.y - pos.y;
+        
+        // Check if point is inside flat-top hexagon
+        let abs_x = dx.abs();
+        let abs_y = dy.abs();
+        
+        // Exact flat-top hexagon hit test for HONEYCOMB pattern
+        // Check both horizontal bounds and diagonal bounds
+        if abs_y <= hex_size * SQRT3 / 2.0 && 
+           abs_x <= hex_size &&
+           (abs_y / SQRT3 + abs_x / 2.0 <= hex_size) {
+            let distance = (dx * dx + dy * dy).sqrt();
+            if distance < closest_distance {
+                closest_distance = distance;
+                closest_province = Some(province_id);
+            }
+        }
+    }
+    
+    // Select the closest province if found
+    if let Some(province_id) = closest_province {
+        selected_info.entity = None;  // No entity in mega-mesh architecture
+        selected_info.province_id = Some(province_id);
+        
+        // Get province data for debug output
+        if let Some(province) = province_storage.provinces.iter().find(|p| p.id == province_id) {
+            println!("Selected province {} at ({:.0}, {:.0}), terrain: {:?}", 
+                     province_id, province.position.x, province.position.y, province.terrain);
+        }
     }
 }

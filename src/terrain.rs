@@ -15,26 +15,25 @@ pub enum TerrainType {
     Plains,
     Hills,
     Mountains,
-    Ice,      // Polar ice caps
-    Tundra,   // Cold plains
-    Desert,   // Hot dry areas
-    Forest,   // Temperate forests
-    Jungle,   // Tropical rainforests
-    River,    // Rivers flowing from mountains to ocean
-    Delta,    // Fertile river mouths where rivers meet ocean
+    Ice,
+    Tundra,
+    Desert,
+    Forest,
+    Jungle,
+    River,
+    Delta,
 }
 
 /// ClimateZone represents the climate of a province
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ClimateZone {
-    Arctic,      // Ice and tundra
-    Subarctic,   // Mostly tundra  
-    Temperate,   // Normal terrain
-    Subtropical, // Warmer, some deserts
-    Tropical,    // Hot and humid
+    Arctic,
+    Subarctic,
+    Temperate,
+    Subtropical,
+    Tropical,
 }
 
-/// Get climate zone based on latitude
 pub fn get_climate_zone(y: f32, map_height: f32) -> ClimateZone {
     let latitude = (y / map_height + 0.5).clamp(0.0, 1.0);
     

@@ -43,7 +43,14 @@ pub fn camera_control_system(
     windows: Query<&Window, With<PrimaryWindow>>,
     time: Res<Time>,
     map_dimensions: Res<MapDimensions>,
+    mut exit: EventWriter<AppExit>,
 ) {
+    // ESC to exit
+    if keyboard.just_pressed(KeyCode::Escape) {
+        exit.send(AppExit::Success);
+        return;
+    }
+    
     // Get window for mouse position and dimensions
     let Ok(window) = windows.single() else { return; };
     

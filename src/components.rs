@@ -12,7 +12,7 @@ use crate::terrain::TerrainType;
 // ============================================================================
 
 /// Province represents a single hexagonal tile in the world
-#[derive(Component, Clone)]
+#[derive(Component, Clone, Debug)]
 pub struct Province {
     pub id: u32,
     pub position: Vec2,

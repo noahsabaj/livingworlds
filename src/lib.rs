@@ -11,6 +11,7 @@ pub mod clouds;
 pub mod colors;
 pub mod components;
 pub mod constants;
+pub mod generation;
 pub mod minerals;
 pub mod music;
 pub mod overlay;
@@ -49,7 +50,7 @@ pub mod prelude {
         combined_richness_color, infrastructure_level_color,
         get_mineral_color,
     };
-    pub use crate::ui::{UIPlugin};
+    // pub use crate::ui::{UIPlugin};
     pub use crate::music::{ProceduralMusicPlugin, MusicState};
     pub use crate::minerals::{MineralPlugin, generate_ore_veins, calculate_province_resources};
     pub use crate::overlay::OverlayPlugin;

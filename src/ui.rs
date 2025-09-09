@@ -4,9 +4,10 @@
 //! and game state information display.
 
 use bevy::prelude::*;
-use crate::resources::ResourceOverlay;
+use crate::resources::{ResourceOverlay, SelectedProvinceInfo};
 use crate::components::{TileInfoPanel, TileInfoText, MineralType};
 use crate::constants::COLOR_TILE_INFO_BACKGROUND;
+use crate::setup::ProvinceStorage;
 
 /// Marker component for the resource overlay display text
 #[derive(Component)]
@@ -19,7 +20,10 @@ impl Plugin for UIPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_systems(Startup, setup_ui)
-            .add_systems(Update, update_overlay_display);
+            .add_systems(Update, (
+                update_overlay_display,
+                update_tile_info_ui.run_if(resource_changed::<SelectedProvinceInfo>),
+            ));
     }
 }
 
@@ -230,5 +234,33 @@ pub fn update_overlay_display(
     
     for mut text in query.iter_mut() {
         *text = Text::new(overlay.display_name());
+    }
+}
+
+/// Update UI panel showing selected tile info
+pub fn update_tile_info_ui(
+    selected_info: Res<SelectedProvinceInfo>,
+    province_storage: Res<ProvinceStorage>,
+    mut text_query: Query<&mut Text, With<TileInfoText>>,
+) {
+    // Update text if we have a UI panel
+    if let Ok(mut text) = text_query.get_single_mut() {
+        if let Some(province_id) = selected_info.province_id {
+            if let Some(province) = province_storage.provinces.iter().find(|p| p.id == province_id) {
+                *text = Text::new(format!(
+                    "Province #{}\nTerrain: {:?}\nElevation: {:.2}\nPopulation: {:.0}\nAgriculture: {:.1}\nWater Distance: {:.1} hex\nPosition: ({:.0}, {:.0})",
+                    province.id,
+                    province.terrain,
+                    province.elevation,
+                    province.population,
+                    province.agriculture,
+                    province.fresh_water_distance,
+                    province.position.x,
+                    province.position.y,
+                ));
+            }
+        } else {
+            *text = Text::new("Click a tile to see info");
+        }
     }
 }

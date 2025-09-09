@@ -7,7 +7,7 @@
 
 use bevy::prelude::*;
 use bevy::render::mesh::Mesh;
-use crate::components::{Province, ProvinceResources, ProvinceInfrastructure};
+use crate::components::{ProvinceResources, ProvinceInfrastructure};
 use crate::resources::ResourceOverlay;
 use crate::terrain::TerrainType;
 use crate::components::MineralType;
@@ -19,7 +19,6 @@ use crate::colors::{
 };
 use crate::setup::ProvinceStorage;
 use crate::resources::MapDimensions;
-use crate::constants::*;
 
 /// System that updates province colors in the mega-mesh based on active overlay mode
 /// This rebuilds the entire mesh's vertex colors when the overlay changes
@@ -46,12 +45,12 @@ pub fn update_province_colors(
     
     // Process provinces in order by ID to match mesh vertex order
     let mut provinces_vec: Vec<_> = province_storage.provinces.iter().collect();
-    provinces_vec.sort_by_key(|(id, _)| **id);
+    provinces_vec.sort_by_key(|province| province.id);
     
-    for (&province_id, province) in provinces_vec {
-        // Get resources and infrastructure for this province
-        let resources = province_storage.resources.get(&province_id);
-        let infrastructure = province_storage.infrastructure.get(&province_id);
+    for province in provinces_vec {
+        // TODO: Get resources and infrastructure from proper storage when implemented
+        let resources: Option<&ProvinceResources> = None;
+        let infrastructure: Option<&ProvinceInfrastructure> = None;
         
         // Calculate color based on overlay mode
         let province_color = match *overlay {
@@ -135,9 +134,23 @@ pub struct OverlayPlugin;
 
 impl Plugin for OverlayPlugin {
     fn build(&self, app: &mut App) {
-        // Only update colors when overlay mode changes, not every frame!
-        app.add_systems(Update, 
-            update_province_colors.run_if(resource_changed::<ResourceOverlay>)
-        );
+        app
+            .init_resource::<ResourceOverlay>()
+            .add_systems(Update, (
+                handle_overlay_input,
+                update_province_colors.run_if(resource_changed::<ResourceOverlay>),
+            ));
+    }
+}
+
+/// Handle overlay mode cycling input (M key)
+pub fn handle_overlay_input(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut overlay_res: ResMut<ResourceOverlay>,
+) {
+    // M key to cycle resource overlay modes
+    if keyboard.just_pressed(KeyCode::KeyM) {
+        overlay_res.cycle();
+        println!("Resource Overlay: {}", overlay_res.display_name());
     }
 }
