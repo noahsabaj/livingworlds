@@ -127,7 +127,9 @@ fn update_selection_border(
     
     // If something is selected, show the border at that position
     if let Some(province_id) = selected_info.province_id {
-        if let Some(province) = province_storage.provinces.iter().find(|p| p.id == province_id) {
+        // Use HashMap for O(1) lookup instead of O(n) linear search
+        if let Some(&idx) = province_storage.province_by_id.get(&province_id) {
+            let province = &province_storage.provinces[idx];
             println!("Showing selection border for province {} at ({:.0}, {:.0})", 
                      province_id, province.position.x, province.position.y);
             // Move border to selected province and make visible
@@ -203,8 +205,9 @@ pub fn handle_tile_selection(
         selected_info.entity = None;  // No entity in mega-mesh architecture
         selected_info.province_id = Some(province_id);
         
-        // Get province data for debug output
-        if let Some(province) = province_storage.provinces.iter().find(|p| p.id == province_id) {
+        // Get province data for debug output - O(1) HashMap lookup
+        if let Some(&idx) = province_storage.province_by_id.get(&province_id) {
+            let province = &province_storage.provinces[idx];
             println!("Selected province {} at ({:.0}, {:.0}), terrain: {:?}", 
                      province_id, province.position.x, province.position.y, province.terrain);
         }

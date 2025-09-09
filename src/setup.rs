@@ -99,9 +99,16 @@ pub fn setup_world(
     }
     commands.insert_resource(spatial_index);
     
+    // Build HashMap for O(1) province lookups by ID (for UI and selection systems)
+    let province_by_id: HashMap<u32, usize> = generated_world.provinces.iter()
+        .enumerate()
+        .map(|(idx, p)| (p.id, idx))
+        .collect();
+    
     // Store provinces for later access - MOVE ownership instead of cloning!
     commands.insert_resource(ProvinceStorage {
         provinces: generated_world.provinces,  // Move, not clone - saves 36MB!
+        province_by_id,  // O(1) lookups for UI/selection
         mesh_handle: mesh_handle.clone(),
     });
     

@@ -129,22 +129,28 @@ pub fn generate(
         }
     }
     
-    // Convert high-flow tiles to river terrain
+    // Build HashMap for O(1) province lookups by ID to avoid O(n²) pattern
+    let mut province_id_to_idx: HashMap<u32, usize> = HashMap::new();
+    for (idx, province) in provinces.iter().enumerate() {
+        province_id_to_idx.insert(province.id, idx);
+    }
+    
+    // Convert high-flow tiles to river terrain - O(n) instead of O(n²)
     for (province_id, flow) in &flow_accumulation {
         if *flow > 0.5 {  // Only tiles with significant flow become visible rivers
-            if let Some(province) = provinces.iter_mut().find(|p| p.id == *province_id) {
-                if province.terrain != TerrainType::Ocean {
-                    province.terrain = TerrainType::River;
+            if let Some(&idx) = province_id_to_idx.get(province_id) {
+                if provinces[idx].terrain != TerrainType::Ocean {
+                    provinces[idx].terrain = TerrainType::River;
                 }
             }
         }
     }
     
-    // Convert delta tiles to delta terrain
+    // Convert delta tiles to delta terrain - O(n) instead of O(n²)
     for &delta_id in &delta_tiles {
-        if let Some(province) = provinces.iter_mut().find(|p| p.id == delta_id) {
-            if province.terrain != TerrainType::Ocean {
-                province.terrain = TerrainType::Delta;
+        if let Some(&idx) = province_id_to_idx.get(&delta_id) {
+            if provinces[idx].terrain != TerrainType::Ocean {
+                provinces[idx].terrain = TerrainType::Delta;
             }
         }
     }

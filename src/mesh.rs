@@ -8,8 +8,8 @@ use bevy::render::mesh::{Indices, PrimitiveTopology};
 use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use bevy::image::ImageSampler;
+use std::collections::HashMap;
 use crate::components::Province;
-use crate::terrain::TerrainType;
 use crate::colors::get_terrain_color_gradient;
 use crate::constants::*;
 
@@ -21,6 +21,7 @@ use crate::constants::*;
 #[derive(Resource)]
 pub struct ProvinceStorage {
     pub provinces: Vec<Province>,
+    pub province_by_id: HashMap<u32, usize>,  // Maps province ID to index in provinces Vec for O(1) lookups
     pub mesh_handle: Handle<Mesh>,
 }
 

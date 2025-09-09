@@ -246,7 +246,9 @@ pub fn update_tile_info_ui(
     // Update text if we have a UI panel
     if let Ok(mut text) = text_query.get_single_mut() {
         if let Some(province_id) = selected_info.province_id {
-            if let Some(province) = province_storage.provinces.iter().find(|p| p.id == province_id) {
+            // Use HashMap for O(1) lookup instead of O(n) linear search through 900k provinces
+            if let Some(&idx) = province_storage.province_by_id.get(&province_id) {
+                let province = &province_storage.provinces[idx];
                 *text = Text::new(format!(
                     "Province #{}\nTerrain: {:?}\nElevation: {:.2}\nPopulation: {:.0}\nAgriculture: {:.1}\nWater Distance: {:.1} hex\nPosition: ({:.0}, {:.0})",
                     province.id,
