@@ -18,7 +18,7 @@ use bevy::window::PrimaryWindow;
 
 use crate::constants::{HEX_SIZE_PIXELS, SQRT3};
 use crate::resources::{SelectedProvinceInfo, ProvincesSpatialIndex};
-use crate::setup::ProvinceStorage;
+use crate::mesh::ProvinceStorage;
 
 /// Plugin that manages selection border rendering
 pub struct BorderPlugin;

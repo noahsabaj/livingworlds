@@ -7,7 +7,7 @@ use bevy::prelude::*;
 use crate::resources::{ResourceOverlay, SelectedProvinceInfo};
 use crate::components::{TileInfoPanel, TileInfoText, MineralType};
 use crate::constants::COLOR_TILE_INFO_BACKGROUND;
-use crate::setup::ProvinceStorage;
+use crate::mesh::ProvinceStorage;
 
 /// Marker component for the resource overlay display text
 #[derive(Component)]

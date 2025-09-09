@@ -17,6 +17,7 @@ pub mod music;
 pub mod overlay;
 pub mod resources;
 pub mod simulation;
+pub mod mesh;
 pub mod setup;
 pub mod terrain;
 pub mod ui;
@@ -37,7 +38,8 @@ pub mod prelude {
         WorldSeed, WorldSize, GameTime,
         SelectedProvinceInfo, ProvincesSpatialIndex,
     };
-    pub use crate::setup::{setup_world, ProvinceStorage};
+    pub use crate::setup::setup_world;
+    pub use crate::mesh::ProvinceStorage;
     pub use crate::terrain::{
         TerrainPlugin, TerrainType, ClimateZone,
         classify_terrain_with_climate,

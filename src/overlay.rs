@@ -16,7 +16,7 @@ use crate::colors::{
     mineral_abundance_color, stone_abundance_color, 
     combined_richness_color, infrastructure_level_color
 };
-use crate::setup::ProvinceStorage;
+use crate::mesh::ProvinceStorage;
 use crate::resources::MapDimensions;
 
 /// System that updates province colors in the mega-mesh based on active overlay mode
@@ -26,7 +26,7 @@ pub fn update_province_colors(
     province_storage: Res<ProvinceStorage>,
     mineral_storage: Res<crate::resources::MineralStorage>,
     infrastructure_storage: Res<crate::resources::InfrastructureStorage>,
-    mesh_handle: Res<crate::setup::WorldMeshHandle>,
+    mesh_handle: Res<crate::mesh::WorldMeshHandle>,
     map_dimensions: Res<MapDimensions>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {

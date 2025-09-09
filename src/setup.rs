@@ -1,92 +1,21 @@
 // ============================================================================
-// WORLD SETUP USING GENERATION MODULE
+// WORLD SETUP - Thin orchestrator that delegates to specialized modules
 // ============================================================================
 
 use bevy::prelude::*;
-use bevy::render::mesh::{Indices, PrimitiveTopology};
-use bevy::render::render_asset::RenderAssetUsages;
-use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
-use bevy::image::ImageSampler;
-use bevy::sprite::{MeshMaterial2d};
+use bevy::sprite::MeshMaterial2d;
 use bevy::render::mesh::Mesh2d;
 use std::collections::HashMap;
 use crate::components::Province;
 use crate::resources::{WorldSeed, WorldSize, ProvincesSpatialIndex};
 use crate::terrain::TerrainType;
-use crate::colors::get_terrain_color_gradient;
-use crate::constants::*;
-use crate::generation::{WorldGenerator, MapDimensions};
+use crate::generation::WorldGenerator;
 use crate::clouds::spawn_clouds;
+use crate::mesh::{ProvinceStorage, WorldMeshHandle, build_world_mesh};
 
-// Province storage for efficient updates
-#[derive(Resource)]
-pub struct ProvinceStorage {
-    pub provinces: Vec<Province>,
-    pub mesh_handle: Handle<Mesh>,
-}
+// Mesh-related structs and functions moved to mesh.rs module
 
-// Resource to hold the world mesh handle
-#[derive(Resource)]
-pub struct WorldMeshHandle(pub Handle<Mesh>);
-
-/// Create a hexagon texture (reused from original)
-pub fn create_hexagon_texture(size: f32) -> Image {
-    let image_size = (size * 2.0) as u32;
-    let mut pixels = vec![0u8; (image_size * image_size * 4) as usize];
-    
-    for y in 0..image_size {
-        for x in 0..image_size {
-            let idx = ((y * image_size + x) * 4) as usize;
-            
-            // Calculate distance from center
-            let cx = x as f32 - image_size as f32 / 2.0;
-            let cy = y as f32 - image_size as f32 / 2.0;
-            let abs_x = cx.abs();
-            let abs_y = cy.abs();
-            
-            // Flat-top hexagon distance calculation
-            let sqrt3 = 1.732050808;
-            let radius = size;
-            
-            // Check if point is inside hexagon
-            let dist_vertical = abs_x - radius * sqrt3 / 2.0;
-            let dist_diagonal = (sqrt3 * abs_y + abs_x) / sqrt3 - radius;
-            let distance_from_edge = dist_vertical.max(dist_diagonal);
-            
-            // Smooth antialiasing
-            let aa_width = 1.5;
-            let alpha = if distance_from_edge < -aa_width {
-                255
-            } else if distance_from_edge > aa_width {
-                0
-            } else {
-                ((1.0 - (distance_from_edge + aa_width) / (2.0 * aa_width)) * 255.0) as u8
-            };
-            
-            pixels[idx] = 255;     // R
-            pixels[idx + 1] = 255; // G
-            pixels[idx + 2] = 255; // B
-            pixels[idx + 3] = alpha; // A
-        }
-    }
-    
-    let mut image = Image::new(
-        Extent3d {
-            width: image_size,
-            height: image_size,
-            depth_or_array_layers: 1,
-        },
-        TextureDimension::D2,
-        pixels,
-        TextureFormat::Rgba8UnormSrgb,
-        RenderAssetUsages::RENDER_WORLD,
-    );
-    
-    image.sampler = ImageSampler::linear();
-    image
-}
-
-/// Simplified world setup using the generation module
+/// Main world setup system - orchestrates world generation and initialization
 pub fn setup_world(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -115,53 +44,8 @@ pub fn setup_world(
     println!("Building mega-mesh with {} hexagons...", generated_world.provinces.len());
     let mesh_start = std::time::Instant::now();
     
-    let hex_size = HEX_SIZE_PIXELS;
-    let mut vertices = Vec::new();
-    let mut indices = Vec::new();
-    let mut colors = Vec::new();
-    
-    // Generate vertices for each province hexagon
-    for province in &generated_world.provinces {
-        let base_idx = vertices.len() as u32;
-        
-        // Center vertex
-        vertices.push([province.position.x, province.position.y, 0.0]);
-        
-        // 6 corner vertices for flat-top hexagon
-        for i in 0..6 {
-            let angle = i as f32 * 60.0_f32.to_radians();
-            let x = province.position.x + hex_size * angle.cos();
-            let y = province.position.y + hex_size * angle.sin();
-            vertices.push([x, y, 0.0]);
-        }
-        
-        // Create triangles (6 triangles per hexagon)
-        for i in 0..6 {
-            let next = (i + 1) % 6;
-            indices.push(base_idx);           // Center
-            indices.push(base_idx + i + 1);   // Current corner
-            indices.push(base_idx + next + 1); // Next corner
-        }
-        
-        // Assign colors based on terrain
-        let color = get_terrain_color_gradient(province.terrain, province.elevation);
-        let rgba = color.to_linear().to_f32_array();
-        for _ in 0..7 {
-            colors.push(rgba);
-        }
-    }
-    
-    // Create the mega-mesh with CPU access for overlay updates
-    let mut mesh = Mesh::new(
-        PrimitiveTopology::TriangleList,
-        RenderAssetUsages::RENDER_WORLD | RenderAssetUsages::MAIN_WORLD,
-    );
-    
-    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
-    mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors);
-    mesh.insert_indices(Indices::U32(indices));
-    
-    let mesh_handle = meshes.add(mesh);
+    // Delegate mesh building to the mesh module
+    let mesh_handle = build_world_mesh(&generated_world.provinces, &mut meshes);
     
     // Spawn the world as a single entity
     commands.spawn((
@@ -181,7 +65,7 @@ pub fn setup_world(
     // PREPARE PROVINCES
     // =========================================================================
     
-    let mut provinces = generated_world.provinces.clone();
+    let provinces = generated_world.provinces.clone();
     // NATIONS DISABLED - Not ready for this feature yet
     // All provinces start with no nation - just the natural world
     
