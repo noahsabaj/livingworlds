@@ -18,10 +18,7 @@ impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app
             .init_resource::<CameraBounds>()
-            .insert_resource(CursorConfinementPreference {
-                user_wants_confined: true,  // Start with confinement enabled
-                was_focused: true,
-            })
+            .init_resource::<WindowFocusState>()
             .add_systems(Startup, (setup_camera, setup_cursor_confinement))
             .add_systems(Update, (
                 // Input gathering systems
@@ -30,7 +27,6 @@ impl Plugin for CameraPlugin {
                 handle_mouse_drag,
                 handle_edge_panning,
                 handle_camera_reset,
-                toggle_cursor_confinement,
                 handle_window_focus,  // Auto-release on alt-tab
                 
                 // Movement and interpolation
@@ -89,11 +85,9 @@ struct CameraBounds {
     half_map_width: f32,
 }
 
-/// Tracks cursor confinement preference
-#[derive(Resource)]
-struct CursorConfinementPreference {
-    /// Whether the user wants confinement enabled (via Tab key)
-    user_wants_confined: bool,
+/// Tracks window focus state for cursor confinement
+#[derive(Resource, Default)]
+struct WindowFocusState {
     /// Whether window was focused last frame (for detecting focus changes)
     was_focused: bool,
 }
@@ -386,51 +380,25 @@ fn setup_cursor_confinement(
     }
 }
 
-/// Toggle cursor confinement with Tab key for windowed/fullscreen flexibility
-fn toggle_cursor_confinement(
-    mut windows: Query<&mut Window, With<PrimaryWindow>>,
-    keyboard: Res<ButtonInput<KeyCode>>,
-    mut preference: ResMut<CursorConfinementPreference>,
-) {
-    if keyboard.just_pressed(KeyCode::Tab) {
-        if let Ok(mut window) = windows.get_single_mut() {
-            // Toggle user preference
-            preference.user_wants_confined = !preference.user_wants_confined;
-            
-            // Apply the preference (only if window is focused)
-            if window.focused {
-                window.cursor_options.grab_mode = if preference.user_wants_confined {
-                    CursorGrabMode::Confined
-                } else {
-                    CursorGrabMode::None
-                };
-            }
-        }
-    }
-}
-
 /// Automatically handle cursor confinement based on window focus
 /// This allows alt-tab and window switching to work properly
 fn handle_window_focus(
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
-    mut preference: ResMut<CursorConfinementPreference>,
+    mut focus_state: ResMut<WindowFocusState>,
 ) {
     if let Ok(mut window) = windows.get_single_mut() {
         let is_focused = window.focused;
         
         // Detect focus state changes
-        if is_focused != preference.was_focused {
-            preference.was_focused = is_focused;
+        if is_focused != focus_state.was_focused {
+            focus_state.was_focused = is_focused;
             
-            if is_focused {
-                // Window regained focus - restore user's preference
-                if preference.user_wants_confined {
-                    window.cursor_options.grab_mode = CursorGrabMode::Confined;
-                }
+            // Simple logic: confined when focused, free when not
+            window.cursor_options.grab_mode = if is_focused {
+                CursorGrabMode::Confined  // Enable edge panning
             } else {
-                // Window lost focus - ALWAYS release cursor for alt-tab/window switching
-                window.cursor_options.grab_mode = CursorGrabMode::None;
-            }
+                CursorGrabMode::None      // Allow alt-tab and window switching
+            };
         }
     }
 }
