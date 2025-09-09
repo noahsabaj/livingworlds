@@ -10,7 +10,6 @@ use crate::components::Province;
 use crate::resources::{WorldSeed, WorldSize, ProvincesSpatialIndex};
 use crate::terrain::TerrainType;
 use crate::generation::WorldGenerator;
-use crate::clouds::spawn_clouds;
 use crate::mesh::{ProvinceStorage, WorldMeshHandle, build_world_mesh};
 
 // Mesh-related structs and functions moved to mesh.rs module
@@ -70,14 +69,11 @@ pub fn setup_world(
     // All provinces start with no nation - just the natural world
     
     // =========================================================================
-    // SPAWN CLOUDS
+    // STORE CLOUD DATA
     // =========================================================================
     
-    let cloud_start = std::time::Instant::now();
-    let map_width = generated_world.map_dimensions.bounds.x_max - generated_world.map_dimensions.bounds.x_min;
-    let map_height = generated_world.map_dimensions.bounds.y_max - generated_world.map_dimensions.bounds.y_min;
-    spawn_clouds(&mut commands, &mut images, seed.0, map_width, map_height);
-    println!("Cloud generation completed in {:.2}s", cloud_start.elapsed().as_secs_f32());
+    // Store cloud data for the clouds module to spawn entities from
+    commands.insert_resource(generated_world.clouds.clone());
     
     // =========================================================================
     // STORE RESOURCES

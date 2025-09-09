@@ -34,7 +34,8 @@ pub enum ClimateZone {
     Tropical,
 }
 
-pub fn get_climate_zone(y: f32, map_height: f32) -> ClimateZone {
+/// Determine climate zone based on latitude (internal use only during generation)
+fn get_climate_zone(y: f32, map_height: f32) -> ClimateZone {
     let latitude = (y / map_height + 0.5).clamp(0.0, 1.0);
     
     if latitude < 0.1 || latitude > 0.9 {

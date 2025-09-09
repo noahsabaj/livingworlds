@@ -10,14 +10,7 @@ use rand::rngs::StdRng;
 use rayon::prelude::*;
 use crate::constants::*;
 use crate::resources::{WeatherSystem, WeatherState};
-
-/// Cloud layer depth for parallax effect
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum CloudLayer {
-    High,    // Furthest, slowest, most transparent
-    Medium,  // Middle layer
-    Low,     // Closest, fastest, most opaque
-}
+use crate::generation::{CloudSystem, CloudLayer};
 
 /// Component for cloud sprites with movement properties
 #[derive(Component)]
@@ -234,199 +227,6 @@ pub fn create_cloud_texture(params: CloudTextureParams) -> Image {
     )
 }
 
-/// Spawn cloud sprites across the map
-pub fn spawn_clouds(
-    commands: &mut Commands,
-    images: &mut ResMut<Assets<Image>>,
-    seed: u32,
-    map_width: f32,
-    map_height: f32,
-) {
-    // Define layer configurations - IMPROVED: More clouds (20/30/40 instead of 8/12/16)
-    // PERFORMANCE: Reduced texture sizes for faster generation (256/256/384 instead of 256/384/512)
-    let layer_configs = vec![
-        (CloudLayer::High, 20, 100.0, 0.2, 0.3, 256, 4, 0.4),      // (layer, count, z, alpha, speed, size, octaves, coverage)
-        (CloudLayer::Medium, 30, 80.0, 0.35, 0.6, 256, 5, 0.5),    // Reduced from 384
-        (CloudLayer::Low, 40, 60.0, 0.5, 1.0, 384, 6, 0.6),        // Reduced from 512
-    ];
-    
-    let mut cloud_id = 0u32;
-    
-    // PERFORMANCE OPTIMIZATION: Generate a pool of cloud textures to reuse
-    // Instead of 90 unique textures, we create 5 per layer (15 total) and reuse them
-    let textures_per_layer = 5;
-    let mut texture_pools: Vec<Vec<Handle<Image>>> = Vec::new();
-    
-    println!("Generating cloud texture pools...");
-    let texture_start = std::time::Instant::now();
-    
-    // Pre-generate texture pools for each layer
-    for (layer_idx, &(_layer, _, _, _, _, texture_size, octaves, coverage)) in layer_configs.iter().enumerate() {
-        let mut layer_textures = Vec::new();
-        
-        for texture_idx in 0..textures_per_layer {
-            let unique_seed = seed.wrapping_add((layer_idx as u32) * 1000 + texture_idx as u32);
-            
-            // Generate texture with variety
-            let texture = create_cloud_texture(CloudTextureParams {
-                size: texture_size,
-                seed: unique_seed,
-                octaves,
-                coverage: coverage as f32,
-                turbulence: 0.3 + (texture_idx as f32) * 0.1,  // Vary turbulence
-                stretch: Vec2::new(1.0 + (texture_idx as f32) * 0.2, 1.0),  // Vary stretch
-                edge_hardness: 0.2 + (texture_idx as f32) * 0.1,  // Vary edges
-            });
-            
-            layer_textures.push(images.add(texture));
-        }
-        
-        texture_pools.push(layer_textures);
-    }
-    
-    println!("Cloud texture pools generated in {:.2}s", texture_start.elapsed().as_secs_f32());
-    
-    // Now spawn clouds using textures from the pools
-    for (layer_idx, (layer, num_clouds, z_order, base_alpha, speed_mult, texture_size, _octaves, coverage)) in layer_configs.iter().enumerate() {
-        let mut rng = StdRng::seed_from_u64((seed as u64) * 1000 + (*layer as u64));
-        
-        // Choose formation type based on layer - IMPROVED: More variety for low clouds
-        let formation_type = match *layer {
-            CloudLayer::High => CloudFormationType::Cirrus,     // High clouds are wispy
-            CloudLayer::Medium => {
-                // Mix of cumulus and scattered for medium clouds
-                if rng.gen_bool(0.7) {
-                    CloudFormationType::Cumulus  // 70% cumulus
-                } else {
-                    CloudFormationType::Scattered // 30% scattered
-                }
-            },
-            CloudLayer::Low => {
-                // IMPROVED: More variety in low cloud formations
-                let roll = rng.gen::<f32>();
-                if roll < 0.3 {
-                    CloudFormationType::Stratus    // 30% horizontal bands
-                } else if roll < 0.6 {
-                    CloudFormationType::Cumulus    // 30% puffy clusters
-                } else if roll < 0.8 {
-                    CloudFormationType::Scattered  // 20% scattered
-                } else {
-                    CloudFormationType::Cirrus     // 20% wispy (low cirrus)
-                }
-            },
-        };
-        
-        // Generate multiple formations across the map - IMPROVED: More formations (6/8/10)
-        let formations_per_layer = match *layer {
-            CloudLayer::High => 6,     // More high formations for better coverage
-            CloudLayer::Medium => 8,   // More medium formations
-            CloudLayer::Low => 10,     // Many low formations for dense coverage
-        };
-        
-        let clouds_per_formation = *num_clouds / formations_per_layer;
-        let remaining_clouds = *num_clouds % formations_per_layer;
-        
-        // IMPROVED: Grid-based distribution instead of random
-        let grid_cols = (formations_per_layer as f32).sqrt().ceil() as usize;
-        let grid_rows = (formations_per_layer + grid_cols - 1) / grid_cols;
-        
-        for formation_idx in 0..formations_per_layer {
-            // Calculate grid position for even distribution
-            let grid_x = formation_idx % grid_cols;
-            let grid_y = formation_idx / grid_cols;
-            
-            // Convert grid position to world coordinates with some randomness
-            // Constrain to 95% of map dimensions to match terrain spawn border
-            let base_x = (grid_x as f32 / grid_cols as f32 - 0.5) * map_width * 0.95;
-            let base_y = (grid_y as f32 / grid_rows as f32 - 0.5) * map_height * 0.95;
-            
-            // Add random offset to prevent perfect grid appearance
-            let formation_center = Vec2::new(
-                base_x + rng.gen_range(-map_width * 0.1..map_width * 0.1),
-                base_y + rng.gen_range(-map_height * 0.1..map_height * 0.1),
-            );
-            
-            // IMPROVED: Smaller formation spreads (15/12/10% instead of 40/30/25%)
-            let formation_spread = match *layer {
-                CloudLayer::High => map_width * 0.15,    // 15% spread
-                CloudLayer::Medium => map_width * 0.12,  // 12% spread
-                CloudLayer::Low => map_width * 0.10,     // 10% spread for denser clusters
-            };
-            
-            // Add extra clouds to last formation
-            let clouds_in_formation = if formation_idx == formations_per_layer - 1 {
-                clouds_per_formation + remaining_clouds
-            } else {
-                clouds_per_formation
-            };
-            
-            // Generate positions for this formation
-            let positions = generate_cloud_formation(
-                formation_center,
-                clouds_in_formation,
-                formation_type,
-                &mut rng,
-                formation_spread,
-            );
-            
-            for (i, position) in positions.into_iter().enumerate() {
-                // PERFORMANCE: No longer need unique seed since we're using texture pools
-                cloud_id += 1;
-                
-                // Vary parameters for unique cloud appearance
-                let coverage_variation = rng.gen_range(-0.1..0.1);
-                let _actual_coverage = ((*coverage + coverage_variation) as f32).clamp(0.2, 0.8);
-                
-                // Enhanced parameters for variety
-                let _turbulence = match *layer {
-                    CloudLayer::High => rng.gen_range(0.0..0.2),    // Smooth high clouds
-                    CloudLayer::Medium => rng.gen_range(0.1..0.4),  // Some turbulence
-                    CloudLayer::Low => rng.gen_range(0.2..0.6),     // More turbulent low clouds
-                };
-                
-                let _stretch = match formation_type {
-                    CloudFormationType::Stratus => Vec2::new(rng.gen_range(1.5..2.5), rng.gen_range(0.5..0.8)),
-                    CloudFormationType::Cirrus => Vec2::new(rng.gen_range(2.0..3.0), rng.gen_range(0.3..0.6)),
-                    _ => Vec2::new(rng.gen_range(0.8..1.2), rng.gen_range(0.8..1.2)),
-                };
-                
-                let _edge_hardness = rng.gen_range(0.0..0.3);
-                
-                // PERFORMANCE: Select texture from pool instead of generating new one
-                let texture_pool = &texture_pools[layer_idx];
-                let texture_idx = cloud_id as usize % texture_pool.len();
-                let cloud_handle = texture_pool[texture_idx].clone();
-                
-                // Scale variation
-                let scale = rng.gen_range(CLOUD_MIN_SCALE..CLOUD_MAX_SCALE);
-                
-                // Formation-based velocity (clouds in formation move together)
-                let base_velocity = Vec2::new(
-                    *speed_mult * 5.0,
-                    *speed_mult * 0.5 * (formation_idx as f32 - 1.5) * 0.2, // Slight layer offset
-                );
-                let velocity_variation = rng.gen_range(0.9..1.1);
-                let velocity = base_velocity * velocity_variation;
-                
-                commands.spawn((
-                    Sprite {
-                        image: cloud_handle,
-                        color: Color::srgba(1.0, 1.0, 1.0, *base_alpha),
-                        custom_size: Some(Vec2::new(*texture_size as f32 * scale, *texture_size as f32 * scale)),
-                        ..default()
-                    },
-                    Transform::from_xyz(position.x, position.y, *z_order),
-                    CloudSprite {
-                        layer: *layer,
-                        velocity,
-                        base_alpha: *base_alpha,
-                    },
-                    Name::new(format!("Cloud_{:?}_F{}_C{}", *layer, formation_idx, i)),
-                ));
-            }
-        }
-    }
-}
 
 /// Animate clouds with wind movement
 pub fn animate_clouds(
@@ -638,10 +438,86 @@ pub fn dynamic_cloud_spawn_system(
 /// Bevy plugin for the cloud system
 pub struct CloudPlugin;
 
+/// Spawn cloud entities from generated cloud data
+fn spawn_clouds_from_data(
+    mut commands: Commands,
+    cloud_system: Res<CloudSystem>,
+    mut images: ResMut<Assets<Image>>,
+    mut texture_cache: Local<Option<Vec<Vec<Handle<Image>>>>>,
+) {
+    // Only spawn if we have cloud data and haven't spawned yet
+    if texture_cache.is_none() {
+        println!("Spawning {} clouds from generated data...", cloud_system.clouds.len());
+        
+        // Create texture pools (5 textures per layer, 3 layers)
+        let mut texture_pools: Vec<Vec<Handle<Image>>> = Vec::new();
+        let textures_per_layer = 5;
+        
+        for layer_idx in 0..3 {
+            let mut layer_textures = Vec::new();
+            
+            for texture_idx in 0..textures_per_layer {
+                let unique_seed = (layer_idx * 1000 + texture_idx) as u32;
+                
+                // Generate texture with variety
+                let texture = create_cloud_texture(CloudTextureParams {
+                    size: (256 + layer_idx * 64) as u32,
+                    seed: unique_seed,
+                    octaves: 4 + layer_idx as usize,
+                    coverage: 0.4 + layer_idx as f32 * 0.1,
+                    turbulence: 0.3 + (texture_idx as f32) * 0.1,
+                    stretch: Vec2::new(1.0 + (texture_idx as f32) * 0.2, 1.0),
+                    edge_hardness: 0.2 + (texture_idx as f32) * 0.1,
+                });
+                
+                layer_textures.push(images.add(texture));
+            }
+            
+            texture_pools.push(layer_textures);
+        }
+        
+        // Cache the texture pools
+        *texture_cache = Some(texture_pools.clone());
+        
+        // Spawn cloud entities
+        for cloud_data in &cloud_system.clouds {
+            let layer_idx = cloud_data.layer as usize;
+            let texture_handle = texture_pools[layer_idx][cloud_data.texture_index % textures_per_layer as usize].clone();
+            
+            commands.spawn((
+                Sprite {
+                    image: texture_handle,
+                    color: Color::srgba(1.0, 1.0, 1.0, cloud_data.alpha),
+                    custom_size: Some(Vec2::splat(cloud_data.size)),
+                    ..default()
+                },
+                Transform::from_xyz(
+                    cloud_data.position.x,
+                    cloud_data.position.y,
+                    match cloud_data.layer {
+                        CloudLayer::High => 100.0,
+                        CloudLayer::Medium => 80.0,
+                        CloudLayer::Low => 60.0,
+                    }
+                ),
+                CloudSprite {
+                    layer: cloud_data.layer,
+                    velocity: cloud_data.velocity,
+                    base_alpha: cloud_data.alpha,
+                },
+                Name::new(format!("Cloud_{:?}", cloud_data.layer)),
+            ));
+        }
+        
+        println!("Cloud entities spawned successfully");
+    }
+}
+
 impl Plugin for CloudPlugin {
     fn build(&self, app: &mut App) {
         app
             .init_resource::<WeatherSystem>()
+            .add_systems(PostStartup, spawn_clouds_from_data)
             .add_systems(Update, (
                 update_weather_system,
                 animate_clouds,

@@ -26,7 +26,7 @@ pub mod ui;
 pub mod prelude {
     pub use crate::borders::BorderPlugin;
     pub use crate::camera::CameraPlugin;
-    pub use crate::clouds::{CloudPlugin, spawn_clouds};
+    pub use crate::clouds::CloudPlugin;
     pub use crate::components::{
         Province, Nation, SelectedProvince,
         TileInfoPanel, TileInfoText,
@@ -42,8 +42,6 @@ pub mod prelude {
     pub use crate::mesh::ProvinceStorage;
     pub use crate::terrain::{
         TerrainPlugin, TerrainType, ClimateZone,
-        classify_terrain_with_climate,
-        generate_elevation_with_edges,
         get_terrain_population_multiplier,
     };
     pub use crate::colors::{

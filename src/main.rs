@@ -47,9 +47,11 @@ fn main() {
     });
     args.seed = Some(seed);
     
-    // Randomly select world size if not provided
+    // Randomly select world size if not provided (using seeded RNG for reproducibility)
     let world_size = args.world_size.unwrap_or_else(|| {
-        let mut rng = thread_rng();
+        use rand::SeedableRng;
+        use rand::rngs::StdRng;
+        let mut rng = StdRng::seed_from_u64(seed as u64);
         let sizes = ["small", "medium", "large"];
         sizes.choose(&mut rng).unwrap().to_string()
     });
