@@ -7,7 +7,6 @@
 
 use bevy::prelude::*;
 use bevy::render::mesh::Mesh;
-use crate::components::{ProvinceResources, ProvinceInfrastructure};
 use crate::resources::ResourceOverlay;
 use crate::terrain::TerrainType;
 use crate::components::MineralType;
@@ -25,6 +24,8 @@ use crate::resources::MapDimensions;
 pub fn update_province_colors(
     overlay: Res<ResourceOverlay>,
     province_storage: Res<ProvinceStorage>,
+    mineral_storage: Res<crate::resources::MineralStorage>,
+    infrastructure_storage: Res<crate::resources::InfrastructureStorage>,
     mesh_handle: Res<crate::setup::WorldMeshHandle>,
     map_dimensions: Res<MapDimensions>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -37,8 +38,8 @@ pub fn update_province_colors(
     };
     
     // Get world dimensions from resource (single source of truth!)
-    let provinces_per_row = map_dimensions.provinces_per_row;
-    let provinces_per_col = map_dimensions.provinces_per_col;
+    let _provinces_per_row = map_dimensions.provinces_per_row;
+    let _provinces_per_col = map_dimensions.provinces_per_col;
     
     // Rebuild color buffer for all provinces
     let mut colors = Vec::with_capacity(province_storage.provinces.len() * 7);
@@ -48,9 +49,9 @@ pub fn update_province_colors(
     provinces_vec.sort_by_key(|province| province.id);
     
     for province in provinces_vec {
-        // TODO: Get resources and infrastructure from proper storage when implemented
-        let resources: Option<&ProvinceResources> = None;
-        let infrastructure: Option<&ProvinceInfrastructure> = None;
+        // Get resources and infrastructure from storage
+        let resources = mineral_storage.resources.get(&province.id);
+        let infrastructure = infrastructure_storage.infrastructure.get(&province.id);
         
         // Calculate color based on overlay mode
         let province_color = match *overlay {

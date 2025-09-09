@@ -323,6 +323,24 @@ impl ProvincesSpatialIndex {
 }
 
 // ============================================================================
+// MINERAL RESOURCES
+// ============================================================================
+
+/// Storage for province mineral resources in mega-mesh architecture
+/// Maps province ID to its mineral resources
+#[derive(Resource, Default)]
+pub struct MineralStorage {
+    pub resources: HashMap<u32, crate::components::ProvinceResources>,
+}
+
+/// Storage for province infrastructure in mega-mesh architecture
+/// Maps province ID to its infrastructure level
+#[derive(Resource, Default)]
+pub struct InfrastructureStorage {
+    pub infrastructure: HashMap<u32, crate::components::ProvinceInfrastructure>,
+}
+
+// ============================================================================
 // VISUALIZATION RESOURCES
 // ============================================================================
 

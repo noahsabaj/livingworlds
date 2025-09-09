@@ -282,10 +282,14 @@ pub fn setup_world(
     }
     commands.insert_resource(spatial_index);
     
-    // Store minerals
-    for (province_id, resources) in generated_world.minerals {
-        // The minerals are already stored in provinces, this is just for reference
-    }
+    // Store minerals in the MineralStorage resource for overlay access
+    let mineral_storage = crate::resources::MineralStorage {
+        resources: generated_world.minerals,
+    };
+    commands.insert_resource(mineral_storage);
+    
+    // Initialize empty infrastructure storage (will be populated during gameplay)
+    commands.insert_resource(crate::resources::InfrastructureStorage::default());
     
     let land_count = provinces.iter().filter(|p| p.terrain != TerrainType::Ocean).count();
     println!("Generated world with {} provinces, {} land tiles", 
