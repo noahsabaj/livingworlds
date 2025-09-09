@@ -384,7 +384,7 @@ impl ResourceOverlay {
     /// Get display name for current overlay
     pub fn display_name(&self) -> &str {
         match self {
-            ResourceOverlay::None => "Political Map",
+            ResourceOverlay::None => "Natural Terrain",
             ResourceOverlay::Mineral(MineralType::Iron) => "Iron Deposits",
             ResourceOverlay::Mineral(MineralType::Copper) => "Copper Deposits",
             ResourceOverlay::Mineral(MineralType::Tin) => "Tin Deposits",

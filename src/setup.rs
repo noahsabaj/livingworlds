@@ -9,11 +9,9 @@ use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use bevy::image::ImageSampler;
 use bevy::sprite::{MeshMaterial2d};
 use bevy::render::mesh::Mesh2d;
-use rand::{Rng, SeedableRng};
-use rand::rngs::StdRng;
 use std::collections::HashMap;
-use crate::components::{Province, Nation};
-use crate::resources::{WorldSeed, WorldSize, ProvincesSpatialIndex, SelectedProvinceInfo};
+use crate::components::Province;
+use crate::resources::{WorldSeed, WorldSize, ProvincesSpatialIndex};
 use crate::terrain::TerrainType;
 use crate::colors::get_terrain_color_gradient;
 use crate::constants::*;
@@ -180,72 +178,12 @@ pub fn setup_world(
              mesh_start.elapsed().as_secs_f32());
     
     // =========================================================================
-    // ASSIGN NATIONS
+    // PREPARE PROVINCES
     // =========================================================================
     
-    let nation_start = std::time::Instant::now();
     let mut provinces = generated_world.provinces.clone();
-    let mut rng = StdRng::seed_from_u64(seed.0 as u64);
-    
-    // Find suitable nation spawn points
-    let land_provinces: Vec<_> = provinces.iter()
-        .filter(|p| p.terrain != TerrainType::Ocean)
-        .map(|p| p.id)
-        .collect();
-    
-    if !land_provinces.is_empty() {
-        let num_nations = NATION_COUNT.min(land_provinces.len());
-        let mut nation_spawns = Vec::new();
-        
-        for i in 0..num_nations {
-            let spawn_idx = rng.gen_range(0..land_provinces.len());
-            let spawn_id = land_provinces[spawn_idx];
-            nation_spawns.push((i as u32, spawn_id));
-            
-            // Spawn nation entity
-            commands.spawn((
-                Nation {
-                    id: i as u32,
-                    name: format!("Nation {}", i + 1),
-                    color: Color::hsl(
-                        (i as f32 / num_nations as f32) * 360.0,
-                        0.7,
-                        0.5,
-                    ),
-                },
-                Name::new(format!("Nation {}", i + 1)),
-            ));
-        }
-        
-        // Collect spawn positions before the mutable loop
-        let spawn_positions: Vec<(u32, Vec2)> = nation_spawns.iter()
-            .filter_map(|&(nation_id, spawn_id)| {
-                provinces.iter()
-                    .find(|p| p.id == spawn_id)
-                    .map(|p| (nation_id, p.position))
-            })
-            .collect();
-        
-        // Simple distance-based assignment
-        for province in &mut provinces {
-            if province.terrain != TerrainType::Ocean {
-                let mut min_dist = f32::MAX;
-                let mut closest_nation = 0;
-                
-                for &(nation_id, spawn_pos) in &spawn_positions {
-                    let dist = province.position.distance(spawn_pos);
-                    if dist < min_dist {
-                        min_dist = dist;
-                        closest_nation = nation_id;
-                    }
-                }
-                
-                province.nation_id = Some(closest_nation);
-            }
-        }
-    }
-    
-    println!("Nation assignment completed in {:.2}s", nation_start.elapsed().as_secs_f32());
+    // NATIONS DISABLED - Not ready for this feature yet
+    // All provinces start with no nation - just the natural world
     
     // =========================================================================
     // SPAWN CLOUDS

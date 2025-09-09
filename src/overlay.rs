@@ -56,19 +56,8 @@ pub fn update_province_colors(
         // Calculate color based on overlay mode
         let province_color = match *overlay {
             ResourceOverlay::None => {
-                // Political/terrain view
-                if let Some(nation_id) = province.nation_id {
-                    let hue = nation_id as f32 / 8.0;
-                    let nation_color = Color::hsl(hue * 360.0, 0.7, 0.5);
-                    let terrain_color = get_terrain_color_gradient(province.terrain, province.elevation);
-                    Color::srgb(
-                        nation_color.to_srgba().red * 0.8 + terrain_color.to_srgba().red * 0.2,
-                        nation_color.to_srgba().green * 0.8 + terrain_color.to_srgba().green * 0.2,
-                        nation_color.to_srgba().blue * 0.8 + terrain_color.to_srgba().blue * 0.2,
-                    )
-                } else {
-                    get_terrain_color_gradient(province.terrain, province.elevation)
-                }
+                // Natural terrain view - no nations, just the natural world
+                get_terrain_color_gradient(province.terrain, province.elevation)
             },
             
             ResourceOverlay::Mineral(mineral_type) => {
