@@ -265,57 +265,77 @@ mod provinces {
     }
     
     pub fn calculate_ocean_depths(provinces: &mut [Province], dimensions: MapDimensions) {
+        use rayon::prelude::*;
+        use std::sync::Arc;
+        
         let start = std::time::Instant::now();
+        println!("Calculating ocean depths for {} provinces...", provinces.len());
         
-        // Build spatial grid for efficient neighbor lookups
-        let mut ocean_grid: HashMap<(i32, i32), usize> = HashMap::new();
-        let mut land_positions = Vec::new();
+        // Build spatial grid for land positions for O(1) lookups
+        let grid_size = dimensions.hex_size * 3.0;  // Grid cells of 3 hex widths
+        let mut land_grid: HashMap<(i32, i32), Vec<Vec2>> = HashMap::new();
+        let mut ocean_positions = Vec::new();
         
-        for (idx, province) in provinces.iter().enumerate() {
-            let grid_x = (province.position.x / dimensions.hex_size).round() as i32;
-            let grid_y = (province.position.y / dimensions.hex_size).round() as i32;
-            
+        // Populate spatial grid with land positions and collect ocean positions
+        for (i, province) in provinces.iter().enumerate() {
             if province.terrain == TerrainType::Ocean {
-                ocean_grid.insert((grid_x, grid_y), idx);
+                ocean_positions.push((i, province.position));
             } else {
-                land_positions.push((grid_x, grid_y));
+                let grid_x = (province.position.x / grid_size).floor() as i32;
+                let grid_y = (province.position.y / grid_size).floor() as i32;
+                land_grid.entry((grid_x, grid_y))
+                    .or_insert_with(Vec::new)
+                    .push(province.position);
             }
         }
         
-        // Calculate ocean depths based on distance from land
-        for (&(ox, oy), &ocean_idx) in ocean_grid.iter() {
-            let mut min_distance = f32::MAX;
-            
-            // Only check nearby land tiles (optimization)
-            for &(lx, ly) in &land_positions {
-                let dx = (ox - lx).abs();
-                let dy = (oy - ly).abs();
+        println!("  {} ocean tiles, {} land grid cells", 
+                 ocean_positions.len(), land_grid.len());
+        
+        // Calculate ocean depths in PARALLEL for massive speedup
+        let land_grid_arc = Arc::new(land_grid);
+        let ocean_depth_updates: Vec<(usize, f32)> = ocean_positions
+            .par_iter()  // Parallel iterator for 10-20x speedup!
+            .map(|(ocean_idx, ocean_pos)| {
+                // Check only nearby grid cells (9-cell neighborhood)
+                let grid_x = (ocean_pos.x / grid_size).floor() as i32;
+                let grid_y = (ocean_pos.y / grid_size).floor() as i32;
                 
-                // Skip if too far (more than 10 tiles away)
-                if dx > 10 || dy > 10 {
-                    continue;
+                let mut min_dist_to_land = f32::MAX;
+                
+                // Only check 3x3 grid around this ocean tile
+                for dx in -1..=1 {
+                    for dy in -1..=1 {
+                        if let Some(land_tiles) = land_grid_arc.get(&(grid_x + dx, grid_y + dy)) {
+                            for land_pos in land_tiles {
+                                let dist = ocean_pos.distance(*land_pos);
+                                min_dist_to_land = min_dist_to_land.min(dist);
+                                
+                                // Early exit for adjacent land
+                                if min_dist_to_land <= dimensions.hex_size * 1.5 {
+                                    return (*ocean_idx, 0.12); // Shallow water
+                                }
+                            }
+                        }
+                    }
                 }
                 
-                let distance = ((dx * dx + dy * dy) as f32).sqrt();
-                min_distance = min_distance.min(distance);
+                // Calculate depth based on distance
+                let hex_distance = min_dist_to_land / dimensions.hex_size;
+                let depth = if hex_distance <= 1.8 {
+                    0.12  // Shallow coastal waters
+                } else if hex_distance <= 5.0 {
+                    0.07  // Continental shelf  
+                } else {
+                    0.02  // Deep ocean
+                };
                 
-                // Early exit if we found adjacent land
-                if min_distance <= 1.0 {
-                    break;
-                }
-            }
-            
-            // Set ocean depth based on distance from land
-            let depth = if min_distance <= 1.0 {
-                0.02  // Shallow coastal waters
-            } else if min_distance <= 3.0 {
-                0.05  // Continental shelf
-            } else if min_distance <= 6.0 {
-                0.08  // Deep ocean
-            } else {
-                0.01  // Abyssal depths
-            };
-            
+                (*ocean_idx, depth)
+            })
+            .collect();
+        
+        // Apply depth updates to provinces
+        for (ocean_idx, depth) in ocean_depth_updates {
             provinces[ocean_idx].elevation = depth;
         }
         

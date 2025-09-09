@@ -11,6 +11,7 @@ use bevy::sprite::{MeshMaterial2d};
 use bevy::render::mesh::Mesh2d;
 use rand::{Rng, SeedableRng};
 use rand::rngs::StdRng;
+use std::collections::HashMap;
 use crate::components::{Province, Nation};
 use crate::resources::{WorldSeed, WorldSize, ProvincesSpatialIndex, SelectedProvinceInfo};
 use crate::terrain::TerrainType;
@@ -271,11 +272,16 @@ pub fn setup_world(
     
     // Initialize spatial index with mega-mesh architecture (no entities per province)
     let mut spatial_index = ProvincesSpatialIndex::default();
+    
+    // Build HashMap for O(1) province lookups by ID
+    let province_by_id: HashMap<u32, &Province> = provinces.iter()
+        .map(|p| (p.id, p))
+        .collect();
+    
     for (grid_pos, province_id) in generated_world.spatial_index {
         // In mega-mesh architecture, we use Entity::PLACEHOLDER since provinces aren't entities
         // The province_id is what matters for lookups
-        // Find the province in our Vec by ID
-        if let Some(province) = provinces.iter().find(|p| p.id == province_id) {
+        if let Some(province) = province_by_id.get(&province_id) {
             let entry = spatial_index.grid.entry(grid_pos).or_insert_with(Vec::new);
             entry.push((Entity::PLACEHOLDER, province.position, province_id));
         }
