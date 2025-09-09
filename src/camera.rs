@@ -7,7 +7,7 @@
 
 use bevy::prelude::*;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel, MouseMotion};
-use bevy::window::PrimaryWindow;
+use bevy::window::{PrimaryWindow, CursorGrabMode};
 use crate::constants::*;
 use crate::resources::MapDimensions;
 
@@ -18,7 +18,7 @@ impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
         app
             .init_resource::<CameraBounds>()
-            .add_systems(Startup, setup_camera)
+            .add_systems(Startup, (setup_camera, setup_cursor_confinement))
             .add_systems(Update, (
                 // Input gathering systems
                 handle_keyboard_input,
@@ -26,6 +26,7 @@ impl Plugin for CameraPlugin {
                 handle_mouse_drag,
                 handle_edge_panning,
                 handle_camera_reset,
+                toggle_cursor_confinement,
                 
                 // Movement and interpolation
                 apply_smooth_movement,
@@ -357,6 +358,32 @@ fn apply_camera_bounds(
         } else if transform.translation.x < -bounds.half_map_width {
             transform.translation.x += map_dimensions.width_pixels;
             controller.target_position.x += map_dimensions.width_pixels;
+        }
+    }
+}
+
+/// Setup cursor confinement on startup to keep mouse within window for edge panning
+fn setup_cursor_confinement(
+    mut windows: Query<&mut Window, With<PrimaryWindow>>,
+) {
+    if let Ok(mut window) = windows.get_single_mut() {
+        // Confine cursor to window bounds - perfect for strategy games
+        window.cursor_options.grab_mode = CursorGrabMode::Confined;
+    }
+}
+
+/// Toggle cursor confinement with Tab key for windowed/fullscreen flexibility
+fn toggle_cursor_confinement(
+    mut windows: Query<&mut Window, With<PrimaryWindow>>,
+    keyboard: Res<ButtonInput<KeyCode>>,
+) {
+    if keyboard.just_pressed(KeyCode::Tab) {
+        if let Ok(mut window) = windows.get_single_mut() {
+            window.cursor_options.grab_mode = match window.cursor_options.grab_mode {
+                CursorGrabMode::None => CursorGrabMode::Confined,
+                CursorGrabMode::Confined => CursorGrabMode::None,
+                CursorGrabMode::Locked => CursorGrabMode::None,  // Shouldn't happen but handle it
+            };
         }
     }
 }
