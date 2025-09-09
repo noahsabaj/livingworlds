@@ -55,7 +55,7 @@ pub fn setup_world(
         Name::new("World Mega-Mesh"),
     ));
     
-    println!("Mega-mesh built in {:.2}s - ONE entity instead of 135,000!", 
+    println!("Mega-mesh built in {:.2}s - ONE entity instead of 900,000!", 
              mesh_start.elapsed().as_secs_f32());
     
     // =========================================================================

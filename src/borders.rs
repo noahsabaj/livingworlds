@@ -6,9 +6,9 @@
 //! province position.
 //! 
 //! Performance impact:
-//! - Old system: 135,000 border entities
+//! - Old system: 900,000 border entities (one per province)
 //! - New system: 1 border entity
-//! - Result: 134,999 fewer entities to process every frame!
+//! - Result: 899,999 fewer entities to process every frame!
 
 use bevy::prelude::*;
 use bevy::render::mesh::PrimitiveTopology;
@@ -107,7 +107,7 @@ fn setup_selection_border(
     
     selection_border.entity = Some(entity);
     
-    println!("Selection border ready (1 entity instead of 135,000!)");
+    println!("Selection border ready (1 entity instead of 900,000!)");
 }
 
 /// Update selection border position and visibility
