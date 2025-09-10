@@ -537,7 +537,7 @@ fn spawn_exit_confirmation_dialog(commands: &mut Commands) {
         // Dialog box
         overlay.spawn((
             Node {
-                width: Val::Px(400.0),
+                width: Val::Px(450.0),  // Slightly wider than pause menu for better overlap
                 padding: UiRect::all(Val::Px(30.0)),
                 flex_direction: FlexDirection::Column,
                 align_items: AlignItems::Center,
@@ -639,25 +639,43 @@ fn spawn_exit_confirmation_dialog(commands: &mut Commands) {
 /// Handles exit confirmation dialog button interactions
 fn handle_exit_confirmation_dialog(
     mut interactions: Query<
-        (&Interaction, AnyOf<(&ConfirmExitButton, &CancelExitButton)>), 
+        (&Interaction, &mut BackgroundColor, AnyOf<(&ConfirmExitButton, &CancelExitButton)>), 
         Changed<Interaction>
     >,
     mut commands: Commands,
     dialog_query: Query<Entity, With<ExitConfirmationDialog>>,
     mut exit_events: EventWriter<AppExit>,
 ) {
-    for (interaction, (confirm_button, cancel_button)) in &interactions {
-        if *interaction == Interaction::Pressed {
-            // Close the dialog first
-            if let Ok(dialog_entity) = dialog_query.get_single() {
-                commands.entity(dialog_entity).despawn_recursive();
+    for (interaction, mut bg_color, (confirm_button, cancel_button)) in &mut interactions {
+        match *interaction {
+            Interaction::Hovered => {
+                // Hover effect
+                if confirm_button.is_some() {
+                    *bg_color = BackgroundColor(Color::srgb(0.6, 0.25, 0.25)); // Lighter red
+                } else if cancel_button.is_some() {
+                    *bg_color = BackgroundColor(Color::srgb(0.2, 0.2, 0.23)); // Lighter gray
+                }
             }
-            
-            if confirm_button.is_some() {
-                println!("Exit confirmed - closing application");
-                exit_events.write(AppExit::Success);
-            } else if cancel_button.is_some() {
-                println!("Exit cancelled - returning to game");
+            Interaction::None => {
+                // Return to normal color
+                if confirm_button.is_some() {
+                    *bg_color = BackgroundColor(Color::srgb(0.5, 0.2, 0.2)); // Normal red
+                } else if cancel_button.is_some() {
+                    *bg_color = BackgroundColor(Color::srgb(0.15, 0.15, 0.18)); // Normal gray
+                }
+            }
+            Interaction::Pressed => {
+                // Close the dialog first
+                if let Ok(dialog_entity) = dialog_query.get_single() {
+                    commands.entity(dialog_entity).despawn_recursive();
+                }
+                
+                if confirm_button.is_some() {
+                    println!("Exit confirmed - closing application");
+                    exit_events.write(AppExit::Success);
+                } else if cancel_button.is_some() {
+                    println!("Exit cancelled - returning to game");
+                }
             }
         }
     }
