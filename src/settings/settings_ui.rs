@@ -482,7 +482,7 @@ fn create_toggle_row(parent: &mut ChildSpawnerCommands, label: &str, enabled: bo
         )).with_children(|btn| {
             if enabled {
                 btn.spawn((
-                    Text::new("✓"),
+                    Text::new("X"),
                     TextFont {
                         font_size: 20.0,
                         ..default()

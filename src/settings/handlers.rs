@@ -84,11 +84,12 @@ pub fn handle_cycle_buttons(
 
 /// Handle toggle button interactions
 pub fn handle_toggle_buttons(
-    mut interactions: Query<(&Interaction, &mut ToggleButton, &mut BackgroundColor, &Children), (Changed<Interaction>, With<Button>)>,
+    mut interactions: Query<(Entity, &Interaction, &mut ToggleButton, &mut BackgroundColor, &Children), (Changed<Interaction>, With<Button>)>,
     mut temp_settings: ResMut<TempGameSettings>,
     mut commands: Commands,
+    mut text_query: Query<&mut Text>,
 ) {
-    for (interaction, mut toggle, mut bg_color, children) in &mut interactions {
+    for (entity, interaction, mut toggle, mut bg_color, children) in &mut interactions {
         if *interaction == Interaction::Pressed {
             toggle.enabled = !toggle.enabled;
             
@@ -110,14 +111,21 @@ pub fn handle_toggle_buttons(
                 Color::srgb(0.15, 0.15, 0.18)
             });
             
-            // Update checkmark
+            // Update checkmark - try to update existing text first
+            let mut found_text = false;
             for &child in children {
-                commands.entity(child).despawn();
+                if let Ok(mut text) = text_query.get_mut(child) {
+                    text.0 = if toggle.enabled { "X".to_string() } else { "".to_string() };
+                    found_text = true;
+                    break;
+                }
             }
-            if toggle.enabled {
-                commands.entity(children[0]).with_children(|btn| {
+            
+            // If no text child found and we need to show checkmark, add one
+            if !found_text && toggle.enabled {
+                commands.entity(entity).with_children(|btn| {
                     btn.spawn((
-                        Text::new("✓"),
+                        Text::new("X"),
                         TextFont {
                             font_size: 20.0,
                             ..default()
@@ -147,7 +155,8 @@ pub fn handle_slider_interactions(
                 // This is simplified - in a real implementation you'd need proper coordinate conversion
                 // For now, just demonstrate the concept
                 let track_width = 180.0;
-                let normalized = ((cursor_pos.x % track_width) / track_width).clamp(0.0, 1.0);
+                // Remove modulo to prevent wrapping - just clamp the normalized value
+                let normalized = (cursor_pos.x / track_width).clamp(0.0, 1.0);
                 slider.value = slider.min + (slider.max - slider.min) * normalized;
                 
                 // Update temp settings
@@ -380,7 +389,7 @@ pub fn update_ui_on_settings_change(
         // Update checkbox visual
         for child in children.iter() {
             if let Ok(mut text) = text_query.get_mut(child) {
-                text.0 = if is_enabled { "☑".to_string() } else { "☐".to_string() };
+                text.0 = if is_enabled { "[X]".to_string() } else { "[ ]".to_string() };
             }
         }
     }

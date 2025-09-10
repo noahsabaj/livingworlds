@@ -6,6 +6,8 @@ Analyzes code and automatically suggests performance improvements
 
 import re
 import subprocess
+import time
+import sys
 from pathlib import Path
 
 class AutoOptimizer:
@@ -21,39 +23,66 @@ class AutoOptimizer:
             (r'provinces\.iter\(\).*provinces\.iter\(\)', 'Double iteration over provinces'),
         ]
         
-        for rust_file in Path('src').rglob('*.rs'):
-            content = rust_file.read_text()
-            for pattern, message in patterns:
-                if re.search(pattern, content):
-                    self.optimizations.append({
-                        'file': str(rust_file),
-                        'pattern': pattern,
-                        'message': message,
-                        'severity': 'high'
-                    })
+        src_path = Path('src')
+        if not src_path.exists():
+            print(f"Warning: Source directory '{src_path}' not found")
+            return
+            
+        try:
+            for rust_file in src_path.rglob('*.rs'):
+                try:
+                    content = rust_file.read_text()
+                    for pattern, message in patterns:
+                        if re.search(pattern, content):
+                            self.optimizations.append({
+                                'file': str(rust_file),
+                                'pattern': pattern,
+                                'message': message,
+                                'severity': 'high'
+                            })
+                except Exception as e:
+                    print(f"Error reading {rust_file}: {e}")
     
     def check_build_times(self):
         """Check if build times are reasonable"""
-        import time
-        start = time.time()
-        result = subprocess.run(
-            ['cargo', 'build', '--features', 'bevy/dynamic_linking'],
-            capture_output=True,
-            text=True
-        )
-        build_time = time.time() - start
-        
-        if build_time > 30:  # More than 30 seconds
+        try:
+            start = time.time()
+            result = subprocess.run(
+                ['cargo', 'build', '--features', 'bevy/dynamic_linking'],
+                capture_output=True,
+                text=True,
+                timeout=120  # 2 minute timeout
+            )
+            build_time = time.time() - start
+            
+            if build_time > 30:  # More than 30 seconds
+                self.optimizations.append({
+                    'file': 'Cargo.toml',
+                    'message': f'Build time is {build_time:.1f}s - consider enabling more optimizations',
+                    'severity': 'medium'
+                })
+        except subprocess.TimeoutExpired:
             self.optimizations.append({
                 'file': 'Cargo.toml',
-                'message': f'Build time is {build_time:.1f}s - consider enabling more optimizations',
-                'severity': 'medium'
+                'message': 'Build timeout (>2 minutes) - investigate compilation issues',
+                'severity': 'high'
             })
+        except Exception as e:
+            print(f"Error checking build times: {e}")
     
     def suggest_hashmap_conversions(self):
         """Find places where HashMap would be better"""
-        for rust_file in Path('src').rglob('*.rs'):
-            content = rust_file.read_text()
+        src_path = Path('src')
+        if not src_path.exists():
+            print(f"Warning: Source directory '{src_path}' not found")
+            return
+            
+        for rust_file in src_path.rglob('*.rs'):
+            try:
+                content = rust_file.read_text()
+            except Exception as e:
+                print(f"Error reading {rust_file}: {e}")
+                continue
             
             # Find .iter().find() patterns
             matches = re.finditer(r'(\w+)\.iter\(\)\.find\(\|(\w+)\| (\w+)\.(\w+) == (\w+)\)', content)
@@ -109,7 +138,11 @@ if let Some(&idx) = self.{collection}_by_{field}.get(&{search_val}) {{
                 report += f"- {opt.get('function', opt['file'])}: {opt['message']}\n"
         
         # Save report
-        Path('OPTIMIZATION_REPORT.md').write_text(report)
+        try:
+            Path('OPTIMIZATION_REPORT.md').write_text(report)
+        except Exception as e:
+            print(f"Error writing optimization report: {e}")
+            return
         
         # Check if we're already on the optimization branch
         current_branch = subprocess.run(

@@ -18,3 +18,6 @@ Thumbs.db
 save_games/
 coverage/
 CLAUDE.md
+PERFORMANCE_METRICS.csv
+.performance_baseline
+OPTIMIZATION_REPORT.md

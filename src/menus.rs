@@ -21,6 +21,7 @@ impl Plugin for MenusPlugin {
             .add_systems(Update, (
                 handle_button_interactions,
                 update_button_visuals,
+                handle_exit_confirmation_dialog,
             ).chain().run_if(in_state(GameState::MainMenu)))
             
             // Pause menu systems
@@ -30,6 +31,7 @@ impl Plugin for MenusPlugin {
                 handle_pause_button_interactions,
                 handle_pause_esc_key,
                 update_button_visuals,  // Add hover effects for pause menu
+                handle_exit_confirmation_dialog,
             ).run_if(in_state(GameState::Paused)));
     }
 }
@@ -62,12 +64,25 @@ struct ButtonText;
 pub enum MenuAction {
     NewWorld,
     LoadGame,
+    SaveGame,
     Settings,
     Credits,
     Exit,
     Resume,
     BackToMainMenu,
 }
+
+/// Marker component for exit confirmation dialog
+#[derive(Component)]
+pub struct ExitConfirmationDialog;
+
+/// Marker component for confirm exit button
+#[derive(Component)]
+pub struct ConfirmExitButton;
+
+/// Marker component for cancel exit button
+#[derive(Component)]
+pub struct CancelExitButton;
 
 // ============================================================================
 // MAIN MENU
@@ -264,8 +279,8 @@ fn handle_button_interactions(
                     println!("Credits - Not yet implemented");
                 }
                 MenuAction::Exit => {
-                    println!("Exit button pressed - closing application");
-                    exit_events.write(AppExit::Success);
+                    println!("Exit button pressed - showing confirmation dialog");
+                    spawn_exit_confirmation_dialog(&mut commands);
                 }
                 _ => {}
             }
@@ -401,7 +416,8 @@ fn spawn_pause_menu(mut commands: Commands) {
             // Buttons
             create_button("Resume", MenuAction::Resume, true);
             create_button("Settings", MenuAction::Settings, true);  // Now enabled
-            create_button("Save Game", MenuAction::LoadGame, false);
+            create_button("Save Game", MenuAction::SaveGame, false);
+            create_button("Load Game", MenuAction::LoadGame, false);
             create_button("Main Menu", MenuAction::BackToMainMenu, true);
             create_button("Exit Game", MenuAction::Exit, true);
         });
@@ -481,10 +497,167 @@ fn handle_pause_button_interactions(
                     });
                 }
                 MenuAction::Exit => {
-                    println!("Exit from pause menu");
-                    exit_events.write(AppExit::Success);
+                    println!("Exit from pause menu - showing confirmation dialog");
+                    spawn_exit_confirmation_dialog(&mut commands);
+                }
+                MenuAction::SaveGame => {
+                    println!("Save Game - Not yet implemented");
+                }
+                MenuAction::LoadGame => {
+                    println!("Load Game - Not yet implemented");
                 }
                 _ => {}
+            }
+        }
+    }
+}
+
+// ============================================================================
+// EXIT CONFIRMATION DIALOG
+// ============================================================================
+
+/// Spawns the exit confirmation dialog
+fn spawn_exit_confirmation_dialog(commands: &mut Commands) {
+    println!("Spawning exit confirmation dialog");
+    
+    // Dialog overlay
+    commands.spawn((
+        Node {
+            position_type: PositionType::Absolute,
+            width: Val::Percent(100.0),
+            height: Val::Percent(100.0),
+            justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center,
+            ..default()
+        },
+        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.7)),
+        ExitConfirmationDialog,
+        ZIndex(400),  // Above everything else
+    )).with_children(|overlay| {
+        // Dialog box
+        overlay.spawn((
+            Node {
+                width: Val::Px(400.0),
+                padding: UiRect::all(Val::Px(30.0)),
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                border: UiRect::all(Val::Px(2.0)),
+                ..default()
+            },
+            BackgroundColor(Color::srgb(0.08, 0.08, 0.1)),
+            BorderColor(Color::srgb(0.3, 0.3, 0.35)),
+        )).with_children(|dialog| {
+            // Title
+            dialog.spawn((
+                Text::new("Exit Game"),
+                TextFont {
+                    font_size: 28.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.9, 0.85, 0.7)),
+                Node {
+                    margin: UiRect::bottom(Val::Px(20.0)),
+                    ..default()
+                },
+            ));
+            
+            // Message
+            dialog.spawn((
+                Text::new("Are you sure you want to exit?"),
+                TextFont {
+                    font_size: 18.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.8, 0.8, 0.8)),
+                Node {
+                    margin: UiRect::bottom(Val::Px(30.0)),
+                    ..default()
+                },
+            ));
+            
+            // Buttons container
+            dialog.spawn(Node {
+                flex_direction: FlexDirection::Row,
+                justify_content: JustifyContent::Center,
+                column_gap: Val::Px(20.0),
+                ..default()
+            }).with_children(|buttons| {
+                // Confirm button
+                buttons.spawn((
+                    Button,
+                    Node {
+                        width: Val::Px(120.0),
+                        height: Val::Px(45.0),
+                        justify_content: JustifyContent::Center,
+                        align_items: AlignItems::Center,
+                        border: UiRect::all(Val::Px(1.0)),
+                        ..default()
+                    },
+                    BackgroundColor(Color::srgb(0.5, 0.2, 0.2)),
+                    BorderColor(Color::srgb(0.7, 0.3, 0.3)),
+                    ConfirmExitButton,
+                )).with_children(|button| {
+                    button.spawn((
+                        Text::new("Exit"),
+                        TextFont {
+                            font_size: 20.0,
+                            ..default()
+                        },
+                        TextColor(Color::srgb(0.9, 0.9, 0.9)),
+                    ));
+                });
+                
+                // Cancel button
+                buttons.spawn((
+                    Button,
+                    Node {
+                        width: Val::Px(120.0),
+                        height: Val::Px(45.0),
+                        justify_content: JustifyContent::Center,
+                        align_items: AlignItems::Center,
+                        border: UiRect::all(Val::Px(1.0)),
+                        ..default()
+                    },
+                    BackgroundColor(Color::srgb(0.15, 0.15, 0.18)),
+                    BorderColor(Color::srgb(0.3, 0.3, 0.35)),
+                    CancelExitButton,
+                )).with_children(|button| {
+                    button.spawn((
+                        Text::new("Cancel"),
+                        TextFont {
+                            font_size: 20.0,
+                            ..default()
+                        },
+                        TextColor(Color::srgb(0.9, 0.9, 0.9)),
+                    ));
+                });
+            });
+        });
+    });
+}
+
+/// Handles exit confirmation dialog button interactions
+fn handle_exit_confirmation_dialog(
+    mut interactions: Query<
+        (&Interaction, AnyOf<(&ConfirmExitButton, &CancelExitButton)>), 
+        Changed<Interaction>
+    >,
+    mut commands: Commands,
+    dialog_query: Query<Entity, With<ExitConfirmationDialog>>,
+    mut exit_events: EventWriter<AppExit>,
+) {
+    for (interaction, (confirm_button, cancel_button)) in &interactions {
+        if *interaction == Interaction::Pressed {
+            // Close the dialog first
+            if let Ok(dialog_entity) = dialog_query.get_single() {
+                commands.entity(dialog_entity).despawn_recursive();
+            }
+            
+            if confirm_button.is_some() {
+                println!("Exit confirmed - closing application");
+                exit_events.write(AppExit::Success);
+            } else if cancel_button.is_some() {
+                println!("Exit cancelled - returning to game");
             }
         }
     }
