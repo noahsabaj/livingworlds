@@ -327,18 +327,32 @@ impl ProvincesSpatialIndex {
 // ============================================================================
 
 /// Storage for province mineral resources in mega-mesh architecture
-/// Maps province ID to its mineral resources
+/// Uses Vec for O(1) indexed access since province IDs are sequential (0..n)
 #[derive(Resource, Default)]
 pub struct MineralStorage {
-    pub resources: HashMap<u32, crate::components::ProvinceResources>,
+    pub resources: Vec<Option<crate::components::ProvinceResources>>,
 }
 
-/// Storage for province infrastructure in mega-mesh architecture
-/// Maps province ID to its infrastructure level
+/// Pre-calculated overlay colors for instant switching
+/// Each Vec contains colors for all provinces (7 vertices each)
 #[derive(Resource, Default)]
-pub struct InfrastructureStorage {
-    pub infrastructure: HashMap<u32, crate::components::ProvinceInfrastructure>,
+pub struct CachedOverlayColors {
+    /// Natural terrain colors
+    pub terrain: Vec<[f32; 4]>,
+    /// Mineral overlay colors
+    pub iron: Vec<[f32; 4]>,
+    pub copper: Vec<[f32; 4]>,
+    pub tin: Vec<[f32; 4]>,
+    pub gold: Vec<[f32; 4]>,
+    pub coal: Vec<[f32; 4]>,
+    pub stone: Vec<[f32; 4]>,
+    pub gems: Vec<[f32; 4]>,
+    /// Combined mineral richness
+    pub all_minerals: Vec<[f32; 4]>,
+    /// Infrastructure (placeholder for now)
+    pub infrastructure: Vec<[f32; 4]>,
 }
+
 
 // ============================================================================
 // VISUALIZATION RESOURCES

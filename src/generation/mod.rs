@@ -76,9 +76,13 @@ impl WorldGenerator {
         println!("\n[5/6] Calculating agriculture and fresh water...");
         agriculture::calculate(&mut provinces, &rivers, self.dimensions);
         
-        // Step 6: Generate mineral resources
+        // Step 6: Generate mineral resources using tectonic data for placement
         println!("\n[6/6] Generating mineral resources...");
-        let minerals = crate::minerals::generate_world_minerals(self.seed, &provinces);
+        let minerals = crate::minerals::generate_world_minerals_with_tectonics(
+            self.seed, 
+            &provinces,
+            &tectonics
+        );
         
         // Build spatial index for fast lookups
         let mut spatial_index = HashMap::new();

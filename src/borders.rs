@@ -156,9 +156,9 @@ pub fn handle_tile_selection(
     if !mouse_button.just_pressed(MouseButton::Left) {
         return;
     }
-    let Ok(window) = windows.get_single() else { return; };
+    let Ok(window) = windows.single() else { return; };
     let Some(cursor_pos) = window.cursor_position() else { return; };
-    let Ok((camera, camera_transform)) = camera_q.get_single() else { return; };
+    let Ok((camera, camera_transform)) = camera_q.single() else { return; };
     
     // Convert screen position to world position
     let Ok(ray) = camera.viewport_to_world(camera_transform, cursor_pos) else { return; };

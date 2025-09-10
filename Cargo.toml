@@ -35,7 +35,7 @@ bevy = { version = "0.16.1", default-features = false, features = [
     "x11",                # Linux X11
     # "wayland",          # Linux Wayland (commented out - requires libwayland-dev)
     "tonemapping_luts",   # Better colors
-    "dynamic_linking",    # Faster development builds
+    # "dynamic_linking",    # Faster development builds (disabled for release mode)
 ] }
 
 # Keep our procedural approach - no GLTF or external assets needed!
@@ -52,6 +52,7 @@ noise = "0.8"
 rand = { version = "0.8", features = ["small_rng"] }
 rand_chacha = "0.3"
 rayon = "1.10"  # Parallel iteration for massive performance gains
+voronator = "0.2"  # Real Voronoi tessellation for tectonic plates
 
 # Audio
 rodio = "0.17"

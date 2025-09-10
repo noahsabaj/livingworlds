@@ -1,4 +1,10 @@
-//! Province generation and ocean depth calculation
+//! Province generation with REAL tectonic influence
+//!
+//! This module now actually uses the tectonic system for:
+//! - Plate-based elevation (not just distance from centers)
+//! - Mountain ranges at plate boundaries
+//! - Volcanic islands at hotspots
+//! - Mineral deposit placement
 
 use rayon::prelude::*;
 use std::collections::HashMap;
@@ -11,7 +17,125 @@ use crate::components::Province;
 use crate::terrain::{TerrainType, classify_terrain_with_climate};
 use crate::constants::*;
 use super::types::MapDimensions;
-use super::tectonics::TectonicSystem;
+use super::tectonics::{TectonicSystem, TectonicPlate, BoundaryType};
+
+/// Check if a point is inside a polygon using ray casting algorithm
+fn point_in_polygon(point: Vec2, polygon: &[Vec2]) -> bool {
+    if polygon.len() < 3 {
+        return false;
+    }
+    
+    let mut inside = false;
+    let mut p1 = polygon[0];
+    
+    for i in 1..=polygon.len() {
+        let p2 = polygon[i % polygon.len()];
+        
+        if point.y > p1.y.min(p2.y) && point.y <= p1.y.max(p2.y) {
+            if point.x <= p1.x.max(p2.x) {
+                let x_intersection = if p1.y != p2.y {
+                    (point.y - p1.y) * (p2.x - p1.x) / (p2.y - p1.y) + p1.x
+                } else {
+                    p1.x
+                };
+                
+                if p1.x == p2.x || point.x <= x_intersection {
+                    inside = !inside;
+                }
+            }
+        }
+        p1 = p2;
+    }
+    
+    inside
+}
+
+/// Find which tectonic plate a province belongs to
+fn find_plate_for_position(position: Vec2, tectonics: &TectonicSystem) -> Option<&TectonicPlate> {
+    // First try exact polygon test
+    for plate in &tectonics.plates {
+        if point_in_polygon(position, &plate.polygon) {
+            return Some(plate);
+        }
+    }
+    
+    // Fallback: find nearest plate center (for edge cases)
+    tectonics.plates.iter()
+        .min_by_key(|p| (p.center.distance(position) * 1000.0) as i32)
+}
+
+/// Calculate distance to nearest plate boundary
+fn distance_to_nearest_boundary(position: Vec2, tectonics: &TectonicSystem) -> Option<(f32, &BoundaryType)> {
+    let mut min_distance = f32::MAX;
+    let mut nearest_boundary = None;
+    
+    for boundary in &tectonics.boundaries {
+        for segment in &boundary.segments {
+            // Distance from point to line segment
+            let v = segment.end - segment.start;
+            let w = position - segment.start;
+            
+            let c1 = w.dot(v);
+            if c1 <= 0.0 {
+                let dist = position.distance(segment.start);
+                if dist < min_distance {
+                    min_distance = dist;
+                    nearest_boundary = Some(&boundary.boundary_type);
+                }
+                continue;
+            }
+            
+            let c2 = v.dot(v);
+            if c1 >= c2 {
+                let dist = position.distance(segment.end);
+                if dist < min_distance {
+                    min_distance = dist;
+                    nearest_boundary = Some(&boundary.boundary_type);
+                }
+                continue;
+            }
+            
+            let b = c1 / c2;
+            let pb = segment.start + v * b;
+            let dist = position.distance(pb);
+            if dist < min_distance {
+                min_distance = dist;
+                nearest_boundary = Some(&boundary.boundary_type);
+            }
+        }
+    }
+    
+    nearest_boundary.map(|bt| (min_distance, bt))
+}
+
+/// Check if position is near a volcanic hotspot
+fn get_volcanic_influence(position: Vec2, tectonics: &TectonicSystem) -> f32 {
+    let mut max_influence: f32 = 0.0;
+    
+    for hotspot in &tectonics.hotspots {
+        // Check main hotspot
+        let dist = position.distance(hotspot.position);
+        if dist < hotspot.radius {
+            let influence = hotspot.intensity * (1.0 - dist / hotspot.radius);
+            max_influence = max_influence.max(influence);
+        }
+        
+        // Check volcanic chain
+        for volcano in &hotspot.volcanic_chain {
+            let volcano_dist = position.distance(volcano.position);
+            if volcano_dist < 50.0 { // Volcano influence radius
+                let volcano_influence = if volcano.is_active {
+                    volcano.elevation / 4000.0 * (1.0 - volcano_dist / 50.0)
+                } else {
+                    volcano.elevation / 8000.0 * (1.0 - volcano_dist / 50.0)
+                };
+                max_influence = max_influence.max(volcano_influence);
+            }
+        }
+    }
+    
+    max_influence
+}
 
 pub fn generate(
     tectonics: &TectonicSystem,
@@ -21,6 +145,11 @@ pub fn generate(
 ) -> Vec<Province> {
     let total_provinces = dimensions.provinces_per_row * dimensions.provinces_per_col;
     
+    println!("Generating provinces with REAL tectonic influence...");
+    
+    // Pre-compute for parallel access
+    let tectonics_arc = Arc::new(tectonics.clone());
+    
     // Generate all provinces in parallel
     let provinces: Vec<Province> = (0..total_provinces)
         .into_par_iter()
@@ -29,26 +158,91 @@ pub fn generate(
             let row = idx / dimensions.provinces_per_row;
             let province_id = idx;
             
-            // Calculate position using the SINGLE canonical hex position function
+            // Calculate position
             let (pos_x, pos_y) = crate::constants::calculate_hex_position(
                 col, row, dimensions.hex_size, 
                 dimensions.provinces_per_row, dimensions.provinces_per_col
             );
             
-            // Position is already centered by calculate_hex_position
-            let x = pos_x;
-            let y = pos_y;
+            let position = Vec2::new(pos_x, pos_y);
             
-            // Generate elevation with improved continental generation
-            let elevation = crate::terrain::generate_elevation_with_edges(
-                x, y, perlin, &tectonics.continent_centers,
+            // STEP 1: Find which tectonic plate this province belongs to
+            let plate = find_plate_for_position(position, &tectonics_arc);
+            
+            // STEP 2: Base elevation from Perlin noise
+            // Get continental plate centers for elevation generation
+            let continent_centers: Vec<(f32, f32)> = tectonics_arc.plates.iter()
+                .filter(|p| p.is_continental)
+                .map(|p| (p.center.x, p.center.y))
+                .collect();
+            
+            let mut elevation = crate::terrain::generate_elevation_with_edges(
+                pos_x, pos_y, perlin, &continent_centers,
                 dimensions.bounds.x_max - dimensions.bounds.x_min,
                 dimensions.bounds.y_max - dimensions.bounds.y_min,
             );
             
+            // STEP 3: Apply tectonic plate elevation boost
+            if let Some(plate) = plate {
+                // Normalize elevation boost to reasonable range
+                let plate_influence = if plate.is_continental {
+                    0.3 + (plate.elevation_boost / 1000.0).clamp(0.0, 0.5)
+                } else {
+                    -0.2 + (plate.elevation_boost / 5000.0).clamp(-0.3, 0.0)
+                };
+                
+                // Blend with existing elevation
+                elevation = elevation * 0.7 + plate_influence * 0.3;
+                
+                // Ancient cores get extra elevation
+                if plate.has_ancient_core {
+                    let dist_to_center = position.distance(plate.center);
+                    let core_influence = (1.0 - (dist_to_center / 500.0).min(1.0)) * 0.2;
+                    elevation += core_influence;
+                }
+            }
+            
+            // STEP 4: Add mountains at plate boundaries
+            if let Some((dist_to_boundary, boundary_type)) = distance_to_nearest_boundary(position, &tectonics_arc) {
+                match boundary_type {
+                    BoundaryType::Convergent { mountain_height, .. } => {
+                        // Mountains near convergent boundaries
+                        if dist_to_boundary < 200.0 {
+                            let mountain_influence = (1.0 - dist_to_boundary / 200.0).powf(2.0);
+                            let height_boost = (mountain_height / 10000.0) * mountain_influence;
+                            elevation = elevation.max(0.5) + height_boost;
+                        }
+                    }
+                    BoundaryType::Divergent { rift_depth } => {
+                        // Rifts and valleys at divergent boundaries
+                        if dist_to_boundary < 150.0 {
+                            let rift_influence = (1.0 - dist_to_boundary / 150.0).powf(2.0);
+                            let depth_reduction = (rift_depth / 5000.0) * rift_influence;
+                            elevation += depth_reduction; // rift_depth is negative
+                        }
+                    }
+                    BoundaryType::Transform => {
+                        // Minor elevation changes at transform boundaries
+                        if dist_to_boundary < 50.0 {
+                            elevation *= 0.95;
+                        }
+                    }
+                }
+            }
+            
+            // STEP 5: Add volcanic islands at hotspots
+            let volcanic_influence = get_volcanic_influence(position, &tectonics_arc);
+            if volcanic_influence > 0.0 {
+                // Volcanoes can create islands even in ocean
+                elevation = elevation.max(0.1) + volcanic_influence * 0.8;
+            }
+            
+            // Clamp final elevation
+            elevation = elevation.clamp(0.0, 1.0);
+            
             // Classify terrain based on elevation and climate
             let terrain = classify_terrain_with_climate(
-                elevation, x, y,
+                elevation, pos_x, pos_y,
                 dimensions.bounds.y_max - dimensions.bounds.y_min,
             );
             
@@ -61,8 +255,7 @@ pub fn generate(
             
             Province {
                 id: province_id,
-                position: Vec2::new(pos_x, pos_y),  // Use proper hex grid position
-                nation_id: None,
+                position,
                 population: base_pop,
                 terrain,
                 elevation,
@@ -72,6 +265,7 @@ pub fn generate(
         })
         .collect();
     
+    println!("Generated {} provinces with tectonic features", provinces.len());
     provinces
 }
 

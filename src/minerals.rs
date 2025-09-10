@@ -9,13 +9,12 @@ use rand::rngs::StdRng;
 use std::collections::HashMap;
 
 use crate::components::{
-    Province, ProvinceResources, ProvinceInfrastructure, 
-    Nation, NationStockpile, NationTechnology,
-    MineralType, TechnologyAge
+    Province, ProvinceResources,
+    MineralType
 };
 use crate::terrain::TerrainType;
 use crate::constants::*;
-use crate::resources::GameTime;
+use crate::generation::tectonics::{TectonicSystem, BoundaryType};
 
 // ============================================================================
 // MINERAL GENERATION CONSTANTS
@@ -260,359 +259,156 @@ fn get_terrain_extraction_bonus(terrain: &TerrainType) -> f32 {
 }
 
 // ============================================================================
-// EXTRACTION SYSTEMS
-// ============================================================================
-
-/// System that handles resource extraction from mines
-pub fn resource_extraction_system(
-    mut provinces: Query<(&Province, &ProvinceResources, &mut ProvinceInfrastructure)>,
-    mut nations: Query<(&Nation, &mut NationStockpile, &NationTechnology)>,
-    time: Res<Time>,
-) {
-    for (province, resources, infrastructure) in provinces.iter_mut() {
-        // Skip if no mine or no nation owns it
-        if infrastructure.mine_level == 0 || province.nation_id.is_none() {
-            continue;
-        }
-        
-        // Find the owning nation
-        let nation_id = province.nation_id.unwrap();
-        for (nation, mut stockpile, technology) in nations.iter_mut() {
-            if nation.id != nation_id {
-                continue;
-            }
-            
-            // Calculate extraction rate based on mine level and technology
-            let base_rate = infrastructure.mine_level as f32 * 0.2;
-            let tech_bonus = technology.mining_efficiency;
-            let worker_efficiency = (infrastructure.workers as f32 / 100.0).min(1.0);
-            
-            let extraction_multiplier = base_rate * tech_bonus * worker_efficiency * time.delta_secs();
-            
-            // Extract each resource
-            if resources.iron > 0 {
-                let extracted = get_extraction_rate(MineralType::Iron) * extraction_multiplier;
-                stockpile.iron += extracted;
-            }
-            
-            if resources.copper > 0 {
-                let extracted = get_extraction_rate(MineralType::Copper) * extraction_multiplier;
-                stockpile.copper += extracted;
-            }
-            
-            if resources.tin > 0 {
-                let extracted = get_extraction_rate(MineralType::Tin) * extraction_multiplier;
-                stockpile.tin += extracted;
-            }
-            
-            if resources.gold > 0 {
-                let extracted = get_extraction_rate(MineralType::Gold) * extraction_multiplier;
-                stockpile.gold += extracted;
-            }
-            
-            if resources.coal > 0 {
-                let extracted = get_extraction_rate(MineralType::Coal) * extraction_multiplier;
-                stockpile.coal += extracted;
-            }
-            
-            if resources.stone > 0 {
-                let extracted = get_extraction_rate(MineralType::Stone) * extraction_multiplier;
-                stockpile.stone += extracted;
-            }
-            
-            if resources.gems > 0 {
-                let extracted = get_extraction_rate(MineralType::Gems) * extraction_multiplier;
-                stockpile.gems += extracted;
-            }
-        }
-    }
-}
-
-/// Get base extraction rate for a mineral type
-fn get_extraction_rate(mineral: MineralType) -> f32 {
-    EXTRACTION_RATES.iter()
-        .find(|(m, _)| *m == mineral)
-        .map(|(_, rate)| *rate)
-        .unwrap_or(1.0)
-}
-
-// ============================================================================
-// TECHNOLOGY PROGRESSION
-// ============================================================================
-
-/// System that advances nation technology based on available resources
-pub fn technology_progression_system(
-    mut nations: Query<(&mut NationTechnology, &NationStockpile)>,
-) {
-    for (mut technology, stockpile) in nations.iter_mut() {
-        // Check if nation can advance to next age
-        let can_advance = match technology.age {
-            TechnologyAge::StoneAge => {
-                // Advance to Copper Age if copper discovered
-                stockpile.copper > 10.0
-            },
-            TechnologyAge::CopperAge => {
-                // Advance to Bronze Age if both copper and tin available
-                stockpile.copper > 20.0 && stockpile.tin > 10.0
-            },
-            TechnologyAge::BronzeAge => {
-                // Advance to Iron Age if iron available
-                stockpile.iron > 30.0
-            },
-            TechnologyAge::IronAge => {
-                // Advance to Steel Age if iron and coal available
-                stockpile.iron > 50.0 && stockpile.coal > 50.0
-            },
-            TechnologyAge::SteelAge => {
-                // Advance to Industrial if massive resources
-                stockpile.steel > 100.0 && stockpile.coal > 200.0
-            },
-            _ => false,
-        };
-        
-        if can_advance {
-            technology.age = match technology.age {
-                TechnologyAge::StoneAge => TechnologyAge::CopperAge,
-                TechnologyAge::CopperAge => TechnologyAge::BronzeAge,
-                TechnologyAge::BronzeAge => TechnologyAge::IronAge,
-                TechnologyAge::IronAge => TechnologyAge::SteelAge,
-                TechnologyAge::SteelAge => TechnologyAge::Industrial,
-                TechnologyAge::Industrial => TechnologyAge::Modern,
-                TechnologyAge::Modern => TechnologyAge::Modern,
-            };
-            
-            // Improve efficiency with each age
-            technology.mining_efficiency *= 1.2;
-            technology.forge_efficiency *= 1.2;
-            
-            println!("Nation advanced to {:?}!", technology.age);
-        }
-    }
-}
-
-// ============================================================================
-// PROCESSING CHAINS
-// ============================================================================
-
-/// System that processes raw materials into alloys
-pub fn resource_processing_system(
-    mut nations: Query<(&mut NationStockpile, &NationTechnology)>,
-    time: Res<Time>,
-) {
-    for (mut stockpile, technology) in nations.iter_mut() {
-        let delta = time.delta_secs();
-        
-        // Bronze production (requires copper + tin)
-        if technology.age as u8 >= TechnologyAge::BronzeAge as u8 {
-            let bronze_rate = 0.5 * technology.forge_efficiency * delta;
-            let max_bronze = (stockpile.copper / 2.0).min(stockpile.tin);
-            if max_bronze > 0.0 {
-                let produced = max_bronze.min(bronze_rate);
-                stockpile.copper -= produced * 2.0;
-                stockpile.tin -= produced;
-                stockpile.bronze += produced;
-            }
-        }
-        
-        // Steel production (requires iron + coal)
-        if technology.age as u8 >= TechnologyAge::SteelAge as u8 {
-            let steel_rate = 0.3 * technology.forge_efficiency * delta;
-            let max_steel = stockpile.iron.min(stockpile.coal);
-            if max_steel > 0.0 {
-                let produced = max_steel.min(steel_rate);
-                stockpile.iron -= produced;
-                stockpile.coal -= produced;
-                stockpile.steel += produced;
-            }
-        }
-    }
-}
-
-// ============================================================================
-// VISUALIZATION HELPERS
-// ============================================================================
-// Note: The overlay rendering system has been moved to overlay.rs
-// This module now only provides mineral-specific calculations and color functions
-
-/// Get abundance value for a specific mineral type
-pub fn get_mineral_abundance(resources: &ProvinceResources, mineral_type: MineralType) -> u8 {
-    match mineral_type {
-        MineralType::Iron => resources.iron,
-        MineralType::Copper => resources.copper,
-        MineralType::Tin => resources.tin,
-        MineralType::Gold => resources.gold,
-        MineralType::Coal => resources.coal,
-        MineralType::Stone => resources.stone,
-        MineralType::Gems => resources.gems,
-        _ => 0, // Bronze and Steel are alloys, not raw resources
-    }
-}
-
-
-
-/// Calculate total mineral richness
-pub fn calculate_total_richness(resources: &ProvinceResources) -> f32 {
-    // Weight different minerals by rarity/value
-    let iron_weight = 1.0;
-    let copper_weight = 1.2;
-    let tin_weight = 3.0;  // Very rare
-    let gold_weight = 5.0;
-    let coal_weight = 0.8;
-    let stone_weight = 0.2;
-    let gems_weight = 10.0;
-    
-    (resources.iron as f32 * iron_weight +
-     resources.copper as f32 * copper_weight +
-     resources.tin as f32 * tin_weight +
-     resources.gold as f32 * gold_weight +
-     resources.coal as f32 * coal_weight +
-     resources.stone as f32 * stone_weight +
-     resources.gems as f32 * gems_weight) / 100.0
-}
-
-
-
-
-// ============================================================================
 // WORLD GENERATION
 // ============================================================================
 
-/// Generate mineral resources for the entire world during setup
-/// This centralizes all mineral generation logic that was previously in setup.rs
-pub fn generate_world_minerals(
+/// Generate mineral resources for the entire world using tectonic data
+pub fn generate_world_minerals_with_tectonics(
     seed: u32,
     provinces: &[Province],
+    tectonics: &TectonicSystem,
 ) -> HashMap<u32, ProvinceResources> {
-    println!("Generating mineral resources...");
+    let mut rng = StdRng::seed_from_u64(seed as u64);
+    let mut ore_veins: HashMap<MineralType, Vec<OreVein>> = HashMap::new();
     
-    // Generate ore veins for each mineral type
-    let mut ore_veins: HashMap<MineralType, Vec<_>> = HashMap::new();
+    // Generate ore veins at tectonic features
     
-    // Iron - common in mountains and hills
-    ore_veins.insert(
-        MineralType::Iron,
-        generate_ore_veins(
-            MineralType::Iron,
-            IRON_VEIN_COUNT,
-            seed.wrapping_add(1000),
-            provinces,
-            iron_terrain_bias,
-        ),
-    );
+    // Iron and copper at convergent boundaries (mountain building)
+    let mut iron_veins = Vec::new();
+    let mut copper_veins = Vec::new();
+    for boundary in &tectonics.boundaries {
+        if matches!(boundary.boundary_type, BoundaryType::Convergent { .. }) {
+            // Place veins along boundary segments
+            for segment in &boundary.segments {
+                for _ in 0..2 {
+                    let t = rng.gen::<f32>();
+                    let pos = segment.start.lerp(segment.end, t);
+                    iron_veins.push(OreVein {
+                        position: pos,
+                        mineral_type: MineralType::Iron,
+                        richness: rng.gen_range(1.0..2.0),
+                    });
+                    if rng.gen_bool(0.5) {
+                        copper_veins.push(OreVein {
+                            position: pos + Vec2::new(rng.gen_range(-50.0..50.0), rng.gen_range(-50.0..50.0)),
+                            mineral_type: MineralType::Copper,
+                            richness: rng.gen_range(0.8..1.5),
+                        });
+                    }
+                }
+            }
+        }
+    }
     
-    // Copper - less common, in mountains and hills
-    ore_veins.insert(
-        MineralType::Copper,
-        generate_ore_veins(
-            MineralType::Copper,
-            COPPER_VEIN_COUNT,
-            seed.wrapping_add(2000),
-            provinces,
-            copper_terrain_bias,
-        ),
-    );
+    // Gold at volcanic hotspots
+    let mut gold_veins = Vec::new();
+    for hotspot in &tectonics.hotspots {
+        if rng.gen_bool(0.3) {  // Gold is rare
+            gold_veins.push(OreVein {
+                position: hotspot.position,
+                mineral_type: MineralType::Gold,
+                richness: rng.gen_range(1.5..3.0),  // Rich deposits
+            });
+        }
+    }
     
-    // Tin - rare, essential for bronze
-    ore_veins.insert(
-        MineralType::Tin,
-        generate_ore_veins(
-            MineralType::Tin,
-            TIN_VEIN_COUNT,
-            seed.wrapping_add(3000),
-            provinces,
-            tin_terrain_bias,
-        ),
-    );
+    // Tin in specific mountain regions (rare)
+    let mut tin_veins = Vec::new();
+    let mountain_provinces: Vec<&Province> = provinces.iter()
+        .filter(|p| p.terrain == TerrainType::Mountains && p.elevation > 0.8)
+        .collect();
+    for _ in 0..TIN_VEIN_COUNT {
+        if let Some(province) = mountain_provinces.choose(&mut rng) {
+            tin_veins.push(OreVein {
+                position: province.position,
+                mineral_type: MineralType::Tin,
+                richness: rng.gen_range(1.0..2.0),
+            });
+        }
+    }
     
-    // Gold - rare, in high mountains
-    ore_veins.insert(
-        MineralType::Gold,
-        generate_ore_veins(
-            MineralType::Gold,
-            GOLD_VEIN_COUNT,
-            seed.wrapping_add(4000),
-            provinces,
-            gold_terrain_bias,
-        ),
-    );
+    // Coal in ancient lowlands
+    let mut coal_veins = Vec::new();
+    let lowland_provinces: Vec<&Province> = provinces.iter()
+        .filter(|p| (p.terrain == TerrainType::Forest || p.terrain == TerrainType::Plains) && p.elevation < 0.4)
+        .collect();
+    for _ in 0..COAL_DEPOSIT_COUNT {
+        if let Some(province) = lowland_provinces.choose(&mut rng) {
+            coal_veins.push(OreVein {
+                position: province.position,
+                mineral_type: MineralType::Coal,
+                richness: rng.gen_range(0.8..1.5),
+            });
+        }
+    }
     
-    // Coal - in ancient swamps (lowland forests)
-    ore_veins.insert(
-        MineralType::Coal,
-        generate_ore_veins(
-            MineralType::Coal,
-            COAL_DEPOSIT_COUNT,
-            seed.wrapping_add(5000),
-            provinces,
-            coal_terrain_bias,
-        ),
-    );
+    // Gems at the highest peaks
+    let mut gem_veins = Vec::new();
+    let peak_provinces: Vec<&Province> = provinces.iter()
+        .filter(|p| p.terrain == TerrainType::Mountains && p.elevation > 0.9)
+        .collect();
+    for _ in 0..GEM_VEIN_COUNT {
+        if let Some(province) = peak_provinces.choose(&mut rng) {
+            gem_veins.push(OreVein {
+                position: province.position,
+                mineral_type: MineralType::Gems,
+                richness: rng.gen_range(2.0..3.0),  // Very rich but rare
+            });
+        }
+    }
     
-    // Gems - very rare, highest peaks only
-    ore_veins.insert(
-        MineralType::Gems,
-        generate_ore_veins(
-            MineralType::Gems,
-            GEM_VEIN_COUNT,
-            seed.wrapping_add(6000),
-            provinces,
-            gem_terrain_bias,
-        ),
-    );
+    // Store veins in HashMap
+    ore_veins.insert(MineralType::Iron, iron_veins);
+    ore_veins.insert(MineralType::Copper, copper_veins);
+    ore_veins.insert(MineralType::Tin, tin_veins);
+    ore_veins.insert(MineralType::Gold, gold_veins);
+    ore_veins.insert(MineralType::Coal, coal_veins);
+    ore_veins.insert(MineralType::Gems, gem_veins);
     
     // Calculate resources for each province
-    let mut province_resources: HashMap<u32, ProvinceResources> = HashMap::new();
-    for province in provinces.iter() {
+    let mut minerals = HashMap::new();
+    for province in provinces {
         let resources = calculate_province_resources(province, &ore_veins);
-        province_resources.insert(province.id, resources);
+        minerals.insert(province.id, resources);
     }
     
-    // Log mineral distribution statistics
-    let total_iron: u32 = province_resources.values().map(|r| r.iron as u32).sum();
-    let total_copper: u32 = province_resources.values().map(|r| r.copper as u32).sum();
-    let total_tin: u32 = province_resources.values().map(|r| r.tin as u32).sum();
-    let total_gold: u32 = province_resources.values().map(|r| r.gold as u32).sum();
-    let total_coal: u32 = province_resources.values().map(|r| r.coal as u32).sum();
-    let total_gems: u32 = province_resources.values().map(|r| r.gems as u32).sum();
-    
-    println!("Mineral distribution:");
-    println!("  Iron: {} units across provinces", total_iron);
-    println!("  Copper: {} units", total_copper);
-    println!("  Tin: {} units (rare!)", if total_tin < 60000 { 
-        format!("{}", total_tin) 
-    } else { 
-        total_tin.to_string() 
-    });
-    println!("  Gold: {} units", total_gold);
-    println!("  Coal: {} units", total_coal);
-    println!("  Gems: {} units (very rare!)", if total_gems < 20000 { 
-        format!("{}", total_gems) 
-    } else { 
-        total_gems.to_string() 
-    });
-    
-    province_resources
+    minerals
 }
 
 // ============================================================================
-// PLUGIN
+// HELPER FUNCTIONS FOR OVERLAY
 // ============================================================================
 
-/// Check if we should update mineral systems (every 50 days)
-fn should_update_minerals(game_time: Res<GameTime>) -> bool {
-    !game_time.paused && game_time.current_date as u64 % 50 == 0
+/// Get mineral abundance for a specific province and mineral type
+pub fn get_mineral_abundance(
+    province_id: u32,
+    mineral_type: MineralType,
+    minerals: &HashMap<u32, ProvinceResources>,
+) -> u8 {
+    minerals.get(&province_id)
+        .map(|resources| match mineral_type {
+            MineralType::Iron => resources.iron,
+            MineralType::Copper => resources.copper,
+            MineralType::Tin => resources.tin,
+            MineralType::Gold => resources.gold,
+            MineralType::Coal => resources.coal,
+            MineralType::Stone => resources.stone,
+            MineralType::Gems => resources.gems,
+            _ => 0,
+        })
+        .unwrap_or(0)
 }
 
-/// Plugin that manages all mineral-related systems
-pub struct MineralPlugin;
-
-impl Plugin for MineralPlugin {
-    fn build(&self, app: &mut App) {
-        app
-            .add_systems(Update, (
-                resource_extraction_system.run_if(should_update_minerals),
-                technology_progression_system.run_if(should_update_minerals),
-                resource_processing_system.run_if(should_update_minerals),
-            ).chain());
-    }
+/// Calculate total mineral richness for a province
+pub fn calculate_total_richness(resources: &ProvinceResources) -> f32 {
+    // Weighted sum of all minerals
+    let iron_value = resources.iron as f32 * 1.0;
+    let copper_value = resources.copper as f32 * 1.5;
+    let tin_value = resources.tin as f32 * 3.0;  // Rare
+    let gold_value = resources.gold as f32 * 10.0;  // Very valuable
+    let coal_value = resources.coal as f32 * 0.8;
+    let stone_value = resources.stone as f32 * 0.2;  // Common
+    let gem_value = resources.gems as f32 * 20.0;  // Extremely valuable
+    
+    (iron_value + copper_value + tin_value + gold_value + coal_value + stone_value + gem_value) / 100.0
 }

@@ -28,10 +28,9 @@ pub mod prelude {
     pub use crate::camera::CameraPlugin;
     pub use crate::clouds::CloudPlugin;
     pub use crate::components::{
-        Province, Nation, SelectedProvince,
+        Province, SelectedProvince,
         TileInfoPanel, TileInfoText,
-        ProvinceResources, ProvinceInfrastructure, NationStockpile,
-        NationTechnology, MineralType, TechnologyAge, EquipmentTier,
+        ProvinceResources, MineralType,
     };
     pub use crate::constants::*;
     pub use crate::resources::{
@@ -52,7 +51,7 @@ pub mod prelude {
     };
     // pub use crate::ui::{UIPlugin};
     pub use crate::music::{ProceduralMusicPlugin, MusicState};
-    pub use crate::minerals::{MineralPlugin, generate_ore_veins, calculate_province_resources};
+    pub use crate::minerals::{generate_ore_veins, calculate_province_resources};
     pub use crate::overlay::OverlayPlugin;
     pub use crate::simulation::SimulationPlugin;
 }
@@ -65,7 +64,6 @@ use bevy::audio::AudioPlugin;
 use crate::borders::BorderPlugin;
 use crate::camera::CameraPlugin;
 use crate::clouds::CloudPlugin;
-use crate::minerals::MineralPlugin;
 // use crate::music::ProceduralMusicPlugin;  // Temporarily disabled
 use crate::overlay::OverlayPlugin;
 use crate::simulation::SimulationPlugin;
@@ -98,7 +96,6 @@ pub fn build_app() -> App {
     // Add all Living Worlds game plugins
     app.add_plugins(CloudPlugin)
         .add_plugins(TerrainPlugin)
-        .add_plugins(MineralPlugin)
         .add_plugins(OverlayPlugin)
         .add_plugins(SimulationPlugin)
         .add_plugins(UIPlugin)

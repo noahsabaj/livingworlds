@@ -159,8 +159,7 @@ pub fn get_mineral_color(mineral_type: MineralType) -> Color {
         MineralType::Coal => Color::srgb(0.2, 0.2, 0.2),      // Dark grey
         MineralType::Stone => Color::srgb(0.6, 0.6, 0.6),     // Medium grey
         MineralType::Gems => Color::srgb(0.6, 0.2, 0.9),      // Purple
-        MineralType::Bronze => Color::srgb(0.8, 0.5, 0.3),    // Bronze alloy
-        MineralType::Steel => Color::srgb(0.7, 0.75, 0.8),    // Steel grey-blue
+        // Bronze and Steel removed with Nation systems
     }
 }
 

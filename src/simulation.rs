@@ -175,8 +175,7 @@ fn calculate_world_tension(
         .count() as f32;
     let complexity_factor = (land_provinces / 10000.0).min(0.1); // Max 10% from world size
     
-    // Calculate percentage of nations at war (mock calculation)
-    // TODO: Replace with actual nation conflict tracking
+    // Calculate simulated conflict level based on time cycles and world complexity
     let base_war_percentage = (
         time_factor + 
         war_cycle * 0.3 + 

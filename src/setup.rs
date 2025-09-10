@@ -105,6 +105,9 @@ pub fn setup_world(
         .map(|(idx, p)| (p.id, idx))
         .collect();
     
+    // Get total provinces count before moving
+    let total_provinces = generated_world.provinces.len();
+    
     // Store provinces for later access - MOVE ownership instead of cloning!
     commands.insert_resource(ProvinceStorage {
         provinces: generated_world.provinces,  // Move, not clone - saves 36MB!
@@ -116,13 +119,17 @@ pub fn setup_world(
     commands.insert_resource(WorldMeshHandle(mesh_handle));
     
     // Store minerals in the MineralStorage resource for overlay access
+    // Convert HashMap to Vec for O(1) indexed access
+    let mut mineral_vec = vec![None; total_provinces];
+    for (province_id, resources) in generated_world.minerals {
+        if (province_id as usize) < total_provinces {
+            mineral_vec[province_id as usize] = Some(resources);
+        }
+    }
     let mineral_storage = crate::resources::MineralStorage {
-        resources: generated_world.minerals,
+        resources: mineral_vec,
     };
     commands.insert_resource(mineral_storage);
-    
-    // Initialize empty infrastructure storage (will be populated during gameplay)
-    commands.insert_resource(crate::resources::InfrastructureStorage::default());
     
     println!("Generated world with {} provinces, {} land tiles", 
              total_provinces, land_count);

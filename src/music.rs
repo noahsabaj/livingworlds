@@ -55,19 +55,6 @@ impl MusicState {
             Self::Apocalypse => "Total war consumes the world",
         }
     }
-    
-    fn color(&self) -> Color {
-        match self {
-            Self::Silence => Color::srgb(0.1, 0.1, 0.1),
-            Self::Dawn => Color::srgb(0.3, 0.2, 0.4),
-            Self::Peace => Color::srgb(0.2, 0.6, 0.2),
-            Self::Growth => Color::srgb(0.4, 0.7, 0.3),
-            Self::Competition => Color::srgb(0.7, 0.7, 0.2),
-            Self::Conflict => Color::srgb(0.8, 0.5, 0.2),
-            Self::Crisis => Color::srgb(0.9, 0.3, 0.1),
-            Self::Apocalypse => Color::srgb(1.0, 0.0, 0.0),
-        }
-    }
 }
 
 /// Setup the music system
