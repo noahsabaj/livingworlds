@@ -60,7 +60,6 @@ pub fn update_province_colors(
             }
         },
         ResourceOverlay::AllMinerals => &cached_colors.all_minerals,
-        ResourceOverlay::Infrastructure => &cached_colors.infrastructure,
     };
     
     let selection_time = start.elapsed() - mesh_lookup_time;
@@ -104,14 +103,17 @@ pub struct OverlayPlugin;
 
 impl Plugin for OverlayPlugin {
     fn build(&self, app: &mut App) {
+        use crate::states::GameState;
+        
         app
             .init_resource::<ResourceOverlay>()
             .init_resource::<crate::resources::CachedOverlayColors>()
-            .add_systems(PostStartup, precalculate_overlay_colors)
+            // Precalculate colors ONCE during world loading, not on every resume from pause
+            .add_systems(OnExit(GameState::LoadingWorld), precalculate_overlay_colors)
             .add_systems(Update, (
                 handle_overlay_input,
                 update_province_colors.run_if(resource_changed::<ResourceOverlay>),
-            ));
+            ).run_if(in_state(GameState::InGame)));
     }
 }
 
@@ -189,9 +191,6 @@ pub fn precalculate_overlay_colors(
                             get_terrain_color_gradient(province.terrain, province.elevation)
                         }
                     },
-                    ResourceOverlay::Infrastructure => {
-                        get_terrain_color_gradient(province.terrain, province.elevation)
-                    },
                 };
                 
                 let linear = province_color.to_linear();
@@ -212,7 +211,6 @@ pub fn precalculate_overlay_colors(
     cached_colors.stone = calculate_overlay(ResourceOverlay::Mineral(MineralType::Stone));
     cached_colors.gems = calculate_overlay(ResourceOverlay::Mineral(MineralType::Gems));
     cached_colors.all_minerals = calculate_overlay(ResourceOverlay::AllMinerals);
-    cached_colors.infrastructure = calculate_overlay(ResourceOverlay::Infrastructure);
     
     let elapsed = start.elapsed();
     println!("Pre-calculated all overlay colors in {:.2}s", elapsed.as_secs_f32());

@@ -515,13 +515,15 @@ fn spawn_clouds_from_data(
 
 impl Plugin for CloudPlugin {
     fn build(&self, app: &mut App) {
+        use crate::states::GameState;
+        
         app
             .init_resource::<WeatherSystem>()
-            .add_systems(PostStartup, spawn_clouds_from_data)
+            .add_systems(OnEnter(GameState::InGame), spawn_clouds_from_data)
             .add_systems(Update, (
                 update_weather_system,
                 animate_clouds,
                 dynamic_cloud_spawn_system,
-            ).chain());
+            ).chain().run_if(in_state(GameState::InGame)));
     }
 }

@@ -25,17 +25,19 @@ pub struct BorderPlugin;
 
 impl Plugin for BorderPlugin {
     fn build(&self, app: &mut App) {
+        use crate::states::GameState;
+        
         app
             // Resources
             .init_resource::<SelectionBorder>()
             .init_resource::<SelectedProvinceInfo>()
             
             // Systems
-            .add_systems(PostStartup, setup_selection_border)
+            .add_systems(OnEnter(GameState::InGame), setup_selection_border)
             .add_systems(Update, (
                 handle_tile_selection,
                 update_selection_border,
-            ));
+            ).run_if(in_state(GameState::InGame)));
     }
 }
 

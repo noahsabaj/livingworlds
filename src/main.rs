@@ -67,7 +67,8 @@ fn main() {
         .insert_resource(WorldSeed(seed))
         .insert_resource(world_size_enum)
         .insert_resource(map_dimensions)
-        .add_systems(Startup, setup_world)
+        // Auto-transition disabled to allow menu interaction
+        // .add_systems(Update, test_state_transitions)
         .run();
 }
 
@@ -86,4 +87,72 @@ fn setup_thread_pool() {
     println!("Initialized with {} parallel threads (of {} cores total)", 
              num_threads, 
              std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4));
+}
+
+/// Temporary system to test state transitions
+/// This will auto-transition through states to test the flow
+fn test_state_transitions(
+    current_state: Res<State<GameState>>,
+    mut events: EventWriter<RequestStateTransition>,
+    time: Res<Time>,
+    mut timer: Local<f32>,
+) {
+    use bevy::state::state::State;
+    
+    *timer += time.delta_secs();
+    
+    // Auto-transition through states for testing
+    match **current_state {
+        GameState::Loading => {
+            // After 0.5 seconds, go to MainMenu
+            if *timer > 0.5 {
+                println!("TEST: Transitioning to MainMenu");
+                events.send(RequestStateTransition {
+                    from: GameState::Loading,
+                    to: GameState::MainMenu,
+                });
+                *timer = 0.0;
+            }
+        }
+        GameState::MainMenu => {
+            // After 1 second in menu, go to WorldGeneration
+            if *timer > 1.0 {
+                println!("TEST: Transitioning to WorldGeneration");
+                events.send(RequestStateTransition {
+                    from: GameState::MainMenu,
+                    to: GameState::WorldGeneration,
+                });
+                *timer = 0.0;
+            }
+        }
+        GameState::WorldGeneration => {
+            // After 0.5 seconds, go to LoadingWorld
+            if *timer > 0.5 {
+                println!("TEST: Transitioning to LoadingWorld");
+                events.send(RequestStateTransition {
+                    from: GameState::WorldGeneration,
+                    to: GameState::LoadingWorld,
+                });
+                *timer = 0.0;
+            }
+        }
+        GameState::LoadingWorld => {
+            // After world loads, go to InGame (handled by world generation completion)
+            // For now, just transition after 0.5 seconds
+            if *timer > 0.5 {
+                println!("TEST: Transitioning to InGame");
+                events.send(RequestStateTransition {
+                    from: GameState::LoadingWorld,
+                    to: GameState::InGame,
+                });
+                *timer = 0.0;
+            }
+        }
+        GameState::InGame => {
+            // Stay in game, could test pause with ESC key
+        }
+        GameState::Paused => {
+            // Would resume or go to menu
+        }
+    }
 }

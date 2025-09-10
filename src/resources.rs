@@ -349,8 +349,6 @@ pub struct CachedOverlayColors {
     pub gems: Vec<[f32; 4]>,
     /// Combined mineral richness
     pub all_minerals: Vec<[f32; 4]>,
-    /// Infrastructure (placeholder for now)
-    pub infrastructure: Vec<[f32; 4]>,
 }
 
 
@@ -367,8 +365,6 @@ pub enum ResourceOverlay {
     Mineral(MineralType),
     /// Show all minerals combined (richness heat map)
     AllMinerals,
-    /// Show extraction infrastructure (mine levels)
-    Infrastructure,
 }
 
 impl Default for ResourceOverlay {
@@ -389,8 +385,7 @@ impl ResourceOverlay {
             ResourceOverlay::Mineral(MineralType::Coal) => ResourceOverlay::Mineral(MineralType::Stone),
             ResourceOverlay::Mineral(MineralType::Stone) => ResourceOverlay::Mineral(MineralType::Gems),
             ResourceOverlay::Mineral(MineralType::Gems) => ResourceOverlay::AllMinerals,
-            ResourceOverlay::AllMinerals => ResourceOverlay::Infrastructure,
-            ResourceOverlay::Infrastructure => ResourceOverlay::None,
+            ResourceOverlay::AllMinerals => ResourceOverlay::None,
             _ => ResourceOverlay::None,
         }
     }
@@ -407,7 +402,6 @@ impl ResourceOverlay {
             ResourceOverlay::Mineral(MineralType::Stone) => "Stone Deposits",
             ResourceOverlay::Mineral(MineralType::Gems) => "Gem Deposits",
             ResourceOverlay::AllMinerals => "All Minerals",
-            ResourceOverlay::Infrastructure => "Mining Infrastructure",
             _ => "Unknown",
         }
     }

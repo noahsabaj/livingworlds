@@ -111,8 +111,8 @@ pub fn iron_terrain_bias(terrain: &TerrainType, elevation: f32) -> f32 {
     match terrain {
         TerrainType::Mountains => 3.0,
         TerrainType::Hills => 2.0,
+        TerrainType::Tundra => 2.5,  // Arctic regions are iron-rich (Siberia, Sweden)
         TerrainType::Desert if elevation > 0.5 => 1.5,
-        TerrainType::Tundra if elevation > 0.6 => 1.0,
         _ => 0.0,
     }
 }
@@ -121,6 +121,7 @@ pub fn copper_terrain_bias(terrain: &TerrainType, elevation: f32) -> f32 {
     match terrain {
         TerrainType::Mountains => 2.0,
         TerrainType::Hills => 1.5,
+        TerrainType::Tundra => 1.8,  // Arctic copper deposits (Alaska, Russia)
         TerrainType::Desert if elevation > 0.4 => 1.0,
         _ => 0.0,
     }
@@ -131,33 +132,37 @@ pub fn tin_terrain_bias(terrain: &TerrainType, elevation: f32) -> f32 {
     match terrain {
         TerrainType::Mountains if elevation > 0.8 => 4.0,
         TerrainType::Hills if elevation > 0.65 => 1.0,
+        TerrainType::Tundra if elevation > 0.6 => 0.8,  // Some arctic tin deposits
         _ => 0.0,
     }
 }
 
 pub fn gold_terrain_bias(terrain: &TerrainType, elevation: f32) -> f32 {
-    // Gold only in high mountains and rivers
+    // Gold in high mountains, rivers, and arctic regions
     match terrain {
         TerrainType::Mountains if elevation > 0.85 => 5.0,
         TerrainType::River if elevation > 0.4 => 2.0,  // Alluvial gold
+        TerrainType::Tundra if elevation > 0.65 => 1.5,  // Arctic gold (Alaska, Yukon)
         _ => 0.0,
     }
 }
 
 pub fn coal_terrain_bias(terrain: &TerrainType, elevation: f32) -> f32 {
-    // Coal in ancient swamps - low elevation forests/plains
+    // Coal in ancient swamps and permafrost regions
     match terrain {
         TerrainType::Forest if elevation < 0.4 => 3.0,
         TerrainType::Plains if elevation < 0.35 => 2.0,
+        TerrainType::Tundra if elevation < 0.5 => 2.0,  // Permafrost coal (Siberia)
         TerrainType::Jungle if elevation < 0.3 => 1.5,
         _ => 0.0,
     }
 }
 
 pub fn gem_terrain_bias(terrain: &TerrainType, elevation: f32) -> f32 {
-    // Gems only in the highest peaks
+    // Gems in the highest peaks and frozen tundra
     match terrain {
         TerrainType::Mountains if elevation > 0.9 => 10.0,
+        TerrainType::Tundra if elevation > 0.7 => 3.0,  // Arctic diamonds (Canada, Russia)
         _ => 0.0,
     }
 }
@@ -177,6 +182,7 @@ pub fn calculate_province_resources(
     resources.stone = match province.terrain {
         TerrainType::Mountains => 80,
         TerrainType::Hills => 60,
+        TerrainType::Tundra => 50,  // Arctic regions have exposed bedrock
         TerrainType::Desert => 40,
         TerrainType::Beach => 30,
         _ => 20,

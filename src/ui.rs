@@ -18,14 +18,26 @@ pub struct UIPlugin;
 
 impl Plugin for UIPlugin {
     fn build(&self, app: &mut App) {
+        use crate::states::GameState;
+        
         app
-            .add_systems(Startup, setup_ui)
+            .add_systems(OnEnter(GameState::InGame), setup_ui)
+            .add_systems(OnExit(GameState::InGame), cleanup_game_ui)
             .add_systems(Update, (
                 update_overlay_display,
+                update_mineral_legend_visibility.run_if(resource_changed::<ResourceOverlay>),
                 update_tile_info_ui.run_if(resource_changed::<SelectedProvinceInfo>),
-            ));
+            ).run_if(in_state(GameState::InGame)));
     }
 }
+
+/// Marker component for all in-game UI elements for easy cleanup
+#[derive(Component)]
+pub struct GameUIRoot;
+
+/// Marker component for the mineral legend container
+#[derive(Component)]
+pub struct MineralLegendContainer;
 
 /// Setup the UI elements
 pub fn setup_ui(mut commands: Commands) {
@@ -43,6 +55,7 @@ pub fn setup_ui(mut commands: Commands) {
         },
         BackgroundColor(Color::srgba(0.05, 0.05, 0.05, 0.85)),
         ZIndex(100),
+        GameUIRoot,  // Mark for cleanup
     )).with_children(|parent| {
         // Current overlay display
         parent.spawn((
@@ -74,39 +87,49 @@ pub fn setup_ui(mut commands: Commands) {
             BackgroundColor(Color::srgba(1.0, 1.0, 1.0, 0.2)),
         ));
         
-        // Mineral legend with colored squares
-        // Title for legend
+        // Mineral legend container (will be hidden/shown based on overlay)
+        // Create mineral legend container that can be hidden
         parent.spawn((
             Node {
-                margin: UiRect::bottom(Val::Px(4.0)),
+                flex_direction: FlexDirection::Column,
+                display: Display::None,  // Start hidden
                 ..default()
             },
             BackgroundColor(Color::NONE),
-        )).with_children(|p| {
-            p.spawn((
-                Text::new("Mineral Legend:"),
-                TextFont {
-                    font_size: 14.0,
+            MineralLegendContainer,
+        )).with_children(|legend_parent| {
+            // Title for legend
+            legend_parent.spawn((
+                Node {
+                    margin: UiRect::bottom(Val::Px(4.0)),
                     ..default()
                 },
-                TextColor(Color::srgba(0.8, 0.8, 0.8, 1.0)),
-            ));
-        });
-        
-        // Define minerals with their colors and chemical symbols
-        let minerals = [
+                BackgroundColor(Color::NONE),
+            )).with_children(|p| {
+                p.spawn((
+                    Text::new("Mineral Legend:"),
+                    TextFont {
+                        font_size: 14.0,
+                        ..default()
+                    },
+                    TextColor(Color::srgba(0.8, 0.8, 0.8, 1.0)),
+                ));
+            });
+            
+            // Define minerals with their colors and chemical symbols
+            let minerals = [
             (MineralType::Iron, "Fe", Color::srgb(0.7, 0.3, 0.2)),      // Rusty brown
             (MineralType::Copper, "Cu", Color::srgb(0.7, 0.4, 0.2)),    // Copper orange
             (MineralType::Tin, "Sn", Color::srgb(0.6, 0.6, 0.7)),       // Silver-grey
             (MineralType::Gold, "Au", Color::srgb(1.0, 0.84, 0.0)),     // Gold
             (MineralType::Coal, "C", Color::srgb(0.2, 0.2, 0.2)),       // Black
             (MineralType::Stone, "Si", Color::srgb(0.5, 0.5, 0.5)),     // Grey
-            (MineralType::Gems, "💎", Color::srgb(0.5, 0.2, 0.9)),      // Purple
-        ];
-        
-        // Create a row for each mineral
-        for (_mineral_type, symbol, color) in minerals.iter() {
-            parent.spawn((
+            (MineralType::Gems, "Gm", Color::srgb(0.5, 0.2, 0.9)),      // Purple
+            ];
+            
+            // Create a row for each mineral
+            for (_mineral_type, symbol, color) in minerals.iter() {
+                legend_parent.spawn((
                 Node {
                     flex_direction: FlexDirection::Row,
                     align_items: AlignItems::Center,
@@ -170,7 +193,8 @@ pub fn setup_ui(mut commands: Commands) {
                     TextColor(Color::srgba(0.7, 0.7, 0.7, 1.0)),
                 ));
             });
-        }
+            }
+        });
     });
     
     // Tile info panel - moved to bottom-right to avoid overlap
@@ -186,6 +210,7 @@ pub fn setup_ui(mut commands: Commands) {
         BackgroundColor(COLOR_TILE_INFO_BACKGROUND),
         TileInfoPanel,
         ZIndex(100),
+        GameUIRoot,  // Mark for cleanup
     )).with_children(|parent| {
         parent.spawn((
             Text::new("Click a tile to see info"),
@@ -209,6 +234,7 @@ pub fn setup_ui(mut commands: Commands) {
         },
         BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.6)),
         ZIndex(100),
+        GameUIRoot,  // Mark for cleanup
     )).with_children(|parent| {
         parent.spawn((
             Text::new("M - Cycle Resource Overlay | Space - Pause | 1-4 - Speed | ESC - Exit"),
@@ -264,5 +290,30 @@ pub fn update_tile_info_ui(
         } else {
             *text = Text::new("Click a tile to see info");
         }
+    }
+}
+
+/// Update mineral legend visibility based on current overlay
+pub fn update_mineral_legend_visibility(
+    overlay: Res<ResourceOverlay>,
+    mut legend_query: Query<&mut Node, With<MineralLegendContainer>>,
+) {
+    if let Ok(mut node) = legend_query.get_single_mut() {
+        // Only show legend when viewing mineral overlays
+        node.display = match *overlay {
+            ResourceOverlay::Mineral(_) | ResourceOverlay::AllMinerals => Display::Flex,
+            _ => Display::None,
+        };
+    }
+}
+
+/// Cleanup all game UI elements when leaving InGame state
+pub fn cleanup_game_ui(
+    mut commands: Commands,
+    ui_query: Query<Entity, With<GameUIRoot>>,
+) {
+    println!("Cleaning up game UI elements");
+    for entity in &ui_query {
+        commands.entity(entity).despawn_recursive();
     }
 }

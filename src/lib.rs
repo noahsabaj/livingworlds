@@ -12,13 +12,16 @@ pub mod colors;
 pub mod components;
 pub mod constants;
 pub mod generation;
+pub mod menus;
 pub mod minerals;
 pub mod music;
 pub mod overlay;
 pub mod resources;
+pub mod settings;
 pub mod simulation;
 pub mod mesh;
 pub mod setup;
+pub mod states;
 pub mod terrain;
 pub mod ui;
 
@@ -39,6 +42,11 @@ pub mod prelude {
     };
     pub use crate::setup::setup_world;
     pub use crate::mesh::ProvinceStorage;
+    pub use crate::states::{
+        StatesPlugin, GameState, MenuState, 
+        RequestStateTransition, MenuEvent,
+        request_transition, is_in_menu, is_gameplay_active,
+    };
     pub use crate::terrain::{
         TerrainPlugin, TerrainType, ClimateZone,
         get_terrain_population_multiplier,
@@ -59,14 +67,18 @@ pub mod prelude {
 use bevy::prelude::*;
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, DiagnosticsStore};
 use bevy::audio::AudioPlugin;
+use bevy_pkv::PkvStore;
 
 // Import our plugins
 use crate::borders::BorderPlugin;
 use crate::camera::CameraPlugin;
 use crate::clouds::CloudPlugin;
+use crate::menus::MenusPlugin;
 // use crate::music::ProceduralMusicPlugin;  // Temporarily disabled
 use crate::overlay::OverlayPlugin;
+use crate::settings::SettingsPlugin;
 use crate::simulation::SimulationPlugin;
+use crate::states::StatesPlugin;
 use crate::terrain::TerrainPlugin;
 use crate::ui::UIPlugin;
 
@@ -91,10 +103,15 @@ pub fn build_app() -> App {
             .disable::<AudioPlugin>()  // Disable audio to prevent ALSA underruns
     )
     .add_plugins(FrameTimeDiagnosticsPlugin::default())
-    .add_systems(Update, display_fps);
+    .add_systems(Update, display_fps)
+    // Add settings persistence
+    .insert_resource(PkvStore::new("LivingWorlds", "LivingWorlds"));
     
     // Add all Living Worlds game plugins
-    app.add_plugins(CloudPlugin)
+    app.add_plugins(StatesPlugin)  // State management system (must be first)
+        .add_plugins(MenusPlugin)   // Menu UI system (needs states)
+        .add_plugins(SettingsPlugin) // Settings menu system
+        .add_plugins(CloudPlugin)
         .add_plugins(TerrainPlugin)
         .add_plugins(OverlayPlugin)
         .add_plugins(SimulationPlugin)

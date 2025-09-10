@@ -10,16 +10,19 @@ use bevy::input::mouse::{MouseScrollUnit, MouseWheel, MouseMotion};
 use bevy::window::{PrimaryWindow, CursorGrabMode};
 use crate::constants::*;
 use crate::resources::MapDimensions;
+use crate::states::{GameState, RequestStateTransition};
 
 /// Camera control plugin for managing viewport and camera movement
 pub struct CameraPlugin;
 
 impl Plugin for CameraPlugin {
     fn build(&self, app: &mut App) {
+        use crate::states::GameState;
+        
         app
             .init_resource::<CameraBounds>()
             .init_resource::<WindowFocusState>()
-            .add_systems(Startup, (setup_camera, setup_cursor_confinement))
+            .add_systems(Startup, setup_camera)
             .add_systems(Update, (
                 // Input gathering systems
                 handle_keyboard_input,
@@ -32,8 +35,9 @@ impl Plugin for CameraPlugin {
                 // Movement and interpolation
                 apply_smooth_movement,
                 apply_camera_bounds,
-            ).chain())  // Chain ensures proper ordering
-            .add_systems(PostStartup, calculate_camera_bounds);
+            ).chain().run_if(in_state(GameState::InGame)))  // Only run camera controls in game
+            .add_systems(OnEnter(GameState::InGame), (calculate_camera_bounds, setup_cursor_confinement))
+            .add_systems(OnExit(GameState::InGame), release_cursor_confinement);
     }
 }
 
@@ -97,6 +101,7 @@ pub fn setup_camera(mut commands: Commands) {
     // Add 2D camera with custom clear color and controller
     commands.spawn((
         Camera2d,
+        IsDefaultUiCamera,  // Required for UI text to render
         Camera {
             clear_color: ClearColorConfig::Custom(COLOR_OCEAN_BACKGROUND),
             ..default()
@@ -104,6 +109,7 @@ pub fn setup_camera(mut commands: Commands) {
         Transform::from_xyz(0.0, 0.0, 0.0),
         CameraController::default(),
         Name::new("Main Camera"),
+        // NOTE: Camera must NOT have GameWorld component - it needs to persist across all states!
     ));
 }
 
@@ -131,11 +137,17 @@ fn handle_keyboard_input(
     mut query: Query<&mut CameraController>,
     keyboard: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
-    mut exit: EventWriter<AppExit>,
+    current_state: Res<State<GameState>>,
+    mut state_events: EventWriter<RequestStateTransition>,
 ) {
-    // ESC to exit
+    
+    // ESC to pause the game (not exit directly)
     if keyboard.just_pressed(KeyCode::Escape) {
-        exit.send(AppExit::Success);
+        println!("ESC pressed - pausing game");
+        state_events.write(RequestStateTransition {
+            from: GameState::InGame,
+            to: GameState::Paused,
+        });
         return;
     }
     
@@ -370,13 +382,23 @@ fn apply_camera_bounds(
     }
 }
 
-/// Setup cursor confinement on startup to keep mouse within window for edge panning
+/// Setup cursor confinement when entering gameplay to keep mouse within window for edge panning
 fn setup_cursor_confinement(
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
 ) {
     if let Ok(mut window) = windows.get_single_mut() {
         // Confine cursor to window bounds - perfect for strategy games
         window.cursor_options.grab_mode = CursorGrabMode::Confined;
+    }
+}
+
+/// Release cursor confinement when leaving gameplay (entering menus)
+fn release_cursor_confinement(
+    mut windows: Query<&mut Window, With<PrimaryWindow>>,
+) {
+    if let Ok(mut window) = windows.get_single_mut() {
+        // Release cursor for menu navigation and alt-tab
+        window.cursor_options.grab_mode = CursorGrabMode::None;
     }
 }
 

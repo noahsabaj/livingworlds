@@ -53,6 +53,7 @@ pub fn setup_world(
         ViewVisibility::default(),
         InheritedVisibility::default(),
         Name::new("World Mega-Mesh"),
+        crate::components::GameWorld,  // Mark as game world entity
     ));
     
     println!("Mega-mesh built in {:.2}s - ONE entity instead of 900,000!", 

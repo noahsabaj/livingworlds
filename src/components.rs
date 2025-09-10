@@ -35,6 +35,10 @@ pub struct TileInfoPanel;
 #[derive(Component)]
 pub struct TileInfoText;
 
+/// Marker component for all game world entities that should be cleaned up when leaving the game
+#[derive(Component)]
+pub struct GameWorld;
+
 // ============================================================================
 // RESOURCE COMPONENTS - Mineral wealth and infrastructure
 // ============================================================================

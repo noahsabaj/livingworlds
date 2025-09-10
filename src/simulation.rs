@@ -15,18 +15,20 @@ pub struct SimulationPlugin;
 
 impl Plugin for SimulationPlugin {
     fn build(&self, app: &mut App) {
+        use crate::states::GameState;
+        
         app
             // Initialize simulation resources
             .init_resource::<GameTime>()
             .init_resource::<WorldTension>()
             
-            // Simulation systems run in order
+            // Simulation systems run in order - only during gameplay
             .add_systems(Update, (
                 time_control_system,
                 advance_time_system,
                 population_growth_system.run_if(should_update_population),
                 calculate_world_tension.run_if(should_update_tension),
-            ).chain());
+            ).chain().run_if(in_state(GameState::InGame)));
     }
 }
 
