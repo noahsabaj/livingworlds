@@ -7,6 +7,7 @@
 use bevy::prelude::*;
 use bevy::math::Vec2;
 use std::collections::HashMap;
+// Note: MineralType is used for MineralStorage resource
 use crate::components::MineralType;
 
 // ============================================================================

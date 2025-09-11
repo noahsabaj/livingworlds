@@ -10,7 +10,7 @@ pub mod dialogs;
 pub mod components;
 
 use bevy::prelude::*;
-use crate::resources::{ResourceOverlay, SelectedProvinceInfo};
+use crate::resources::{ResourceOverlay, SelectedProvinceInfo, GameTime};
 use crate::components::{TileInfoPanel, TileInfoText, MineralType};
 use crate::constants::COLOR_TILE_INFO_BACKGROUND;
 use crate::mesh::ProvinceStorage;
@@ -18,6 +18,14 @@ use crate::mesh::ProvinceStorage;
 /// Marker component for the resource overlay display text
 #[derive(Component)]
 pub struct ResourceOverlayText;
+
+/// Marker component for the game time display
+#[derive(Component)]
+pub struct GameTimeDisplay;
+
+/// Marker component for the game speed display
+#[derive(Component)]
+pub struct GameSpeedDisplay;
 
 /// UI Plugin that handles all user interface elements
 pub struct UIPlugin;
@@ -37,6 +45,8 @@ impl Plugin for UIPlugin {
                 update_overlay_display,
                 update_mineral_legend_visibility.run_if(resource_changed::<ResourceOverlay>),
                 update_tile_info_ui.run_if(resource_changed::<SelectedProvinceInfo>),
+                update_time_display,
+                update_speed_display,
             ).run_if(in_state(GameState::InGame)));
     }
 }
@@ -52,6 +62,63 @@ pub struct MineralLegendContainer;
 /// Setup the UI elements
 pub fn setup_ui(mut commands: Commands) {
     let ui_start = std::time::Instant::now();
+    
+    // Game time and speed display in top-right
+    commands.spawn((
+        Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(10.0),
+            right: Val::Px(10.0),
+            flex_direction: FlexDirection::Column,
+            align_items: AlignItems::End,
+            padding: UiRect::all(Val::Px(8.0)),
+            ..default()
+        },
+        BackgroundColor(Color::srgba(0.05, 0.05, 0.05, 0.85)),
+        ZIndex(100),
+        GameUIRoot,  // Mark for cleanup
+    )).with_children(|parent| {
+        // Year display
+        parent.spawn((
+            Text::new("Year 1000"),
+            TextFont {
+                font_size: 24.0,
+                ..default()
+            },
+            TextColor(Color::WHITE),
+            GameTimeDisplay,
+        ));
+        
+        // Speed indicator
+        parent.spawn((
+            Text::new("Speed: 1x"),
+            TextFont {
+                font_size: 16.0,
+                ..default()
+            },
+            TextColor(Color::srgba(0.8, 0.8, 0.8, 1.0)),
+            GameSpeedDisplay,
+            Node {
+                margin: UiRect::top(Val::Px(4.0)),
+                ..default()
+            },
+        ));
+        
+        // Control hints
+        parent.spawn((
+            Text::new("[0-4] Speed • [Space] Pause"),
+            TextFont {
+                font_size: 12.0,
+                ..default()
+            },
+            TextColor(Color::srgba(0.5, 0.5, 0.5, 1.0)),
+            Node {
+                margin: UiRect::top(Val::Px(8.0)),
+                ..default()
+            },
+        ));
+    });
+    
     // Resource overlay legend in top-left with colored squares
     commands.spawn((
         Node {
@@ -85,6 +152,20 @@ pub fn setup_ui(mut commands: Commands) {
                 ResourceOverlayText,
             ));
         });
+        
+        // Control hint for overlay
+        parent.spawn((
+            Text::new("[M] Cycle Overlay"),
+            TextFont {
+                font_size: 12.0,
+                ..default()
+            },
+            TextColor(Color::srgba(0.5, 0.5, 0.5, 1.0)),
+            Node {
+                margin: UiRect::top(Val::Px(2.0)),
+                ..default()
+            },
+        ));
         
         // Divider line
         parent.spawn((
@@ -233,28 +314,7 @@ pub fn setup_ui(mut commands: Commands) {
         ));
     });
     
-    // Controls help text in bottom-left
-    commands.spawn((
-        Node {
-            position_type: PositionType::Absolute,
-            bottom: Val::Px(10.0),
-            left: Val::Px(10.0),
-            padding: UiRect::all(Val::Px(8.0)),
-            ..default()
-        },
-        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.6)),
-        ZIndex(100),
-        GameUIRoot,  // Mark for cleanup
-    )).with_children(|parent| {
-        parent.spawn((
-            Text::new("M - Cycle Resource Overlay | Space - Pause | 1-4 - Speed | ESC - Exit"),
-            TextFont {
-                font_size: 14.0,
-                ..default()
-            },
-            TextColor(Color::srgba(0.9, 0.9, 0.9, 1.0)),  // Brighter text
-        ));
-    });
+    // Bottom-left controls removed - consolidated with top UI elements
     
     println!("UI setup completed in {:.2}s", ui_start.elapsed().as_secs_f32());
 }
@@ -325,5 +385,38 @@ pub fn cleanup_game_ui(
     println!("Cleaning up game UI elements");
     for entity in &ui_query {
         commands.entity(entity).despawn_recursive();
+    }
+}
+
+/// Update the game time display
+fn update_time_display(
+    game_time: Res<GameTime>,
+    mut query: Query<&mut Text, With<GameTimeDisplay>>,
+) {
+    if let Ok(mut text) = query.get_single_mut() {
+        let year = 1000 + (game_time.current_date / 365.0) as u32;
+        let day = (game_time.current_date % 365.0) as u32;
+        **text = format!("Year {} - Day {}", year, day);
+    }
+}
+
+/// Update the speed display when it changes
+fn update_speed_display(
+    game_time: Res<GameTime>,
+    mut query: Query<&mut Text, With<GameSpeedDisplay>>,
+) {
+    if let Ok(mut text) = query.get_single_mut() {
+        if game_time.paused {
+            **text = "PAUSED".to_string();
+        } else {
+            let speed_text = match game_time.speed {
+                s if s <= 0.0 => "Paused",
+                s if s <= 1.0 => "Normal",
+                s if s <= 3.0 => "Fast (3x)",
+                s if s <= 6.0 => "Faster (6x)",
+                _ => "Fastest (9x)",
+            };
+            **text = format!("Speed: {}", speed_text);
+        }
     }
 }
