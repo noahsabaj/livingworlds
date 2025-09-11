@@ -25,6 +25,7 @@ pub mod states;
 pub mod terrain;
 pub mod ui;
 pub mod world_config;
+pub mod world_generation_loading;
 
 // Re-export commonly used items for convenient access
 pub mod prelude {
@@ -112,6 +113,7 @@ pub fn build_app() -> App {
     app.add_plugins(StatesPlugin)  // State management system (must be first)
         .add_plugins(MenusPlugin)   // Menu UI system (needs states)
         .add_plugins(world_config::WorldConfigPlugin) // World configuration UI
+        .add_plugins(world_generation_loading::WorldGenerationLoadingPlugin) // Generation visualization
         .add_plugins(SettingsPlugin) // Settings menu system
         .add_plugins(CloudPlugin)
         .add_plugins(TerrainPlugin)

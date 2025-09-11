@@ -33,31 +33,35 @@ struct Args {
 }
 
 fn main() {
-    let mut args = Args::parse();
+    let args = Args::parse();
     
     // Configure rayon thread pool for optimal performance
     setup_thread_pool();
     
-    // Determine seed (use system time if not provided)
-    let seed = args.seed.unwrap_or_else(|| {
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs() as u32
-    });
-    args.seed = Some(seed);
-    
-    // Randomly select world size if not provided (using seeded RNG for reproducibility)
-    let world_size = args.world_size.unwrap_or_else(|| {
-        use rand::SeedableRng;
-        use rand::rngs::StdRng;
-        let mut rng = StdRng::seed_from_u64(seed as u64);
-        let sizes = ["small", "medium", "large"];
-        sizes.choose(&mut rng).unwrap().to_string()
-    });
-    
-    println!("Living Worlds - Starting with seed: {}", seed);
-    println!("World size: {}", world_size);
+    // Only generate default values if using command-line generation
+    let (seed, world_size) = if args.seed.is_some() || args.world_size.is_some() {
+        // Using command-line arguments for direct generation
+        let seed = args.seed.unwrap_or_else(|| {
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs() as u32
+        });
+        
+        let world_size = args.world_size.unwrap_or_else(|| {
+            use rand::SeedableRng;
+            use rand::rngs::StdRng;
+            let mut rng = StdRng::seed_from_u64(seed as u64);
+            let sizes = ["small", "medium", "large"];
+            sizes.choose(&mut rng).unwrap().to_string()
+        });
+        
+        println!("Starting with command-line parameters: seed={}, size={}", seed, world_size);
+        (seed, world_size)
+    } else {
+        // Menu-based generation - use defaults that will be overridden
+        (0, "medium".to_string())
+    };
     
     // Build and run the game
     let world_size_enum = WorldSize::from_str(&world_size);
@@ -126,11 +130,22 @@ fn test_state_transitions(
             }
         }
         GameState::WorldConfiguration => {
-            // After 1 second in config, go to WorldGeneration
+            // After 1 second in config, go to WorldGenerationLoading
+            if *timer > 1.0 {
+                println!("TEST: Transitioning to WorldGenerationLoading");
+                events.send(RequestStateTransition {
+                    from: GameState::WorldConfiguration,
+                    to: GameState::WorldGenerationLoading,
+                });
+                *timer = 0.0;
+            }
+        }
+        GameState::WorldGenerationLoading => {
+            // After 1 second in loading, go to WorldGeneration
             if *timer > 1.0 {
                 println!("TEST: Transitioning to WorldGeneration");
                 events.send(RequestStateTransition {
-                    from: GameState::WorldConfiguration,
+                    from: GameState::WorldGenerationLoading,
                     to: GameState::WorldGeneration,
                 });
                 *timer = 0.0;

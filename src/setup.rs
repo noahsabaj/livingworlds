@@ -11,6 +11,7 @@ use crate::terrain::TerrainType;
 use crate::generation::WorldGenerator;
 use crate::mesh::{ProvinceStorage, WorldMeshHandle, build_world_mesh};
 use crate::world_config::WorldGenerationSettings;
+use crate::states::GameState;
 
 // Mesh-related structs and functions moved to mesh.rs module
 
@@ -20,6 +21,7 @@ pub fn setup_world(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     settings: Res<WorldGenerationSettings>,
+    mut next_state: ResMut<NextState<GameState>>,
 ) {
     let start_time = std::time::Instant::now();
     
@@ -147,4 +149,7 @@ pub fn setup_world(
     
     let total_time = start_time.elapsed().as_secs_f32();
     println!("Total setup_world completed in {:.2}s", total_time);
+    
+    // Transition to LoadingWorld state
+    next_state.set(GameState::LoadingWorld);
 }

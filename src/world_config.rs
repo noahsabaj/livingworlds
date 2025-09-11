@@ -660,148 +660,165 @@ fn spawn_advanced_panel(parent: &mut ChildSpawnerCommands) {
             display: Display::None, // Initially hidden
             flex_direction: FlexDirection::Column,
             padding: UiRect::all(Val::Px(15.0)),
-            row_gap: Val::Px(20.0),
             ..default()
         },
         BackgroundColor(Color::srgb(0.1, 0.1, 0.12)),
         BorderRadius::all(Val::Px(5.0)),
         AdvancedPanel,
     )).with_children(|panel| {
-        // ===== GEOGRAPHY & CLIMATE SECTION =====
-        panel.spawn((
-            Text::new("Geography & Climate"),
-            TextFont {
-                font_size: 20.0,
-                ..default()
-            },
-            TextColor(colors::TEXT_PRIMARY),
-            Node {
-                margin: UiRect::bottom(Val::Px(10.0)),
-                ..default()
-            },
-        ));
-        
-        // Continent Count Slider
-        spawn_slider_control(panel, "Continents", "7", 1.0, 12.0, 7.0, ContinentSlider, ContinentValueText);
-        
-        // Ocean Coverage Slider
-        spawn_slider_control(panel, "Ocean Coverage", "60%", 30.0, 80.0, 60.0, OceanSlider, OceanValueText);
-        
-        // River Density Slider
-        spawn_slider_control(panel, "River Density", "1.0x", 0.5, 2.0, 1.0, RiverSlider, RiverValueText);
-        
-        // Climate Type Selection
-        spawn_selection_row(
-            panel,
-            "Climate Type",
-            vec![
-                ("Arctic", ClimateType::Arctic),
-                ("Temperate", ClimateType::Temperate),
-                ("Tropical", ClimateType::Tropical),
-                ("Desert", ClimateType::Desert),
-                ("Mixed", ClimateType::Mixed),
-            ],
-            ClimateType::Mixed,
-            |climate| ClimateButton(climate),
-        );
-        
-        // Island Frequency Selection
-        spawn_selection_row(
-            panel,
-            "Islands",
-            vec![
-                ("None", IslandFrequency::None),
-                ("Sparse", IslandFrequency::Sparse),
-                ("Moderate", IslandFrequency::Moderate),
-                ("Abundant", IslandFrequency::Abundant),
-            ],
-            IslandFrequency::Moderate,
-            |freq| IslandButton(freq),
-        );
-        
-        // Separator
+        // Create a horizontal container for the columns
         panel.spawn((
             Node {
                 width: Val::Percent(100.0),
-                height: Val::Px(1.0),
-                margin: UiRect::vertical(Val::Px(10.0)),
+                flex_direction: FlexDirection::Row,
+                column_gap: Val::Px(30.0),
                 ..default()
             },
-            BackgroundColor(Color::srgba(1.0, 1.0, 1.0, 0.1)),
-        ));
-        
-        // ===== CIVILIZATIONS SECTION =====
-        panel.spawn((
-            Text::new("Civilizations"),
-            TextFont {
-                font_size: 20.0,
-                ..default()
-            },
-            TextColor(colors::TEXT_PRIMARY),
-            Node {
-                margin: UiRect::bottom(Val::Px(10.0)),
-                ..default()
-            },
-        ));
-        
-        // Starting Nations Slider
-        spawn_slider_control(panel, "Starting Nations", "8", 2.0, 20.0, 8.0, StartingNationsSlider, StartingNationsValueText);
-        
-        // Tech Progression Speed Slider
-        spawn_slider_control(panel, "Tech Speed", "1.0x", 0.5, 2.0, 1.0, TechSpeedSlider, TechSpeedValueText);
-        
-        // Aggression Level Selection
-        spawn_selection_row(
-            panel,
-            "Aggression",
-            vec![
-                ("Peaceful", AggressionLevel::Peaceful),
-                ("Balanced", AggressionLevel::Balanced),
-                ("Warlike", AggressionLevel::Warlike),
-                ("Chaotic", AggressionLevel::Chaotic),
-            ],
-            AggressionLevel::Balanced,
-            |aggr| AggressionButton(aggr),
-        );
-        
-        // Separator
-        panel.spawn((
-            Node {
-                width: Val::Percent(100.0),
-                height: Val::Px(1.0),
-                margin: UiRect::vertical(Val::Px(10.0)),
-                ..default()
-            },
-            BackgroundColor(Color::srgba(1.0, 1.0, 1.0, 0.1)),
-        ));
-        
-        // ===== RESOURCES SECTION =====
-        panel.spawn((
-            Text::new("Resources"),
-            TextFont {
-                font_size: 20.0,
-                ..default()
-            },
-            TextColor(colors::TEXT_PRIMARY),
-            Node {
-                margin: UiRect::bottom(Val::Px(10.0)),
-                ..default()
-            },
-        ));
-        
-        // Resource Abundance Selection
-        spawn_selection_row(
-            panel,
-            "Abundance",
-            vec![
-                ("Scarce", ResourceAbundance::Scarce),
-                ("Normal", ResourceAbundance::Normal),
-                ("Rich", ResourceAbundance::Rich),
-                ("Bountiful", ResourceAbundance::Bountiful),
-            ],
-            ResourceAbundance::Normal,
-            |res| ResourceButton(res),
-        );
+        )).with_children(|columns| {
+            // ===== LEFT COLUMN: GEOGRAPHY & CLIMATE =====
+            columns.spawn((
+                Node {
+                    flex_basis: Val::Percent(33.0),
+                    flex_direction: FlexDirection::Column,
+                    row_gap: Val::Px(15.0),
+                    ..default()
+                },
+            )).with_children(|left_col| {
+                // Section header
+                left_col.spawn((
+                    Text::new("Geography & Climate"),
+                    TextFont {
+                        font_size: 18.0,
+                        ..default()
+                    },
+                    TextColor(colors::TEXT_PRIMARY),
+                    Node {
+                        margin: UiRect::bottom(Val::Px(5.0)),
+                        ..default()
+                    },
+                ));
+                
+                // Continent Count Slider
+                spawn_slider_control(left_col, "Continents", "7", 1.0, 12.0, 7.0, ContinentSlider, ContinentValueText);
+                
+                // Ocean Coverage Slider
+                spawn_slider_control(left_col, "Ocean Coverage", "60%", 30.0, 80.0, 60.0, OceanSlider, OceanValueText);
+                
+                // River Density Slider
+                spawn_slider_control(left_col, "River Density", "1.0x", 0.5, 2.0, 1.0, RiverSlider, RiverValueText);
+            });
+            
+            // ===== MIDDLE COLUMN: CLIMATE & TERRAIN =====
+            columns.spawn((
+                Node {
+                    flex_basis: Val::Percent(33.0),
+                    flex_direction: FlexDirection::Column,
+                    row_gap: Val::Px(15.0),
+                    ..default()
+                },
+            )).with_children(|middle_col| {
+                // Section header (invisible for alignment)
+                middle_col.spawn((
+                    Text::new(""),
+                    TextFont {
+                        font_size: 18.0,
+                        ..default()
+                    },
+                    TextColor(Color::NONE),
+                    Node {
+                        margin: UiRect::bottom(Val::Px(5.0)),
+                        ..default()
+                    },
+                ));
+                
+                // Climate Type Selection
+                spawn_selection_row(
+                    middle_col,
+                    "Climate Type",
+                    vec![
+                        ("Arctic", ClimateType::Arctic),
+                        ("Temperate", ClimateType::Temperate),
+                        ("Tropical", ClimateType::Tropical),
+                        ("Desert", ClimateType::Desert),
+                        ("Mixed", ClimateType::Mixed),
+                    ],
+                    ClimateType::Mixed,
+                    |climate| ClimateButton(climate),
+                );
+                
+                // Island Frequency Selection
+                spawn_selection_row(
+                    middle_col,
+                    "Islands",
+                    vec![
+                        ("None", IslandFrequency::None),
+                        ("Sparse", IslandFrequency::Sparse),
+                        ("Moderate", IslandFrequency::Moderate),
+                        ("Abundant", IslandFrequency::Abundant),
+                    ],
+                    IslandFrequency::Moderate,
+                    |freq| IslandButton(freq),
+                );
+                
+                // Resource Abundance Selection
+                spawn_selection_row(
+                    middle_col,
+                    "Resources",
+                    vec![
+                        ("Scarce", ResourceAbundance::Scarce),
+                        ("Normal", ResourceAbundance::Normal),
+                        ("Rich", ResourceAbundance::Rich),
+                        ("Bountiful", ResourceAbundance::Bountiful),
+                    ],
+                    ResourceAbundance::Normal,
+                    |res| ResourceButton(res),
+                );
+            });
+            
+            // ===== RIGHT COLUMN: CIVILIZATIONS =====
+            columns.spawn((
+                Node {
+                    flex_basis: Val::Percent(33.0),
+                    flex_direction: FlexDirection::Column,
+                    row_gap: Val::Px(15.0),
+                    ..default()
+                },
+            )).with_children(|right_col| {
+                // Section header
+                right_col.spawn((
+                    Text::new("Civilizations"),
+                    TextFont {
+                        font_size: 18.0,
+                        ..default()
+                    },
+                    TextColor(colors::TEXT_PRIMARY),
+                    Node {
+                        margin: UiRect::bottom(Val::Px(5.0)),
+                        ..default()
+                    },
+                ));
+                
+                // Starting Nations Slider
+                spawn_slider_control(right_col, "Starting Nations", "8", 2.0, 20.0, 8.0, StartingNationsSlider, StartingNationsValueText);
+                
+                // Tech Progression Speed Slider
+                spawn_slider_control(right_col, "Tech Speed", "1.0x", 0.5, 2.0, 1.0, TechSpeedSlider, TechSpeedValueText);
+                
+                // Aggression Level Selection
+                spawn_selection_row(
+                    right_col,
+                    "Aggression",
+                    vec![
+                        ("Peaceful", AggressionLevel::Peaceful),
+                        ("Balanced", AggressionLevel::Balanced),
+                        ("Warlike", AggressionLevel::Warlike),
+                        ("Chaotic", AggressionLevel::Chaotic),
+                    ],
+                    AggressionLevel::Balanced,
+                    |aggr| AggressionButton(aggr),
+                );
+            });
+        });
     });
 }
 
@@ -1041,10 +1058,10 @@ fn handle_generate_button(
             println!("Generate World button pressed");
             println!("Settings: {:?}", *settings);
             
-            // Transition to world generation
+            // Transition to world generation loading screen
             state_events.write(RequestStateTransition {
                 from: GameState::WorldConfiguration,
-                to: GameState::WorldGeneration,
+                to: GameState::WorldGenerationLoading,
             });
         }
     }

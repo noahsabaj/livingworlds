@@ -423,7 +423,6 @@ pub fn dynamic_cloud_spawn_system(
     } else if current_count > target_count && target_count > 0 {
         // Need to remove clouds
         let to_remove = current_count - target_count;
-        println!("🌤️ Removing {} clouds for {:?} weather", to_remove, weather.current_state);
         
         // Remove excess clouds
         for (i, entity) in clouds.iter().enumerate() {
