@@ -105,21 +105,7 @@ pub struct ResetButton;
 // DIALOG MARKERS
 // ============================================================================
 
-/// Unsaved changes confirmation dialog
-#[derive(Component)]
-pub struct UnsavedChangesDialog;
-
-/// Save and exit button in unsaved changes dialog
-#[derive(Component)]
-pub struct SaveAndExitButton;
-
-/// Discard changes button in unsaved changes dialog
-#[derive(Component)]
-pub struct DiscardChangesButton;
-
-/// Cancel exit button (stay in settings)
-#[derive(Component)]
-pub struct CancelExitButton;
+// Dialog components are now provided by crate::ui::dialogs
 
 // ============================================================================
 // TEXT MARKERS

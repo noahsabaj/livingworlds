@@ -6,10 +6,11 @@ use bevy::prelude::*;
 use bevy::sprite::MeshMaterial2d;
 use bevy::render::mesh::Mesh2d;
 use std::collections::HashMap;
-use crate::resources::{WorldSeed, WorldSize, ProvincesSpatialIndex};
+use crate::resources::{ProvincesSpatialIndex};
 use crate::terrain::TerrainType;
 use crate::generation::WorldGenerator;
 use crate::mesh::{ProvinceStorage, WorldMeshHandle, build_world_mesh};
+use crate::world_config::WorldGenerationSettings;
 
 // Mesh-related structs and functions moved to mesh.rs module
 
@@ -18,8 +19,7 @@ pub fn setup_world(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    seed: Res<WorldSeed>,
-    size: Res<WorldSize>,
+    settings: Res<WorldGenerationSettings>,
 ) {
     let start_time = std::time::Instant::now();
     
@@ -27,8 +27,18 @@ pub fn setup_world(
     // GENERATE WORLD DATA
     // =========================================================================
     
-    println!("Generating world with seed {} and size {:?}", seed.0, *size);
-    let generator = WorldGenerator::new(seed.0, size.clone());
+    println!("Generating world '{}' with seed {} and size {:?}", 
+        settings.world_name, settings.seed, settings.world_size);
+    println!("Advanced settings: {} continents, {:.0}% ocean, {:?} climate",
+        settings.continent_count, settings.ocean_coverage * 100.0, settings.climate_type);
+    
+    let generator = WorldGenerator::new(
+        settings.seed, 
+        settings.world_size.clone(),
+        settings.continent_count,
+        settings.ocean_coverage,
+        settings.river_density,
+    );
     let generated_world = generator.generate();
     
     // Store map dimensions as resource

@@ -18,7 +18,7 @@ use crate::components::MineralType;
 pub struct WorldSeed(pub u32);
 
 /// World size configuration controlling map dimensions
-#[derive(Resource, Clone, Copy, Debug)]
+#[derive(Resource, Clone, Copy, Debug, PartialEq)]
 pub enum WorldSize {
     Small,   // 600x500 provinces (300,000 hexagons)
     Medium,  // 800x750 provinces (600,000 hexagons) 

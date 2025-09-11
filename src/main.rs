@@ -115,11 +115,22 @@ fn test_state_transitions(
             }
         }
         GameState::MainMenu => {
-            // After 1 second in menu, go to WorldGeneration
+            // After 1 second in menu, go to WorldConfiguration
+            if *timer > 1.0 {
+                println!("TEST: Transitioning to WorldConfiguration");
+                events.send(RequestStateTransition {
+                    from: GameState::MainMenu,
+                    to: GameState::WorldConfiguration,
+                });
+                *timer = 0.0;
+            }
+        }
+        GameState::WorldConfiguration => {
+            // After 1 second in config, go to WorldGeneration
             if *timer > 1.0 {
                 println!("TEST: Transitioning to WorldGeneration");
                 events.send(RequestStateTransition {
-                    from: GameState::MainMenu,
+                    from: GameState::WorldConfiguration,
                     to: GameState::WorldGeneration,
                 });
                 *timer = 0.0;

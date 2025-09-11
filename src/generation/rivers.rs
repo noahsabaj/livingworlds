@@ -15,6 +15,17 @@ pub fn generate(
     dimensions: MapDimensions,
     _rng: &mut StdRng,
 ) -> RiverSystem {
+    // Default river density of 1.0
+    generate_with_density(provinces, dimensions, _rng, 1.0)
+}
+
+/// Generate rivers with specified density multiplier
+pub fn generate_with_density(
+    provinces: &mut [Province],
+    dimensions: MapDimensions,
+    _rng: &mut StdRng,
+    river_density: f32,
+) -> RiverSystem {
     let start = std::time::Instant::now();
     
     // Build spatial index for province lookups using ACTUAL col/row from ID
@@ -40,8 +51,9 @@ pub fn generate(
     // Sort by elevation (highest first) for better river flow
     potential_sources.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap());
     
-    // Select river sources
-    let num_rivers = (RIVER_COUNT / 4).min(potential_sources.len());  // Fewer but longer rivers
+    // Select river sources based on density
+    let base_num_rivers = (RIVER_COUNT / 4).min(potential_sources.len());  // Fewer but longer rivers
+    let num_rivers = ((base_num_rivers as f32 * river_density) as usize).min(potential_sources.len());
     let selected_sources: Vec<_> = potential_sources.into_iter().take(num_rivers).collect();
     
     println!("Selected {} river sources to trace", selected_sources.len());

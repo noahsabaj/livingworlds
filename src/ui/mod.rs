@@ -3,6 +3,12 @@
 //! Handles all UI elements including simulation controls,
 //! and game state information display.
 
+// Sub-modules for UI components
+pub mod styles;
+pub mod buttons;
+pub mod dialogs;
+pub mod components;
+
 use bevy::prelude::*;
 use crate::resources::{ResourceOverlay, SelectedProvinceInfo};
 use crate::components::{TileInfoPanel, TileInfoText, MineralType};
@@ -19,6 +25,10 @@ pub struct UIPlugin;
 impl Plugin for UIPlugin {
     fn build(&self, app: &mut App) {
         use crate::states::GameState;
+        
+        // Add sub-plugins for UI systems
+        app.add_plugins(buttons::ButtonPlugin);
+        app.add_plugins(dialogs::DialogPlugin);
         
         app
             .add_systems(OnEnter(GameState::InGame), setup_ui)

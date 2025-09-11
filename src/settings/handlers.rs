@@ -1,7 +1,7 @@
 //! Event handlers for settings menu interactions
 
 use bevy::prelude::*;
-use bevy::ui::ZIndex;
+use bevy::ui::{ZIndex, RelativeCursorPosition};
 use bevy::window::{PrimaryWindow, WindowMode, MonitorSelection, VideoModeSelection, PresentMode};
 use bevy_pkv::PkvStore;
 use crate::states::CurrentSettingsTab;
@@ -10,10 +10,7 @@ use super::components::*;
 use super::persistence::save_settings;
 use super::settings_ui::spawn_settings_menu;
 
-/// Handle the settings button in main/pause menu
-pub fn handle_settings_button() {
-    // TODO: Implement integration with menus.rs
-}
+// Settings button handling is done in menus.rs (handle_button_interactions and handle_pause_button_interactions)
 
 /// Handle tab button clicks
 pub fn handle_tab_buttons(
@@ -140,23 +137,21 @@ pub fn handle_toggle_buttons(
 
 /// Handle slider interactions
 pub fn handle_slider_interactions(
-    mut sliders: Query<(&Interaction, &Node, &mut Slider, &Children)>,
+    mut sliders: Query<(&Interaction, &Node, &mut Slider, &Children, &RelativeCursorPosition)>,
     mut handles: Query<&mut Node, (With<SliderHandle>, Without<Slider>)>,
     mut value_texts: Query<(&SliderValueText, &mut Text)>,
     mut temp_settings: ResMut<TempGameSettings>,
-    windows: Query<&Window>,
+    mouse_button: Res<ButtonInput<MouseButton>>,
 ) {
-    let Ok(window) = windows.single() else { return; };
-    
-    for (interaction, _track_node, mut slider, children) in &mut sliders {
-        if *interaction == Interaction::Pressed {
-            // Get cursor position relative to track
-            if let Some(cursor_pos) = window.cursor_position() {
-                // This is simplified - in a real implementation you'd need proper coordinate conversion
-                // For now, just demonstrate the concept
-                let track_width = 180.0;
-                // Remove modulo to prevent wrapping - just clamp the normalized value
-                let normalized = (cursor_pos.x / track_width).clamp(0.0, 1.0);
+    for (interaction, track_node, mut slider, children, relative_cursor) in &mut sliders {
+        // Check if we're interacting with this slider
+        if *interaction == Interaction::Pressed || 
+           (*interaction == Interaction::Hovered && mouse_button.pressed(MouseButton::Left)) {
+            // Get cursor position relative to the slider track
+            if let Some(cursor_pos) = relative_cursor.normalized {
+                // cursor_pos is already normalized (0.0 to 1.0) relative to the element
+                // Just use the x component directly
+                let normalized = cursor_pos.x.clamp(0.0, 1.0);
                 slider.value = slider.min + (slider.max - slider.min) * normalized;
                 
                 // Update temp settings
@@ -257,7 +252,7 @@ pub fn handle_apply_cancel_buttons(
                 if dirty_state.is_dirty {
                     // Show unsaved changes dialog
                     println!("Unsaved changes detected - spawning confirmation dialog");
-                    spawn_unsaved_changes_dialog(&mut commands);
+                    spawn_unsaved_changes_dialog(commands.reborrow());
                 } else {
                     // No changes, just close
                     println!("Exiting settings (no changes)");
@@ -274,63 +269,121 @@ pub fn handle_apply_cancel_buttons(
 
 /// Handle graphics preset buttons
 pub fn handle_preset_buttons(
-    mut interactions: Query<(&Interaction, &PresetButton, &mut BackgroundColor, &mut BorderColor), (Changed<Interaction>, With<Button>)>,
+    mut preset_queries: ParamSet<(
+        Query<(&Interaction, &PresetButton, Entity), (Changed<Interaction>, With<Button>)>,
+        Query<(Entity, &PresetButton, &mut BackgroundColor, &mut BorderColor), With<Button>>,
+    )>,
     mut temp_settings: ResMut<TempGameSettings>,
     mut dirty_state: ResMut<SettingsDirtyState>,
     mut slider_queries: Query<(&mut Slider, &Children)>,
     mut text_query: Query<&mut Text, With<SliderValueText>>,
 ) {
-    for (interaction, preset_button, mut bg_color, mut border_color) in &mut interactions {
+    // First, collect information about which buttons were interacted with
+    let mut pressed_preset = None;
+    let mut hover_interactions = Vec::new();
+    let mut none_interactions = Vec::new();
+    
+    for (interaction, preset_button, entity) in preset_queries.p0().iter() {
         match *interaction {
+            Interaction::Pressed => {
+                pressed_preset = Some(preset_button.preset);
+            }
             Interaction::Hovered => {
+                hover_interactions.push((entity, preset_button.preset));
+            }
+            Interaction::None => {
+                none_interactions.push((entity, preset_button.preset));
+            }
+        }
+    }
+    
+    // If a preset was pressed, apply it
+    if let Some(pressed) = pressed_preset {
+        println!("Applying graphics preset: {:?}", pressed);
+        temp_settings.0.graphics.apply_preset(pressed);
+        dirty_state.is_dirty = true;
+        
+        // Update all sliders to reflect the new preset values
+        for (mut slider, children) in &mut slider_queries {
+            match slider.setting_type {
+                SettingType::RenderScale => {
+                    slider.value = temp_settings.0.graphics.render_scale;
+                }
+                _ => {}
+            }
+            
+            // Update the slider value text
+            for child in children.iter() {
+                if let Ok(mut text) = text_query.get_mut(child) {
+                    if slider.setting_type == SettingType::RenderScale {
+                        text.0 = format!("{:.0}%", slider.value * 100.0);
+                    }
+                }
+            }
+        }
+        
+        // Update ALL preset buttons to reflect the new selection
+        for (entity, button_preset, mut bg_color, mut border_color) in preset_queries.p1().iter_mut() {
+            let is_selected = button_preset.preset == pressed;
+            if is_selected {
+                // This is the newly selected preset - make it green
+                *bg_color = BackgroundColor(Color::srgb(0.15, 0.3, 0.15));
+                *border_color = BorderColor(Color::srgb(0.3, 0.5, 0.3));
+            } else {
+                // This is not selected - make it gray
+                *bg_color = BackgroundColor(Color::srgb(0.15, 0.15, 0.18));
+                *border_color = BorderColor(Color::srgb(0.3, 0.3, 0.35));
+            }
+        }
+    }
+    
+    // Handle hover interactions
+    for (entity, preset) in hover_interactions {
+        let is_selected = temp_settings.0.graphics.current_preset() == Some(preset);
+        if !is_selected {
+            // Only change hover color if not currently selected
+            if let Ok((_, _, mut bg_color, mut border_color)) = preset_queries.p1().get_mut(entity) {
                 *bg_color = BackgroundColor(Color::srgb(0.2, 0.22, 0.25));
                 *border_color = BorderColor(Color::srgb(0.4, 0.45, 0.5));
             }
-            Interaction::Pressed => {
-                println!("Applying graphics preset: {:?}", preset_button.preset);
-                temp_settings.0.graphics.apply_preset(preset_button.preset);
-                dirty_state.is_dirty = true;
-                
-                // Update all sliders to reflect the new preset values
-                for (mut slider, children) in &mut slider_queries {
-                    match slider.setting_type {
-                        SettingType::RenderScale => {
-                            slider.value = temp_settings.0.graphics.render_scale;
-                        }
-                        _ => {}
-                    }
-                    
-                    // Update the slider value text
-                    for child in children.iter() {
-                        if let Ok(mut text) = text_query.get_mut(child) {
-                            if slider.setting_type == SettingType::RenderScale {
-                                text.0 = format!("{:.0}%", slider.value * 100.0);
-                            }
-                        }
-                    }
-                }
-                
-                *bg_color = BackgroundColor(Color::srgb(0.25, 0.28, 0.32));
-                *border_color = BorderColor(Color::srgb(0.5, 0.55, 0.6));
-            }
-            Interaction::None => {
-                // Check if this preset is currently selected
-                let is_selected = temp_settings.0.graphics.current_preset() == Some(preset_button.preset);
-                if is_selected {
-                    *bg_color = BackgroundColor(Color::srgb(0.15, 0.3, 0.15));  // Green for selected
-                    *border_color = BorderColor(Color::srgb(0.3, 0.5, 0.3));
-                } else {
-                    *bg_color = BackgroundColor(Color::srgb(0.15, 0.15, 0.18));
-                    *border_color = BorderColor(Color::srgb(0.3, 0.3, 0.35));
-                }
+        }
+    }
+    
+    // Handle none interactions (mouse left the button)
+    for (entity, preset) in none_interactions {
+        let is_selected = temp_settings.0.graphics.current_preset() == Some(preset);
+        if let Ok((_, _, mut bg_color, mut border_color)) = preset_queries.p1().get_mut(entity) {
+            if is_selected {
+                *bg_color = BackgroundColor(Color::srgb(0.15, 0.3, 0.15));  // Green for selected
+                *border_color = BorderColor(Color::srgb(0.3, 0.5, 0.3));
+            } else {
+                *bg_color = BackgroundColor(Color::srgb(0.15, 0.15, 0.18));
+                *border_color = BorderColor(Color::srgb(0.3, 0.3, 0.35));
             }
         }
     }
 }
 
 /// Handle reset to defaults button
-pub fn handle_reset_button() {
-    // TODO: Implement reset to defaults functionality
+pub fn handle_reset_button(
+    mut interactions: Query<(&Interaction, &ResetButton), (Changed<Interaction>, With<Button>)>,
+    mut temp_settings: ResMut<TempGameSettings>,
+    mut dirty_state: ResMut<SettingsDirtyState>,
+    settings: Res<GameSettings>,
+) {
+    for (interaction, _reset_button) in &mut interactions {
+        if *interaction == Interaction::Pressed {
+            println!("Resetting settings to defaults");
+            
+            // Reset temp settings to defaults
+            temp_settings.0 = GameSettings::default();
+            
+            // Mark as dirty if different from current settings
+            dirty_state.is_dirty = temp_settings.0 != *settings;
+            
+            println!("Settings reset to defaults - dirty state: {}", dirty_state.is_dirty);
+        }
+    }
 }
 
 /// Update UI elements when settings change
@@ -389,7 +442,7 @@ pub fn update_ui_on_settings_change(
         // Update checkbox visual
         for child in children.iter() {
             if let Ok(mut text) = text_query.get_mut(child) {
-                text.0 = if is_enabled { "[X]".to_string() } else { "[ ]".to_string() };
+                text.0 = if is_enabled { "X".to_string() } else { "".to_string() };
             }
         }
     }
@@ -600,153 +653,17 @@ pub fn update_apply_exit_button_hover(
 }
 
 /// Spawn unsaved changes confirmation dialog
-fn spawn_unsaved_changes_dialog(commands: &mut Commands) {
-    commands.spawn((
-        Node {
-            position_type: PositionType::Absolute,
-            width: Val::Percent(100.0),
-            height: Val::Percent(100.0),
-            justify_content: JustifyContent::Center,
-            align_items: AlignItems::Center,
-            ..default()
-        },
-        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.7)),
-        UnsavedChangesDialog,
-        ZIndex(300),  // Above settings menu which is at 200
-    )).with_children(|overlay| {
-        overlay.spawn((
-            Node {
-                width: Val::Px(450.0),
-                padding: UiRect::all(Val::Px(30.0)),
-                flex_direction: FlexDirection::Column,
-                align_items: AlignItems::Center,
-                border: UiRect::all(Val::Px(2.0)),
-                ..default()
-            },
-            BackgroundColor(Color::srgb(0.12, 0.12, 0.15)),
-            BorderColor(Color::srgb(0.4, 0.4, 0.45)),
-        )).with_children(|dialog| {
-            // Title
-            dialog.spawn((
-                Text::new("Unsaved Changes"),
-                TextFont {
-                    font_size: 26.0,
-                    ..default()
-                },
-                TextColor(Color::srgb(0.9, 0.9, 0.9)),
-                Node {
-                    margin: UiRect::bottom(Val::Px(20.0)),
-                    ..default()
-                },
-            ));
-            
-            // Message
-            dialog.spawn((
-                Text::new("You have unsaved changes. What would you like to do?"),
-                TextFont {
-                    font_size: 18.0,
-                    ..default()
-                },
-                TextColor(Color::srgb(0.7, 0.7, 0.7)),
-                Node {
-                    margin: UiRect::bottom(Val::Px(30.0)),
-                    ..default()
-                },
-            ));
-            
-            // Buttons
-            dialog.spawn((
-                Node {
-                    flex_direction: FlexDirection::Row,
-                    column_gap: Val::Px(20.0),
-                    ..default()
-                },
-                BackgroundColor(Color::NONE),
-            )).with_children(|buttons| {
-                // Save & Exit button
-                buttons.spawn((
-                    Button,
-                    Node {
-                        width: Val::Px(130.0),
-                        height: Val::Px(45.0),
-                        justify_content: JustifyContent::Center,
-                        align_items: AlignItems::Center,
-                        border: UiRect::all(Val::Px(2.0)),
-                        ..default()
-                    },
-                    BackgroundColor(Color::srgb(0.15, 0.25, 0.15)),
-                    BorderColor(Color::srgb(0.3, 0.5, 0.3)),
-                    SaveAndExitButton,
-                )).with_children(|btn| {
-                    btn.spawn((
-                        Text::new("Save & Exit"),
-                        TextFont {
-                            font_size: 18.0,
-                            ..default()
-                        },
-                        TextColor(Color::srgb(0.9, 0.9, 0.9)),
-                    ));
-                });
-                
-                // Discard button
-                buttons.spawn((
-                    Button,
-                    Node {
-                        width: Val::Px(130.0),
-                        height: Val::Px(45.0),
-                        justify_content: JustifyContent::Center,
-                        align_items: AlignItems::Center,
-                        border: UiRect::all(Val::Px(2.0)),
-                        ..default()
-                    },
-                    BackgroundColor(Color::srgb(0.25, 0.15, 0.15)),
-                    BorderColor(Color::srgb(0.5, 0.3, 0.3)),
-                    DiscardChangesButton,
-                )).with_children(|btn| {
-                    btn.spawn((
-                        Text::new("Discard"),
-                        TextFont {
-                            font_size: 18.0,
-                            ..default()
-                        },
-                        TextColor(Color::srgb(0.9, 0.9, 0.9)),
-                    ));
-                });
-                
-                // Cancel button (stay in settings)
-                buttons.spawn((
-                    Button,
-                    Node {
-                        width: Val::Px(100.0),
-                        height: Val::Px(45.0),
-                        justify_content: JustifyContent::Center,
-                        align_items: AlignItems::Center,
-                        border: UiRect::all(Val::Px(2.0)),
-                        ..default()
-                    },
-                    BackgroundColor(Color::srgb(0.18, 0.18, 0.2)),
-                    BorderColor(Color::srgb(0.35, 0.35, 0.4)),
-                    CancelExitButton,
-                )).with_children(|btn| {
-                    btn.spawn((
-                        Text::new("Cancel"),
-                        TextFont {
-                            font_size: 18.0,
-                            ..default()
-                        },
-                        TextColor(Color::srgb(0.9, 0.9, 0.9)),
-                    ));
-                });
-            });
-        });
-    });
+fn spawn_unsaved_changes_dialog(commands: Commands) {
+    // Use the new dialog builder system
+    use crate::ui::dialogs::presets;
+    presets::unsaved_changes_dialog(commands);
 }
 
 /// Handle unsaved changes dialog buttons
 pub fn handle_unsaved_changes_dialog(
-    mut interactions: Query<(&Interaction, AnyOf<(&SaveAndExitButton, &DiscardChangesButton, &CancelExitButton)>), Changed<Interaction>>,
+    mut interactions: Query<(&Interaction, AnyOf<(&crate::ui::dialogs::SaveButton, &crate::ui::dialogs::DiscardButton, &crate::ui::dialogs::CancelButton)>), Changed<Interaction>>,
     mut commands: Commands,
-    dialog_query: Query<Entity, With<UnsavedChangesDialog>>,
+    dialog_query: Query<Entity, With<crate::ui::dialogs::UnsavedChangesDialog>>,
     settings_root: Query<Entity, With<SettingsMenuRoot>>,
     mut settings: ResMut<GameSettings>,
     temp_settings: Res<TempGameSettings>,
@@ -788,62 +705,5 @@ pub fn handle_unsaved_changes_dialog(
     }
 }
 
-/// Handle hover effects for unsaved changes dialog buttons
-pub fn update_dialog_button_hover(
-    mut interactions: Query<
-        (&Interaction, &mut BackgroundColor, &mut BorderColor, AnyOf<(&SaveAndExitButton, &DiscardChangesButton, &CancelExitButton)>), 
-        Changed<Interaction>
-    >,
-) {
-    for (interaction, mut bg_color, mut border_color, (save_button, discard_button, cancel_button)) in &mut interactions {
-        if save_button.is_some() {
-            // Save & Exit button - green theme
-            match *interaction {
-                Interaction::Hovered => {
-                    *bg_color = BackgroundColor(Color::srgb(0.2, 0.35, 0.2));
-                    *border_color = BorderColor(Color::srgb(0.4, 0.6, 0.4));
-                }
-                Interaction::Pressed => {
-                    *bg_color = BackgroundColor(Color::srgb(0.25, 0.4, 0.25));
-                    *border_color = BorderColor(Color::srgb(0.5, 0.7, 0.5));
-                }
-                Interaction::None => {
-                    *bg_color = BackgroundColor(Color::srgb(0.15, 0.25, 0.15));
-                    *border_color = BorderColor(Color::srgb(0.3, 0.5, 0.3));
-                }
-            }
-        } else if discard_button.is_some() {
-            // Discard button - red theme
-            match *interaction {
-                Interaction::Hovered => {
-                    *bg_color = BackgroundColor(Color::srgb(0.35, 0.2, 0.2));
-                    *border_color = BorderColor(Color::srgb(0.6, 0.4, 0.4));
-                }
-                Interaction::Pressed => {
-                    *bg_color = BackgroundColor(Color::srgb(0.4, 0.25, 0.25));
-                    *border_color = BorderColor(Color::srgb(0.7, 0.5, 0.5));
-                }
-                Interaction::None => {
-                    *bg_color = BackgroundColor(Color::srgb(0.25, 0.15, 0.15));
-                    *border_color = BorderColor(Color::srgb(0.5, 0.3, 0.3));
-                }
-            }
-        } else if cancel_button.is_some() {
-            // Cancel button - neutral theme
-            match *interaction {
-                Interaction::Hovered => {
-                    *bg_color = BackgroundColor(Color::srgb(0.22, 0.22, 0.25));
-                    *border_color = BorderColor(Color::srgb(0.45, 0.45, 0.5));
-                }
-                Interaction::Pressed => {
-                    *bg_color = BackgroundColor(Color::srgb(0.25, 0.25, 0.28));
-                    *border_color = BorderColor(Color::srgb(0.5, 0.5, 0.55));
-                }
-                Interaction::None => {
-                    *bg_color = BackgroundColor(Color::srgb(0.18, 0.18, 0.2));
-                    *border_color = BorderColor(Color::srgb(0.35, 0.35, 0.4));
-                }
-            }
-        }
-    }
-}
+// Hover effects for dialog buttons are now handled by the StyledButton system in ui/buttons.rs
+// The old update_dialog_button_hover function has been removed as it's no longer needed

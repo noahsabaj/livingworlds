@@ -15,7 +15,10 @@ pub enum GameState {
     /// Main menu - entry point after loading
     MainMenu,
     
-    /// World generation configuration screen
+    /// World configuration - player sets generation parameters
+    WorldConfiguration,
+    
+    /// World generation - creating the world
     WorldGeneration,
     
     /// Loading a saved world
@@ -131,6 +134,9 @@ impl Plugin for StatesPlugin {
             .add_systems(OnEnter(GameState::MainMenu), enter_main_menu)
             .add_systems(OnExit(GameState::MainMenu), exit_main_menu)
             
+            .add_systems(OnEnter(GameState::WorldConfiguration), enter_world_configuration)
+            .add_systems(OnExit(GameState::WorldConfiguration), exit_world_configuration)
+            
             .add_systems(OnEnter(GameState::WorldGeneration), enter_world_generation)
             .add_systems(OnExit(GameState::WorldGeneration), exit_world_generation)
             
@@ -188,13 +194,18 @@ fn is_valid_transition(from: GameState, to: GameState, world_gen: &WorldGenerati
         // Loading can only go to MainMenu
         (Loading, MainMenu) => true,
         
-        // MainMenu can go to WorldGeneration, LoadingWorld, or back to Loading (for reset)
-        (MainMenu, WorldGeneration) => true,
+        // MainMenu can go to WorldConfiguration, LoadingWorld, or back to Loading (for reset)
+        (MainMenu, WorldConfiguration) => true,
         (MainMenu, LoadingWorld) => true,
         (MainMenu, Loading) => true,
         
-        // WorldGeneration can go to LoadingWorld or back to MainMenu
+        // WorldConfiguration can go to WorldGeneration or back to MainMenu
+        (WorldConfiguration, WorldGeneration) => true,
+        (WorldConfiguration, MainMenu) => true,
+        
+        // WorldGeneration can go to LoadingWorld or back to WorldConfiguration
         (WorldGeneration, LoadingWorld) => !world_gen.0, // Only if generation complete
+        (WorldGeneration, WorldConfiguration) => true,
         (WorldGeneration, MainMenu) => true,
         
         // LoadingWorld can go to InGame or back to MainMenu (on error)
@@ -295,6 +306,18 @@ fn exit_main_menu(mut commands: Commands) {
     // Cleanup main menu UI
 }
 
+fn enter_world_configuration(
+    mut commands: Commands,
+) {
+    println!("Entering WorldConfiguration state");
+    // The world_config module will handle spawning the configuration UI
+}
+
+fn exit_world_configuration(mut commands: Commands) {
+    println!("Exiting WorldConfiguration state");
+    // The world_config module will handle cleanup
+}
+
 fn enter_world_generation(
     mut commands: Commands,
     mut world_gen: ResMut<WorldGenerationInProgress>,
@@ -302,10 +325,10 @@ fn enter_world_generation(
 ) {
     println!("Entering WorldGeneration state");
     world_gen.0 = false; // Not in progress yet
-    // Will spawn world generation UI here
+    // Will spawn world generation progress UI here
     
-    // For now, immediately transition to LoadingWorld since we don't have a config UI yet
-    println!("Auto-transitioning to LoadingWorld to start generation");
+    // Transition to LoadingWorld to actually generate the world
+    // The WorldGenerationSettings from WorldConfiguration will be used
     next_state.set(GameState::LoadingWorld);
 }
 

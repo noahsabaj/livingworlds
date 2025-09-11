@@ -14,7 +14,7 @@ use noise::Perlin;
 use rand::rngs::StdRng;
 
 use crate::components::Province;
-use crate::terrain::{TerrainType, classify_terrain_with_climate};
+use crate::terrain::{TerrainType, classify_terrain_with_sea_level};
 use crate::constants::*;
 use super::types::MapDimensions;
 use super::tectonics::{TectonicSystem, TectonicPlate, BoundaryType};
@@ -143,9 +143,33 @@ pub fn generate(
     perlin: &Perlin,
     _rng: &mut StdRng,
 ) -> Vec<Province> {
+    // Default ocean coverage of 60%
+    generate_with_ocean_coverage(tectonics, dimensions, perlin, _rng, 0.6)
+}
+
+/// Generate provinces with specified ocean coverage
+pub fn generate_with_ocean_coverage(
+    tectonics: &TectonicSystem,
+    dimensions: MapDimensions,
+    perlin: &Perlin,
+    _rng: &mut StdRng,
+    ocean_coverage: f32,
+) -> Vec<Province> {
     let total_provinces = dimensions.provinces_per_row * dimensions.provinces_per_col;
     
-    println!("Generating provinces with REAL tectonic influence...");
+    println!("Generating provinces with {:.0}% ocean coverage...", ocean_coverage * 100.0);
+    
+    // Calculate sea level based on desired ocean coverage
+    // Ocean coverage of 0.6 (60%) typically corresponds to sea level of 0.15
+    // We scale linearly from this baseline
+    let base_coverage = 0.6;
+    let base_sea_level = 0.15;
+    // Adjust sea level to achieve desired ocean coverage
+    // Higher sea level = more ocean, lower sea level = less ocean
+    let sea_level = base_sea_level + (ocean_coverage - base_coverage) * 0.35;
+    let sea_level = sea_level.clamp(0.05, 0.5); // Keep within reasonable bounds
+    
+    println!("Using sea level of {:.3} to achieve {:.0}% ocean coverage", sea_level, ocean_coverage * 100.0);
     
     // Pre-compute for parallel access
     let tectonics_arc = Arc::new(tectonics.clone());
@@ -240,10 +264,11 @@ pub fn generate(
             // Clamp final elevation
             elevation = elevation.clamp(0.0, 1.0);
             
-            // Classify terrain based on elevation and climate
-            let terrain = classify_terrain_with_climate(
+            // Classify terrain based on elevation and climate with custom sea level
+            let terrain = classify_terrain_with_sea_level(
                 elevation, pos_x, pos_y,
                 dimensions.bounds.y_max - dimensions.bounds.y_min,
+                sea_level,
             );
             
             // Initial population based on terrain

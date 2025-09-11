@@ -1,7 +1,9 @@
 //! UI spawning and creation for the settings menu
 
 use bevy::prelude::*;
+use bevy::ui::RelativeCursorPosition;
 use crate::states::{CurrentSettingsTab, SettingsTab};
+use crate::ui::buttons::{ButtonBuilder, ButtonStyle, ButtonSize};
 use super::types::*;
 use super::components::*;
 
@@ -21,11 +23,13 @@ pub fn spawn_settings_menu(
     // Reset dirty state when opening menu
     dirty_state.is_dirty = false;
     
-    // Root container - dark overlay
+    // Root container - dark overlay that blocks clicks
     commands.spawn((
+        Button,  // Add Button to block all clicks behind settings
         Node {
             width: Val::Percent(100.0),
             height: Val::Percent(100.0),
+            position_type: PositionType::Absolute,
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center,
             ..default()
@@ -34,6 +38,7 @@ pub fn spawn_settings_menu(
         SettingsMenuRoot,
         ZIndex(200), // Above other menus
     )).with_children(|parent| {
+        
         // Settings panel
         parent.spawn((
             Node {
@@ -46,6 +51,7 @@ pub fn spawn_settings_menu(
             },
             BackgroundColor(Color::srgb(0.1, 0.1, 0.12)),
             BorderColor(Color::srgb(0.4, 0.4, 0.45)),
+            ZIndex(10),  // Above click blocker
         )).with_children(|panel| {
             // Title
             panel.spawn((
@@ -121,35 +127,17 @@ fn spawn_tab_buttons(parent: &mut ChildSpawnerCommands, current_tab: SettingsTab
 /// Creates a single tab button
 fn create_tab_button(parent: &mut ChildSpawnerCommands, text: &str, tab: SettingsTab, current_tab: SettingsTab) {
     let is_active = tab == current_tab;
-    let bg_color = if is_active {
-        Color::srgb(0.2, 0.2, 0.25)
+    let style = if is_active {
+        ButtonStyle::Primary
     } else {
-        Color::srgb(0.12, 0.12, 0.15)
+        ButtonStyle::Secondary
     };
     
-    parent.spawn((
-        Button,
-        Node {
-            width: Val::Px(120.0),
-            height: Val::Px(35.0),
-            justify_content: JustifyContent::Center,
-            align_items: AlignItems::Center,
-            border: UiRect::all(Val::Px(1.0)),
-            ..default()
-        },
-        BackgroundColor(bg_color),
-        BorderColor(Color::srgb(0.3, 0.3, 0.35)),
-        TabButton { tab },
-    )).with_children(|btn| {
-        btn.spawn((
-            Text::new(text),
-            TextFont {
-                font_size: 18.0,
-                ..default()
-            },
-            TextColor(Color::srgb(0.9, 0.9, 0.9)),
-        ));
-    });
+    ButtonBuilder::new(text)
+        .style(style)
+        .size(ButtonSize::Small)
+        .with_marker(TabButton { tab })
+        .build(parent);
 }
 
 /// Spawns the apply/cancel buttons
@@ -165,55 +153,19 @@ fn spawn_apply_cancel_buttons(parent: &mut ChildSpawnerCommands) {
         BackgroundColor(Color::NONE),
     )).with_children(|buttons| {
         // Apply button
-        buttons.spawn((
-            Button,
-            Node {
-                width: Val::Px(120.0),
-                height: Val::Px(40.0),
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                border: UiRect::all(Val::Px(2.0)),
-                ..default()
-            },
-            // Initially disabled until settings change
-            BackgroundColor(Color::srgb(0.1, 0.1, 0.1)),
-            BorderColor(Color::srgb(0.3, 0.5, 0.3)),
-            ApplyButton,
-        )).with_children(|btn| {
-            btn.spawn((
-                Text::new("Apply"),
-                TextFont {
-                    font_size: 20.0,
-                    ..default()
-                },
-                TextColor(Color::srgb(0.9, 0.9, 0.9)),
-            ));
-        });
+        ButtonBuilder::new("Apply")
+            .style(ButtonStyle::Success)
+            .size(ButtonSize::Medium)
+            .enabled(false)  // Initially disabled until settings change
+            .with_marker(ApplyButton)
+            .build(buttons);
         
         // Exit button
-        buttons.spawn((
-            Button,
-            Node {
-                width: Val::Px(120.0),
-                height: Val::Px(40.0),
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                border: UiRect::all(Val::Px(2.0)),
-                ..default()
-            },
-            BackgroundColor(Color::srgb(0.25, 0.15, 0.15)),
-            BorderColor(Color::srgb(0.5, 0.3, 0.3)),
-            CancelButton,  // Keep component name for compatibility
-        )).with_children(|btn| {
-            btn.spawn((
-                Text::new("Exit"),
-                TextFont {
-                    font_size: 20.0,
-                    ..default()
-                },
-                TextColor(Color::srgb(0.9, 0.9, 0.9)),
-            ));
-        });
+        ButtonBuilder::new("Exit")
+            .style(ButtonStyle::Danger)
+            .size(ButtonSize::Medium)
+            .with_marker(CancelButton)  // Keep component name for compatibility
+            .build(buttons);
     });
 }
 
@@ -269,7 +221,14 @@ fn spawn_graphics_presets(parent: &mut ChildSpawnerCommands, settings: &Graphics
         // Preset buttons
         for preset in [GraphicsPreset::Low, GraphicsPreset::Medium, GraphicsPreset::High, GraphicsPreset::Ultra] {
             let is_active = settings.current_preset() == Some(preset);
-            presets.spawn((
+            let preset_text = match preset {
+                GraphicsPreset::Low => "Low",
+                GraphicsPreset::Medium => "Medium",
+                GraphicsPreset::High => "High",
+                GraphicsPreset::Ultra => "Ultra",
+            };
+            
+            let mut entity_commands = presets.spawn((
                 Button,
                 Node {
                     width: Val::Px(80.0),
@@ -280,25 +239,22 @@ fn spawn_graphics_presets(parent: &mut ChildSpawnerCommands, settings: &Graphics
                     ..default()
                 },
                 BackgroundColor(if is_active {
-                    Color::srgb(0.18, 0.25, 0.18)
+                    Color::srgb(0.15, 0.3, 0.15)
                 } else {
-                    Color::srgb(0.12, 0.12, 0.15)
+                    Color::srgb(0.15, 0.15, 0.18)
                 }),
                 BorderColor(if is_active {
-                    Color::srgb(0.4, 0.6, 0.4)
+                    Color::srgb(0.3, 0.5, 0.3)
                 } else {
                     Color::srgb(0.3, 0.3, 0.35)
                 }),
                 PresetButton { preset },
                 Focusable { order: preset as u32 },
-            )).with_children(|btn| {
+            ));
+            
+            entity_commands.with_children(|btn| {
                 btn.spawn((
-                    Text::new(match preset {
-                        GraphicsPreset::Low => "Low",
-                        GraphicsPreset::Medium => "Medium",
-                        GraphicsPreset::High => "High",
-                        GraphicsPreset::Ultra => "Ultra",
-                    }),
+                    Text::new(preset_text),
                     TextFont {
                         font_size: 16.0,
                         ..default()
@@ -413,29 +369,11 @@ fn create_cycle_row(parent: &mut ChildSpawnerCommands, label: &str, current: &st
         ));
         
         // Cycle button
-        row.spawn((
-            Button,
-            Node {
-                width: Val::Px(200.0),
-                height: Val::Px(30.0),
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                border: UiRect::all(Val::Px(1.0)),
-                ..default()
-            },
-            BackgroundColor(Color::srgb(0.15, 0.15, 0.18)),
-            BorderColor(Color::srgb(0.3, 0.3, 0.35)),
-            CycleButton { setting_type },
-        )).with_children(|btn| {
-            btn.spawn((
-                Text::new(format!("< {} >", current)),
-                TextFont {
-                    font_size: 16.0,
-                    ..default()
-                },
-                TextColor(Color::srgb(0.9, 0.9, 0.9)),
-            ));
-        });
+        ButtonBuilder::new(format!("< {} >", current))
+            .style(ButtonStyle::Secondary)
+            .size(ButtonSize::Medium)
+            .with_marker(CycleButton { setting_type })
+            .build(row);
     });
 }
 
@@ -462,7 +400,10 @@ fn create_toggle_row(parent: &mut ChildSpawnerCommands, label: &str, enabled: bo
         ));
         
         // Toggle checkbox
-        row.spawn((
+        let checkbox_text = if enabled { "✓" } else { "" };
+        let style = if enabled { ButtonStyle::Success } else { ButtonStyle::Secondary };
+        
+        let mut entity_commands = row.spawn((
             Button,
             Node {
                 width: Val::Px(30.0),
@@ -479,18 +420,20 @@ fn create_toggle_row(parent: &mut ChildSpawnerCommands, label: &str, enabled: bo
             }),
             BorderColor(Color::srgb(0.3, 0.3, 0.35)),
             ToggleButton { setting_type, enabled },
-        )).with_children(|btn| {
-            if enabled {
+        ));
+        
+        if enabled {
+            entity_commands.with_children(|btn| {
                 btn.spawn((
-                    Text::new("X"),
+                    Text::new("✓"),
                     TextFont {
                         font_size: 20.0,
                         ..default()
                     },
                     TextColor(Color::srgb(0.9, 0.9, 0.9)),
                 ));
-            }
-        });
+            });
+        }
     });
 }
 
@@ -529,6 +472,7 @@ fn create_slider_row(parent: &mut ChildSpawnerCommands, label: &str, value: f32,
         )).with_children(|container| {
             // Slider track
             container.spawn((
+                Button,  // Required for Interaction to work
                 Node {
                     width: Val::Px(180.0),
                     height: Val::Px(6.0),
@@ -537,6 +481,7 @@ fn create_slider_row(parent: &mut ChildSpawnerCommands, label: &str, value: f32,
                 },
                 BackgroundColor(Color::srgb(0.1, 0.1, 0.12)),
                 Interaction::default(),
+                RelativeCursorPosition::default(),  // Track cursor position relative to this element
                 Slider { setting_type, value, min, max },
             )).with_children(|track| {
                 // Slider handle

@@ -8,6 +8,7 @@ use bevy::prelude::*;
 use bevy::app::AppExit;
 use crate::states::{GameState, RequestStateTransition};
 use crate::settings::{GameSettings, TempGameSettings, SettingsDirtyState, spawn_settings_menu};
+use crate::ui::buttons::{ButtonBuilder, ButtonStyle, ButtonSize};
 
 /// Plugin that manages all menu-related UI and interactions
 pub struct MenusPlugin;
@@ -72,17 +73,7 @@ pub enum MenuAction {
     BackToMainMenu,
 }
 
-/// Marker component for exit confirmation dialog
-#[derive(Component)]
-pub struct ExitConfirmationDialog;
-
-/// Marker component for confirm exit button
-#[derive(Component)]
-pub struct ConfirmExitButton;
-
-/// Marker component for cancel exit button
-#[derive(Component)]
-pub struct CancelExitButton;
+// Exit confirmation dialog components are now in crate::ui::dialogs
 
 // ============================================================================
 // MAIN MENU
@@ -148,51 +139,15 @@ fn spawn_main_menu(mut commands: Commands) {
             align_items: AlignItems::Center,
             ..default()
         }).with_children(|button_parent| {
-            // Helper closure for creating buttons
+            // Helper closure for creating buttons using ButtonBuilder
             let mut create_button = |text: &str, action: MenuAction, enabled: bool| {
-                let base_color = if enabled {
-                    Color::srgb(0.15, 0.15, 0.18)
-                } else {
-                    Color::srgb(0.08, 0.08, 0.08)
-                };
-                
-                let text_color = if enabled {
-                    Color::srgb(0.9, 0.9, 0.9)
-                } else {
-                    Color::srgb(0.4, 0.4, 0.4)
-                };
-                
-                let border_color = if enabled {
-                    Color::srgb(0.3, 0.3, 0.35)
-                } else {
-                    Color::srgb(0.15, 0.15, 0.15)
-                };
-                
-                button_parent.spawn((
-                    Button,
-                    Node {
-                        width: Val::Px(280.0),
-                        height: Val::Px(55.0),
-                        justify_content: JustifyContent::Center,
-                        align_items: AlignItems::Center,
-                        margin: UiRect::vertical(Val::Px(8.0)),
-                        border: UiRect::all(Val::Px(2.0)),
-                        ..default()
-                    },
-                    BackgroundColor(base_color),
-                    BorderColor(border_color),
-                    MenuButton { action, enabled },
-                )).with_children(|button| {
-                    button.spawn((
-                        Text::new(text),
-                        TextFont {
-                            font_size: 24.0,
-                            ..default()
-                        },
-                        TextColor(text_color),
-                        ButtonText,
-                    ));
-                });
+                ButtonBuilder::new(text)
+                    .style(ButtonStyle::Secondary)
+                    .size(ButtonSize::XLarge)
+                    .enabled(enabled)
+                    .margin(UiRect::vertical(Val::Px(8.0)))
+                    .with_marker(MenuButton { action, enabled })
+                    .build(button_parent);
             };
             
             // Create menu buttons
@@ -260,10 +215,10 @@ fn handle_button_interactions(
         if *interaction == Interaction::Pressed {
             match button.action {
                 MenuAction::NewWorld => {
-                    println!("New World button pressed - transitioning to WorldGeneration");
+                    println!("New World button pressed - transitioning to WorldConfiguration");
                     state_events.write(RequestStateTransition {
                         from: **current_state,
-                        to: GameState::WorldGeneration,
+                        to: GameState::WorldConfiguration,
                     });
                 }
                 MenuAction::LoadGame => {
@@ -289,33 +244,17 @@ fn handle_button_interactions(
 }
 
 /// Updates button visuals based on interaction state
+/// Note: ButtonBuilder handles hover effects via styled_button_hover_system,
+/// but we keep this for any custom menu-specific visual feedback
 fn update_button_visuals(
     mut interactions: Query<
         (&Interaction, &MenuButton, &mut BackgroundColor, &mut BorderColor),
         (Changed<Interaction>, With<Button>)
     >,
 ) {
-    for (interaction, button, mut bg_color, mut border_color) in &mut interactions {
-        // Skip disabled buttons
-        if !button.enabled {
-            continue;
-        }
-        
-        match *interaction {
-            Interaction::Pressed => {
-                *bg_color = BackgroundColor(Color::srgb(0.25, 0.25, 0.3));
-                *border_color = BorderColor(Color::srgb(0.7, 0.7, 0.75));
-            }
-            Interaction::Hovered => {
-                *bg_color = BackgroundColor(Color::srgb(0.2, 0.2, 0.25));
-                *border_color = BorderColor(Color::srgb(0.5, 0.5, 0.55));
-            }
-            Interaction::None => {
-                *bg_color = BackgroundColor(Color::srgb(0.15, 0.15, 0.18));
-                *border_color = BorderColor(Color::srgb(0.3, 0.3, 0.35));
-            }
-        }
-    }
+    // The styled_button_hover_system in buttons.rs handles the visual updates
+    // This function is kept for potential menu-specific visual feedback
+    // Currently, all hover effects are handled by the centralized system
 }
 
 // ============================================================================
@@ -326,8 +265,9 @@ fn update_button_visuals(
 fn spawn_pause_menu(mut commands: Commands) {
     println!("Spawning pause menu UI");
     
-    // Root container - full screen with dark semi-transparent overlay
+    // Root container - full screen with dark semi-transparent overlay that blocks clicks
     commands.spawn((
+        Button,  // Add Button to block clicks to elements behind pause menu
         Node {
             width: Val::Percent(100.0),
             height: Val::Percent(100.0),
@@ -366,51 +306,15 @@ fn spawn_pause_menu(mut commands: Commands) {
                 },
             ));
             
-            // Helper closure for creating buttons
+            // Helper closure for creating buttons using ButtonBuilder
             let mut create_button = |text: &str, action: MenuAction, enabled: bool| {
-                let base_color = if enabled {
-                    Color::srgb(0.15, 0.15, 0.18)
-                } else {
-                    Color::srgb(0.08, 0.08, 0.08)
-                };
-                
-                let text_color = if enabled {
-                    Color::srgb(0.9, 0.9, 0.9)
-                } else {
-                    Color::srgb(0.4, 0.4, 0.4)
-                };
-                
-                let border_color = if enabled {
-                    Color::srgb(0.3, 0.3, 0.35)
-                } else {
-                    Color::srgb(0.15, 0.15, 0.15)
-                };
-                
-                panel.spawn((
-                    Button,
-                    Node {
-                        width: Val::Px(280.0),
-                        height: Val::Px(55.0),
-                        justify_content: JustifyContent::Center,
-                        align_items: AlignItems::Center,
-                        margin: UiRect::vertical(Val::Px(8.0)),
-                        border: UiRect::all(Val::Px(2.0)),
-                        ..default()
-                    },
-                    BackgroundColor(base_color),
-                    BorderColor(border_color),
-                    MenuButton { action, enabled },
-                )).with_children(|button| {
-                    button.spawn((
-                        Text::new(text),
-                        TextFont {
-                            font_size: 24.0,
-                            ..default()
-                        },
-                        TextColor(text_color),
-                        ButtonText,
-                    ));
-                });
+                ButtonBuilder::new(text)
+                    .style(ButtonStyle::Secondary)
+                    .size(ButtonSize::XLarge)
+                    .enabled(enabled)
+                    .margin(UiRect::vertical(Val::Px(8.0)))
+                    .with_marker(MenuButton { action, enabled })
+                    .build(panel);
             };
             
             // Buttons
@@ -520,162 +424,33 @@ fn handle_pause_button_interactions(
 fn spawn_exit_confirmation_dialog(commands: &mut Commands) {
     println!("Spawning exit confirmation dialog");
     
-    // Dialog overlay
-    commands.spawn((
-        Node {
-            position_type: PositionType::Absolute,
-            width: Val::Percent(100.0),
-            height: Val::Percent(100.0),
-            justify_content: JustifyContent::Center,
-            align_items: AlignItems::Center,
-            ..default()
-        },
-        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.7)),
-        ExitConfirmationDialog,
-        ZIndex(400),  // Above everything else
-    )).with_children(|overlay| {
-        // Dialog box
-        overlay.spawn((
-            Node {
-                width: Val::Px(450.0),  // Slightly wider than pause menu for better overlap
-                padding: UiRect::all(Val::Px(30.0)),
-                flex_direction: FlexDirection::Column,
-                align_items: AlignItems::Center,
-                border: UiRect::all(Val::Px(2.0)),
-                ..default()
-            },
-            BackgroundColor(Color::srgb(0.08, 0.08, 0.1)),
-            BorderColor(Color::srgb(0.3, 0.3, 0.35)),
-        )).with_children(|dialog| {
-            // Title
-            dialog.spawn((
-                Text::new("Exit Game"),
-                TextFont {
-                    font_size: 28.0,
-                    ..default()
-                },
-                TextColor(Color::srgb(0.9, 0.85, 0.7)),
-                Node {
-                    margin: UiRect::bottom(Val::Px(20.0)),
-                    ..default()
-                },
-            ));
-            
-            // Message
-            dialog.spawn((
-                Text::new("Are you sure you want to exit?"),
-                TextFont {
-                    font_size: 18.0,
-                    ..default()
-                },
-                TextColor(Color::srgb(0.8, 0.8, 0.8)),
-                Node {
-                    margin: UiRect::bottom(Val::Px(30.0)),
-                    ..default()
-                },
-            ));
-            
-            // Buttons container
-            dialog.spawn(Node {
-                flex_direction: FlexDirection::Row,
-                justify_content: JustifyContent::Center,
-                column_gap: Val::Px(20.0),
-                ..default()
-            }).with_children(|buttons| {
-                // Confirm button
-                buttons.spawn((
-                    Button,
-                    Node {
-                        width: Val::Px(120.0),
-                        height: Val::Px(45.0),
-                        justify_content: JustifyContent::Center,
-                        align_items: AlignItems::Center,
-                        border: UiRect::all(Val::Px(1.0)),
-                        ..default()
-                    },
-                    BackgroundColor(Color::srgb(0.5, 0.2, 0.2)),
-                    BorderColor(Color::srgb(0.7, 0.3, 0.3)),
-                    ConfirmExitButton,
-                )).with_children(|button| {
-                    button.spawn((
-                        Text::new("Exit"),
-                        TextFont {
-                            font_size: 20.0,
-                            ..default()
-                        },
-                        TextColor(Color::srgb(0.9, 0.9, 0.9)),
-                    ));
-                });
-                
-                // Cancel button
-                buttons.spawn((
-                    Button,
-                    Node {
-                        width: Val::Px(120.0),
-                        height: Val::Px(45.0),
-                        justify_content: JustifyContent::Center,
-                        align_items: AlignItems::Center,
-                        border: UiRect::all(Val::Px(1.0)),
-                        ..default()
-                    },
-                    BackgroundColor(Color::srgb(0.15, 0.15, 0.18)),
-                    BorderColor(Color::srgb(0.3, 0.3, 0.35)),
-                    CancelExitButton,
-                )).with_children(|button| {
-                    button.spawn((
-                        Text::new("Cancel"),
-                        TextFont {
-                            font_size: 20.0,
-                            ..default()
-                        },
-                        TextColor(Color::srgb(0.9, 0.9, 0.9)),
-                    ));
-                });
-            });
-        });
-    });
+    // Use the new dialog builder system
+    use crate::ui::dialogs::presets;
+    presets::exit_confirmation_dialog(commands.reborrow());
 }
 
 /// Handles exit confirmation dialog button interactions
 fn handle_exit_confirmation_dialog(
     mut interactions: Query<
-        (&Interaction, &mut BackgroundColor, AnyOf<(&ConfirmExitButton, &CancelExitButton)>), 
+        (&Interaction, AnyOf<(&crate::ui::dialogs::ConfirmButton, &crate::ui::dialogs::CancelButton)>), 
         Changed<Interaction>
     >,
     mut commands: Commands,
-    dialog_query: Query<Entity, With<ExitConfirmationDialog>>,
+    dialog_query: Query<Entity, With<crate::ui::dialogs::ExitConfirmationDialog>>,
     mut exit_events: EventWriter<AppExit>,
 ) {
-    for (interaction, mut bg_color, (confirm_button, cancel_button)) in &mut interactions {
-        match *interaction {
-            Interaction::Hovered => {
-                // Hover effect
-                if confirm_button.is_some() {
-                    *bg_color = BackgroundColor(Color::srgb(0.6, 0.25, 0.25)); // Lighter red
-                } else if cancel_button.is_some() {
-                    *bg_color = BackgroundColor(Color::srgb(0.2, 0.2, 0.23)); // Lighter gray
-                }
+    for (interaction, (confirm_button, cancel_button)) in &mut interactions {
+        if *interaction == Interaction::Pressed {
+            // Close the dialog first
+            if let Ok(dialog_entity) = dialog_query.get_single() {
+                commands.entity(dialog_entity).despawn_recursive();
             }
-            Interaction::None => {
-                // Return to normal color
-                if confirm_button.is_some() {
-                    *bg_color = BackgroundColor(Color::srgb(0.5, 0.2, 0.2)); // Normal red
-                } else if cancel_button.is_some() {
-                    *bg_color = BackgroundColor(Color::srgb(0.15, 0.15, 0.18)); // Normal gray
-                }
-            }
-            Interaction::Pressed => {
-                // Close the dialog first
-                if let Ok(dialog_entity) = dialog_query.get_single() {
-                    commands.entity(dialog_entity).despawn_recursive();
-                }
-                
-                if confirm_button.is_some() {
-                    println!("Exit confirmed - closing application");
-                    exit_events.write(AppExit::Success);
-                } else if cancel_button.is_some() {
-                    println!("Exit cancelled - returning to game");
-                }
+            
+            if confirm_button.is_some() {
+                println!("Exit confirmed - closing application");
+                exit_events.write(AppExit::Success);
+            } else if cancel_button.is_some() {
+                println!("Exit cancelled - returning to game");
             }
         }
     }

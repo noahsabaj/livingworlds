@@ -22,119 +22,9 @@ pub fn handle_resolution_confirm_request(
         confirmation.original_resolution = settings.graphics.resolution.clone();
         confirmation.original_window_mode = settings.graphics.window_mode.clone();
         
-        // Spawn dialog UI
-        commands.spawn((
-            Node {
-                position_type: PositionType::Absolute,
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.0),
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                ..default()
-            },
-            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.7)),
-            ResolutionConfirmDialog,
-        )).with_children(|overlay| {
-            overlay.spawn((
-                Node {
-                    width: Val::Px(400.0),
-                    padding: UiRect::all(Val::Px(30.0)),
-                    flex_direction: FlexDirection::Column,
-                    align_items: AlignItems::Center,
-                    border: UiRect::all(Val::Px(2.0)),
-                    ..default()
-                },
-                BackgroundColor(Color::srgb(0.12, 0.12, 0.15)),
-                BorderColor(Color::srgb(0.4, 0.4, 0.45)),
-            )).with_children(|dialog| {
-                // Title
-                dialog.spawn((
-                    Text::new("Keep Display Settings?"),
-                    TextFont {
-                        font_size: 24.0,
-                        ..default()
-                    },
-                    TextColor(Color::srgb(0.9, 0.9, 0.9)),
-                    Node {
-                        margin: UiRect::bottom(Val::Px(20.0)),
-                        ..default()
-                    },
-                ));
-                
-                // Countdown text
-                dialog.spawn((
-                    Text::new("Reverting in 15 seconds..."),
-                    TextFont {
-                        font_size: 18.0,
-                        ..default()
-                    },
-                    TextColor(Color::srgb(0.7, 0.7, 0.7)),
-                    Node {
-                        margin: UiRect::bottom(Val::Px(30.0)),
-                        ..default()
-                    },
-                    CountdownText,
-                ));
-                
-                // Buttons
-                dialog.spawn((
-                    Node {
-                        flex_direction: FlexDirection::Row,
-                        column_gap: Val::Px(20.0),
-                        ..default()
-                    },
-                    BackgroundColor(Color::NONE),
-                )).with_children(|buttons| {
-                    // Keep button
-                    buttons.spawn((
-                        Button,
-                        Node {
-                            width: Val::Px(100.0),
-                            height: Val::Px(40.0),
-                            justify_content: JustifyContent::Center,
-                            align_items: AlignItems::Center,
-                            border: UiRect::all(Val::Px(2.0)),
-                            ..default()
-                        },
-                        BackgroundColor(Color::srgb(0.15, 0.25, 0.15)),
-                        BorderColor(Color::srgb(0.3, 0.5, 0.3)),
-                    )).with_children(|btn| {
-                        btn.spawn((
-                            Text::new("Keep"),
-                            TextFont {
-                                font_size: 18.0,
-                                ..default()
-                            },
-                            TextColor(Color::srgb(0.9, 0.9, 0.9)),
-                        ));
-                    });
-                    
-                    // Revert button
-                    buttons.spawn((
-                        Button,
-                        Node {
-                            width: Val::Px(100.0),
-                            height: Val::Px(40.0),
-                            justify_content: JustifyContent::Center,
-                            align_items: AlignItems::Center,
-                            border: UiRect::all(Val::Px(2.0)),
-                            ..default()
-                        },
-                        BackgroundColor(Color::srgb(0.25, 0.15, 0.15)),
-                        BorderColor(Color::srgb(0.5, 0.3, 0.3)),
-                    )).with_children(|btn| {
-                        btn.spawn((
-                            Text::new("Revert"),
-                            TextFont {
-                                font_size: 18.0,
-                                ..default()
-                            },
-                            TextColor(Color::srgb(0.9, 0.9, 0.9)),
-                        ));
-                    });
-                });
-            });
-        });
+        // Use the new dialog system
+        use crate::ui::dialogs::presets;
+        presets::resolution_confirm_dialog(commands.reborrow());
     }
 }
 
@@ -142,8 +32,8 @@ pub fn handle_resolution_confirm_request(
 pub fn update_resolution_countdown(
     mut confirmation: ResMut<ResolutionConfirmation>,
     time: Res<Time>,
-    mut countdown_texts: Query<&mut Text, With<CountdownText>>,
-    dialog_query: Query<Entity, With<ResolutionConfirmDialog>>,
+    mut countdown_texts: Query<&mut Text, With<crate::ui::dialogs::CountdownText>>,
+    dialog_query: Query<Entity, With<crate::ui::dialogs::ResolutionConfirmDialog>>,
     mut commands: Commands,
     mut settings: ResMut<GameSettings>,
     mut events: EventWriter<SettingsChanged>,
@@ -180,8 +70,9 @@ pub fn update_resolution_countdown(
 
 /// Handle buttons in the resolution confirmation dialog
 pub fn handle_resolution_confirm_buttons(
-    mut interactions: Query<&Interaction, (Changed<Interaction>, With<Button>)>,
-    dialog_query: Query<Entity, With<ResolutionConfirmDialog>>,
+    keep_buttons: Query<&Interaction, (Changed<Interaction>, With<crate::ui::dialogs::KeepButton>)>,
+    revert_buttons: Query<&Interaction, (Changed<Interaction>, With<crate::ui::dialogs::RevertButton>)>,
+    dialog_query: Query<Entity, With<crate::ui::dialogs::ResolutionConfirmDialog>>,
     mut confirmation: ResMut<ResolutionConfirmation>,
     mut commands: Commands,
     mut settings: ResMut<GameSettings>,
@@ -191,10 +82,29 @@ pub fn handle_resolution_confirm_buttons(
         return;
     }
     
-    for interaction in &mut interactions {
+    // Check Keep button
+    for interaction in &keep_buttons {
         if *interaction == Interaction::Pressed {
-            // For simplicity, first button keeps, second reverts
-            // In production, would use proper component markers
+            println!("Resolution confirmed - keeping settings");
+            
+            // Clean up dialog
+            for entity in &dialog_query {
+                commands.entity(entity).despawn();
+            }
+            
+            confirmation.active = false;
+        }
+    }
+    
+    // Check Revert button
+    for interaction in &revert_buttons {
+        if *interaction == Interaction::Pressed {
+            println!("Resolution rejected - reverting");
+            
+            // Revert settings
+            settings.graphics.resolution = confirmation.original_resolution.clone();
+            settings.graphics.window_mode = confirmation.original_window_mode.clone();
+            events.write(SettingsChanged);
             
             // Clean up dialog
             for entity in &dialog_query {

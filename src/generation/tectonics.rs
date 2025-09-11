@@ -169,10 +169,17 @@ pub struct Volcano {
 
 /// Generate simplified tectonic system with real Voronoi tessellation
 pub fn generate(rng: &mut StdRng, bounds: MapBounds, seed: u32) -> TectonicSystem {
-    println!("Generating tectonic system with real Voronoi...");
+    // Default to 7-12 plates for backward compatibility
+    let num_plates = rng.gen_range(7..=12);
+    generate_with_count(rng, bounds, seed, num_plates)
+}
+
+/// Generate tectonic system with specified number of continents
+pub fn generate_with_count(rng: &mut StdRng, bounds: MapBounds, seed: u32, continent_count: u32) -> TectonicSystem {
+    println!("Generating tectonic system with {} continents using real Voronoi...", continent_count);
     
-    // Step 1: Generate tectonic plates using REAL Voronoi tessellation
-    let plates = generate_tectonic_plates_voronoi(rng, bounds, seed);
+    // Generate the specified number of plates (continents)
+    let plates = generate_tectonic_plates_voronoi_with_count(rng, bounds, seed, continent_count as usize);
     
     // Step 2: Determine plate boundaries for mountains/rifts
     let boundaries = determine_plate_boundaries(&plates);
@@ -207,6 +214,10 @@ fn generate_tectonic_plates_voronoi(rng: &mut StdRng, bounds: MapBounds, seed: u
     let num_plates = (base_plates as f32 * (world_area / 1_000_000.0).sqrt()) as usize;
     let num_plates = num_plates.max(6).min(20); // Reasonable range
     
+    generate_tectonic_plates_voronoi_with_count(rng, bounds, seed, num_plates)
+}
+
+fn generate_tectonic_plates_voronoi_with_count(rng: &mut StdRng, bounds: MapBounds, seed: u32, num_plates: usize) -> Vec<TectonicPlate> {
     // Generate plate centers using Poisson disk sampling for even distribution
     let plate_centers = generate_plate_centers_poisson(rng, bounds, num_plates);
     

@@ -29,11 +29,20 @@ pub struct WorldGenerator {
     perlin: Perlin,
     rng: StdRng,
     dimensions: MapDimensions,
+    continent_count: u32,
+    ocean_coverage: f32,
+    river_density: f32,
 }
 
 impl WorldGenerator {
-    /// Create a new world generator with the given seed and size
-    pub fn new(seed: u32, size: WorldSize) -> Self {
+    /// Create a new world generator with the given parameters
+    pub fn new(
+        seed: u32, 
+        size: WorldSize,
+        continent_count: u32,
+        ocean_coverage: f32,
+        river_density: f32,
+    ) -> Self {
         let perlin = Perlin::new(seed);
         let rng = StdRng::seed_from_u64(seed as u64);
         let dimensions = MapDimensions::from_world_size(&size);
@@ -44,6 +53,9 @@ impl WorldGenerator {
             perlin,
             rng,
             dimensions,
+            continent_count,
+            ocean_coverage,
+            river_density,
         }
     }
     
@@ -57,20 +69,36 @@ impl WorldGenerator {
         println!("═══════════════════════════════════════════════════════");
         
         // Step 1: Generate tectonic plates and continent centers
-        println!("\n[1/6] Generating tectonic plates...");
-        let tectonics = tectonics::generate(&mut self.rng, self.dimensions.bounds, self.seed);
+        println!("\n[1/6] Generating tectonic plates ({} continents)...", self.continent_count);
+        let tectonics = tectonics::generate_with_count(
+            &mut self.rng, 
+            self.dimensions.bounds, 
+            self.seed,
+            self.continent_count
+        );
         
         // Step 2: Generate provinces with terrain
-        println!("\n[2/6] Generating provinces and terrain...");
-        let mut provinces = provinces::generate(&tectonics, self.dimensions, &self.perlin, &mut self.rng);
+        println!("\n[2/6] Generating provinces and terrain ({:.0}% ocean)...", self.ocean_coverage * 100.0);
+        let mut provinces = provinces::generate_with_ocean_coverage(
+            &tectonics, 
+            self.dimensions, 
+            &self.perlin, 
+            &mut self.rng,
+            self.ocean_coverage
+        );
         
         // Step 3: Calculate ocean depths  
         println!("\n[3/6] Calculating ocean depths...");
         provinces::calculate_ocean_depths(&mut provinces, self.dimensions);
         
         // Step 4: Generate river systems
-        println!("\n[4/6] Generating river systems...");
-        let rivers = rivers::generate(&mut provinces, self.dimensions, &mut self.rng);
+        println!("\n[4/6] Generating river systems (density: {:.1}x)...", self.river_density);
+        let rivers = rivers::generate_with_density(
+            &mut provinces, 
+            self.dimensions, 
+            &mut self.rng,
+            self.river_density
+        );
         
         // Step 5: Calculate agriculture and fresh water
         println!("\n[5/6] Calculating agriculture and fresh water...");

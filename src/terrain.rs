@@ -51,15 +51,21 @@ fn get_climate_zone(y: f32, map_height: f32) -> ClimateZone {
     }
 }
 
-/// Classify terrain based on elevation and climate
+/// Classify terrain based on elevation and climate with default sea level
 pub fn classify_terrain_with_climate(elevation: f32, x: f32, y: f32, map_height: f32) -> TerrainType {
+    // Default sea level of 0.15 (approximately 60% ocean coverage)
+    classify_terrain_with_sea_level(elevation, x, y, map_height, 0.15)
+}
+
+/// Classify terrain based on elevation, climate, and custom sea level
+pub fn classify_terrain_with_sea_level(elevation: f32, x: f32, y: f32, map_height: f32, sea_level: f32) -> TerrainType {
     let climate = get_climate_zone(y, map_height);
     
     // Arctic zones are ice or tundra
     if matches!(climate, ClimateZone::Arctic) {
-        if elevation < 0.15 {
+        if elevation < sea_level {
             return TerrainType::Ocean;
-        } else if elevation < 0.25 {
+        } else if elevation < sea_level + 0.10 {
             return TerrainType::Ice;
         } else {
             return TerrainType::Tundra;
@@ -68,11 +74,11 @@ pub fn classify_terrain_with_climate(elevation: f32, x: f32, y: f32, map_height:
     
     // Subarctic has tundra and some forests
     if matches!(climate, ClimateZone::Subarctic) {
-        if elevation < 0.15 {
+        if elevation < sea_level {
             return TerrainType::Ocean;
-        } else if elevation < 0.22 {
+        } else if elevation < sea_level + 0.07 {
             return TerrainType::Tundra;
-        } else if elevation < 0.35 {
+        } else if elevation < sea_level + 0.20 {
             // Boreal forests in subarctic regions
             let forest_factor = ((y * 0.007).sin() * (y * 0.004).cos()).abs();
             if forest_factor > 0.4 {
@@ -83,11 +89,11 @@ pub fn classify_terrain_with_climate(elevation: f32, x: f32, y: f32, map_height:
     
     // Temperate zones have mixed forests and plains
     if matches!(climate, ClimateZone::Temperate) {
-        if elevation < 0.15 {
+        if elevation < sea_level {
             return TerrainType::Ocean;
-        } else if elevation < 0.18 {
+        } else if elevation < sea_level + 0.03 {
             return TerrainType::Beach;
-        } else if elevation < 0.35 {
+        } else if elevation < sea_level + 0.20 {
             // Mix of forests and plains based on moisture patterns (use both x and y to avoid banding)
             let moisture = ((y * 0.006).sin() * (x * 0.005).cos() + (x * 0.004).sin() * (y * 0.003).cos()).abs();
             if moisture > 0.55 {
@@ -95,7 +101,7 @@ pub fn classify_terrain_with_climate(elevation: f32, x: f32, y: f32, map_height:
             } else {
                 return TerrainType::Plains;
             }
-        } else if elevation < 0.5 {
+        } else if elevation < sea_level + 0.35 {
             // Higher elevations are hills with some forests
             let forest_chance = ((y * 0.005).cos() * (y * 0.007).sin()).abs();
             if forest_chance > 0.6 {
@@ -110,7 +116,7 @@ pub fn classify_terrain_with_climate(elevation: f32, x: f32, y: f32, map_height:
     
     // Subtropical can have deserts and dry forests
     if matches!(climate, ClimateZone::Subtropical) {
-        if elevation > 0.2 && elevation < 0.35 {
+        if elevation > sea_level + 0.05 && elevation < sea_level + 0.20 {
             // Desert bands based on position (use x and y to avoid horizontal banding)
             let desert_factor = ((x * 0.004).sin() * (y * 0.005).cos() + (y * 0.003).sin() * (x * 0.003).cos()).abs();
             if desert_factor > 0.6 {
@@ -124,11 +130,11 @@ pub fn classify_terrain_with_climate(elevation: f32, x: f32, y: f32, map_height:
     
     // Tropical zones have jungles
     if matches!(climate, ClimateZone::Tropical) {
-        if elevation < 0.15 {
+        if elevation < sea_level {
             return TerrainType::Ocean;
-        } else if elevation < 0.18 {
+        } else if elevation < sea_level + 0.03 {
             return TerrainType::Beach;
-        } else if elevation < 0.4 {
+        } else if elevation < sea_level + 0.25 {
             // Most tropical land is jungle (use x and y to avoid banding)
             let jungle_factor = ((x * 0.003).sin() * (y * 0.004).cos() + (y * 0.006).sin() * (x * 0.005).cos()).abs();
             if jungle_factor > 0.2 {
@@ -136,7 +142,7 @@ pub fn classify_terrain_with_climate(elevation: f32, x: f32, y: f32, map_height:
             } else {
                 return TerrainType::Plains;
             }
-        } else if elevation < 0.5 {
+        } else if elevation < sea_level + 0.35 {
             // Higher tropical elevations might be jungle or hills
             let jungle_chance = ((x * 0.004).sin() * (y * 0.005).cos()).abs();
             if jungle_chance > 0.5 {
@@ -150,18 +156,23 @@ pub fn classify_terrain_with_climate(elevation: f32, x: f32, y: f32, map_height:
     }
     
     // Default terrain classification
-    classify_terrain(elevation)
+    classify_terrain_with_sea_level_simple(elevation, sea_level)
 }
 
 /// Simple terrain classification based on elevation
 fn classify_terrain(elevation: f32) -> TerrainType {
-    if elevation < 0.15 {
+    classify_terrain_with_sea_level_simple(elevation, 0.15)
+}
+
+/// Simple terrain classification with custom sea level
+fn classify_terrain_with_sea_level_simple(elevation: f32, sea_level: f32) -> TerrainType {
+    if elevation < sea_level {
         TerrainType::Ocean
-    } else if elevation < 0.20 {
+    } else if elevation < sea_level + 0.05 {
         TerrainType::Beach
-    } else if elevation < 0.45 {
+    } else if elevation < sea_level + 0.30 {
         TerrainType::Plains
-    } else if elevation < 0.65 {
+    } else if elevation < sea_level + 0.50 {
         TerrainType::Hills
     } else {
         TerrainType::Mountains

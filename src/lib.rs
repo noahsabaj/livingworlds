@@ -24,6 +24,7 @@ pub mod setup;
 pub mod states;
 pub mod terrain;
 pub mod ui;
+pub mod world_config;
 
 // Re-export commonly used items for convenient access
 pub mod prelude {
@@ -110,6 +111,7 @@ pub fn build_app() -> App {
     // Add all Living Worlds game plugins
     app.add_plugins(StatesPlugin)  // State management system (must be first)
         .add_plugins(MenusPlugin)   // Menu UI system (needs states)
+        .add_plugins(world_config::WorldConfigPlugin) // World configuration UI
         .add_plugins(SettingsPlugin) // Settings menu system
         .add_plugins(CloudPlugin)
         .add_plugins(TerrainPlugin)

@@ -12,7 +12,7 @@ use bevy::prelude::*;
 // ============================================================================
 
 /// Main settings structure containing all game settings
-#[derive(Resource, Clone, Debug, Serialize, Deserialize)]
+#[derive(Resource, Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct GameSettings {
     pub graphics: GraphicsSettings,
     pub audio: AudioSettings,
@@ -45,7 +45,7 @@ impl Default for TempGameSettings {
 // GRAPHICS SETTINGS
 // ============================================================================
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct GraphicsSettings {
     pub window_mode: WindowModeOption,
     pub resolution: ResolutionOption,
@@ -122,7 +122,7 @@ pub enum GraphicsPreset {
 // AUDIO SETTINGS
 // ============================================================================
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AudioSettings {
     pub master_volume: f32,
     pub music_volume: f32,
@@ -145,7 +145,7 @@ impl Default for AudioSettings {
 // INTERFACE SETTINGS
 // ============================================================================
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct InterfaceSettings {
     pub ui_scale: f32,
     pub show_fps: bool,
@@ -170,7 +170,7 @@ impl Default for InterfaceSettings {
 // CONTROL SETTINGS
 // ============================================================================
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ControlSettings {
     pub edge_pan_speed: f32,
     pub zoom_sensitivity: f32,

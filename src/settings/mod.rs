@@ -42,7 +42,6 @@ impl Plugin for SettingsPlugin {
             
             // Systems - only run when settings menu is open
             .add_systems(Update, (
-                handlers::handle_settings_button,
                 handlers::handle_tab_buttons,
                 handlers::handle_cycle_buttons,
                 handlers::handle_toggle_buttons,
@@ -53,7 +52,6 @@ impl Plugin for SettingsPlugin {
                 handlers::handle_unsaved_changes_dialog,
                 handlers::track_dirty_state,
                 handlers::update_apply_exit_button_hover,
-                handlers::update_dialog_button_hover,
                 handlers::update_ui_on_settings_change,
                 resolution::handle_resolution_confirm_request,
                 resolution::update_resolution_countdown,
