@@ -13,6 +13,150 @@ use bevy_simple_text_input::{
 use super::styles::{colors, dimensions};
 
 // ============================================================================
+// INPUT VALIDATION
+// ============================================================================
+
+/// Defines input validation and filtering rules
+#[derive(Component, Clone, Debug)]
+pub struct TextInputFilter {
+    pub filter_type: InputFilter,
+    pub max_length: Option<usize>,
+    pub transform: InputTransform,
+}
+
+/// Types of input filtering
+#[derive(Clone, Debug, PartialEq)]
+pub enum InputFilter {
+    /// Allow any characters (default)
+    None,
+    /// Only allow numeric characters (0-9)
+    Numeric,
+    /// Only allow integers (0-9, optional negative sign)
+    Integer,
+    /// Only allow decimal numbers (0-9, '.', optional negative)
+    Decimal,
+    /// Only allow alphabetic characters (a-z, A-Z)
+    Alphabetic,
+    /// Only allow alphanumeric characters (a-z, A-Z, 0-9)
+    Alphanumeric,
+    /// Only allow hexadecimal characters (0-9, a-f, A-F)
+    Hexadecimal,
+    /// Custom regex pattern
+    Regex(String),
+    /// Custom validation function
+    Custom(fn(&str) -> bool),
+}
+
+/// Text transformation options
+#[derive(Clone, Debug, PartialEq)]
+pub enum InputTransform {
+    /// No transformation
+    None,
+    /// Convert to uppercase
+    Uppercase,
+    /// Convert to lowercase
+    Lowercase,
+    /// Capitalize first letter of each word
+    Capitalize,
+}
+
+impl Default for TextInputFilter {
+    fn default() -> Self {
+        Self {
+            filter_type: InputFilter::None,
+            max_length: None,
+            transform: InputTransform::None,
+        }
+    }
+}
+
+impl InputFilter {
+    /// Check if a character is valid for this filter
+    pub fn is_valid_char(&self, ch: char, current_text: &str) -> bool {
+        match self {
+            InputFilter::None => true,
+            InputFilter::Numeric => ch.is_ascii_digit(),
+            InputFilter::Integer => {
+                ch.is_ascii_digit() || (ch == '-' && current_text.is_empty())
+            }
+            InputFilter::Decimal => {
+                ch.is_ascii_digit() 
+                    || (ch == '.' && !current_text.contains('.'))
+                    || (ch == '-' && current_text.is_empty())
+            }
+            InputFilter::Alphabetic => ch.is_alphabetic(),
+            InputFilter::Alphanumeric => ch.is_alphanumeric(),
+            InputFilter::Hexadecimal => ch.is_ascii_hexdigit(),
+            InputFilter::Regex(pattern) => {
+                // For regex, we'd need to check the entire string
+                // This is a simplified check
+                true // Will be validated in the full string check
+            }
+            InputFilter::Custom(validator) => {
+                // Test if adding this character would be valid
+                let mut test_string = current_text.to_string();
+                test_string.push(ch);
+                validator(&test_string)
+            }
+        }
+    }
+    
+    /// Validate an entire string
+    pub fn is_valid_string(&self, text: &str) -> bool {
+        match self {
+            InputFilter::None => true,
+            InputFilter::Numeric => text.chars().all(|c| c.is_ascii_digit()),
+            InputFilter::Integer => {
+                if text.is_empty() { return true; }
+                let mut chars = text.chars();
+                if let Some(first) = chars.next() {
+                    if first != '-' && !first.is_ascii_digit() {
+                        return false;
+                    }
+                }
+                chars.all(|c| c.is_ascii_digit())
+            }
+            InputFilter::Decimal => {
+                if text.is_empty() { return true; }
+                let mut has_decimal = false;
+                let mut chars = text.chars().enumerate();
+                
+                for (i, ch) in chars {
+                    if ch == '-' && i != 0 {
+                        return false;
+                    } else if ch == '.' {
+                        if has_decimal { return false; }
+                        has_decimal = true;
+                    } else if !ch.is_ascii_digit() && ch != '-' {
+                        return false;
+                    }
+                }
+                true
+            }
+            InputFilter::Alphabetic => text.chars().all(|c| c.is_alphabetic()),
+            InputFilter::Alphanumeric => text.chars().all(|c| c.is_alphanumeric()),
+            InputFilter::Hexadecimal => text.chars().all(|c| c.is_ascii_hexdigit()),
+            InputFilter::Regex(pattern) => {
+                // Would need regex crate for full support
+                true // Simplified for now
+            }
+            InputFilter::Custom(validator) => validator(text),
+        }
+    }
+    
+    /// Filter out invalid characters from a string
+    pub fn filter_string(&self, text: &str) -> String {
+        let mut result = String::new();
+        for ch in text.chars() {
+            if self.is_valid_char(ch, &result) {
+                result.push(ch);
+            }
+        }
+        result
+    }
+}
+
+// ============================================================================
 // COMPONENTS
 // ============================================================================
 
@@ -53,6 +197,7 @@ pub struct TextInputBuilder {
     focus_type: TextInputFocus,
     inactive: bool,
     retain_on_submit: bool,
+    filter: Option<TextInputFilter>,
 }
 
 /// Builder with a single marker component
@@ -119,6 +264,11 @@ impl<M: Component> TextInputBuilderWithMarker<M> {
         if self.builder.inactive {
             entity_commands.insert(TextInputInactive(true));
         }
+        
+        // Add filter if specified
+        if let Some(filter) = self.builder.filter {
+            entity_commands.insert(filter);
+        }
 
         entity_commands.id()
     }
@@ -181,6 +331,11 @@ impl<M: Component, N: Component> TextInputBuilderWithTwoMarkers<M, N> {
         if self.builder.inactive {
             entity_commands.insert(TextInputInactive(true));
         }
+        
+        // Add filter if specified
+        if let Some(filter) = self.builder.filter {
+            entity_commands.insert(filter);
+        }
 
         entity_commands.id()
     }
@@ -199,6 +354,7 @@ impl TextInputBuilder {
             focus_type: TextInputFocus::Independent,
             inactive: false,
             retain_on_submit: true,
+            filter: None,
         }
     }
 
@@ -261,6 +417,94 @@ impl TextInputBuilder {
         self.retain_on_submit = retain;
         self
     }
+    
+    /// Set input filter for validation
+    pub fn with_filter(mut self, filter_type: InputFilter) -> Self {
+        self.filter = Some(TextInputFilter {
+            filter_type,
+            max_length: None,
+            transform: InputTransform::None,
+        });
+        self
+    }
+    
+    /// Set maximum length for input
+    pub fn with_max_length(mut self, max_length: usize) -> Self {
+        if let Some(ref mut filter) = self.filter {
+            filter.max_length = Some(max_length);
+        } else {
+            self.filter = Some(TextInputFilter {
+                filter_type: InputFilter::None,
+                max_length: Some(max_length),
+                transform: InputTransform::None,
+            });
+        }
+        self
+    }
+    
+    /// Set text transformation
+    pub fn with_transform(mut self, transform: InputTransform) -> Self {
+        if let Some(ref mut filter) = self.filter {
+            filter.transform = transform;
+        } else {
+            self.filter = Some(TextInputFilter {
+                filter_type: InputFilter::None,
+                max_length: None,
+                transform,
+            });
+        }
+        self
+    }
+    
+    /// Convenience method for numeric-only input (0-9)
+    pub fn numeric_only(mut self) -> Self {
+        self.filter = Some(TextInputFilter {
+            filter_type: InputFilter::Numeric,
+            max_length: None,
+            transform: InputTransform::None,
+        });
+        self
+    }
+    
+    /// Convenience method for integer input (with optional negative)
+    pub fn integer_only(mut self) -> Self {
+        self.filter = Some(TextInputFilter {
+            filter_type: InputFilter::Integer,
+            max_length: None,
+            transform: InputTransform::None,
+        });
+        self
+    }
+    
+    /// Convenience method for decimal input
+    pub fn decimal_only(mut self) -> Self {
+        self.filter = Some(TextInputFilter {
+            filter_type: InputFilter::Decimal,
+            max_length: None,
+            transform: InputTransform::None,
+        });
+        self
+    }
+    
+    /// Convenience method for alphabetic-only input
+    pub fn alphabetic_only(mut self) -> Self {
+        self.filter = Some(TextInputFilter {
+            filter_type: InputFilter::Alphabetic,
+            max_length: None,
+            transform: InputTransform::None,
+        });
+        self
+    }
+    
+    /// Convenience method for alphanumeric-only input
+    pub fn alphanumeric_only(mut self) -> Self {
+        self.filter = Some(TextInputFilter {
+            filter_type: InputFilter::Alphanumeric,
+            max_length: None,
+            transform: InputTransform::None,
+        });
+        self
+    }
 
     /// Add a marker component to the input
     pub fn with_marker<M: Component>(self, marker: M) -> TextInputBuilderWithMarker<M> {
@@ -315,6 +559,11 @@ impl TextInputBuilder {
         if self.inactive {
             entity_commands.insert(TextInputInactive(true));
         }
+        
+        // Add filter if specified
+        if let Some(filter) = self.filter {
+            entity_commands.insert(filter);
+        }
 
         entity_commands.id()
     }
@@ -332,6 +581,7 @@ impl Plugin for TextInputPlugin {
         app.add_systems(Update, (
             handle_text_input_focus,
             handle_click_outside_unfocus,
+            validate_text_input_changes,
         ));
     }
 }
@@ -395,6 +645,48 @@ fn handle_click_outside_unfocus(
             for entity in &all_inputs {
                 commands.entity(entity).insert(TextInputInactive(true));
             }
+        }
+    }
+}
+
+/// Validate and filter text input changes based on TextInputFilter
+fn validate_text_input_changes(
+    mut text_inputs: Query<
+        (&mut TextInputValue, &TextInputFilter),
+        (Changed<TextInputValue>, With<TextInput>)
+    >,
+) {
+    for (mut text_value, filter) in &mut text_inputs {
+        let current_text = text_value.0.clone();
+        let mut modified_text = current_text.clone();
+        
+        // Apply filtering
+        modified_text = filter.filter_type.filter_string(&modified_text);
+        
+        // Apply max length constraint
+        if let Some(max_len) = filter.max_length {
+            if modified_text.len() > max_len {
+                modified_text.truncate(max_len);
+            }
+        }
+        
+        // Apply text transformation
+        modified_text = match filter.transform {
+            InputTransform::None => modified_text,
+            InputTransform::Uppercase => modified_text.to_uppercase(),
+            InputTransform::Lowercase => modified_text.to_lowercase(),
+            InputTransform::Capitalize => {
+                let mut chars = modified_text.chars();
+                match chars.next() {
+                    None => String::new(),
+                    Some(first) => first.to_uppercase().chain(chars).collect(),
+                }
+            }
+        };
+        
+        // Only update if the text changed
+        if modified_text != current_text {
+            text_value.0 = modified_text;
         }
     }
 }

@@ -688,6 +688,8 @@ fn spawn_seed_section(parent: &mut ChildSpawnerCommands) {
                 .with_width(Val::Auto)
                 .with_padding(UiRect::horizontal(Val::Px(15.0)))
                 .with_focus_group(FocusGroupId::WorldConfig)
+                .numeric_only()  // Only allow numbers for seeds
+                .with_max_length(20)  // Limit seed length
                 .inactive()
                 .with_marker(SeedInput)
                 .and_marker(SeedText)
