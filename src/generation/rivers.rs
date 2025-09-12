@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 use bevy::prelude::*;
 use rand::rngs::StdRng;
 
-use crate::components::Province;
+use crate::components::{Province, ProvinceId};
 use crate::terrain::TerrainType;
 use crate::constants::*;
 use super::types::{MapDimensions, RiverSystem};
@@ -32,8 +32,8 @@ pub fn generate_with_density(
     let mut position_to_province: HashMap<(i32, i32), &Province> = HashMap::new();
     for province in provinces.iter() {
         // Calculate actual grid coordinates from province ID
-        let col = (province.id % dimensions.provinces_per_row) as i32;
-        let row = (province.id / dimensions.provinces_per_row) as i32;
+        let col = (province.id.value() % dimensions.provinces_per_row) as i32;
+        let row = (province.id.value() / dimensions.provinces_per_row) as i32;
         position_to_province.insert((col, row), province);
     }
     
@@ -41,8 +41,8 @@ pub fn generate_with_density(
     let mut potential_sources = Vec::new();
     for province in provinces.iter() {
         if province.terrain == TerrainType::Mountains || 
-            (province.terrain == TerrainType::Hills && province.elevation >= RIVER_MIN_ELEVATION) {
-            potential_sources.push((province.id, province.position, province.elevation));
+            (province.terrain == TerrainType::Hills && province.elevation.value() >= RIVER_MIN_ELEVATION) {
+            potential_sources.push((province.id, province.position, province.elevation.value()));
         }
     }
     
@@ -69,8 +69,8 @@ pub fn generate_with_density(
         let mut visited = HashSet::new();
         
         // Use grid coordinates for visited set
-        let start_col = (source_id % dimensions.provinces_per_row) as i32;
-        let start_row = (source_id / dimensions.provinces_per_row) as i32;
+        let start_col = (source_id.value() % dimensions.provinces_per_row) as i32;
+        let start_row = (source_id.value() / dimensions.provinces_per_row) as i32;
         visited.insert((start_col, start_row));
         
         let mut flow = 1.0;  // Start with flow of 1
@@ -78,14 +78,14 @@ pub fn generate_with_density(
         
         for _ in 0..MAX_RIVER_LENGTH {
             // Get current grid coordinates from province ID
-            let current_col = (current_id % dimensions.provinces_per_row) as i32;
-            let current_row = (current_id / dimensions.provinces_per_row) as i32;
+            let current_col = (current_id.value() % dimensions.provinces_per_row) as i32;
+            let current_row = (current_id.value() / dimensions.provinces_per_row) as i32;
             
             // Get hexagonal neighbors
             let neighbors = hex_neighbors(current_col, current_row);
             
             // Find the lowest unvisited neighbor
-            let mut lowest_neighbor: Option<(u32, f32)> = None;
+            let mut lowest_neighbor: Option<(ProvinceId, f32)> = None;
             let mut reached_ocean = false;
             
             for (nx, ny) in neighbors {
@@ -104,7 +104,7 @@ pub fn generate_with_density(
                         
                         // Add flow to all tiles in this river
                         for &tile_id in &river_path {
-                            *flow_accumulation.entry(tile_id).or_insert(0.0) += flow;
+                            *flow_accumulation.entry(tile_id.value()).or_insert(0.0) += flow;
                         }
                         
                         river_tiles.extend(river_path.clone());
@@ -113,8 +113,8 @@ pub fn generate_with_density(
                     }
                     
                     // Track lowest neighbor for continuing river
-                    if lowest_neighbor.is_none() || province.elevation < lowest_neighbor.as_ref().unwrap().1 {
-                        lowest_neighbor = Some((province.id, province.elevation));
+                    if lowest_neighbor.is_none() || province.elevation.value() < lowest_neighbor.as_ref().unwrap().1 {
+                        lowest_neighbor = Some((province.id, province.elevation.value()));
                     }
                 }
             }
@@ -130,8 +130,8 @@ pub fn generate_with_density(
                 current_id = next_id;
                 
                 // Mark this grid cell as visited
-                let next_col = (next_id % dimensions.provinces_per_row) as i32;
-                let next_row = (next_id / dimensions.provinces_per_row) as i32;
+                let next_col = (next_id.value() % dimensions.provinces_per_row) as i32;
+                let next_row = (next_id.value() / dimensions.provinces_per_row) as i32;
                 visited.insert((next_col, next_row));
                 
                 flow += 0.1;  // Accumulate flow as we go downstream
@@ -144,7 +144,7 @@ pub fn generate_with_density(
     // Build HashMap for O(1) province lookups by ID to avoid O(n²) pattern
     let mut province_id_to_idx: HashMap<u32, usize> = HashMap::new();
     for (idx, province) in provinces.iter().enumerate() {
-        province_id_to_idx.insert(province.id, idx);
+        province_id_to_idx.insert(province.id.value(), idx);
     }
     
     // Convert high-flow tiles to river terrain - O(n) instead of O(n²)
@@ -160,7 +160,7 @@ pub fn generate_with_density(
     
     // Convert delta tiles to delta terrain - O(n) instead of O(n²)
     for &delta_id in &delta_tiles {
-        if let Some(&idx) = province_id_to_idx.get(&delta_id) {
+        if let Some(&idx) = province_id_to_idx.get(&delta_id.value()) {
             if provinces[idx].terrain != TerrainType::Ocean {
                 provinces[idx].terrain = TerrainType::Delta;
             }
@@ -171,8 +171,8 @@ pub fn generate_with_density(
     println!("Generated {} river tiles and {} delta tiles", river_tiles.len(), delta_tiles.len());
     
     RiverSystem {
-        river_tiles,
-        delta_tiles,
+        river_tiles: river_tiles.into_iter().map(|id| id.value()).collect(),
+        delta_tiles: delta_tiles.into_iter().map(|id| id.value()).collect(),
         flow_accumulation,
     }
 }

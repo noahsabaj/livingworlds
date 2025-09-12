@@ -119,7 +119,7 @@ impl WorldGenerator {
         for province in &provinces {
             let grid_x = (province.position.x / spatial_cell_size).floor() as i32;
             let grid_y = (province.position.y / spatial_cell_size).floor() as i32;
-            spatial_index.insert((grid_x, grid_y), province.id);
+            spatial_index.insert((grid_x, grid_y), province.id.value());
         }
         
         // Generate cloud system

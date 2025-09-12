@@ -102,7 +102,7 @@ pub fn setup_world(
     
     // Build HashMap for O(1) province position lookups (avoiding O(n²) bug!)
     let province_positions: HashMap<u32, Vec2> = generated_world.provinces.iter()
-        .map(|p| (p.id, p.position))
+        .map(|p| (p.id.value(), p.position))
         .collect();
     
     // Build spatial index using the HashMap for fast lookups
@@ -120,7 +120,7 @@ pub fn setup_world(
     // Build HashMap for O(1) province lookups by ID (for UI and selection systems)
     let province_by_id: HashMap<u32, usize> = generated_world.provinces.iter()
         .enumerate()
-        .map(|(idx, p)| (p.id, idx))
+        .map(|(idx, p)| (p.id.value(), idx))
         .collect();
     
     // Get total provinces count before moving

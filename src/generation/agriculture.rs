@@ -1,7 +1,7 @@
 //! Agriculture and fresh water distance calculation
 
 use std::collections::HashSet;
-use crate::components::Province;
+use crate::components::{Province, Agriculture, Distance};
 use crate::terrain::TerrainType;
 use super::types::{MapDimensions, RiverSystem};
 
@@ -19,7 +19,7 @@ pub fn calculate(
     for province in provinces.iter_mut() {
         // Skip ocean tiles
         if province.terrain == TerrainType::Ocean {
-            province.agriculture = 0.0;
+            province.agriculture = Agriculture::new(0.0);
             continue;
         }
         
@@ -36,9 +36,9 @@ pub fn calculate(
         };
         
         // Bonus for being near rivers or deltas
-        let water_bonus = if river_set.contains(&province.id) {
+        let water_bonus = if river_set.contains(&province.id.value()) {
             1.5  // On a river
-        } else if delta_set.contains(&province.id) {
+        } else if delta_set.contains(&province.id.value()) {
             2.0  // At a river delta
         } else {
             // Check distance to nearest water
@@ -60,14 +60,14 @@ pub fn calculate(
             }
         };
         
-        province.agriculture = base_agriculture * water_bonus;
-        province.fresh_water_distance = if river_set.contains(&province.id) {
-            0.0
+        province.agriculture = Agriculture::new(base_agriculture * water_bonus);
+        province.fresh_water_distance = if river_set.contains(&province.id.value()) {
+            Distance::new(0.0)
         } else {
-            10.0  // Simplified for now
+            Distance::new(10.0)  // Simplified for now
         };
         
-        if province.agriculture >= 1.5 {
+        if province.agriculture.value() >= 1.5 {
             high_agriculture_count += 1;
         }
     }

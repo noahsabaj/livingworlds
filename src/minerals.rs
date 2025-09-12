@@ -10,7 +10,7 @@ use std::collections::HashMap;
 
 use crate::components::{
     Province, ProvinceResources,
-    MineralType
+    MineralType, Abundance
 };
 use crate::terrain::TerrainType;
 use crate::constants::*;
@@ -78,7 +78,7 @@ pub fn generate_ore_veins(
     
     // Filter provinces by terrain suitability
     let suitable_provinces: Vec<&Province> = provinces.iter()
-        .filter(|p| terrain_bias(&p.terrain, p.elevation) > 0.0)
+        .filter(|p| terrain_bias(&p.terrain, p.elevation.value()) > 0.0)
         .collect();
     
     if suitable_provinces.is_empty() {
@@ -179,38 +179,38 @@ pub fn calculate_province_resources(
     let mut resources = ProvinceResources::default();
     
     // Stone is everywhere but concentrated in rocky areas
-    resources.stone = match province.terrain {
+    resources.stone = Abundance::new(match province.terrain {
         TerrainType::Mountains => 80,
         TerrainType::Hills => 60,
         TerrainType::Tundra => 50,  // Arctic regions have exposed bedrock
         TerrainType::Desert => 40,
         TerrainType::Beach => 30,
         _ => 20,
-    };
+    });
     
     // Calculate abundance for each mineral based on distance to veins
     if let Some(iron_veins) = ore_veins.get(&MineralType::Iron) {
-        resources.iron = calculate_abundance(province.position, iron_veins, &province.terrain);
+        resources.iron = Abundance::new(calculate_abundance(province.position, iron_veins, &province.terrain));
     }
     
     if let Some(copper_veins) = ore_veins.get(&MineralType::Copper) {
-        resources.copper = calculate_abundance(province.position, copper_veins, &province.terrain);
+        resources.copper = Abundance::new(calculate_abundance(province.position, copper_veins, &province.terrain));
     }
     
     if let Some(tin_veins) = ore_veins.get(&MineralType::Tin) {
-        resources.tin = calculate_abundance(province.position, tin_veins, &province.terrain);
+        resources.tin = Abundance::new(calculate_abundance(province.position, tin_veins, &province.terrain));
     }
     
     if let Some(gold_veins) = ore_veins.get(&MineralType::Gold) {
-        resources.gold = calculate_abundance(province.position, gold_veins, &province.terrain);
+        resources.gold = Abundance::new(calculate_abundance(province.position, gold_veins, &province.terrain));
     }
     
     if let Some(coal_veins) = ore_veins.get(&MineralType::Coal) {
-        resources.coal = calculate_abundance(province.position, coal_veins, &province.terrain);
+        resources.coal = Abundance::new(calculate_abundance(province.position, coal_veins, &province.terrain));
     }
     
     if let Some(gem_veins) = ore_veins.get(&MineralType::Gems) {
-        resources.gems = calculate_abundance(province.position, gem_veins, &province.terrain);
+        resources.gems = Abundance::new(calculate_abundance(province.position, gem_veins, &province.terrain));
     }
     
     resources
@@ -321,7 +321,7 @@ pub fn generate_world_minerals_with_tectonics(
     // Tin in specific mountain regions (rare)
     let mut tin_veins = Vec::new();
     let mountain_provinces: Vec<&Province> = provinces.iter()
-        .filter(|p| p.terrain == TerrainType::Mountains && p.elevation > 0.8)
+        .filter(|p| p.terrain == TerrainType::Mountains && p.elevation.value() > 0.8)
         .collect();
     for _ in 0..TIN_VEIN_COUNT {
         if let Some(province) = mountain_provinces.choose(&mut rng) {
@@ -336,7 +336,7 @@ pub fn generate_world_minerals_with_tectonics(
     // Coal in ancient lowlands
     let mut coal_veins = Vec::new();
     let lowland_provinces: Vec<&Province> = provinces.iter()
-        .filter(|p| (p.terrain == TerrainType::Forest || p.terrain == TerrainType::Plains) && p.elevation < 0.4)
+        .filter(|p| (p.terrain == TerrainType::Forest || p.terrain == TerrainType::Plains) && p.elevation.value() < 0.4)
         .collect();
     for _ in 0..COAL_DEPOSIT_COUNT {
         if let Some(province) = lowland_provinces.choose(&mut rng) {
@@ -351,7 +351,7 @@ pub fn generate_world_minerals_with_tectonics(
     // Gems at the highest peaks
     let mut gem_veins = Vec::new();
     let peak_provinces: Vec<&Province> = provinces.iter()
-        .filter(|p| p.terrain == TerrainType::Mountains && p.elevation > 0.9)
+        .filter(|p| p.terrain == TerrainType::Mountains && p.elevation.value() > 0.9)
         .collect();
     for _ in 0..GEM_VEIN_COUNT {
         if let Some(province) = peak_provinces.choose(&mut rng) {
@@ -375,7 +375,7 @@ pub fn generate_world_minerals_with_tectonics(
     let mut minerals = HashMap::new();
     for province in provinces {
         let resources = calculate_province_resources(province, &ore_veins);
-        minerals.insert(province.id, resources);
+        minerals.insert(province.id.value(), resources);
     }
     
     minerals
@@ -393,13 +393,13 @@ pub fn get_mineral_abundance(
 ) -> u8 {
     minerals.get(&province_id)
         .map(|resources| match mineral_type {
-            MineralType::Iron => resources.iron,
-            MineralType::Copper => resources.copper,
-            MineralType::Tin => resources.tin,
-            MineralType::Gold => resources.gold,
-            MineralType::Coal => resources.coal,
-            MineralType::Stone => resources.stone,
-            MineralType::Gems => resources.gems,
+            MineralType::Iron => resources.iron.value(),
+            MineralType::Copper => resources.copper.value(),
+            MineralType::Tin => resources.tin.value(),
+            MineralType::Gold => resources.gold.value(),
+            MineralType::Coal => resources.coal.value(),
+            MineralType::Stone => resources.stone.value(),
+            MineralType::Gems => resources.gems.value(),
             _ => 0,
         })
         .unwrap_or(0)
@@ -408,13 +408,13 @@ pub fn get_mineral_abundance(
 /// Calculate total mineral richness for a province
 pub fn calculate_total_richness(resources: &ProvinceResources) -> f32 {
     // Weighted sum of all minerals
-    let iron_value = resources.iron as f32 * 1.0;
-    let copper_value = resources.copper as f32 * 1.5;
-    let tin_value = resources.tin as f32 * 3.0;  // Rare
-    let gold_value = resources.gold as f32 * 10.0;  // Very valuable
-    let coal_value = resources.coal as f32 * 0.8;
-    let stone_value = resources.stone as f32 * 0.2;  // Common
-    let gem_value = resources.gems as f32 * 20.0;  // Extremely valuable
+    let iron_value = resources.iron.value() as f32 * 1.0;
+    let copper_value = resources.copper.value() as f32 * 1.5;
+    let tin_value = resources.tin.value() as f32 * 3.0;  // Rare
+    let gold_value = resources.gold.value() as f32 * 10.0;  // Very valuable
+    let coal_value = resources.coal.value() as f32 * 0.8;
+    let stone_value = resources.stone.value() as f32 * 0.2;  // Common
+    let gem_value = resources.gems.value() as f32 * 20.0;  // Extremely valuable
     
     (iron_value + copper_value + tin_value + gold_value + coal_value + stone_value + gem_value) / 100.0
 }

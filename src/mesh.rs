@@ -69,7 +69,7 @@ pub fn build_world_mesh(
         }
         
         // Assign colors based on terrain
-        let color = get_terrain_color_gradient(province.terrain, province.elevation);
+        let color = get_terrain_color_gradient(province.terrain, province.elevation.value());
         let rgba = color.to_linear().to_f32_array();
         for _ in 0..7 {
             colors.push(rgba);

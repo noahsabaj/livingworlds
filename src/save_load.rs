@@ -502,7 +502,7 @@ fn check_for_pending_load(
         // Create province storage with the loaded provinces and mesh handle
         let mut province_by_id = std::collections::HashMap::new();
         for (idx, province) in load_data.0.provinces.iter().enumerate() {
-            province_by_id.insert(province.id, idx);
+            province_by_id.insert(province.id.value(), idx);
         }
         
         commands.insert_resource(ProvinceStorage {
@@ -515,7 +515,7 @@ fn check_for_pending_load(
         use crate::resources::ProvincesSpatialIndex;
         let mut spatial_index = ProvincesSpatialIndex::default();
         for province in &load_data.0.provinces {
-            spatial_index.insert_position_only(province.position, province.id);
+            spatial_index.insert_position_only(province.position, province.id.value());
         }
         commands.insert_resource(spatial_index);
         

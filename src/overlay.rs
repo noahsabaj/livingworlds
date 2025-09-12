@@ -149,26 +149,26 @@ pub fn precalculate_overlay_colors(
             .par_iter()
             .flat_map(|province| {
                 let resources = mineral_storage.resources
-                    .get(province.id as usize)
+                    .get(province.id.value() as usize)
                     .and_then(|r| r.as_ref());
                 
                 let province_color = match overlay_type {
                     ResourceOverlay::None => {
-                        get_terrain_color_gradient(province.terrain, province.elevation)
+                        get_terrain_color_gradient(province.terrain, province.elevation.value())
                     },
                     ResourceOverlay::Mineral(mineral_type) => {
                         if province.terrain == TerrainType::Ocean {
-                            get_terrain_color_gradient(province.terrain, province.elevation)
+                            get_terrain_color_gradient(province.terrain, province.elevation.value())
                         } else {
                             let abundance = resources
                                 .map(|res| match mineral_type {
-                                    MineralType::Iron => res.iron,
-                                    MineralType::Copper => res.copper,
-                                    MineralType::Tin => res.tin,
-                                    MineralType::Gold => res.gold,
-                                    MineralType::Coal => res.coal,
-                                    MineralType::Stone => res.stone,
-                                    MineralType::Gems => res.gems,
+                                    MineralType::Iron => res.iron.value(),
+                                    MineralType::Copper => res.copper.value(),
+                                    MineralType::Tin => res.tin.value(),
+                                    MineralType::Gold => res.gold.value(),
+                                    MineralType::Coal => res.coal.value(),
+                                    MineralType::Stone => res.stone.value(),
+                                    MineralType::Gems => res.gems.value(),
                                     _ => 0,
                                 })
                                 .unwrap_or(0);
@@ -181,12 +181,12 @@ pub fn precalculate_overlay_colors(
                     },
                     ResourceOverlay::AllMinerals => {
                         if province.terrain == TerrainType::Ocean {
-                            get_terrain_color_gradient(province.terrain, province.elevation)
+                            get_terrain_color_gradient(province.terrain, province.elevation.value())
                         } else if let Some(res) = resources {
                             let total_richness = calculate_total_richness(res);
                             combined_richness_color(total_richness)
                         } else {
-                            get_terrain_color_gradient(province.terrain, province.elevation)
+                            get_terrain_color_gradient(province.terrain, province.elevation.value())
                         }
                     },
                 };

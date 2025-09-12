@@ -13,7 +13,7 @@ use bevy::prelude::*;
 use noise::Perlin;
 use rand::rngs::StdRng;
 
-use crate::components::Province;
+use crate::components::{Province, ProvinceId, Elevation, Agriculture, Distance};
 use crate::terrain::{TerrainType, classify_terrain_with_sea_level};
 use crate::constants::*;
 use super::types::MapDimensions;
@@ -273,19 +273,19 @@ pub fn generate_with_ocean_coverage(
             
             // Initial population based on terrain
             let base_pop = if terrain == TerrainType::Ocean {
-                0.0
+                0
             } else {
-                PROVINCE_MIN_POPULATION + (elevation * PROVINCE_MAX_ADDITIONAL_POPULATION)
+                (PROVINCE_MIN_POPULATION + (elevation * PROVINCE_MAX_ADDITIONAL_POPULATION)) as u32
             };
             
             Province {
-                id: province_id,
+                id: ProvinceId::new(province_id),
                 position,
                 population: base_pop,
                 terrain,
-                elevation,
-                agriculture: 0.0,  // Will be calculated later
-                fresh_water_distance: f32::MAX,  // Will be calculated later
+                elevation: Elevation::new(elevation),
+                agriculture: Agriculture::new(0.0),  // Will be calculated later
+                fresh_water_distance: Distance::infinite(),  // Will be calculated later
             }
         })
         .collect();
@@ -363,7 +363,7 @@ pub fn calculate_ocean_depths(provinces: &mut [Province], dimensions: MapDimensi
     
     // Apply depth updates to provinces
     for (ocean_idx, depth) in ocean_depth_updates {
-        provinces[ocean_idx].elevation = depth;
+        provinces[ocean_idx].elevation = Elevation::new(depth);
     }
     
     println!("Ocean depth calculation completed in {:.2}s", start.elapsed().as_secs_f32());
