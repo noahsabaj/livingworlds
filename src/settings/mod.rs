@@ -19,7 +19,7 @@ pub use persistence::{load_settings, save_settings};
 pub use settings_ui::spawn_settings_menu;
 
 use bevy::prelude::*;
-use bevy_pkv::PkvStore;
+use crate::menus::SpawnSettingsMenuEvent;
 
 /// Plugin that manages all settings-related functionality
 pub struct SettingsPlugin;
@@ -39,6 +39,9 @@ impl Plugin for SettingsPlugin {
             
             // Load settings on startup
             .add_systems(Startup, persistence::load_settings)
+            
+            // Handle settings menu spawning event
+            .add_systems(Update, handle_spawn_settings_menu_event)
             
             // Systems - only run when settings menu is open
             .add_systems(Update, (
@@ -61,6 +64,22 @@ impl Plugin for SettingsPlugin {
             
             // Apply settings when changed
             .add_systems(Update, handlers::apply_settings_changes);
+    }
+}
+
+/// System to handle the SpawnSettingsMenuEvent by spawning the settings menu
+fn handle_spawn_settings_menu_event(
+    mut events: EventReader<SpawnSettingsMenuEvent>,
+    commands: Commands,
+    settings: Res<GameSettings>,
+    temp_settings: ResMut<TempGameSettings>,
+    current_tab: Res<crate::states::CurrentSettingsTab>,
+    dirty_state: ResMut<SettingsDirtyState>,
+) {
+    for _ in events.read() {
+        // Call the spawn function directly - pass the system parameters as-is
+        settings_ui::spawn_settings_menu(commands, settings, temp_settings, current_tab, dirty_state);
+        return; // Only spawn once per frame
     }
 }
 

@@ -46,12 +46,15 @@ impl Plugin for SimulationPlugin {
                 handle_time_controls,
                 advance_game_time,
                 track_year_changes,
-            ).chain().run_if(in_state(GameState::InGame)));
+            ).chain().run_if(in_state(GameState::InGame)))
+            
+            // Handle resuming from pause menu
+            .add_systems(OnEnter(GameState::InGame), resume_from_pause_menu);
     }
 }
 
 /// Handle keyboard input for time control
-/// Space for pause/resume, number keys 0-4 for speed control
+/// Space for pause/resume, number keys 1-5 for speed control, +/- for speed increment/decrement
 fn handle_time_controls(
     mut game_time: ResMut<GameTime>,
     keyboard: Res<ButtonInput<KeyCode>>,
@@ -61,8 +64,66 @@ fn handle_time_controls(
     let old_speed = game_time.speed;
     let was_paused = game_time.paused;
     
-    // Number keys for speed control
-    if keyboard.just_pressed(KeyCode::Digit0) {
+    // Plus/Minus keys for incremental speed control
+    if keyboard.just_pressed(KeyCode::Equal) || keyboard.just_pressed(KeyCode::NumpadAdd) {
+        // Increase speed by one level
+        let new_speed = if game_time.paused {
+            // If paused, go to normal speed
+            SPEED_NORMAL
+        } else if game_time.speed < SPEED_NORMAL + 0.1 {
+            SPEED_FAST
+        } else if game_time.speed < SPEED_FAST + 0.1 {
+            SPEED_FASTER
+        } else if game_time.speed < SPEED_FASTER + 0.1 {
+            SPEED_FASTEST
+        } else {
+            game_time.speed // Already at max
+        };
+        
+        if new_speed != game_time.speed || game_time.paused {
+            game_time.paused = false;
+            game_time.speed = new_speed;
+            game_time.speed_before_pause = new_speed;
+            speed_changed = true;
+            #[cfg(feature = "debug-simulation")]
+            println!("Speed increased to: {}x", new_speed);
+        }
+    }
+    
+    if keyboard.just_pressed(KeyCode::Minus) || keyboard.just_pressed(KeyCode::NumpadSubtract) {
+        // Decrease speed by one level
+        let new_speed = if game_time.speed > SPEED_FASTEST - 0.1 {
+            SPEED_FASTER
+        } else if game_time.speed > SPEED_FASTER - 0.1 {
+            SPEED_FAST
+        } else if game_time.speed > SPEED_FAST - 0.1 {
+            SPEED_NORMAL
+        } else if game_time.speed > SPEED_NORMAL - 0.1 {
+            SPEED_PAUSED
+        } else {
+            game_time.speed // Already at min (paused)
+        };
+        
+        if new_speed != game_time.speed {
+            if new_speed == SPEED_PAUSED {
+                game_time.paused = true;
+                game_time.speed_before_pause = SPEED_NORMAL; // Default to normal when unpausing
+            } else {
+                game_time.paused = false;
+                game_time.speed_before_pause = new_speed;
+            }
+            game_time.speed = new_speed;
+            speed_changed = true;
+            #[cfg(feature = "debug-simulation")]
+            println!("Speed decreased to: {}x", new_speed);
+        }
+    }
+    
+    // Number keys for direct speed control (1 = pause, 2-5 = increasing speeds)
+    if keyboard.just_pressed(KeyCode::Digit1) {
+        if !game_time.paused {
+            game_time.speed_before_pause = game_time.speed;
+        }
         game_time.paused = true;
         game_time.speed = SPEED_PAUSED;
         speed_changed = true;
@@ -70,33 +131,37 @@ fn handle_time_controls(
         println!("Simulation paused");
     }
     
-    if keyboard.just_pressed(KeyCode::Digit1) {
+    if keyboard.just_pressed(KeyCode::Digit2) {
         game_time.paused = false;
         game_time.speed = SPEED_NORMAL;
+        game_time.speed_before_pause = SPEED_NORMAL;
         speed_changed = true;
         #[cfg(feature = "debug-simulation")]
         println!("Simulation speed: Normal (1x)");
     }
     
-    if keyboard.just_pressed(KeyCode::Digit2) {
+    if keyboard.just_pressed(KeyCode::Digit3) {
         game_time.paused = false;
         game_time.speed = SPEED_FAST;
+        game_time.speed_before_pause = SPEED_FAST;
         speed_changed = true;
         #[cfg(feature = "debug-simulation")]
         println!("Simulation speed: Fast (3x)");
     }
     
-    if keyboard.just_pressed(KeyCode::Digit3) {
+    if keyboard.just_pressed(KeyCode::Digit4) {
         game_time.paused = false;
         game_time.speed = SPEED_FASTER;
+        game_time.speed_before_pause = SPEED_FASTER;
         speed_changed = true;
         #[cfg(feature = "debug-simulation")]
         println!("Simulation speed: Faster (6x)");
     }
     
-    if keyboard.just_pressed(KeyCode::Digit4) {
+    if keyboard.just_pressed(KeyCode::Digit5) {
         game_time.paused = false;
         game_time.speed = SPEED_FASTEST;
+        game_time.speed_before_pause = SPEED_FASTEST;
         speed_changed = true;
         #[cfg(feature = "debug-simulation")]
         println!("Simulation speed: Fastest (9x)");
@@ -106,14 +171,19 @@ fn handle_time_controls(
     if keyboard.just_pressed(KeyCode::Space) {
         game_time.paused = !game_time.paused;
         if game_time.paused {
+            // Save current speed before pausing
+            game_time.speed_before_pause = game_time.speed;
             game_time.speed = SPEED_PAUSED;
-        } else if game_time.speed == SPEED_PAUSED {
-            game_time.speed = SPEED_NORMAL;
+        } else {
+            // Restore the speed we had before pausing
+            game_time.speed = game_time.speed_before_pause;
         }
         speed_changed = true;
         
         #[cfg(feature = "debug-simulation")]
-        println!("Simulation {}", if game_time.paused { "paused" } else { "resumed" });
+        println!("Simulation {} (speed: {}x)", 
+            if game_time.paused { "paused" } else { "resumed" }, 
+            if game_time.paused { 0.0 } else { game_time.speed });
     }
     
     // Send event if speed changed
@@ -162,6 +232,26 @@ fn track_year_changes(
     } else if *last_year == 0 {
         // Initialize on first run
         *last_year = current_year;
+    }
+}
+
+/// Resume from pause menu - restore the game speed
+fn resume_from_pause_menu(
+    mut game_time: ResMut<GameTime>,
+    mut speed_events: EventWriter<SimulationSpeedChanged>,
+) {
+    // When transitioning from Paused to InGame via the menu, restore the speed
+    if game_time.paused {
+        game_time.paused = false;
+        game_time.speed = game_time.speed_before_pause;
+        
+        speed_events.send(SimulationSpeedChanged {
+            new_speed: game_time.speed,
+            is_paused: false,
+        });
+        
+        #[cfg(feature = "debug-simulation")]
+        println!("Resumed from pause menu at speed: {}x", game_time.speed);
     }
 }
 

@@ -1,0 +1,100 @@
+//! Living Worlds Base Configuration - Color Definitions
+//! 
+//! This file contains all color definitions for terrain, minerals, and UI.
+//! Colors are defined as RGB values (0.0-1.0) with optional alpha.
+//! Mods can override these values by providing their own colors.ron
+
+ColorsConfig(
+    // ========================================================================
+    // TERRAIN COLORS
+    // ========================================================================
+    terrain: TerrainColors(
+        // Ocean depths
+        ocean_shallow: (0.15, 0.35, 0.55),      // Coastal waters
+        ocean_medium: (0.08, 0.25, 0.45),       // Medium depth
+        ocean_deep: (0.02, 0.15, 0.35),         // Deep ocean
+        
+        // Basic terrain
+        beach: (0.9, 0.85, 0.65),               // Sandy beaches
+        plains: (0.25, 0.55, 0.25),             // Grasslands
+        hills: (0.45, 0.4, 0.3),                // Brown hills
+        mountains: (0.6, 0.6, 0.6),             // Rocky grey
+        mountains_snow: (0.95, 0.95, 1.0),      // Snow cap
+        
+        // Climate zones
+        ice: (0.92, 0.95, 1.0),                 // Polar ice
+        tundra: (0.65, 0.6, 0.55),              // Cold barren
+        desert: (0.9, 0.8, 0.6),                // Sandy desert
+        forest: (0.15, 0.35, 0.12),             // Temperate forest
+        jungle: (0.05, 0.3, 0.08),              // Tropical jungle
+        
+        // Water features
+        river: (0.2, 0.45, 0.55),               // Freshwater blue-green
+        delta: (0.35, 0.5, 0.25),               // Fertile green-brown
+    ),
+    
+    // ========================================================================
+    // MINERAL COLORS
+    // ========================================================================
+    minerals: MineralColors(
+        // Individual mineral types
+        iron: (0.5, 0.3, 0.2),                  // Rusty brown
+        copper: (0.7, 0.4, 0.2),                // Copper orange
+        tin: (0.7, 0.7, 0.8),                   // Silvery grey
+        gold: (1.0, 0.84, 0.0),                 // Gold
+        coal: (0.2, 0.2, 0.2),                  // Dark grey
+        stone: (0.6, 0.6, 0.6),                 // Medium grey
+        gems: (0.6, 0.2, 0.9),                  // Purple
+        
+        // Abundance heat map colors
+        abundance_none: (0.15, 0.15, 0.15),     // No resources
+        abundance_low: (0.5, 0.0, 0.0),         // Dark red
+        abundance_medium: (1.0, 0.5, 0.0),      // Orange
+        abundance_high: (1.0, 1.0, 0.0),        // Yellow
+        abundance_max: (1.0, 1.0, 1.0),         // White
+        
+        // Stone specific colors (earth tones)
+        stone_ocean: (0.0, 0.1, 0.2),           // Ocean (no stone)
+        stone_low: (0.3, 0.2, 0.1),             // Dark brown
+        stone_medium: (0.5, 0.4, 0.2),          // Medium brown
+        stone_high: (0.8, 0.7, 0.5),            // Light tan
+        
+        // Combined richness levels
+        richness_poor: (0.4, 0.2, 0.1),         // Brown
+        richness_below_avg: (0.6, 0.3, 0.1),    // Dark orange
+        richness_average: (0.8, 0.5, 0.2),      // Orange
+        richness_rich: (1.0, 0.8, 0.3),         // Gold
+        richness_extreme: (1.0, 0.95, 0.5),     // Bright gold
+    ),
+    
+    // ========================================================================
+    // INFRASTRUCTURE COLORS
+    // ========================================================================
+    infrastructure: InfrastructureColors(
+        level_0: (0.2, 0.2, 0.2),               // No infrastructure
+        level_1: (0.4, 0.3, 0.2),               // Basic mine
+        level_2: (0.5, 0.4, 0.3),               // Improved mine
+        level_3: (0.6, 0.5, 0.4),               // Advanced mine
+        level_4: (0.7, 0.6, 0.5),               // Industrial mine
+        level_5: (0.9, 0.8, 0.6),               // Max level
+    ),
+    
+    // ========================================================================
+    // UI COLORS
+    // ========================================================================
+    ui: UIColors(
+        // Backgrounds
+        ocean_background: (0.02, 0.08, 0.15),   // Deep ocean behind map
+        panel_background: (0.0, 0.0, 0.0, 0.9), // UI panels
+        tile_info_bg: (0.0, 0.0, 0.0, 0.7),     // Tile info panel
+        
+        // Text colors
+        text_primary: (1.0, 1.0, 1.0),          // White text
+        text_secondary: (0.8, 0.8, 0.8),        // Light grey text
+        text_disabled: (0.5, 0.5, 0.5),         // Dark grey text
+        
+        // Selection/highlight
+        selection_border: (1.0, 0.84, 0.0),     // Gold selection
+        hover_highlight: (1.0, 1.0, 1.0, 0.3),  // White overlay
+    ),
+)

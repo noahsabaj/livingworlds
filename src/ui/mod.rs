@@ -27,6 +27,10 @@ pub struct GameTimeDisplay;
 #[derive(Component)]
 pub struct GameSpeedDisplay;
 
+/// Marker component for the control hints text
+#[derive(Component)]
+pub struct ControlHintsText;
+
 /// UI Plugin that handles all user interface elements
 pub struct UIPlugin;
 
@@ -47,6 +51,7 @@ impl Plugin for UIPlugin {
                 update_tile_info_ui.run_if(resource_changed::<SelectedProvinceInfo>),
                 update_time_display,
                 update_speed_display,
+                update_control_hints,
             ).run_if(in_state(GameState::InGame)));
     }
 }
@@ -106,12 +111,13 @@ pub fn setup_ui(mut commands: Commands) {
         
         // Control hints
         parent.spawn((
-            Text::new("[0-4] Speed • [Space] Pause"),
+            Text::new("[1-5] Speed • [Space] Pause"),
             TextFont {
                 font_size: 12.0,
                 ..default()
             },
             TextColor(Color::srgba(0.5, 0.5, 0.5, 1.0)),
+            ControlHintsText,
             Node {
                 margin: UiRect::top(Val::Px(8.0)),
                 ..default()
@@ -418,5 +424,20 @@ fn update_speed_display(
             };
             **text = format!("Speed: {}", speed_text);
         }
+    }
+}
+
+/// Update the control hints based on pause state
+fn update_control_hints(
+    game_time: Res<GameTime>,
+    mut query: Query<&mut Text, With<ControlHintsText>>,
+) {
+    if let Ok(mut text) = query.get_single_mut() {
+        let pause_text = if game_time.paused {
+            "Unpause"
+        } else {
+            "Pause"
+        };
+        **text = format!("[1-5] Speed • [Space] {}", pause_text);
     }
 }

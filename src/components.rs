@@ -5,6 +5,8 @@
 //! see the resources module.
 
 use bevy::prelude::*;
+use bevy::reflect::Reflect;
+use serde::{Serialize, Deserialize};
 use crate::terrain::TerrainType;
 
 // ============================================================================
@@ -12,7 +14,7 @@ use crate::terrain::TerrainType;
 // ============================================================================
 
 /// Province represents a single hexagonal tile in the world
-#[derive(Component, Clone, Debug)]
+#[derive(Component, Clone, Debug, Reflect, Serialize, Deserialize)]
 pub struct Province {
     pub id: u32,
     pub position: Vec2,
@@ -44,7 +46,7 @@ pub struct GameWorld;
 // ============================================================================
 
 /// Mineral resources present in a province (0-100 abundance)
-#[derive(Component, Default, Clone, Debug)]
+#[derive(Component, Default, Clone, Debug, Reflect, Serialize, Deserialize)]
 pub struct ProvinceResources {
     pub iron: u8,      // Common, used for tools and weapons
     pub copper: u8,    // Common, used for bronze
@@ -56,7 +58,7 @@ pub struct ProvinceResources {
 }
 
 /// Types of minerals in the world
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Reflect, Serialize, Deserialize)]
 pub enum MineralType {
     Iron,
     Copper,

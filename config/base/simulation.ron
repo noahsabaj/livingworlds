@@ -1,0 +1,165 @@
+//! Living Worlds Base Configuration - Simulation Rules
+//! 
+//! This file contains all simulation parameters and rules.
+//! Mods can override these values to change gameplay dynamics.
+
+SimulationConfig(
+    // ========================================================================
+    // TIME & SPEED
+    // ========================================================================
+    time: TimeConfig(
+        starting_year: 1000,
+        days_per_year: 365.0,
+        
+        // Speed settings
+        default_speed: 1.0,
+        max_speed: 10.0,
+        pause_speed: 0.0,
+        
+        // Speed presets
+        speed_slow: 0.5,
+        speed_normal: 1.0,
+        speed_fast: 3.0,
+        speed_very_fast: 5.0,
+        speed_ultra_fast: 10.0,
+    ),
+    
+    // ========================================================================
+    // POPULATION DYNAMICS
+    // ========================================================================
+    population: PopulationConfig(
+        // Base population ranges
+        min_population: 1000.0,
+        max_additional_population: 49000.0,
+        
+        // Growth rates (per year)
+        base_growth_rate: 0.01,
+        river_growth_bonus: 0.02,
+        delta_growth_bonus: 0.03,
+        agriculture_growth_multiplier: 1.5,
+        
+        // Death rates
+        base_death_rate: 0.008,
+        war_death_multiplier: 3.0,
+        famine_death_multiplier: 5.0,
+        
+        // Terrain multipliers
+        terrain_multipliers: TerrainMultipliers(
+            ocean: 0.0,
+            beach: 0.5,
+            plains: 1.0,
+            hills: 0.8,
+            mountains: 0.3,
+            ice: 0.1,
+            tundra: 0.2,
+            desert: 0.3,
+            forest: 0.9,
+            jungle: 0.7,
+            river: 1.5,
+            delta: 3.0,
+        ),
+    ),
+    
+    // ========================================================================
+    // WORLD TENSION
+    // ========================================================================
+    tension: TensionConfig(
+        // Base tension values
+        starting_tension: 0.0,
+        max_tension: 1.0,
+        
+        // Tension change rates
+        heating_rate: 2.0,
+        cooling_rate: 0.3,
+        
+        // Tension factors (weights)
+        war_factor_weight: 0.4,
+        power_imbalance_weight: 0.2,
+        economic_stress_weight: 0.2,
+        instability_weight: 0.2,
+        
+        // War percentage to tension curve
+        war_tension_curve: CurveConfig(
+            points: [
+                (0.0, 0.0),   // No war = no tension
+                (0.1, 0.2),   // 10% at war = 20% tension
+                (0.25, 0.45), // 25% at war = 45% tension
+                (0.5, 0.7),   // 50% at war = 70% tension
+                (0.75, 0.9),  // 75% at war = 90% tension
+                (1.0, 1.0),   // Total war = max tension
+            ],
+            interpolation: "exponential",
+        ),
+    ),
+    
+    // ========================================================================
+    // ECONOMICS
+    // ========================================================================
+    economics: EconomicsConfig(
+        // Resource generation
+        base_resource_generation: 1.0,
+        agriculture_resource_multiplier: 2.0,
+        mineral_resource_multiplier: 1.5,
+        trade_resource_multiplier: 1.3,
+        
+        // Consumption
+        population_consumption_rate: 0.001,
+        army_consumption_multiplier: 3.0,
+        
+        // Trade
+        trade_distance_penalty: 0.01,
+        coastal_trade_bonus: 1.5,
+        river_trade_bonus: 1.3,
+    ),
+    
+    // ========================================================================
+    // AGRICULTURE
+    // ========================================================================
+    agriculture: AgricultureConfig(
+        // Fertility scale (0.0 - 3.0)
+        base_fertility: 1.0,
+        
+        // Water proximity bonuses
+        river_fertility_bonus: 1.0,
+        freshwater_distance_penalty: 0.1,
+        max_freshwater_distance: 10,
+        
+        // Terrain fertility
+        terrain_fertility: TerrainFertility(
+            ocean: 0.0,
+            beach: 0.2,
+            plains: 1.5,
+            hills: 0.8,
+            mountains: 0.1,
+            ice: 0.0,
+            tundra: 0.1,
+            desert: 0.1,
+            forest: 1.0,
+            jungle: 1.2,
+            river: 2.0,
+            delta: 3.0,
+        ),
+    ),
+    
+    // ========================================================================
+    // WARFARE
+    // ========================================================================
+    warfare: WarfareConfig(
+        // Combat resolution
+        base_casualties_rate: 0.1,
+        defender_advantage: 1.5,
+        terrain_combat_modifiers: TerrainCombatModifiers(
+            mountains: 2.0,
+            hills: 1.5,
+            forest: 1.3,
+            river: 1.2,
+            plains: 1.0,
+            desert: 0.8,
+        ),
+        
+        // War triggers
+        tension_war_threshold: 0.6,
+        border_friction_factor: 0.1,
+        resource_competition_factor: 0.2,
+    ),
+)

@@ -3,7 +3,6 @@
 //! This module provides a single source of truth for all UI styling,
 //! ensuring visual consistency across the entire game interface.
 
-use bevy::prelude::*;
 
 /// Standardized color palette with semantic naming
 pub mod colors {
@@ -47,6 +46,7 @@ pub mod colors {
     // Text colors
     pub const TEXT_PRIMARY: Color = Color::srgb(0.9, 0.9, 0.9);
     pub const TEXT_SECONDARY: Color = Color::srgb(0.7, 0.7, 0.7);
+    pub const TEXT_TERTIARY: Color = Color::srgb(0.5, 0.5, 0.5);
     pub const TEXT_MUTED: Color = Color::srgb(0.5, 0.5, 0.5);
     pub const TEXT_TITLE: Color = Color::srgb(0.9, 0.85, 0.7);
     
@@ -127,7 +127,7 @@ pub mod animations {
 /// Helper functions for creating styled UI elements
 pub mod helpers {
     use bevy::prelude::*;
-    use super::colors;
+    
     use super::dimensions;
     
     /// Creates a standard UiRect for borders

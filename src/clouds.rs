@@ -417,6 +417,7 @@ pub fn dynamic_cloud_spawn_system(
                         base_alpha: 0.4,
                     },
                     Name::new("DynamicCloud"),
+                    crate::components::GameWorld,  // Mark for cleanup when leaving game
                 ));
             }
         }
@@ -502,6 +503,7 @@ fn spawn_clouds_from_data(
                     base_alpha: cloud_data.alpha,
                 },
                 Name::new(format!("Cloud_{:?}", cloud_data.layer)),
+                crate::components::GameWorld,  // Mark for cleanup when leaving game
             ));
         }
         

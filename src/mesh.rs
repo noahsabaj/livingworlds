@@ -4,6 +4,7 @@
 //! single world mesh containing all hexagonal provinces and texture generation.
 
 use bevy::prelude::*;
+use bevy::reflect::Reflect;
 use bevy::render::mesh::{Indices, PrimitiveTopology};
 use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
@@ -18,7 +19,7 @@ use crate::constants::*;
 // ============================================================================
 
 /// Storage for province data and mesh handle for the mega-mesh architecture
-#[derive(Resource)]
+#[derive(Resource, Reflect, Clone)]
 pub struct ProvinceStorage {
     pub provinces: Vec<Province>,
     pub province_by_id: HashMap<u32, usize>,  // Maps province ID to index in provinces Vec for O(1) lookups

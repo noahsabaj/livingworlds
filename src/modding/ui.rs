@@ -9,7 +9,7 @@
 use bevy::prelude::*;
 use bevy_simple_text_input::{
     TextInputPlugin, TextInput, TextInputSettings, TextInputSubmitEvent, 
-    TextInputValue, TextInputTextFont, TextInputTextColor
+    TextInputValue, TextInputTextFont, TextInputTextColor, TextInputInactive
 };
 use crate::states::{GameState, RequestStateTransition};
 use crate::ui::styles::{colors, dimensions, layers};
@@ -208,6 +208,7 @@ impl Plugin for ModBrowserUIPlugin {
                 handle_apply_changes,
                 handle_search_input_changes,
                 handle_search_submit,
+                handle_search_input_focus,
                 update_mod_browser_ui,
             ).chain());
     }
@@ -314,6 +315,7 @@ pub fn spawn_mod_browser(
                     retain_on_submit: true,
                     ..default()
                 },
+                TextInputInactive(true),  // Prevent auto-focus
                 SearchInputMarker,
             ));
             
@@ -1119,23 +1121,38 @@ fn handle_search_submit(
     }
 }
 
+/// Handle clicking on search input to focus it
+fn handle_search_input_focus(
+    mut commands: Commands,
+    interactions: Query<(Entity, &Interaction), (Changed<Interaction>, With<TextInput>, With<SearchInputMarker>)>,
+) {
+    for (entity, interaction) in &interactions {
+        if *interaction == Interaction::Pressed {
+            // Remove inactive to focus the search input
+            commands.entity(entity).insert(TextInputInactive(false));
+        }
+    }
+}
+
 /// Update the mod browser UI based on current state
 fn update_mod_browser_ui(
     state: Res<ModBrowserState>,
-    mut tab_query: Query<(&ModBrowserTabButton, &mut StyledButton, &mut BackgroundColor)>,
+    mut tab_query: Query<(&ModBrowserTabButton, &mut StyledButton, &mut BackgroundColor, &mut BorderColor)>,
 ) {
     if !state.is_changed() {
         return;
     }
     
     // Update tab button styles
-    for (tab_button, mut styled_button, mut bg_color) in &mut tab_query {
+    for (tab_button, mut styled_button, mut bg_color, mut border_color) in &mut tab_query {
         if tab_button.tab == state.current_tab {
             styled_button.style = ButtonStyle::Primary;
             *bg_color = BackgroundColor(colors::PRIMARY);
+            *border_color = BorderColor(colors::PRIMARY.lighter(0.2));
         } else {
             styled_button.style = ButtonStyle::Secondary;
             *bg_color = BackgroundColor(colors::SECONDARY);
+            *border_color = BorderColor(colors::BORDER_DEFAULT);
         }
     }
 }

@@ -10,7 +10,6 @@ use rayon::prelude::*;
 use bevy::render::mesh::Mesh;
 use crate::resources::ResourceOverlay;
 use crate::terrain::TerrainType;
-use crate::components::MineralType;
 use crate::minerals::calculate_total_richness;
 use crate::colors::{
     get_terrain_color_gradient,
@@ -18,7 +17,6 @@ use crate::colors::{
     combined_richness_color
 };
 use crate::mesh::ProvinceStorage;
-use crate::resources::MapDimensions;
 
 /// System that updates province colors in the mega-mesh based on active overlay mode
 /// Uses pre-calculated cached colors for instant switching

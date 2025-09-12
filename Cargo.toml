@@ -2,8 +2,10 @@
 name = "living-worlds"
 version = "0.1.0"
 edition = "2021"
-authors = ["Living Worlds Team"]
-license = "MIT"
+
+[features]
+default = []
+steam = ["bevy-steamworks"]  # Enable Steam integration
 
 [lib]
 name = "living_worlds"
@@ -22,6 +24,7 @@ bevy = { version = "0.16.1", default-features = false, features = [
     "bevy_core_pipeline", # Core rendering pipeline
     "bevy_gilrs",         # Gamepad support
     "bevy_gizmos",        # Debug visualization
+    "bevy_log",           # Logging system (info!, error!, warn!, etc.)
     "bevy_pbr",           # Physically based rendering
     "bevy_render",        # Rendering system
     "bevy_scene",         # Scene management
@@ -46,8 +49,22 @@ bincode = "1.3"
 thiserror = "1.0"
 anyhow = "1.0"
 
+# UI text input for search bars and text fields
+bevy_simple_text_input = "0.11"
+
+# Save system features
+zstd = "0.13"  # Compression for save files
+ron = "0.8"    # Rusty Object Notation for serialization
+
+# Steam integration
+bevy-steamworks = { version = "0.13", optional = true }  # Steam SDK integration
+
 # Settings persistence
 bevy_pkv = "0.13"  # Cross-platform key-value storage for settings (0.13 for Bevy 0.16 compatibility)
+
+# File watching for hot-reload
+notify = "6.1"  # File system event notification for mod hot-reload
+crossbeam-channel = "0.5"  # Thread-safe channels for Bevy
 
 # Math and utilities  
 fixed = "1.24"
@@ -55,6 +72,7 @@ nalgebra = "0.32"
 noise = "0.8"
 rand = { version = "0.8", features = ["small_rng"] }
 rand_chacha = "0.3"
+chrono = { version = "0.4", features = ["serde"] }
 rayon = "1.10"  # Parallel iteration for massive performance gains
 voronator = "0.2"  # Real Voronoi tessellation for tectonic plates
 

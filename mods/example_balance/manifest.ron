@@ -1,0 +1,10 @@
+ModManifest(
+    id: "example_balance",
+    name: "Example Balance Mod",
+    version: "1.0.0",
+    author: "Living Worlds Team",
+    description: "An example mod that tweaks game balance for faster gameplay",
+    dependencies: [],
+    compatible_game_version: "*",
+    load_order: 100,
+)

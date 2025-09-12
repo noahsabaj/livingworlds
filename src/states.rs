@@ -5,18 +5,17 @@
 //!
 //! ## State Flow
 //! ```text
-//! Loading → MainMenu → WorldConfiguration → WorldGenerationLoading → WorldGeneration → LoadingWorld → InGame ⇄ Paused
-//!             ↑                   ↑                    ↓                                       ↓
-//!             └───────────────────┴────────────────────┴───────────────────────────────────────┘
+//! Loading → MainMenu → WorldConfiguration → WorldGeneration → LoadingWorld → InGame ⇄ Paused
+//!             ↑                   ↑                              ↑            ↓
+//!             └───────────────────┴──────────────────────────────┴────────────┘
 //! ```
 //!
 //! ## Transition Rules
 //! - Loading: Initial state, auto-transitions to MainMenu after assets load
 //! - MainMenu: Hub for new game, load game, or settings
 //! - WorldConfiguration: Player configures world generation parameters
-//! - WorldGenerationLoading: Visual preview of world being generated
 //! - WorldGeneration: Actual world generation processing
-//! - LoadingWorld: Final preparation before gameplay
+//! - LoadingWorld: Unified loading screen for both world generation and save loading
 //! - InGame: Active gameplay, can pause/unpause
 //! - Paused: Game paused, can resume or return to menu
 
@@ -41,13 +40,10 @@ pub enum GameState {
     /// World configuration - player sets generation parameters
     WorldConfiguration,
     
-    /// World generation loading screen with real-time visualization
-    WorldGenerationLoading,
-    
     /// World generation - creating the world
     WorldGeneration,
     
-    /// Loading a saved world
+    /// Unified loading screen (for both world generation and save loading)
     LoadingWorld,
     
     /// Active gameplay - world simulation running
@@ -133,6 +129,13 @@ pub struct SavedWorldExists(pub bool);
 #[derive(Resource, Default)]
 pub struct WorldGenerationInProgress(pub bool);
 
+/// Resource to signal that we need to generate a world in LoadingWorld state
+#[derive(Resource, Default)]
+pub struct PendingWorldGeneration {
+    pub pending: bool,
+    pub delay_timer: f32,  // Delay before starting generation to allow loading screen to render
+}
+
 /// Plugin that manages all state-related systems
 pub struct StatesPlugin;
 
@@ -147,6 +150,7 @@ impl Plugin for StatesPlugin {
             .init_resource::<CurrentSettingsTab>()
             .init_resource::<SavedWorldExists>()
             .init_resource::<WorldGenerationInProgress>()
+            .init_resource::<PendingWorldGeneration>()
             
             // Add events
             .add_event::<RequestStateTransition>()
@@ -168,13 +172,14 @@ impl Plugin for StatesPlugin {
             .add_systems(OnEnter(GameState::WorldConfiguration), enter_world_configuration)
             .add_systems(OnExit(GameState::WorldConfiguration), exit_world_configuration)
             
-            .add_systems(OnEnter(GameState::WorldGeneration), (
-                enter_world_generation,
-                crate::setup::setup_world,  // Runs right after enter_world_generation
-            ))
+            .add_systems(OnEnter(GameState::WorldGeneration), enter_world_generation)
             .add_systems(OnExit(GameState::WorldGeneration), exit_world_generation)
             
             .add_systems(OnEnter(GameState::LoadingWorld), enter_loading_world)
+            .add_systems(Update, 
+                check_and_trigger_world_generation
+                    .run_if(in_state(GameState::LoadingWorld))
+            )
             .add_systems(OnExit(GameState::LoadingWorld), exit_loading_world)
             
             .add_systems(OnEnter(GameState::InGame), enter_in_game)
@@ -234,16 +239,13 @@ fn is_valid_transition(from: GameState, to: GameState, world_gen: &WorldGenerati
         (MainMenu, WorldConfiguration) => true,
         (MainMenu, LoadingWorld) => true,
         
-        // WorldConfiguration can go to WorldGenerationLoading or back to MainMenu
-        (WorldConfiguration, WorldGenerationLoading) => true,
+        // WorldConfiguration can go to LoadingWorld, WorldGeneration, or back to MainMenu
+        (WorldConfiguration, LoadingWorld) => true,  // Direct to loading for new world
+        (WorldConfiguration, WorldGeneration) => true,  // Legacy path
         (WorldConfiguration, MainMenu) => true,
         
-        // WorldGenerationLoading can go to WorldGeneration or back to WorldConfiguration (cancel)
-        (WorldGenerationLoading, WorldGeneration) => true,
-        (WorldGenerationLoading, WorldConfiguration) => true, // Cancel button
-        
-        // WorldGeneration can go to LoadingWorld or back to WorldConfiguration
-        (WorldGeneration, LoadingWorld) => !world_gen.0, // Only if generation complete
+        // WorldGeneration can go to LoadingWorld or back to WorldConfiguration/MainMenu
+        (WorldGeneration, LoadingWorld) => true,
         (WorldGeneration, WorldConfiguration) => true,
         (WorldGeneration, MainMenu) => true,
         
@@ -304,7 +306,7 @@ fn handle_menu_events(
 
 /// System that runs when entering the Loading state
 fn enter_loading(
-    mut commands: Commands,
+    commands: Commands,
     mut next_state: ResMut<NextState<GameState>>,
 ) {
     #[cfg(feature = "debug-states")]
@@ -319,7 +321,7 @@ fn enter_loading(
 }
 
 /// Cleanup when exiting the Loading state
-fn exit_loading(mut commands: Commands) {
+fn exit_loading(commands: Commands) {
     #[cfg(feature = "debug-states")]
     println!("Exiting Loading state");
     // TODO: Cleanup loading screen UI
@@ -329,16 +331,34 @@ fn exit_loading(mut commands: Commands) {
 fn enter_main_menu(
     mut commands: Commands,
     mut menu_state: ResMut<NextState<MenuState>>,
+    game_world_query: Query<Entity, With<crate::components::GameWorld>>,
+    mut camera_query: Query<&mut Transform, With<Camera2d>>,
 ) {
     #[cfg(feature = "debug-states")]
     println!("Entering MainMenu state");
+    
+    // Clean up any game world entities if returning from game
+    for entity in &game_world_query {
+        commands.entity(entity).despawn_recursive();
+    }
+    if !game_world_query.is_empty() {
+        #[cfg(feature = "debug-states")]
+        println!("Cleaned up {} game world entities", game_world_query.iter().count());
+    }
+    
+    // Reset camera position to origin when returning to main menu
+    for mut transform in &mut camera_query {
+        transform.translation = Vec3::new(0.0, 0.0, transform.translation.z);
+        #[cfg(feature = "debug-states")]
+        println!("Reset camera position to origin");
+    }
     
     menu_state.set(MenuState::Main);
     // Main menu UI is spawned by menus.rs module
 }
 
 /// Cleanup when exiting the MainMenu state
-fn exit_main_menu(mut commands: Commands) {
+fn exit_main_menu(commands: Commands) {
     #[cfg(feature = "debug-states")]
     println!("Exiting MainMenu state");
     // Main menu UI cleanup handled by menus.rs module
@@ -346,7 +366,7 @@ fn exit_main_menu(mut commands: Commands) {
 
 /// System that runs when entering the WorldConfiguration state
 fn enter_world_configuration(
-    mut commands: Commands,
+    commands: Commands,
 ) {
     #[cfg(feature = "debug-states")]
     println!("Entering WorldConfiguration state");
@@ -354,7 +374,7 @@ fn enter_world_configuration(
 }
 
 /// Cleanup when exiting the WorldConfiguration state
-fn exit_world_configuration(mut commands: Commands) {
+fn exit_world_configuration(commands: Commands) {
     #[cfg(feature = "debug-states")]
     println!("Exiting WorldConfiguration state");
     // The world_config module handles cleanup
@@ -368,12 +388,12 @@ fn enter_world_generation(
     #[cfg(feature = "debug-states")]
     println!("Entering WorldGeneration state");
     world_gen.0 = true; // Mark as in progress
-    // Note: setup_world runs immediately after this in the same OnEnter schedule
+    // Note: This state is now mostly unused - we go directly to LoadingWorld
 }
 
 /// Cleanup when exiting the WorldGeneration state
 fn exit_world_generation(
-    mut commands: Commands,
+    commands: Commands,
     mut world_gen: ResMut<WorldGenerationInProgress>,
 ) {
     #[cfg(feature = "debug-states")]
@@ -384,26 +404,68 @@ fn exit_world_generation(
 
 /// System that runs when entering the LoadingWorld state
 fn enter_loading_world(
-    mut commands: Commands,
+    commands: Commands,
     mut next_state: ResMut<NextState<GameState>>,
+    pending_load: Option<Res<crate::save_load::PendingLoadData>>,
 ) {
     #[cfg(feature = "debug-states")]
     println!("Entering LoadingWorld state");
     
-    // This state is for final world preparation after generation
-    // Transition to InGame when ready
-    next_state.set(GameState::InGame);
+    // If we have a save to load, transition to InGame after loading
+    // Otherwise, wait for world generation to complete
+    if pending_load.is_some() {
+        // Save loading will handle the transition
+    } else {
+        // World generation will handle the transition
+    }
+}
+
+/// Check and trigger world generation after a delay
+fn check_and_trigger_world_generation(
+    mut commands: Commands,
+    mut pending_gen: ResMut<PendingWorldGeneration>,
+    time: Res<Time>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    settings: Res<crate::world_config::WorldGenerationSettings>,
+    mut next_state: ResMut<NextState<GameState>>,
+    mut loading_state: ResMut<crate::loading_screen::LoadingState>,
+) {
+    if !pending_gen.pending {
+        return;
+    }
+    
+    // Wait a short delay to allow loading screen to render
+    pending_gen.delay_timer -= time.delta_secs();
+    if pending_gen.delay_timer > 0.0 {
+        return;
+    }
+    
+    // Clear the pending flag
+    pending_gen.pending = false;
+    
+    println!("Starting world generation after loading screen renders");
+    
+    // Run world generation
+    crate::setup::setup_world(
+        commands,
+        meshes,
+        materials,
+        settings,
+        next_state,
+        loading_state,
+    );
 }
 
 /// Cleanup when exiting the LoadingWorld state
-fn exit_loading_world(mut commands: Commands) {
+fn exit_loading_world(commands: Commands) {
     #[cfg(feature = "debug-states")]
     println!("Exiting LoadingWorld state");
     // Cleanup any loading UI
 }
 
 /// System that runs when entering the InGame state
-fn enter_in_game(mut commands: Commands) {
+fn enter_in_game(commands: Commands) {
     #[cfg(feature = "debug-states")]
     {
         let start = std::time::Instant::now();
@@ -414,10 +476,7 @@ fn enter_in_game(mut commands: Commands) {
 }
 
 /// Cleanup when exiting the InGame state
-fn exit_in_game(
-    mut commands: Commands,
-    game_world_query: Query<Entity, With<crate::components::GameWorld>>,
-) {
+fn exit_in_game(commands: Commands) {
     #[cfg(feature = "debug-states")]
     {
         let start = std::time::Instant::now();
@@ -425,17 +484,15 @@ fn exit_in_game(
         println!("[EXIT COMPLETE] InGame state exited in {:.1}ms", start.elapsed().as_secs_f32() * 1000.0);
     }
     
-    // Clean up game world entities when leaving the game
-    for entity in &game_world_query {
-        commands.entity(entity).despawn_recursive();
-    }
+    // Don't clean up game world here - it should persist when pausing
+    // World cleanup happens in enter_main_menu when returning to menu
     
     // Pause simulation
 }
 
 /// System that runs when entering the Paused state
 fn enter_paused(
-    mut commands: Commands,
+    commands: Commands,
     time: Res<Time>,
 ) {
     #[cfg(feature = "debug-states")]
@@ -448,7 +505,7 @@ fn enter_paused(
 }
 
 /// Cleanup when exiting the Paused state
-fn exit_paused(mut commands: Commands) {
+fn exit_paused(commands: Commands) {
     #[cfg(feature = "debug-states")]
     {
         let start = std::time::Instant::now();

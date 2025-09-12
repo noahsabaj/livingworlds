@@ -5,7 +5,7 @@
 
 use bevy::prelude::*;
 use super::styles::{colors, dimensions, layers, helpers};
-use super::buttons::{ButtonBuilder, ButtonStyle, ButtonSize, StyledButton};
+use super::buttons::{ButtonBuilder, ButtonStyle, ButtonSize};
 
 /// Component for dialog overlays
 #[derive(Component, Debug, Clone)]

@@ -2,7 +2,6 @@
 
 use bevy::prelude::*;
 use super::types::*;
-use super::components::*;
 
 /// Handle request to show resolution confirmation dialog  
 pub fn handle_resolution_confirm_request(

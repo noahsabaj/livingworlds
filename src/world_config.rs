@@ -8,7 +8,7 @@ use bevy::prelude::*;
 use rand::Rng;
 use bevy_simple_text_input::{
     TextInputPlugin, TextInput, TextInputSettings, TextInputSubmitEvent,
-    TextInputValue, TextInputTextFont, TextInputTextColor
+    TextInputValue, TextInputTextFont, TextInputTextColor, TextInputInactive
 };
 
 use crate::states::{GameState, RequestStateTransition};
@@ -51,6 +51,7 @@ impl Plugin for WorldConfigPlugin {
                 update_seed_display,
                 update_slider_displays,
                 handle_text_input_changes,
+                handle_text_input_focus,
                 handle_generate_button,
                 handle_back_button,
                 handle_random_buttons,
@@ -407,7 +408,7 @@ fn spawn_world_config_ui(mut commands: Commands) {
                 AdvancedToggle,
             )).with_children(|button| {
                 button.spawn((
-                    Text::new("⚙️ Show Advanced Settings"),
+                    Text::new("Show Advanced Settings"),
                     TextFont {
                         font_size: 20.0,
                         ..default()
@@ -435,7 +436,7 @@ fn spawn_world_config_ui(mut commands: Commands) {
                 BorderRadius::all(Val::Px(5.0)),
             )).with_children(|estimate| {
                 estimate.spawn((
-                    Text::new("⏱️ Estimated generation time: ~3-7 seconds"),
+                    Text::new("Estimated generation time: ~3-7 seconds"),
                     TextFont {
                         font_size: 14.0,
                         ..default()
@@ -535,13 +536,14 @@ fn spawn_world_name_section(parent: &mut ChildSpawnerCommands) {
                         ..default()
                     }),
                     TextInputTextColor(TextColor(colors::TEXT_PRIMARY)),
+                    TextInputInactive(true),  // Prevent auto-focus
                     WorldNameInput,
                     WorldNameText,
                 ));
             });
             
             // Random button with ButtonBuilder
-            ButtonBuilder::new("🎲 Random")
+            ButtonBuilder::new("Random")
                 .style(ButtonStyle::Secondary)
                 .size(ButtonSize::Small)
                 .with_marker(RandomNameButton)
@@ -742,13 +744,14 @@ fn spawn_seed_section(parent: &mut ChildSpawnerCommands) {
                         ..default()
                     }),
                     TextInputTextColor(TextColor(colors::TEXT_PRIMARY)),
+                    TextInputInactive(true),  // Prevent auto-focus
                     SeedInput,
                     SeedText,
                 ));
             });
             
             // Random button with ButtonBuilder
-            ButtonBuilder::new("🎲 Random")
+            ButtonBuilder::new("Random")
                 .style(ButtonStyle::Secondary)
                 .size(ButtonSize::Small)
                 .with_marker(RandomSeedButton)
@@ -915,7 +918,7 @@ fn spawn_advanced_panel(parent: &mut ChildSpawnerCommands) {
     )).with_children(|panel| {
         // Title
         panel.spawn((
-            Text::new("⚙️ Advanced Settings"),
+            Text::new("Advanced Settings"),
             TextFont {
                 font_size: 20.0,
                 ..default()
@@ -975,7 +978,7 @@ fn spawn_advanced_panel(parent: &mut ChildSpawnerCommands) {
                     BorderRadius::all(Val::Px(5.0)),
                 )).with_children(|header| {
                     header.spawn((
-                        Text::new("🌍 World Geography"),
+                        Text::new("World Geography"),
                         TextFont {
                             font_size: 18.0,
                             ..default()
@@ -1077,7 +1080,7 @@ fn spawn_advanced_panel(parent: &mut ChildSpawnerCommands) {
                     BorderRadius::all(Val::Px(5.0)),
                 )).with_children(|header| {
                     header.spawn((
-                        Text::new("👑 Civilizations & Resources"),
+                        Text::new("Civilizations & Resources"),
                         TextFont {
                             font_size: 18.0,
                             ..default()
@@ -1359,27 +1362,156 @@ fn handle_text_input_changes(
     }
 }
 
+fn handle_text_input_focus(
+    mut commands: Commands,
+    interactions: Query<(Entity, &Interaction), (Changed<Interaction>, With<TextInput>)>,
+    all_text_inputs: Query<Entity, With<TextInput>>,
+) {
+    for (entity, interaction) in &interactions {
+        if *interaction == Interaction::Pressed {
+            // Focus the clicked text input and unfocus all others
+            for text_input_entity in &all_text_inputs {
+                if text_input_entity == entity {
+                    // Remove inactive from clicked input to focus it
+                    commands.entity(text_input_entity).insert(TextInputInactive(false));
+                } else {
+                    // Add inactive to all other inputs to unfocus them
+                    commands.entity(text_input_entity).insert(TextInputInactive(true));
+                }
+            }
+        }
+    }
+}
+
 fn handle_preset_selection(
-    mut interactions: Query<(&Interaction, &PresetButton, &mut BackgroundColor), Changed<Interaction>>,
+    mut interactions: Query<(&Interaction, &PresetButton), Changed<Interaction>>,
+    mut all_preset_buttons: Query<(Entity, &PresetButton, &mut BackgroundColor, &mut BorderColor)>,
+    mut text_query: Query<&mut TextColor>,
+    children_query: Query<&Children>,
     mut settings: ResMut<WorldGenerationSettings>,
 ) {
-    for (interaction, preset_button, bg_color) in &mut interactions {
-        if *interaction == Interaction::Pressed {
-            settings.preset = preset_button.0.clone();
-            apply_preset(&mut settings);
-            println!("Selected preset: {:?}", preset_button.0);
+    for (interaction, preset_button) in &interactions {
+        match *interaction {
+            Interaction::Pressed => {
+                settings.preset = preset_button.0;
+                apply_preset(&mut settings);
+                println!("Selected preset: {:?}", preset_button.0);
+                
+                // Update all preset button colors and their text
+                for (entity, button, mut bg_color, mut border_color) in &mut all_preset_buttons {
+                    if button.0 == preset_button.0 {
+                        // Selected button
+                        *bg_color = BackgroundColor(colors::PRIMARY);
+                        *border_color = BorderColor(colors::PRIMARY);
+                        
+                        // Update text color to white for selected button
+                        if let Ok(children) = children_query.get(entity) {
+                            for child in children.iter() {
+                                if let Ok(mut text_color) = text_query.get_mut(child) {
+                                    *text_color = TextColor(Color::WHITE);
+                                }
+                            }
+                        }
+                    } else {
+                        // Unselected buttons
+                        *bg_color = BackgroundColor(colors::BACKGROUND_LIGHT);
+                        *border_color = BorderColor(colors::BORDER_DEFAULT);
+                        
+                        // Update text color to default for unselected buttons
+                        if let Ok(children) = children_query.get(entity) {
+                            for child in children.iter() {
+                                if let Ok(mut text_color) = text_query.get_mut(child) {
+                                    *text_color = TextColor(colors::TEXT_PRIMARY);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Interaction::Hovered => {
+                // Only apply hover effect to non-selected buttons
+                for (_entity, button, mut bg_color, mut border_color) in &mut all_preset_buttons {
+                    if button.0 == preset_button.0 && button.0 != settings.preset {
+                        *bg_color = BackgroundColor(colors::BACKGROUND_LIGHT.lighter(0.15));
+                        *border_color = BorderColor(colors::PRIMARY.with_alpha(0.5));
+                    }
+                }
+            }
+            Interaction::None => {
+                // Reset non-selected button to default state
+                for (_entity, button, mut bg_color, mut border_color) in &mut all_preset_buttons {
+                    if button.0 == preset_button.0 && button.0 != settings.preset {
+                        *bg_color = BackgroundColor(colors::BACKGROUND_LIGHT);
+                        *border_color = BorderColor(colors::BORDER_DEFAULT);
+                    }
+                }
+            }
         }
     }
 }
 
 fn handle_size_selection(
-    mut interactions: Query<(&Interaction, &SizeButton, &mut BackgroundColor), Changed<Interaction>>,
+    mut interactions: Query<(&Interaction, &SizeButton), Changed<Interaction>>,
+    mut all_size_buttons: Query<(Entity, &SizeButton, &mut BackgroundColor, &mut BorderColor)>,
+    mut text_query: Query<&mut TextColor>,
+    children_query: Query<&Children>,
     mut settings: ResMut<WorldGenerationSettings>,
 ) {
-    for (interaction, size_button, bg_color) in &mut interactions {
-        if *interaction == Interaction::Pressed {
-            settings.world_size = size_button.0.clone();
-            println!("Selected world size: {:?}", size_button.0);
+    for (interaction, size_button) in &interactions {
+        match *interaction {
+            Interaction::Pressed => {
+                settings.world_size = size_button.0;
+                println!("Selected world size: {:?}", size_button.0);
+                
+                // Update all size button colors and their text
+                for (entity, button, mut bg_color, mut border_color) in &mut all_size_buttons {
+                    if button.0 == size_button.0 {
+                        // Selected button
+                        *bg_color = BackgroundColor(colors::PRIMARY);
+                        *border_color = BorderColor(colors::PRIMARY);
+                        
+                        // Update text colors to white for selected button
+                        if let Ok(children) = children_query.get(entity) {
+                            for child in children.iter() {
+                                if let Ok(mut text_color) = text_query.get_mut(child) {
+                                    *text_color = TextColor(Color::WHITE);
+                                }
+                            }
+                        }
+                    } else {
+                        // Unselected buttons
+                        *bg_color = BackgroundColor(colors::BACKGROUND_LIGHT);
+                        *border_color = BorderColor(colors::BORDER_DEFAULT);
+                        
+                        // Update text colors to default for unselected buttons
+                        if let Ok(children) = children_query.get(entity) {
+                            for child in children.iter() {
+                                if let Ok(mut text_color) = text_query.get_mut(child) {
+                                    *text_color = TextColor(colors::TEXT_PRIMARY);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            Interaction::Hovered => {
+                // Only apply hover effect to non-selected buttons
+                for (_entity, button, mut bg_color, mut border_color) in &mut all_size_buttons {
+                    if button.0 == size_button.0 && button.0 != settings.world_size {
+                        *bg_color = BackgroundColor(colors::BACKGROUND_LIGHT.lighter(0.15));
+                        *border_color = BorderColor(colors::PRIMARY.with_alpha(0.5));
+                    }
+                }
+            }
+            Interaction::None => {
+                // Reset non-selected button to default state
+                for (_entity, button, mut bg_color, mut border_color) in &mut all_size_buttons {
+                    if button.0 == size_button.0 && button.0 != settings.world_size {
+                        *bg_color = BackgroundColor(colors::BACKGROUND_LIGHT);
+                        *border_color = BorderColor(colors::BORDER_DEFAULT);
+                    }
+                }
+            }
         }
     }
 }
@@ -1405,9 +1537,9 @@ fn handle_advanced_toggle(
                     for child in children.iter() {
                         if let Ok(mut text) = text_query.get_mut(child) {
                             text.0 = if is_showing {
-                                "⚙️ Show Advanced Settings".to_string()
+                                "Show Advanced Settings".to_string()
                             } else {
-                                "⚙️ Hide Advanced Settings".to_string()
+                                "Hide Advanced Settings".to_string()
                             };
                         }
                     }
@@ -1438,7 +1570,7 @@ fn update_seed_display(
                 WorldSize::Medium => "~3-5 seconds",
                 WorldSize::Large => "~5-7 seconds",
             };
-            estimate_text.0 = format!("⏱️ Estimated generation time: {}", time_range);
+            estimate_text.0 = format!("Estimated generation time: {}", time_range);
         }
     }
 }

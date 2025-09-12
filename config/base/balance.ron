@@ -1,0 +1,119 @@
+//! Living Worlds Base Configuration - Balance Settings
+//! 
+//! This file contains all gameplay balance constants.
+//! Mods can override these values by providing their own balance.ron
+
+BalanceConfig(
+    // ========================================================================
+    // WORLD & MAP
+    // ========================================================================
+    world: WorldConfig(
+        hex_size_pixels: 50.0,
+        provinces_per_row: 300,
+        provinces_per_col: 200,
+        edge_buffer: 200.0,
+        
+        // Ocean depth thresholds (as percentage of max depth)
+        ocean_depth_shallow: 0.12,
+        ocean_depth_medium: 0.07,
+        ocean_depth_deep: 0.02,
+    ),
+    
+    // ========================================================================
+    // CAMERA
+    // ========================================================================
+    camera: CameraConfig(
+        zoom_speed: 0.1,
+        min_zoom: 0.3,
+        max_zoom: 6.0,
+        pan_speed_base: 500.0,
+        speed_multiplier: 3.0,
+        edge_pan_threshold: 10.0,
+        edge_pan_speed_base: 800.0,
+        map_padding_factor: 1.25,
+    ),
+    
+    // ========================================================================
+    // UI
+    // ========================================================================
+    ui: UIConfig(
+        tile_info_text_size: 18.0,
+        padding_percent: 1.0,
+        margin_percent: 2.0,
+    ),
+    
+    // ========================================================================
+    // SIMULATION
+    // ========================================================================
+    simulation: SimulationConfig(
+        starting_year: 1000,
+        days_per_year: 365.0,
+        default_speed: 1.0,
+        max_speed: 10.0,
+        
+        // Population
+        min_population: 1000.0,
+        max_additional_population: 49000.0,
+    ),
+    
+    // ========================================================================
+    // CLOUDS
+    // ========================================================================
+    clouds: CloudConfig(
+        min_scale: 3.0,
+        max_scale: 6.0,
+        layer_count: 3,
+        base_speed: 10.0,
+    ),
+    
+    // ========================================================================
+    // WORLD GENERATION
+    // ========================================================================
+    generation: GenerationConfig(
+        nation_count: 8,
+        
+        // Tectonic plates
+        tectonic_plates_base: 4,
+        tectonic_plates_variation: 3,
+        
+        // Island counts
+        island_chain_count: 0,
+        archipelago_count: 2,
+        
+        // Continent sizes (radius in pixels)
+        continent_size_multiplier: 1.5,
+        continent_massive_base: 8000.0,
+        continent_massive_variation: 3000.0,
+        continent_medium_base: 5000.0,
+        continent_medium_variation: 2000.0,
+        continent_archipelago_base: 2000.0,
+        continent_archipelago_variation: 800.0,
+        continent_tiny_base: 800.0,
+        continent_tiny_variation: 400.0,
+        
+        // Continent shape
+        continent_falloff_base: 0.8,
+        continent_falloff_variation: 0.3,
+        
+        // Rivers
+        river_count: 200,
+        river_min_elevation: 0.5,
+    ),
+    
+    // ========================================================================
+    // SPATIAL INDEXING
+    // ========================================================================
+    spatial: SpatialConfig(
+        index_cell_size_multiplier: 2.0,
+        ocean_depth_grid_size_multiplier: 3.0,
+    ),
+    
+    // ========================================================================
+    // HEXAGON RENDERING
+    // ========================================================================
+    hexagon: HexagonConfig(
+        aa_width: 1.5,
+        texture_alpha_opaque: 255,
+        texture_alpha_transparent: 0,
+    ),
+)

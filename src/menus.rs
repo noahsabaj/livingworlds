@@ -7,8 +7,17 @@
 use bevy::prelude::*;
 use bevy::app::AppExit;
 use crate::states::{GameState, RequestStateTransition};
-use crate::settings::{GameSettings, TempGameSettings, SettingsDirtyState, spawn_settings_menu};
+use crate::settings::SettingsMenuRoot;
 use crate::ui::buttons::{ButtonBuilder, ButtonStyle, ButtonSize};
+use crate::save_load::{SaveGameEvent, SaveGameList, scan_save_files_internal, SaveCompleteEvent};
+
+/// Event to trigger settings menu spawning
+#[derive(Event)]
+pub struct SpawnSettingsMenuEvent;
+
+/// Event to trigger save browser spawning
+#[derive(Event)]
+pub struct SpawnSaveBrowserEvent;
 
 /// Plugin that manages all menu-related UI and interactions
 pub struct MenusPlugin;
@@ -16,6 +25,9 @@ pub struct MenusPlugin;
 impl Plugin for MenusPlugin {
     fn build(&self, app: &mut App) {
         app
+            // Register menu events
+            .add_event::<SpawnSettingsMenuEvent>()
+            .add_event::<SpawnSaveBrowserEvent>()
             // Main menu systems
             .add_systems(OnEnter(GameState::MainMenu), spawn_main_menu)
             .add_systems(OnExit(GameState::MainMenu), despawn_main_menu)
@@ -33,6 +45,7 @@ impl Plugin for MenusPlugin {
                 handle_pause_esc_key,
                 update_button_visuals,  // Add hover effects for pause menu
                 handle_exit_confirmation_dialog,
+                update_load_button_after_save,  // Update Load Game button after save
             ).run_if(in_state(GameState::Paused)));
     }
 }
@@ -67,7 +80,7 @@ pub enum MenuAction {
     LoadGame,
     SaveGame,
     Settings,
-    Credits,
+    Mods,
     Exit,
     Resume,
     BackToMainMenu,
@@ -80,8 +93,15 @@ pub enum MenuAction {
 // ============================================================================
 
 /// Spawns the main menu UI
-fn spawn_main_menu(mut commands: Commands) {
+fn spawn_main_menu(
+    mut commands: Commands,
+    mut save_list: ResMut<SaveGameList>,
+) {
     println!("Spawning main menu UI");
+    
+    // Scan for save files to determine if Load Game should be enabled
+    scan_save_files_internal(&mut save_list);
+    let has_saves = !save_list.saves.is_empty();
     
     // Root container - full screen with dark semi-transparent overlay
     commands.spawn((
@@ -152,9 +172,9 @@ fn spawn_main_menu(mut commands: Commands) {
             
             // Create menu buttons
             create_button("New World", MenuAction::NewWorld, true);
-            create_button("Load Game", MenuAction::LoadGame, false);
+            create_button("Load Game", MenuAction::LoadGame, has_saves);  // Only enabled if saves exist
             create_button("Settings", MenuAction::Settings, true);  // Now enabled
-            create_button("Credits", MenuAction::Credits, false);
+            create_button("Mods", MenuAction::Mods, true);  // Enabled for mod browser
             create_button("Exit", MenuAction::Exit, true);
         });
         
@@ -198,13 +218,11 @@ fn handle_button_interactions(
         (Changed<Interaction>, With<Button>)
     >,
     mut state_events: EventWriter<RequestStateTransition>,
-    mut exit_events: EventWriter<AppExit>,
+    mut settings_events: EventWriter<SpawnSettingsMenuEvent>,
+    mut save_browser_events: EventWriter<SpawnSaveBrowserEvent>,
+    mut mod_browser_events: EventWriter<crate::modding::ui::OpenModBrowserEvent>,
     current_state: Res<State<GameState>>,
     mut commands: Commands,
-    settings: Res<GameSettings>,
-    mut temp_settings: ResMut<TempGameSettings>,
-    current_tab: Res<crate::states::CurrentSettingsTab>,
-    mut dirty_state: ResMut<SettingsDirtyState>,
 ) {
     for (interaction, button) in &mut interactions {
         // Only respond to enabled buttons
@@ -222,20 +240,25 @@ fn handle_button_interactions(
                     });
                 }
                 MenuAction::LoadGame => {
-                    println!("Load Game - Not yet implemented");
+                    println!("Load Game button pressed - opening save browser");
+                    // Trigger save browser spawning via event
+                    save_browser_events.write(SpawnSaveBrowserEvent);
                 }
                 MenuAction::Settings => {
                     println!("Settings button pressed - opening settings menu");
-                    // Spawn settings menu
-                    spawn_settings_menu(commands, settings, temp_settings, current_tab, dirty_state);
-                    return;  // Exit after spawning settings menu
+                    // Trigger settings menu spawning via event
+                    settings_events.send(SpawnSettingsMenuEvent);
                 }
-                MenuAction::Credits => {
-                    println!("Credits - Not yet implemented");
+                MenuAction::Mods => {
+                    println!("Opening Mods Browser");
+                    mod_browser_events.send(crate::modding::ui::OpenModBrowserEvent);
                 }
                 MenuAction::Exit => {
                     println!("Exit button pressed - showing confirmation dialog");
-                    spawn_exit_confirmation_dialog(&mut commands);
+                    // Inline the dialog creation to avoid borrowing issues
+                    use crate::ui::dialogs::presets;
+                    presets::exit_confirmation_dialog(commands);
+                    return; // Exit after spawning dialog
                 }
                 _ => {}
             }
@@ -247,7 +270,7 @@ fn handle_button_interactions(
 /// Note: ButtonBuilder handles hover effects via styled_button_hover_system,
 /// but we keep this for any custom menu-specific visual feedback
 fn update_button_visuals(
-    mut interactions: Query<
+    interactions: Query<
         (&Interaction, &MenuButton, &mut BackgroundColor, &mut BorderColor),
         (Changed<Interaction>, With<Button>)
     >,
@@ -262,8 +285,15 @@ fn update_button_visuals(
 // ============================================================================
 
 /// Spawns the pause menu UI
-fn spawn_pause_menu(mut commands: Commands) {
+fn spawn_pause_menu(
+    mut commands: Commands,
+    mut save_list: ResMut<SaveGameList>,
+) {
     println!("Spawning pause menu UI");
+    
+    // Scan for save files to determine if Load Game should be enabled
+    scan_save_files_internal(&mut save_list);
+    let has_saves = !save_list.saves.is_empty();
     
     // Root container - full screen with dark semi-transparent overlay that blocks clicks
     commands.spawn((
@@ -320,8 +350,8 @@ fn spawn_pause_menu(mut commands: Commands) {
             // Buttons
             create_button("Resume", MenuAction::Resume, true);
             create_button("Settings", MenuAction::Settings, true);  // Now enabled
-            create_button("Save Game", MenuAction::SaveGame, false);
-            create_button("Load Game", MenuAction::LoadGame, false);
+            create_button("Save Game", MenuAction::SaveGame, true);  // Now enabled!
+            create_button("Load Game", MenuAction::LoadGame, has_saves);  // Only enabled if saves exist
             create_button("Main Menu", MenuAction::BackToMainMenu, true);
             create_button("Exit Game", MenuAction::Exit, true);
         });
@@ -353,6 +383,46 @@ fn handle_pause_esc_key(
     }
 }
 
+/// Update Load Game button after a save completes
+fn update_load_button_after_save(
+    mut save_complete_events: EventReader<SaveCompleteEvent>,
+    mut menu_buttons: Query<(&mut MenuButton, &mut BackgroundColor, &mut BorderColor, &Children), With<MenuButton>>,
+    mut button_texts: Query<&mut TextColor>,
+    mut save_list: ResMut<SaveGameList>,
+) {
+    // Check if a save just completed
+    for event in save_complete_events.read() {
+        if event.success {
+            println!("Save completed - updating Load Game button state");
+            
+            // Rescan saves to update the list
+            scan_save_files_internal(&mut save_list);
+            let has_saves = !save_list.saves.is_empty();
+            
+            // Find and update the Load Game button
+            for (mut button, mut bg_color, mut border_color, children) in &mut menu_buttons {
+                if matches!(button.action, MenuAction::LoadGame) && !button.enabled && has_saves {
+                    // Enable the button
+                    button.enabled = true;
+                    
+                    // Update button appearance to enabled state
+                    *bg_color = BackgroundColor(crate::ui::buttons::ButtonStyle::Secondary.base_color());
+                    *border_color = BorderColor(crate::ui::buttons::ButtonStyle::Secondary.border_color());
+                    
+                    // Update text color for children
+                    for child in children.iter() {
+                        if let Ok(mut text_color) = button_texts.get_mut(child) {
+                            *text_color = TextColor(Color::WHITE);
+                        }
+                    }
+                    
+                    println!("Load Game button enabled after save");
+                }
+            }
+        }
+    }
+}
+
 /// Handles button interactions in the pause menu
 fn handle_pause_button_interactions(
     mut interactions: Query<
@@ -360,13 +430,10 @@ fn handle_pause_button_interactions(
         (Changed<Interaction>, With<Button>)
     >,
     mut state_events: EventWriter<RequestStateTransition>,
-    mut exit_events: EventWriter<AppExit>,
-    current_state: Res<State<GameState>>,
+    mut save_events: EventWriter<SaveGameEvent>,
+    mut settings_events: EventWriter<SpawnSettingsMenuEvent>,
+    mut save_browser_events: EventWriter<SpawnSaveBrowserEvent>,
     mut commands: Commands,
-    settings: Res<GameSettings>,
-    mut temp_settings: ResMut<TempGameSettings>,
-    current_tab: Res<crate::states::CurrentSettingsTab>,
-    mut dirty_state: ResMut<SettingsDirtyState>,
     pause_menu_query: Query<Entity, With<PauseMenuRoot>>,
 ) {
     for (interaction, button) in &mut interactions {
@@ -389,9 +456,8 @@ fn handle_pause_button_interactions(
                     if let Ok(entity) = pause_menu_query.get_single() {
                         commands.entity(entity).despawn_recursive();
                     }
-                    // Spawn settings menu
-                    spawn_settings_menu(commands, settings, temp_settings, current_tab, dirty_state);
-                    return;  // Exit after spawning settings menu
+                    // Trigger settings menu spawning via event
+                    settings_events.write(SpawnSettingsMenuEvent);
                 }
                 MenuAction::BackToMainMenu => {
                     println!("Back to Main Menu pressed");
@@ -402,13 +468,27 @@ fn handle_pause_button_interactions(
                 }
                 MenuAction::Exit => {
                     println!("Exit from pause menu - showing confirmation dialog");
-                    spawn_exit_confirmation_dialog(&mut commands);
+                    // Inline the dialog creation to avoid borrowing issues
+                    use crate::ui::dialogs::presets;
+                    presets::exit_confirmation_dialog(commands);
+                    return; // Exit after spawning dialog
                 }
                 MenuAction::SaveGame => {
-                    println!("Save Game - Not yet implemented");
+                    println!("Save Game button pressed - saving game");
+                    // Send save event with timestamp-based name
+                    let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
+                    save_events.write(SaveGameEvent {
+                        slot_name: format!("save_{}", timestamp.to_string()),
+                    });
                 }
                 MenuAction::LoadGame => {
-                    println!("Load Game - Not yet implemented");
+                    println!("Load Game button pressed from pause menu - opening save browser");
+                    // Close pause menu first
+                    if let Ok(entity) = pause_menu_query.get_single() {
+                        commands.entity(entity).despawn_recursive();
+                    }
+                    // Trigger save browser spawning via event
+                    save_browser_events.write(SpawnSaveBrowserEvent);
                 }
                 _ => {}
             }
@@ -419,15 +499,6 @@ fn handle_pause_button_interactions(
 // ============================================================================
 // EXIT CONFIRMATION DIALOG
 // ============================================================================
-
-/// Spawns the exit confirmation dialog
-fn spawn_exit_confirmation_dialog(commands: &mut Commands) {
-    println!("Spawning exit confirmation dialog");
-    
-    // Use the new dialog builder system
-    use crate::ui::dialogs::presets;
-    presets::exit_confirmation_dialog(commands.reborrow());
-}
 
 /// Handles exit confirmation dialog button interactions
 fn handle_exit_confirmation_dialog(

@@ -1,0 +1,129 @@
+//! Living Worlds Base Configuration - World Generation Settings
+//! 
+//! This file contains all world generation parameters.
+//! Mods can override these values to create different world types.
+
+GenerationConfig(
+    // ========================================================================
+    // CONTINENT GENERATION
+    // ========================================================================
+    continents: ContinentConfig(
+        // Number of tectonic plates (major landmasses)
+        tectonic_plates_base: 4,
+        tectonic_plates_variation: 3,
+        
+        // Continent size definitions (radius in pixels)
+        size_multiplier: 1.5,
+        
+        massive: ContinentSize(
+            base_radius: 8000.0,
+            variation: 3000.0,
+            description: "Eurasia-sized supercontinents",
+        ),
+        
+        medium: ContinentSize(
+            base_radius: 5000.0,
+            variation: 2000.0,
+            description: "Australia-sized continents",
+        ),
+        
+        archipelago: ContinentSize(
+            base_radius: 2000.0,
+            variation: 800.0,
+            description: "Indonesia-sized island chains",
+        ),
+        
+        tiny: ContinentSize(
+            base_radius: 800.0,
+            variation: 400.0,
+            description: "Hawaii-sized islands",
+        ),
+        
+        // Shape parameters
+        falloff_base: 0.8,
+        falloff_variation: 0.3,
+        
+        // Island generation
+        island_chain_count: 0,
+        archipelago_count: 2,
+    ),
+    
+    // ========================================================================
+    // ELEVATION & TERRAIN
+    // ========================================================================
+    elevation: ElevationConfig(
+        // Noise parameters for terrain generation
+        octaves: 6,
+        frequency: 0.0008,
+        lacunarity: 2.0,
+        persistence: 0.5,
+        
+        // Sea level and terrain thresholds
+        sea_level: 0.15,
+        beach_threshold: 0.17,
+        plains_threshold: 0.45,
+        hills_threshold: 0.65,
+        mountain_threshold: 0.85,
+        
+        // Edge forcing
+        edge_buffer_pixels: 200.0,
+        edge_force_ocean: true,
+    ),
+    
+    // ========================================================================
+    // RIVERS
+    // ========================================================================
+    rivers: RiverConfig(
+        // Number of river systems
+        river_count: 200,
+        
+        // River source requirements
+        min_elevation: 0.5,
+        min_mountain_height: 0.65,
+        
+        // Flow parameters
+        flow_accumulation_threshold: 10,
+        river_width_base: 1.0,
+        river_width_per_flow: 0.1,
+        
+        // Delta formation
+        delta_flow_threshold: 50,
+        delta_fertility_bonus: 2.0,
+    ),
+    
+    // ========================================================================
+    // CLIMATE ZONES
+    // ========================================================================
+    climate: ClimateConfig(
+        // Latitude bands (0.0 = equator, 1.0 = poles)
+        arctic_threshold: 0.85,
+        subarctic_threshold: 0.7,
+        temperate_threshold: 0.4,
+        subtropical_threshold: 0.2,
+        // Below subtropical is tropical
+        
+        // Temperature effects
+        desert_rainfall_threshold: 0.2,
+        jungle_rainfall_threshold: 0.8,
+        forest_rainfall_threshold: 0.5,
+    ),
+    
+    // ========================================================================
+    // NATIONS & CIVILIZATIONS
+    // ========================================================================
+    nations: NationConfig(
+        // Starting nations
+        initial_nation_count: 8,
+        
+        // Nation placement rules
+        min_nation_distance: 1000.0,
+        prefer_river_proximity: true,
+        prefer_coast_proximity: true,
+        avoid_mountains: true,
+        avoid_desert: true,
+        
+        // Starting resources
+        starting_population: 10000,
+        starting_development: 1.0,
+    ),
+)

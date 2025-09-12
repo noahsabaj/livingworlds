@@ -5,8 +5,10 @@
 //! entities, resources represent game-wide state and configuration.
 
 use bevy::prelude::*;
+use bevy::reflect::Reflect;
 use bevy::math::Vec2;
 use std::collections::HashMap;
+use serde::{Serialize, Deserialize};
 // Note: MineralType is used for MineralStorage resource
 use crate::components::MineralType;
 
@@ -15,11 +17,11 @@ use crate::components::MineralType;
 // ============================================================================
 
 /// Configuration for world generation - the seed determines the entire world
-#[derive(Resource)]
+#[derive(Resource, Reflect, Clone, Serialize, Deserialize)]
 pub struct WorldSeed(pub u32);
 
 /// World size configuration controlling map dimensions
-#[derive(Resource, Clone, Copy, Debug, PartialEq)]
+#[derive(Resource, Clone, Copy, Debug, PartialEq, Reflect, Serialize, Deserialize)]
 pub enum WorldSize {
     Small,   // 600x500 provinces (300,000 hexagons)
     Medium,  // 800x750 provinces (600,000 hexagons) 
@@ -45,7 +47,7 @@ impl WorldSize {
 }
 
 /// Map dimensions calculated from world size
-#[derive(Resource, Debug, Clone, Copy)]
+#[derive(Resource, Debug, Clone, Copy, Reflect, Default, Serialize, Deserialize)]
 pub struct MapDimensions {
     pub provinces_per_row: u32,
     pub provinces_per_col: u32,
@@ -77,11 +79,12 @@ impl MapDimensions {
 // ============================================================================
 
 /// Current game time and simulation speed
-#[derive(Resource)]
+#[derive(Resource, Reflect, Clone, Serialize, Deserialize)]
 pub struct GameTime {
     pub current_date: f32, // Days since start
     pub speed: f32,        // Time multiplier
     pub paused: bool,
+    pub speed_before_pause: f32, // Speed to restore when unpausing
 }
 
 impl Default for GameTime {
@@ -90,6 +93,7 @@ impl Default for GameTime {
             current_date: 0.0,
             speed: 1.0,
             paused: false,
+            speed_before_pause: 1.0,
         }
     }
 }
@@ -99,7 +103,7 @@ impl Default for GameTime {
 /// Tension ranges from 0.0 (perfect peace) to 1.0 (world war).
 /// It rises quickly with conflicts but falls slowly during peace,
 /// simulating how real-world tensions have momentum.
-#[derive(Resource)]
+#[derive(Resource, Reflect, Clone, Serialize, Deserialize)]
 pub struct WorldTension {
     /// Current tension level (0.0 to 1.0)
     pub current: f32,
@@ -329,7 +333,7 @@ impl ProvincesSpatialIndex {
 
 /// Storage for province mineral resources in mega-mesh architecture
 /// Uses Vec for O(1) indexed access since province IDs are sequential (0..n)
-#[derive(Resource, Default)]
+#[derive(Resource, Default, Reflect, Clone, Serialize, Deserialize)]
 pub struct MineralStorage {
     pub resources: Vec<Option<crate::components::ProvinceResources>>,
 }
@@ -358,7 +362,7 @@ pub struct CachedOverlayColors {
 // ============================================================================
 
 /// Resource visualization overlay modes for displaying mineral distribution
-#[derive(Resource, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Resource, Debug, Clone, Copy, PartialEq, Eq, Reflect, Serialize, Deserialize)]
 pub enum ResourceOverlay {
     /// No overlay - show normal political/terrain colors
     None,

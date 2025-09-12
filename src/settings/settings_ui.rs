@@ -43,7 +43,7 @@ pub fn spawn_settings_menu(
         parent.spawn((
             Node {
                 width: Val::Px(800.0),
-                height: Val::Px(600.0),
+                height: Val::Px(650.0),  // Increased from 600px to accommodate buttons
                 flex_direction: FlexDirection::Column,
                 padding: UiRect::all(Val::Px(20.0)),
                 border: UiRect::all(Val::Px(2.0)),
@@ -146,7 +146,7 @@ fn spawn_apply_cancel_buttons(parent: &mut ChildSpawnerCommands) {
         Node {
             flex_direction: FlexDirection::Row,
             justify_content: JustifyContent::Center,
-            margin: UiRect::top(Val::Px(20.0)),
+            margin: UiRect::top(Val::Px(10.0)),  // Reduced from 20px to ensure buttons fit
             column_gap: Val::Px(20.0),
             ..default()
         },

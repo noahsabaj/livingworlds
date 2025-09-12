@@ -4,11 +4,13 @@
 //! and terrain types using Perlin noise and tectonic simulation.
 
 use bevy::prelude::*;
+use bevy::reflect::Reflect;
+use serde::{Serialize, Deserialize};
 use noise::{NoiseFn, Perlin};
 use crate::constants::*;
 
 /// TerrainType represents the physical terrain of a province
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Reflect, Serialize, Deserialize)]
 pub enum TerrainType {
     Ocean,
     Beach,

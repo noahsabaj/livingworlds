@@ -12,6 +12,7 @@ use crate::generation::WorldGenerator;
 use crate::mesh::{ProvinceStorage, WorldMeshHandle, build_world_mesh};
 use crate::world_config::WorldGenerationSettings;
 use crate::states::GameState;
+use crate::loading_screen::{LoadingState, start_world_generation_loading, set_loading_progress};
 
 // Mesh-related structs and functions moved to mesh.rs module
 
@@ -22,6 +23,7 @@ pub fn setup_world(
     mut materials: ResMut<Assets<ColorMaterial>>,
     settings: Res<WorldGenerationSettings>,
     mut next_state: ResMut<NextState<GameState>>,
+    mut loading_state: ResMut<LoadingState>,
 ) {
     let start_time = std::time::Instant::now();
     
@@ -41,7 +43,9 @@ pub fn setup_world(
         settings.ocean_coverage,
         settings.river_density,
     );
+    set_loading_progress(&mut loading_state, 0.1, "Generating terrain...");
     let generated_world = generator.generate();
+    set_loading_progress(&mut loading_state, 0.6, "Building world mesh...");
     
     // Store map dimensions as resource
     commands.insert_resource(generated_world.map_dimensions);
@@ -55,6 +59,7 @@ pub fn setup_world(
     
     // Delegate mesh building to the mesh module
     let mesh_handle = build_world_mesh(&generated_world.provinces, &mut meshes);
+    set_loading_progress(&mut loading_state, 0.8, "Spawning entities...");
     
     // Spawn the world as a single entity
     commands.spawn((
@@ -150,6 +155,14 @@ pub fn setup_world(
     let total_time = start_time.elapsed().as_secs_f32();
     println!("Total setup_world completed in {:.2}s", total_time);
     
-    // Transition to LoadingWorld state
-    next_state.set(GameState::LoadingWorld);
+    set_loading_progress(&mut loading_state, 1.0, "World generation complete!");
+    
+    // Clear the pending generation flag
+    commands.insert_resource(crate::states::PendingWorldGeneration {
+        pending: false,
+        delay_timer: 0.0,
+    });
+    
+    // Transition to InGame (we're already in LoadingWorld)
+    next_state.set(GameState::InGame);
 }

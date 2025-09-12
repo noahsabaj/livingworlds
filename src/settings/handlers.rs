@@ -1,7 +1,7 @@
 //! Event handlers for settings menu interactions
 
 use bevy::prelude::*;
-use bevy::ui::{ZIndex, RelativeCursorPosition};
+use bevy::ui::RelativeCursorPosition;
 use bevy::window::{PrimaryWindow, WindowMode, MonitorSelection, VideoModeSelection, PresentMode};
 use bevy_pkv::PkvStore;
 use crate::states::CurrentSettingsTab;
@@ -20,7 +20,7 @@ pub fn handle_tab_buttons(
     settings_root: Query<Entity, With<SettingsMenuRoot>>,
     settings: Res<GameSettings>,
     temp_settings: ResMut<TempGameSettings>,
-    mut dirty_state: ResMut<SettingsDirtyState>,
+    dirty_state: ResMut<SettingsDirtyState>,
 ) {
     for (interaction, tab_button) in &mut interactions {
         if *interaction == Interaction::Pressed {
@@ -201,7 +201,7 @@ pub fn handle_slider_interactions(
 
 /// Handle Apply and Exit buttons
 pub fn handle_apply_cancel_buttons(
-    mut interactions: Query<(&Interaction, AnyOf<(&ApplyButton, &CancelButton)>), Changed<Interaction>>,
+    interactions: Query<(&Interaction, AnyOf<(&ApplyButton, &CancelButton)>), Changed<Interaction>>,
     mut commands: Commands,
     settings_root: Query<Entity, With<SettingsMenuRoot>>,
     mut settings: ResMut<GameSettings>,
@@ -661,7 +661,7 @@ fn spawn_unsaved_changes_dialog(commands: Commands) {
 
 /// Handle unsaved changes dialog buttons
 pub fn handle_unsaved_changes_dialog(
-    mut interactions: Query<(&Interaction, AnyOf<(&crate::ui::dialogs::SaveButton, &crate::ui::dialogs::DiscardButton, &crate::ui::dialogs::CancelButton)>), Changed<Interaction>>,
+    interactions: Query<(&Interaction, AnyOf<(&crate::ui::dialogs::SaveButton, &crate::ui::dialogs::DiscardButton, &crate::ui::dialogs::CancelButton)>), Changed<Interaction>>,
     mut commands: Commands,
     dialog_query: Query<Entity, With<crate::ui::dialogs::UnsavedChangesDialog>>,
     settings_root: Query<Entity, With<SettingsMenuRoot>>,
