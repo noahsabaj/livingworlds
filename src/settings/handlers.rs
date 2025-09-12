@@ -1,7 +1,6 @@
 //! Event handlers for settings menu interactions
 
 use bevy::prelude::*;
-use bevy::ui::RelativeCursorPosition;
 use bevy::window::{PrimaryWindow, WindowMode, MonitorSelection, VideoModeSelection, PresentMode};
 use bevy_pkv::PkvStore;
 use crate::states::CurrentSettingsTab;
@@ -135,66 +134,25 @@ pub fn handle_toggle_buttons(
     }
 }
 
-/// Handle slider interactions
+/// Handle slider interactions using the new SliderBuilder system
 pub fn handle_slider_interactions(
-    mut sliders: Query<(&Interaction, &Node, &mut Slider, &Children, &RelativeCursorPosition)>,
-    mut handles: Query<&mut Node, (With<SliderHandle>, Without<Slider>)>,
-    mut value_texts: Query<(&SliderValueText, &mut Text)>,
+    sliders: Query<(&crate::ui_toolbox::sliders::Slider, &SettingsSlider), Changed<crate::ui_toolbox::sliders::Slider>>,
     mut temp_settings: ResMut<TempGameSettings>,
-    mouse_button: Res<ButtonInput<MouseButton>>,
 ) {
-    for (interaction, track_node, mut slider, children, relative_cursor) in &mut sliders {
-        // Check if we're interacting with this slider
-        if *interaction == Interaction::Pressed || 
-           (*interaction == Interaction::Hovered && mouse_button.pressed(MouseButton::Left)) {
-            // Get cursor position relative to the slider track
-            if let Some(cursor_pos) = relative_cursor.normalized {
-                // cursor_pos is already normalized (0.0 to 1.0) relative to the element
-                // Just use the x component directly
-                let normalized = cursor_pos.x.clamp(0.0, 1.0);
-                slider.value = slider.min + (slider.max - slider.min) * normalized;
-                
-                // Update temp settings
-                match slider.setting_type {
-                    SettingType::RenderScale => temp_settings.0.graphics.render_scale = slider.value,
-                    SettingType::MasterVolume => temp_settings.0.audio.master_volume = slider.value,
-                    SettingType::MusicVolume => temp_settings.0.audio.music_volume = slider.value,
-                    SettingType::SfxVolume | SettingType::SFXVolume => temp_settings.0.audio.sfx_volume = slider.value,
-                    SettingType::UiScale | SettingType::UIScale => temp_settings.0.interface.ui_scale = slider.value,
-                    SettingType::TooltipDelay => temp_settings.0.interface.tooltip_delay = slider.value,
-                    SettingType::EdgePanSpeed => temp_settings.0.controls.edge_pan_speed = slider.value,
-                    SettingType::ZoomSensitivity => temp_settings.0.controls.zoom_sensitivity = slider.value,
-                    SettingType::CameraSpeed => temp_settings.0.controls.camera_speed = slider.value,
-                    SettingType::ZoomSpeed => temp_settings.0.controls.zoom_speed = slider.value,
-                    _ => {}
-                }
-                
-                // Update handle position
-                for &child in children {
-                    if let Ok(mut handle_node) = handles.get_mut(child) {
-                        handle_node.left = Val::Px(normalized * 164.0);
-                    }
-                }
-                
-                // Update value text
-                for (value_text, mut text) in &mut value_texts {
-                    if value_text.setting_type == slider.setting_type {
-                        let is_percentage = matches!(
-                            slider.setting_type,
-                            SettingType::RenderScale | SettingType::MasterVolume | 
-                            SettingType::MusicVolume | SettingType::SfxVolume | SettingType::SFXVolume |
-                            SettingType::UiScale | SettingType::UIScale | SettingType::EdgePanSpeed | 
-                            SettingType::ZoomSensitivity
-                        );
-                        
-                        **text = if is_percentage {
-                            format!("{:.0}%", slider.value * 100.0)
-                        } else {
-                            format!("{:.1}s", slider.value)
-                        };
-                    }
-                }
-            }
+    for (slider, settings_slider) in &sliders {
+        // Update temp settings based on the slider's setting type
+        match settings_slider.setting_type {
+            SettingType::RenderScale => temp_settings.0.graphics.render_scale = slider.value,
+            SettingType::MasterVolume => temp_settings.0.audio.master_volume = slider.value,
+            SettingType::MusicVolume => temp_settings.0.audio.music_volume = slider.value,
+            SettingType::SfxVolume | SettingType::SFXVolume => temp_settings.0.audio.sfx_volume = slider.value,
+            SettingType::UiScale | SettingType::UIScale => temp_settings.0.interface.ui_scale = slider.value,
+            SettingType::TooltipDelay => temp_settings.0.interface.tooltip_delay = slider.value,
+            SettingType::EdgePanSpeed => temp_settings.0.controls.edge_pan_speed = slider.value,
+            SettingType::ZoomSensitivity => temp_settings.0.controls.zoom_sensitivity = slider.value,
+            SettingType::CameraSpeed => temp_settings.0.controls.camera_speed = slider.value,
+            SettingType::ZoomSpeed => temp_settings.0.controls.zoom_speed = slider.value,
+            _ => {}
         }
     }
 }
@@ -655,15 +613,15 @@ pub fn update_apply_exit_button_hover(
 /// Spawn unsaved changes confirmation dialog
 fn spawn_unsaved_changes_dialog(commands: Commands) {
     // Use the new dialog builder system
-    use crate::ui::dialogs::presets;
+    use crate::ui_toolbox::dialogs::presets;
     presets::unsaved_changes_dialog(commands);
 }
 
 /// Handle unsaved changes dialog buttons
 pub fn handle_unsaved_changes_dialog(
-    interactions: Query<(&Interaction, AnyOf<(&crate::ui::dialogs::SaveButton, &crate::ui::dialogs::DiscardButton, &crate::ui::dialogs::CancelButton)>), Changed<Interaction>>,
+    interactions: Query<(&Interaction, AnyOf<(&crate::ui_toolbox::dialogs::SaveButton, &crate::ui_toolbox::dialogs::DiscardButton, &crate::ui_toolbox::dialogs::CancelButton)>), Changed<Interaction>>,
     mut commands: Commands,
-    dialog_query: Query<Entity, With<crate::ui::dialogs::UnsavedChangesDialog>>,
+    dialog_query: Query<Entity, With<crate::ui_toolbox::dialogs::UnsavedChangesDialog>>,
     settings_root: Query<Entity, With<SettingsMenuRoot>>,
     mut settings: ResMut<GameSettings>,
     temp_settings: Res<TempGameSettings>,

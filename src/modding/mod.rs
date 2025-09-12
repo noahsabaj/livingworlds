@@ -16,7 +16,7 @@ mod test;
 
 use bevy::prelude::*;
 use manager::ModManager;
-use loader::{ConfigReloadEvent, ConfigWatcher};
+use loader::ConfigReloadEvent;
 
 /// The main modding plugin
 pub struct ModdingPlugin;

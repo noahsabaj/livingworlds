@@ -22,7 +22,7 @@ pub fn handle_resolution_confirm_request(
         confirmation.original_window_mode = settings.graphics.window_mode.clone();
         
         // Use the new dialog system
-        use crate::ui::dialogs::presets;
+        use crate::ui_toolbox::dialogs::presets;
         presets::resolution_confirm_dialog(commands.reborrow());
     }
 }
@@ -31,8 +31,8 @@ pub fn handle_resolution_confirm_request(
 pub fn update_resolution_countdown(
     mut confirmation: ResMut<ResolutionConfirmation>,
     time: Res<Time>,
-    mut countdown_texts: Query<&mut Text, With<crate::ui::dialogs::CountdownText>>,
-    dialog_query: Query<Entity, With<crate::ui::dialogs::ResolutionConfirmDialog>>,
+    mut countdown_texts: Query<&mut Text, With<crate::ui_toolbox::dialogs::CountdownText>>,
+    dialog_query: Query<Entity, With<crate::ui_toolbox::dialogs::ResolutionConfirmDialog>>,
     mut commands: Commands,
     mut settings: ResMut<GameSettings>,
     mut events: EventWriter<SettingsChanged>,
@@ -69,9 +69,9 @@ pub fn update_resolution_countdown(
 
 /// Handle buttons in the resolution confirmation dialog
 pub fn handle_resolution_confirm_buttons(
-    keep_buttons: Query<&Interaction, (Changed<Interaction>, With<crate::ui::dialogs::KeepButton>)>,
-    revert_buttons: Query<&Interaction, (Changed<Interaction>, With<crate::ui::dialogs::RevertButton>)>,
-    dialog_query: Query<Entity, With<crate::ui::dialogs::ResolutionConfirmDialog>>,
+    keep_buttons: Query<&Interaction, (Changed<Interaction>, With<crate::ui_toolbox::dialogs::KeepButton>)>,
+    revert_buttons: Query<&Interaction, (Changed<Interaction>, With<crate::ui_toolbox::dialogs::RevertButton>)>,
+    dialog_query: Query<Entity, With<crate::ui_toolbox::dialogs::ResolutionConfirmDialog>>,
     mut confirmation: ResMut<ResolutionConfirmation>,
     mut commands: Commands,
     mut settings: ResMut<GameSettings>,

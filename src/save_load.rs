@@ -20,7 +20,7 @@ use crate::menus::SpawnSaveBrowserEvent;
 use crate::mesh::ProvinceStorage;
 use crate::resources::{WorldSeed, WorldSize, MapDimensions, GameTime, WorldTension, MineralStorage, ResourceOverlay};
 use crate::states::{GameState, RequestStateTransition};
-use crate::ui::buttons::{ButtonBuilder, ButtonStyle, ButtonSize};
+use crate::ui_toolbox::buttons::{ButtonBuilder, ButtonStyle, ButtonSize};
 use crate::loading_screen::{LoadingState, start_save_loading, set_loading_progress};
 
 // ============================================================================

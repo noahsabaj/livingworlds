@@ -12,7 +12,7 @@ use crate::generation::WorldGenerator;
 use crate::mesh::{ProvinceStorage, WorldMeshHandle, build_world_mesh};
 use crate::world_config::WorldGenerationSettings;
 use crate::states::GameState;
-use crate::loading_screen::{LoadingState, start_world_generation_loading, set_loading_progress};
+use crate::loading_screen::{LoadingState, set_loading_progress};
 
 // Mesh-related structs and functions moved to mesh.rs module
 

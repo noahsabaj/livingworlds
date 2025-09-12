@@ -11,6 +11,7 @@ use bevy_simple_text_input::{
     TextInputTextFont, TextInputTextColor, TextInputInactive
 };
 use super::styles::{colors, dimensions};
+use super::buttons::{ButtonBuilder, ButtonStyle, ButtonSize};
 
 // ============================================================================
 // INPUT VALIDATION
@@ -160,6 +161,10 @@ impl InputFilter {
 // COMPONENTS
 // ============================================================================
 
+/// Component that marks a clear button and tracks which text input it clears
+#[derive(Component)]
+pub struct ClearButtonTarget(pub Entity);
+
 /// Defines how a text input participates in focus management
 #[derive(Component, Clone, Debug)]
 pub enum TextInputFocus {
@@ -187,6 +192,7 @@ pub enum FocusGroupId {
 // ============================================================================
 
 /// Builder for creating text inputs with managed focus
+#[derive(Clone)]
 pub struct TextInputBuilder {
     value: String,
     placeholder: Option<String>,
@@ -198,12 +204,161 @@ pub struct TextInputBuilder {
     inactive: bool,
     retain_on_submit: bool,
     filter: Option<TextInputFilter>,
+    show_clear_button: bool,
 }
 
 /// Builder with a single marker component
 pub struct TextInputBuilderWithMarker<M: Component> {
     builder: TextInputBuilder,
     marker: M,
+}
+
+// Helper function to build text input with common components
+fn build_text_input_with_extras<M>(
+    parent: &mut ChildSpawnerCommands,
+    builder: TextInputBuilder,
+    extras: impl FnOnce(&mut EntityCommands) -> M,
+) -> Entity {
+    // If we need a clear button, create a container
+    if builder.show_clear_button {
+        let container_id = parent.spawn((
+            Node {
+                width: builder.width,
+                height: builder.height,
+                flex_direction: FlexDirection::Row,
+                column_gap: Val::Px(5.0),
+                ..default()
+            },
+            BackgroundColor(Color::NONE),
+        )).id();
+        
+        let mut text_input_id = None;
+        
+        parent.commands().entity(container_id).with_children(|container| {
+            // Create the text input with adjusted width
+            let mut entity_commands = container.spawn((
+                // Node components for layout
+                Node {
+                    flex_grow: 1.0,  // Take remaining space
+                    height: Val::Percent(100.0),
+                    padding: builder.padding,
+                    border: UiRect::all(Val::Px(2.0)),
+                    justify_content: JustifyContent::Start,
+                    align_items: AlignItems::Center,
+                    ..default()
+                },
+                BackgroundColor(colors::BACKGROUND_LIGHT),
+                BorderColor(colors::BORDER_DEFAULT),
+                BorderRadius::all(Val::Px(5.0)),
+                
+                // Text input components
+                TextInput,
+                TextInputValue(if builder.value.is_empty() && builder.placeholder.is_some() {
+                    builder.placeholder.clone().unwrap()
+                } else {
+                    builder.value.clone()
+                }),
+                TextInputTextFont(TextFont {
+                    font_size: builder.font_size,
+                    ..default()
+                }),
+                TextInputTextColor(TextColor(colors::TEXT_PRIMARY)),
+                TextInputSettings {
+                    retain_on_submit: builder.retain_on_submit,
+                    ..default()
+                },
+                
+                // Focus management
+                builder.focus_type.clone(),
+                
+                // Make it a button so it can be clicked
+                Button,
+            ));
+            
+            // Add extras from callback
+            extras(&mut entity_commands);
+            
+            // Add inactive state if requested
+            if builder.inactive {
+                entity_commands.insert(TextInputInactive(true));
+            }
+            
+            // Add filter if specified
+            if let Some(filter) = builder.filter.clone() {
+                entity_commands.insert(filter);
+            }
+            
+            text_input_id = Some(entity_commands.id());
+            
+            // Add clear button
+            let clear_button = ButtonBuilder::new("×")
+                .style(ButtonStyle::Ghost)
+                .size(ButtonSize::Small)
+                .build(container);
+                
+            // Add component to track which text input this button clears
+            if let Some(input_id) = text_input_id {
+                container.commands().entity(clear_button).insert(ClearButtonTarget(input_id));
+            }
+        });
+        
+        container_id
+    } else {
+        // No clear button, build normally
+        let mut entity_commands = parent.spawn((
+            // Node components for layout
+            Node {
+                width: builder.width,
+                height: builder.height,
+                padding: builder.padding,
+                border: UiRect::all(Val::Px(2.0)),
+                justify_content: JustifyContent::Start,
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            BackgroundColor(colors::BACKGROUND_LIGHT),
+            BorderColor(colors::BORDER_DEFAULT),
+            BorderRadius::all(Val::Px(5.0)),
+            
+            // Text input components
+            TextInput,
+            TextInputValue(if builder.value.is_empty() && builder.placeholder.is_some() {
+                builder.placeholder.unwrap()
+            } else {
+                builder.value
+            }),
+            TextInputTextFont(TextFont {
+                font_size: builder.font_size,
+                ..default()
+            }),
+            TextInputTextColor(TextColor(colors::TEXT_PRIMARY)),
+            TextInputSettings {
+                retain_on_submit: builder.retain_on_submit,
+                ..default()
+            },
+            
+            // Focus management
+            builder.focus_type.clone(),
+            
+            // Make it a button so it can be clicked
+            Button,
+        ));
+        
+        // Add extras from callback
+        extras(&mut entity_commands);
+        
+        // Add inactive state if requested
+        if builder.inactive {
+            entity_commands.insert(TextInputInactive(true));
+        }
+        
+        // Add filter if specified
+        if let Some(filter) = builder.filter.clone() {
+            entity_commands.insert(filter);
+        }
+
+        entity_commands.id()
+    }
 }
 
 impl<M: Component> TextInputBuilderWithMarker<M> {
@@ -218,59 +373,9 @@ impl<M: Component> TextInputBuilderWithMarker<M> {
     
     /// Build and spawn the text input entity with the marker
     pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
-        let mut entity_commands = parent.spawn((
-            // Node components for layout
-            Node {
-                width: self.builder.width,
-                height: self.builder.height,
-                padding: self.builder.padding,
-                border: UiRect::all(Val::Px(2.0)),
-                justify_content: JustifyContent::Start,
-                align_items: AlignItems::Center,
-                ..default()
-            },
-            BackgroundColor(colors::BACKGROUND_LIGHT),
-            BorderColor(colors::BORDER_DEFAULT),
-            BorderRadius::all(Val::Px(5.0)),
-            
-            // Text input components
-            TextInput,
-            TextInputValue(if self.builder.value.is_empty() && self.builder.placeholder.is_some() {
-                self.builder.placeholder.unwrap()
-            } else {
-                self.builder.value
-            }),
-            TextInputTextFont(TextFont {
-                font_size: self.builder.font_size,
-                ..default()
-            }),
-            TextInputTextColor(TextColor(colors::TEXT_PRIMARY)),
-            TextInputSettings {
-                retain_on_submit: self.builder.retain_on_submit,
-                ..default()
-            },
-            
-            // Focus management
-            self.builder.focus_type.clone(),
-            
-            // Make it a butfn so it can be clicked
-            Button,
-            
-            // The custom marker
-            self.marker,
-        ));
-
-        // Add inactive state if requested
-        if self.builder.inactive {
-            entity_commands.insert(TextInputInactive(true));
-        }
-        
-        // Add filter if specified
-        if let Some(filter) = self.builder.filter {
-            entity_commands.insert(filter);
-        }
-
-        entity_commands.id()
+        build_text_input_with_extras(parent, self.builder, |entity| {
+            entity.insert(self.marker);
+        })
     }
 }
 
@@ -284,60 +389,10 @@ pub struct TextInputBuilderWithTwoMarkers<M: Component, N: Component> {
 impl<M: Component, N: Component> TextInputBuilderWithTwoMarkers<M, N> {
     /// Build and spawn the text input entity with both markers
     pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
-        let mut entity_commands = parent.spawn((
-            // Node components for layout
-            Node {
-                width: self.builder.width,
-                height: self.builder.height,
-                padding: self.builder.padding,
-                border: UiRect::all(Val::Px(2.0)),
-                justify_content: JustifyContent::Start,
-                align_items: AlignItems::Center,
-                ..default()
-            },
-            BackgroundColor(colors::BACKGROUND_LIGHT),
-            BorderColor(colors::BORDER_DEFAULT),
-            BorderRadius::all(Val::Px(5.0)),
-            
-            // Text input components
-            TextInput,
-            TextInputValue(if self.builder.value.is_empty() && self.builder.placeholder.is_some() {
-                self.builder.placeholder.unwrap()
-            } else {
-                self.builder.value
-            }),
-            TextInputTextFont(TextFont {
-                font_size: self.builder.font_size,
-                ..default()
-            }),
-            TextInputTextColor(TextColor(colors::TEXT_PRIMARY)),
-            TextInputSettings {
-                retain_on_submit: self.builder.retain_on_submit,
-                ..default()
-            },
-            
-            // Focus management
-            self.builder.focus_type.clone(),
-            
-            // Make it a button so it can be clicked
-            Button,
-            
-            // The custom markers
-            self.marker1,
-            self.marker2,
-        ));
-
-        // Add inactive state if requested
-        if self.builder.inactive {
-            entity_commands.insert(TextInputInactive(true));
-        }
-        
-        // Add filter if specified
-        if let Some(filter) = self.builder.filter {
-            entity_commands.insert(filter);
-        }
-
-        entity_commands.id()
+        build_text_input_with_extras(parent, self.builder, |entity| {
+            entity.insert(self.marker1);
+            entity.insert(self.marker2);
+        })
     }
 }
 
@@ -355,6 +410,7 @@ impl TextInputBuilder {
             inactive: false,
             retain_on_submit: true,
             filter: None,
+            show_clear_button: false,
         }
     }
 
@@ -505,6 +561,12 @@ impl TextInputBuilder {
         });
         self
     }
+    
+    /// Add a clear button to the text input
+    pub fn with_clear_button(mut self) -> Self {
+        self.show_clear_button = true;
+        self
+    }
 
     /// Add a marker component to the input
     pub fn with_marker<M: Component>(self, marker: M) -> TextInputBuilderWithMarker<M> {
@@ -516,56 +578,7 @@ impl TextInputBuilder {
 
     /// Build and spawn the text input entity
     pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
-        let mut entity_commands = parent.spawn((
-            // Node components for layout
-            Node {
-                width: self.width,
-                height: self.height,
-                padding: self.padding,
-                border: UiRect::all(Val::Px(2.0)),
-                justify_content: JustifyContent::Start,
-                align_items: AlignItems::Center,
-                ..default()
-            },
-            BackgroundColor(colors::BACKGROUND_LIGHT),
-            BorderColor(colors::BORDER_DEFAULT),
-            BorderRadius::all(Val::Px(5.0)),
-            
-            // Text input components
-            TextInput,
-            TextInputValue(if self.value.is_empty() && self.placeholder.is_some() {
-                self.placeholder.unwrap()
-            } else {
-                self.value
-            }),
-            TextInputTextFont(TextFont {
-                font_size: self.font_size,
-                ..default()
-            }),
-            TextInputTextColor(TextColor(colors::TEXT_PRIMARY)),
-            TextInputSettings {
-                retain_on_submit: self.retain_on_submit,
-                ..default()
-            },
-            
-            // Focus management
-            self.focus_type.clone(),
-            
-            // Make it a button so it can be clicked
-            Button,
-        ));
-
-        // Add inactive state if requested
-        if self.inactive {
-            entity_commands.insert(TextInputInactive(true));
-        }
-        
-        // Add filter if specified
-        if let Some(filter) = self.filter {
-            entity_commands.insert(filter);
-        }
-
-        entity_commands.id()
+        build_text_input_with_extras(parent, self, |_entity| {})
     }
 }
 
@@ -582,6 +595,7 @@ impl Plugin for TextInputPlugin {
             handle_text_input_focus,
             handle_click_outside_unfocus,
             validate_text_input_changes,
+            handle_clear_button_clicks,
         ));
     }
 }
@@ -691,6 +705,20 @@ fn validate_text_input_changes(
     }
 }
 
+/// Handle clicks on clear buttons
+fn handle_clear_button_clicks(
+    button_query: Query<(&Interaction, &ClearButtonTarget), (Changed<Interaction>, With<Button>)>,
+    mut text_inputs: Query<&mut TextInputValue, With<TextInput>>,
+) {
+    for (interaction, target) in &button_query {
+        if *interaction == Interaction::Pressed {
+            if let Ok(mut text_value) = text_inputs.get_mut(target.0) {
+                text_value.0.clear();
+            }
+        }
+    }
+}
+
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
@@ -698,4 +726,74 @@ fn validate_text_input_changes(
 /// Convenience function to create a text input builder
 pub fn text_input() -> TextInputBuilder {
     TextInputBuilder::new()
+}
+
+/// Static helper to spawn a text input without using the builder pattern
+/// This avoids lifetime issues in preset functions and other contexts
+pub fn spawn_text_input(
+    parent: &mut ChildSpawnerCommands,
+    placeholder: impl Into<String>,
+) -> Entity {
+    spawn_text_input_full(
+        parent,
+        placeholder,
+        None,  // No initial value
+        Val::Px(200.0),  // Default width
+        true,  // Active by default
+        None::<TextInput>,  // No custom marker
+    )
+}
+
+/// Static helper to spawn a text input with all options
+pub fn spawn_text_input_full<M: Component>(
+    parent: &mut ChildSpawnerCommands,
+    placeholder: impl Into<String>,
+    value: Option<String>,
+    width: Val,
+    active: bool,
+    marker: Option<M>,
+) -> Entity {
+    let placeholder = placeholder.into();
+    let initial_value = value.unwrap_or_else(|| placeholder.clone());
+    
+    let bg_color = if active {
+        colors::BACKGROUND_LIGHT
+    } else {
+        Color::srgb(0.08, 0.08, 0.08)
+    };
+    
+    let mut entity_commands = parent.spawn((
+        Node {
+            width,
+            height: Val::Px(40.0),
+            padding: UiRect::all(Val::Px(10.0)),
+            border: UiRect::all(Val::Px(dimensions::BORDER_WIDTH)),
+            ..default()
+        },
+        BackgroundColor(bg_color),
+        BorderColor(if active { colors::BORDER_DEFAULT } else { Color::srgb(0.2, 0.2, 0.2) }),
+        TextInput,
+        TextInputValue(initial_value),
+        TextInputTextFont(TextFont {
+            font_size: dimensions::FONT_SIZE_NORMAL,
+            ..default()
+        }),
+        TextInputTextColor(TextColor(colors::TEXT_PRIMARY)),
+        TextInputSettings {
+            retain_on_submit: true,
+            ..default()
+        },
+    ));
+    
+    // Add inactive state if needed
+    if !active {
+        entity_commands.insert(TextInputInactive(true));
+    }
+    
+    // Add custom marker if provided
+    if let Some(m) = marker {
+        entity_commands.insert(m);
+    }
+    
+    entity_commands.id()
 }

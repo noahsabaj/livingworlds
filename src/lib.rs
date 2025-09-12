@@ -26,7 +26,7 @@ pub mod mesh;
 pub mod setup;
 pub mod states;
 pub mod terrain;
-pub mod ui;
+pub mod ui_toolbox;
 pub mod world_config;
 pub mod loading_screen;
 
@@ -66,7 +66,7 @@ pub mod prelude {
         combined_richness_color, infrastructure_level_color,
         get_mineral_color,
     };
-    // pub use crate::ui::{UIPlugin};
+    // pub use crate::ui_toolbox::{UIPlugin};
     pub use crate::music::{ProceduralMusicPlugin, MusicState};
     pub use crate::minerals::{generate_ore_veins, calculate_province_resources};
     pub use crate::overlay::OverlayPlugin;
@@ -89,7 +89,7 @@ use crate::settings::SettingsPlugin;
 use crate::simulation::SimulationPlugin;
 use crate::states::StatesPlugin;
 use crate::terrain::TerrainPlugin;
-use crate::ui::UIPlugin;
+use crate::ui_toolbox::UIPlugin;
 
 /// Builds the core Bevy application with all Living Worlds plugins.
 /// This sets up the engine, window, and all game systems but doesn't

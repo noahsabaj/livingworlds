@@ -5,8 +5,7 @@
 
 use bevy::prelude::*;
 use crate::states::GameState;
-use crate::ui::styles::{colors, dimensions};
-use crate::ui::buttons::{ButtonBuilder, ButtonStyle, ButtonSize};
+use crate::ui_toolbox::styles::colors;
 
 // ============================================================================
 // PLUGIN

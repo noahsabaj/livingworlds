@@ -80,6 +80,32 @@ pub struct SliderValueText {
 }
 
 // ============================================================================
+// SLIDER MARKERS FOR NEW SLIDER SYSTEM
+// ============================================================================
+
+/// Marker for settings sliders using the new SliderBuilder
+#[derive(Component)]
+pub struct SettingsSlider {
+    pub setting_type: SettingType,
+}
+
+/// Marker for master volume slider
+#[derive(Component)]
+pub struct MasterVolumeSlider;
+
+/// Marker for music volume slider
+#[derive(Component)]
+pub struct MusicVolumeSlider;
+
+/// Marker for SFX volume slider
+#[derive(Component)]
+pub struct SFXVolumeSlider;
+
+/// Marker for render scale slider
+#[derive(Component)]
+pub struct RenderScaleSlider;
+
+// ============================================================================
 // BUTTON MARKERS
 // ============================================================================
 
@@ -105,7 +131,7 @@ pub struct ResetButton;
 // DIALOG MARKERS
 // ============================================================================
 
-// Dialog components are now provided by crate::ui::dialogs
+// Dialog components are now provided by crate::ui_toolbox::dialogs
 
 // ============================================================================
 // TEXT MARKERS

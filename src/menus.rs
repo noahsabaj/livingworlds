@@ -7,8 +7,7 @@
 use bevy::prelude::*;
 use bevy::app::AppExit;
 use crate::states::{GameState, RequestStateTransition};
-use crate::settings::SettingsMenuRoot;
-use crate::ui::buttons::{ButtonBuilder, ButtonStyle, ButtonSize};
+use crate::ui_toolbox::buttons::{ButtonBuilder, ButtonStyle, ButtonSize};
 use crate::save_load::{SaveGameEvent, SaveGameList, scan_save_files_internal, SaveCompleteEvent};
 
 /// Event to trigger settings menu spawning
@@ -86,7 +85,7 @@ pub enum MenuAction {
     BackToMainMenu,
 }
 
-// Exit confirmation dialog components are now in crate::ui::dialogs
+// Exit confirmation dialog components are now in crate::ui_toolbox::dialogs
 
 // ============================================================================
 // MAIN MENU
@@ -256,7 +255,7 @@ fn handle_button_interactions(
                 MenuAction::Exit => {
                     println!("Exit button pressed - showing confirmation dialog");
                     // Inline the dialog creation to avoid borrowing issues
-                    use crate::ui::dialogs::presets;
+                    use crate::ui_toolbox::dialogs::presets;
                     presets::exit_confirmation_dialog(commands);
                     return; // Exit after spawning dialog
                 }
@@ -406,8 +405,8 @@ fn update_load_button_after_save(
                     button.enabled = true;
                     
                     // Update button appearance to enabled state
-                    *bg_color = BackgroundColor(crate::ui::buttons::ButtonStyle::Secondary.base_color());
-                    *border_color = BorderColor(crate::ui::buttons::ButtonStyle::Secondary.border_color());
+                    *bg_color = BackgroundColor(crate::ui_toolbox::buttons::ButtonStyle::Secondary.base_color());
+                    *border_color = BorderColor(crate::ui_toolbox::buttons::ButtonStyle::Secondary.border_color());
                     
                     // Update text color for children
                     for child in children.iter() {
@@ -469,7 +468,7 @@ fn handle_pause_button_interactions(
                 MenuAction::Exit => {
                     println!("Exit from pause menu - showing confirmation dialog");
                     // Inline the dialog creation to avoid borrowing issues
-                    use crate::ui::dialogs::presets;
+                    use crate::ui_toolbox::dialogs::presets;
                     presets::exit_confirmation_dialog(commands);
                     return; // Exit after spawning dialog
                 }
@@ -503,11 +502,11 @@ fn handle_pause_button_interactions(
 /// Handles exit confirmation dialog button interactions
 fn handle_exit_confirmation_dialog(
     mut interactions: Query<
-        (&Interaction, AnyOf<(&crate::ui::dialogs::ConfirmButton, &crate::ui::dialogs::CancelButton)>), 
+        (&Interaction, AnyOf<(&crate::ui_toolbox::dialogs::ConfirmButton, &crate::ui_toolbox::dialogs::CancelButton)>), 
         Changed<Interaction>
     >,
     mut commands: Commands,
-    dialog_query: Query<Entity, With<crate::ui::dialogs::ExitConfirmationDialog>>,
+    dialog_query: Query<Entity, With<crate::ui_toolbox::dialogs::ExitConfirmationDialog>>,
     mut exit_events: EventWriter<AppExit>,
 ) {
     for (interaction, (confirm_button, cancel_button)) in &mut interactions {

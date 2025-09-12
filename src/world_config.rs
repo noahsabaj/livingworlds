@@ -7,14 +7,15 @@
 use bevy::prelude::*;
 use rand::Rng;
 use bevy_simple_text_input::{
-    TextInputPlugin, TextInput, TextInputSubmitEvent, TextInputValue
+    TextInputSubmitEvent, TextInputValue
 };
 
 use crate::states::{GameState, RequestStateTransition};
 use crate::resources::WorldSize;
-use crate::ui::buttons::{ButtonBuilder, ButtonStyle, ButtonSize, StyledButton};
-use crate::ui::styles::{colors, dimensions, helpers};
-use crate::ui::text_inputs::{text_input, FocusGroupId};
+use crate::ui_toolbox::buttons::{ButtonBuilder, ButtonStyle, ButtonSize, StyledButton};
+use crate::ui_toolbox::styles::{colors, dimensions, helpers};
+use crate::ui_toolbox::text_inputs::{text_input, FocusGroupId};
+use crate::ui_toolbox::sliders::{slider, ValueFormat};
 use crate::name_generator::{NameGenerator, NameType};
 
 // ============================================================================
@@ -288,6 +289,9 @@ struct GenerationTimeEstimate;
 #[derive(Component)]
 struct AdvancedToggleText;
 
+#[derive(Component)]
+struct AdvancedToggleChevron;
+
 // ============================================================================
 // SYSTEMS - INITIALIZATION
 // ============================================================================
@@ -297,8 +301,11 @@ fn init_default_settings(mut commands: Commands) {
     println!("Initialized default world generation settings");
 }
 
-fn spawn_world_config_ui(mut commands: Commands) {
-    println!("Spawning world configuration UI");
+fn spawn_world_config_ui(
+    mut commands: Commands,
+    settings: Res<WorldGenerationSettings>,
+) {
+    println!("Spawning world configuration UI with seed: {}", settings.seed);
     
     // Root container with dark overlay
     commands.spawn((
@@ -384,14 +391,19 @@ fn spawn_world_config_ui(mut commands: Commands) {
             spawn_world_size_section(panel);
             
             // Seed Section
-            spawn_seed_section(panel);
+            spawn_seed_section(panel, settings.seed);
             
             // Preset Section
             spawn_preset_section(panel);
             
-            // Advanced Settings Toggle
+            // Advanced Settings Toggle with ButtonBuilder for hover effects
             panel.spawn((
                 Button,
+                StyledButton {
+                    style: ButtonStyle::Secondary,
+                    size: ButtonSize::Large,
+                    enabled: true,
+                },
                 Node {
                     width: Val::Percent(100.0),
                     height: Val::Px(45.0),
@@ -405,15 +417,31 @@ fn spawn_world_config_ui(mut commands: Commands) {
                 BorderColor(colors::BORDER_DEFAULT),
                 BorderRadius::all(Val::Px(dimensions::CORNER_RADIUS)),
                 AdvancedToggle,
+                Interaction::default(),
             )).with_children(|button| {
+                // Container for text and chevron
                 button.spawn((
-                    Text::new("Show Advanced Settings"),
-                    TextFont {
-                        font_size: 20.0,
+                    Node {
+                        flex_direction: FlexDirection::Row,
+                        align_items: AlignItems::Center,
+                        column_gap: Val::Px(8.0),
                         ..default()
                     },
-                    TextColor(colors::TEXT_SECONDARY),
-                ));
+                    BackgroundColor(Color::NONE),
+                )).with_children(|container| {
+                    // Text
+                    container.spawn((
+                        Text::new("Show Advanced Settings"),
+                        TextFont {
+                            font_size: 20.0,
+                            ..default()
+                        },
+                        TextColor(colors::TEXT_SECONDARY),
+                        AdvancedToggleText,
+                    ));
+                    
+                    // NO CHEVRON - Invalid Character
+                });
             });
             
             // Advanced Settings Panel (initially hidden)
@@ -492,11 +520,12 @@ fn spawn_world_name_section(parent: &mut ChildSpawnerCommands) {
             TextColor(colors::TEXT_SECONDARY),
         ));
         
-        // Input row
+        // Input row - use SpaceBetween to keep Random button on the right
         section.spawn((
             Node {
                 width: Val::Percent(100.0),
                 flex_direction: FlexDirection::Row,
+                justify_content: JustifyContent::SpaceBetween,  // Keep Random on right
                 column_gap: Val::Px(10.0),
                 ..default()
             },
@@ -505,15 +534,16 @@ fn spawn_world_name_section(parent: &mut ChildSpawnerCommands) {
             text_input()
                 .with_value("Aetheria Prime")
                 .with_font_size(18.0)
-                .with_width(Val::Auto)
+                .with_width(Val::Px(300.0))  // Fixed width prevents jumping
                 .with_padding(UiRect::horizontal(Val::Px(15.0)))
+                .with_max_length(30)  // Limit name length
                 .with_focus_group(FocusGroupId::WorldConfig)
                 .inactive()
                 .with_marker(WorldNameInput)
                 .and_marker(WorldNameText)
                 .build(row);
             
-            // Random button with ButtonBuilder
+            // Random button with ButtonBuilder - stays on right edge
             ButtonBuilder::new("Random")
                 .style(ButtonStyle::Secondary)
                 .size(ButtonSize::Small)
@@ -653,7 +683,7 @@ fn spawn_world_size_section(parent: &mut ChildSpawnerCommands) {
     });
 }
 
-fn spawn_seed_section(parent: &mut ChildSpawnerCommands) {
+fn spawn_seed_section(parent: &mut ChildSpawnerCommands, seed: u32) {
     parent.spawn((
         Node {
             width: Val::Percent(100.0),
@@ -672,30 +702,31 @@ fn spawn_seed_section(parent: &mut ChildSpawnerCommands) {
             TextColor(colors::TEXT_SECONDARY),
         ));
         
-        // Input row
+        // Input row - use SpaceBetween to keep Random button on the right
         section.spawn((
             Node {
                 width: Val::Percent(100.0),
                 flex_direction: FlexDirection::Row,
+                justify_content: JustifyContent::SpaceBetween,  // Keep Random on right
                 column_gap: Val::Px(10.0),
                 ..default()
             },
         )).with_children(|row| {
-            // World Seed text input using TextInputBuilder
+            // World Seed text input using TextInputBuilder - use actual seed
             text_input()
-                .with_value("1234567890")
+                .with_value(seed.to_string())
                 .with_font_size(18.0)
-                .with_width(Val::Auto)
+                .with_width(Val::Px(250.0))  // Fixed width prevents jumping
                 .with_padding(UiRect::horizontal(Val::Px(15.0)))
                 .with_focus_group(FocusGroupId::WorldConfig)
                 .numeric_only()  // Only allow numbers for seeds
-                .with_max_length(20)  // Limit seed length
+                .with_max_length(20)  // Limit seed length (already present)
                 .inactive()
                 .with_marker(SeedInput)
                 .and_marker(SeedText)
                 .build(row);
             
-            // Random button with ButtonBuilder
+            // Random button with ButtonBuilder - stays on right edge
             ButtonBuilder::new("Random")
                 .style(ButtonStyle::Secondary)
                 .size(ButtonSize::Small)
@@ -941,13 +972,34 @@ fn spawn_advanced_panel(parent: &mut ChildSpawnerCommands) {
                 });
                 
                 // Continent Count Slider
-                spawn_slider_control(left_col, "Continents", "7", 1.0, 12.0, 7.0, ContinentSlider, ContinentValueText);
+                slider(1.0, 12.0)
+                    .with_label("Continents")
+                    .with_value(7.0)
+                    .integer()
+                    .with_width(Val::Percent(100.0))
+                    .with_marker(ContinentSlider)
+                    .with_value_marker(ContinentValueText)
+                    .build(left_col);
                 
                 // Ocean Coverage Slider
-                spawn_slider_control(left_col, "Ocean Coverage", "60%", 30.0, 80.0, 60.0, OceanSlider, OceanValueText);
+                slider(30.0, 80.0)
+                    .with_label("Ocean Coverage")
+                    .with_value(60.0)
+                    .with_format(ValueFormat::Custom(|v| format!("{}%", v as i32)))
+                    .with_width(Val::Percent(100.0))
+                    .with_marker(OceanSlider)
+                    .with_value_marker(OceanValueText)
+                    .build(left_col);
                 
                 // River Density Slider
-                spawn_slider_control(left_col, "River Density", "1.0x", 0.5, 2.0, 1.0, RiverSlider, RiverValueText);
+                slider(0.5, 2.0)
+                    .with_label("River Density")
+                    .with_value(1.0)
+                    .with_format(ValueFormat::Custom(|v| format!("{:.1}x", v)))
+                    .with_width(Val::Percent(100.0))
+                    .with_marker(RiverSlider)
+                    .with_value_marker(RiverValueText)
+                    .build(left_col);
                 
                 // Climate Type Selection with help text
                 left_col.spawn((
@@ -1043,10 +1095,24 @@ fn spawn_advanced_panel(parent: &mut ChildSpawnerCommands) {
                 });
                 
                 // Starting Nations Slider
-                spawn_slider_control(right_col, "Starting Nations", "8", 2.0, 20.0, 8.0, StartingNationsSlider, StartingNationsValueText);
+                slider(2.0, 20.0)
+                    .with_label("Starting Nations")
+                    .with_value(8.0)
+                    .integer()
+                    .with_width(Val::Percent(100.0))
+                    .with_marker(StartingNationsSlider)
+                    .with_value_marker(StartingNationsValueText)
+                    .build(right_col);
                 
                 // Tech Progression Speed Slider
-                spawn_slider_control(right_col, "Tech Speed", "1.0x", 0.5, 2.0, 1.0, TechSpeedSlider, TechSpeedValueText);
+                slider(0.5, 2.0)
+                    .with_label("Tech Speed")
+                    .with_value(1.0)
+                    .with_format(ValueFormat::Custom(|v| format!("{:.1}x", v)))
+                    .with_width(Val::Percent(100.0))
+                    .with_marker(TechSpeedSlider)
+                    .with_value_marker(TechSpeedValueText)
+                    .build(right_col);
                 
                 // Aggression Level Selection with help text
                 right_col.spawn((
@@ -1097,85 +1163,6 @@ fn spawn_advanced_panel(parent: &mut ChildSpawnerCommands) {
                     |res| ResourceButton(res),
                 );
             });
-        });
-    });
-}
-
-// Helper function to create a slider control
-fn spawn_slider_control<S: Component, T: Component>(
-    parent: &mut ChildSpawnerCommands,
-    label: &str,
-    initial_value: &str,
-    min: f32,
-    max: f32,
-    current: f32,
-    slider_marker: S,
-    text_marker: T,
-) {
-    parent.spawn((
-        Node {
-            width: Val::Percent(100.0),
-            flex_direction: FlexDirection::Column,
-            row_gap: Val::Px(5.0),
-            margin: UiRect::bottom(Val::Px(15.0)),
-            ..default()
-        },
-    )).with_children(|control| {
-        // Label row
-        control.spawn((
-            Node {
-                width: Val::Percent(100.0),
-                flex_direction: FlexDirection::Row,
-                justify_content: JustifyContent::SpaceBetween,
-                ..default()
-            },
-        )).with_children(|row| {
-            row.spawn((
-                Text::new(label),
-                TextFont {
-                    font_size: 16.0,
-                    ..default()
-                },
-                TextColor(colors::TEXT_SECONDARY),
-            ));
-            
-            row.spawn((
-                Text::new(initial_value),
-                TextFont {
-                    font_size: 16.0,
-                    ..default()
-                },
-                TextColor(colors::TEXT_PRIMARY),
-                text_marker,
-            ));
-        });
-        
-        // Slider track
-        control.spawn((
-            Button,
-            Node {
-                width: Val::Percent(100.0),
-                height: Val::Px(30.0),
-                padding: UiRect::all(Val::Px(5.0)),
-                ..default()
-            },
-            BackgroundColor(Color::srgb(0.05, 0.05, 0.05)),
-            BorderRadius::all(Val::Px(15.0)),
-            slider_marker,
-        )).with_children(|track| {
-            // Slider handle
-            let percentage = ((current - min) / (max - min) * 100.0) as f32;
-            track.spawn((
-                Node {
-                    width: Val::Px(20.0),
-                    height: Val::Px(20.0),
-                    position_type: PositionType::Absolute,
-                    left: Val::Percent(percentage),
-                    ..default()
-                },
-                BackgroundColor(colors::PRIMARY),
-                BorderRadius::all(Val::Px(10.0)),
-            ));
         });
     });
 }
@@ -1289,19 +1276,37 @@ fn handle_preset_hover(
 fn handle_text_input_changes(
     mut name_events: EventReader<TextInputSubmitEvent>,
     mut settings: ResMut<WorldGenerationSettings>,
-    name_inputs: Query<&TextInputValue, With<WorldNameInput>>,
-    seed_inputs: Query<&TextInputValue, (With<SeedInput>, Without<WorldNameInput>)>,
+    name_inputs: Query<&TextInputValue, (With<WorldNameInput>, Changed<TextInputValue>)>,
+    seed_inputs: Query<&TextInputValue, (With<SeedInput>, Without<WorldNameInput>, Changed<TextInputValue>)>,
 ) {
-    // Handle world name changes
+    // Handle world name changes in real-time
+    for value in &name_inputs {
+        if !value.0.is_empty() {
+            settings.world_name = value.0.clone();
+            println!("World name changed to: {}", settings.world_name);
+        }
+    }
+    
+    // Handle seed changes in real-time
+    for value in &seed_inputs {
+        if !value.0.is_empty() {
+            if let Ok(seed) = value.0.parse::<u32>() {
+                settings.seed = seed;
+                println!("Seed changed to: {}", settings.seed);
+            }
+        }
+    }
+    
+    // Also handle submit events for backward compatibility
     for event in name_events.read() {
         if let Ok(value) = name_inputs.get(event.entity) {
             settings.world_name = value.0.clone();
-            println!("World name changed to: {}", settings.world_name);
+            println!("World name submitted: {}", settings.world_name);
         }
         if let Ok(value) = seed_inputs.get(event.entity) {
             if let Ok(seed) = value.0.parse::<u32>() {
                 settings.seed = seed;
-                println!("Seed changed to: {}", settings.seed);
+                println!("Seed submitted: {}", settings.seed);
             }
         }
     }
@@ -1445,7 +1450,8 @@ fn handle_advanced_toggle(
     interactions: Query<&Interaction, (Changed<Interaction>, With<AdvancedToggle>)>,
     mut advanced_panel: Query<&mut Node, With<AdvancedPanel>>,
     mut toggle_button: Query<&Children, With<AdvancedToggle>>,
-    mut text_query: Query<&mut Text>,
+    mut toggle_text: Query<&mut Text, With<AdvancedToggleText>>,
+    mut chevron_text: Query<&mut Text, (With<AdvancedToggleChevron>, Without<AdvancedToggleText>)>,
 ) {
     for interaction in &interactions {
         if *interaction == Interaction::Pressed {
@@ -1457,18 +1463,26 @@ fn handle_advanced_toggle(
                     Display::Flex
                 };
                 
-                // Update button text
+                // Update button text and chevron
                 if let Ok(children) = toggle_button.get_single() {
+                    // First get all child entities, then look for the text container
                     for child in children.iter() {
-                        if let Ok(mut text) = text_query.get_mut(child) {
-                            text.0 = if is_showing {
-                                "Show Advanced Settings".to_string()
-                            } else {
-                                "Hide Advanced Settings".to_string()
-                            };
-                        }
+                        // The structure is: AdvancedToggle -> container -> [AdvancedToggleText, AdvancedToggleChevron]
+                        // So we need to check the children of the container as well
+                        let _ = child; // Suppress unused warning
                     }
                 }
+                
+                // Update text directly by querying for the components
+                for mut text in &mut toggle_text {
+                    text.0 = if is_showing {
+                        "Show Advanced Settings".to_string()
+                    } else {
+                        "Hide Advanced Settings".to_string()
+                    };
+                }
+                
+                // NO CHEVRON - Invalid character
                 
                 println!("Toggled advanced settings: {}", if !is_showing { "showing" } else { "hidden" });
             }
@@ -1554,16 +1568,16 @@ fn handle_random_buttons(
     name_interactions: Query<&Interaction, (Changed<Interaction>, With<RandomNameButton>)>,
     seed_interactions: Query<&Interaction, (Changed<Interaction>, With<RandomSeedButton>, Without<RandomNameButton>)>,
     mut settings: ResMut<WorldGenerationSettings>,
-    mut name_inputs: Query<(&mut Text, &mut TextInputValue), With<WorldNameInput>>,
-    mut seed_inputs: Query<(&mut Text, &mut TextInputValue), (With<SeedInput>, Without<WorldNameInput>)>,
+    mut name_inputs: Query<&mut TextInputValue, With<WorldNameInput>>,
+    mut seed_inputs: Query<&mut TextInputValue, (With<SeedInput>, Without<WorldNameInput>)>,
 ) {
     // Random name button
     for interaction in &name_interactions {
         if *interaction == Interaction::Pressed {
             let mut gen = NameGenerator::new();
             settings.world_name = gen.generate(NameType::World);
-            for (mut text, mut input_value) in &mut name_inputs {
-                text.0 = settings.world_name.clone();
+            // Only update TextInputValue - bevy_simple_text_input handles text rendering internally
+            for mut input_value in &mut name_inputs {
                 input_value.0 = settings.world_name.clone();
             }
             println!("Generated random name: {}", settings.world_name);
@@ -1574,8 +1588,8 @@ fn handle_random_buttons(
     for interaction in &seed_interactions {
         if *interaction == Interaction::Pressed {
             settings.seed = rand::thread_rng().gen();
-            for (mut text, mut input_value) in &mut seed_inputs {
-                text.0 = settings.seed.to_string();
+            // Only update TextInputValue - bevy_simple_text_input handles text rendering internally
+            for mut input_value in &mut seed_inputs {
                 input_value.0 = settings.seed.to_string();
             }
             println!("Generated random seed: {}", settings.seed);

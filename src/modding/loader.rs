@@ -3,11 +3,9 @@
 //! This module handles loading configuration files and watching for changes.
 
 use bevy::prelude::*;
-use bevy::asset::{AssetServer, Assets, Handle, LoadState};
 use notify::{Watcher, RecursiveMode, Event as NotifyEvent};
 use crossbeam_channel::{unbounded, Receiver};
 use std::path::{Path, PathBuf};
-use std::time::Duration;
 use super::types::*;
 use super::manager::ModManager;
 

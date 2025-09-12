@@ -1,9 +1,9 @@
 //! UI spawning and creation for the settings menu
 
 use bevy::prelude::*;
-use bevy::ui::RelativeCursorPosition;
 use crate::states::{CurrentSettingsTab, SettingsTab};
-use crate::ui::buttons::{ButtonBuilder, ButtonStyle, ButtonSize};
+use crate::ui_toolbox::buttons::{ButtonBuilder, ButtonStyle, ButtonSize};
+use crate::ui_toolbox::sliders::{slider, ValueFormat};
 use super::types::*;
 use super::components::*;
 
@@ -437,87 +437,22 @@ fn create_toggle_row(parent: &mut ChildSpawnerCommands, label: &str, enabled: bo
     });
 }
 
-/// Creates a row with a slider for numeric values
+/// Creates a row with a slider for numeric values using the new SliderBuilder
 fn create_slider_row(parent: &mut ChildSpawnerCommands, label: &str, value: f32, min: f32, max: f32, setting_type: SettingType, as_percentage: bool) {
-    parent.spawn((
-        Node {
-            flex_direction: FlexDirection::Row,
-            justify_content: JustifyContent::SpaceBetween,
-            align_items: AlignItems::Center,
-            margin: UiRect::bottom(Val::Px(15.0)),
-            ..default()
-        },
-        BackgroundColor(Color::NONE),
-    )).with_children(|row| {
-        // Label
-        row.spawn((
-            Text::new(label),
-            TextFont {
-                font_size: 18.0,
-                ..default()
-            },
-            TextColor(Color::srgb(0.8, 0.8, 0.8)),
-        ));
-        
-        // Slider container
-        row.spawn((
-            Node {
-                width: Val::Px(250.0),
-                flex_direction: FlexDirection::Row,
-                align_items: AlignItems::Center,
-                column_gap: Val::Px(10.0),
-                ..default()
-            },
-            BackgroundColor(Color::NONE),
-        )).with_children(|container| {
-            // Slider track
-            container.spawn((
-                Button,  // Required for Interaction to work
-                Node {
-                    width: Val::Px(180.0),
-                    height: Val::Px(6.0),
-                    position_type: PositionType::Relative,
-                    ..default()
-                },
-                BackgroundColor(Color::srgb(0.1, 0.1, 0.12)),
-                Interaction::default(),
-                RelativeCursorPosition::default(),  // Track cursor position relative to this element
-                Slider { setting_type, value, min, max },
-            )).with_children(|track| {
-                // Slider handle
-                let normalized = (value - min) / (max - min);
-                track.spawn((
-                    Node {
-                        width: Val::Px(16.0),
-                        height: Val::Px(16.0),
-                        position_type: PositionType::Absolute,
-                        left: Val::Px(normalized * 164.0), // 180 - 16 for handle width
-                        top: Val::Px(-5.0),
-                        border: UiRect::all(Val::Px(2.0)),
-                        ..default()
-                    },
-                    BackgroundColor(Color::srgb(0.5, 0.5, 0.6)),
-                    BorderColor(Color::srgb(0.7, 0.7, 0.8)),
-                    SliderHandle,
-                ));
-            });
-            
-            // Value display
-            let display_text = if as_percentage {
-                format!("{:.0}%", value * 100.0)
-            } else {
-                format!("{:.1}s", value)
-            };
-            
-            container.spawn((
-                Text::new(display_text),
-                TextFont {
-                    font_size: 16.0,
-                    ..default()
-                },
-                TextColor(Color::srgb(0.7, 0.7, 0.7)),
-                SliderValueText { setting_type },
-            ));
-        });
-    });
+    // Use our new SliderBuilder with the appropriate format and marker
+    let format = if as_percentage {
+        ValueFormat::Percentage
+    } else {
+        // For non-percentage values, show one decimal place
+        ValueFormat::Decimal(1)
+    };
+    
+    // Build the slider with the SettingsSlider marker containing the setting type
+    slider(min, max)
+        .with_label(label)
+        .with_value(value)
+        .with_format(format)
+        .with_width(Val::Px(300.0))
+        .with_marker(SettingsSlider { setting_type })
+        .build(parent);
 }

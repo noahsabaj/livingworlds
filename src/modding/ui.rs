@@ -8,15 +8,14 @@
 
 use bevy::prelude::*;
 use bevy_simple_text_input::{
-    TextInputPlugin, TextInput, TextInputSubmitEvent, TextInputValue
+    TextInputPlugin, TextInputSubmitEvent, TextInputValue
 };
 use crate::states::{GameState, RequestStateTransition};
-use crate::ui::styles::{colors, dimensions, layers};
-use crate::ui::buttons::{ButtonBuilder, ButtonStyle, ButtonSize, StyledButton};
-use crate::ui::text_inputs::{text_input, FocusGroupId};
-use crate::loading_screen::{LoadingOperation, LoadingState, start_mod_application_loading};
+use crate::ui_toolbox::styles::{colors, layers};
+use crate::ui_toolbox::buttons::{ButtonBuilder, ButtonStyle, ButtonSize, StyledButton};
+use crate::ui_toolbox::text_inputs::text_input;
+use crate::loading_screen::{LoadingState, start_mod_application_loading};
 use super::manager::ModManager;
-use super::{ModEnabledEvent, ModDisabledEvent};
 
 // ============================================================================
 // EVENTS

@@ -97,6 +97,11 @@ pub mod dimensions {
     pub const MARGIN_XLARGE: f32 = 20.0;
     pub const MARGIN_XXLARGE: f32 = 30.0;
     
+    // Padding values
+    pub const PADDING_SMALL: f32 = 5.0;
+    pub const PADDING_MEDIUM: f32 = 10.0;
+    pub const PADDING_LARGE: f32 = 15.0;
+    
     // Corner radius (for future rounded corners)
     pub const CORNER_RADIUS: f32 = 4.0;
 }

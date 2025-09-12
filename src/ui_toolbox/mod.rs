@@ -9,6 +9,10 @@ pub mod buttons;
 pub mod dialogs;
 pub mod components;
 pub mod text_inputs;
+pub mod sliders;
+pub mod form;
+pub mod toolbar;
+pub mod builders;  // Centralized re-exports for all builders
 
 use bevy::prelude::*;
 use crate::resources::{ResourceOverlay, SelectedProvinceInfo, GameTime};
@@ -43,6 +47,7 @@ impl Plugin for UIPlugin {
         app.add_plugins(buttons::ButtonPlugin);
         app.add_plugins(dialogs::DialogPlugin);
         app.add_plugins(text_inputs::TextInputPlugin);
+        app.add_plugins(sliders::SliderPlugin);
         
         app
             .add_systems(OnEnter(GameState::InGame), setup_ui)
@@ -87,44 +92,44 @@ pub fn setup_ui(mut commands: Commands) {
     )).with_children(|parent| {
         // Year display
         parent.spawn((
-            Text::new("Year 1000"),
-            TextFont {
-                font_size: 24.0,
-                ..default()
-            },
-            TextColor(Color::WHITE),
-            GameTimeDisplay,
-        ));
-        
-        // Speed indicator
-        parent.spawn((
-            Text::new("Speed: 1x"),
-            TextFont {
-                font_size: 16.0,
-                ..default()
-            },
-            TextColor(Color::srgba(0.8, 0.8, 0.8, 1.0)),
-            GameSpeedDisplay,
-            Node {
-                margin: UiRect::top(Val::Px(4.0)),
-                ..default()
-            },
-        ));
-        
-        // Control hints
-        parent.spawn((
-            Text::new("[1-5] Speed • [Space] Pause"),
-            TextFont {
-                font_size: 12.0,
-                ..default()
-            },
-            TextColor(Color::srgba(0.5, 0.5, 0.5, 1.0)),
-            ControlHintsText,
-            Node {
-                margin: UiRect::top(Val::Px(8.0)),
-                ..default()
-            },
-        ));
+                    Text::new("Year 1000"),
+                    TextFont {
+                        font_size: 24.0,
+                        ..default()
+                    },
+                    TextColor(Color::WHITE),
+                    GameTimeDisplay,
+                ));
+                
+                // Speed indicator with margin
+                parent.spawn((
+                    Text::new("Speed: 1x"),
+                    TextFont {
+                        font_size: 16.0,
+                        ..default()
+                    },
+                    TextColor(Color::srgba(0.8, 0.8, 0.8, 1.0)),
+                    GameSpeedDisplay,
+                    Node {
+                        margin: UiRect::top(Val::Px(4.0)),
+                        ..default()
+                    },
+                ));
+                
+                // Control hints
+                parent.spawn((
+                    Text::new("[1-5] Speed • [Space] Pause"),
+                    TextFont {
+                        font_size: 12.0,
+                        ..default()
+                    },
+                    TextColor(Color::srgba(0.5, 0.5, 0.5, 1.0)),
+                    ControlHintsText,
+                    Node {
+                        margin: UiRect::top(Val::Px(8.0)),
+                        ..default()
+                    },
+                ));
     });
     
     // Resource overlay legend in top-left with colored squares
@@ -175,7 +180,7 @@ pub fn setup_ui(mut commands: Commands) {
             },
         ));
         
-        // Divider line
+        // Divider line - manually for now to avoid borrowing issues
         parent.spawn((
             Node {
                 height: Val::Px(1.0),
@@ -296,30 +301,38 @@ pub fn setup_ui(mut commands: Commands) {
         });
     });
     
-    // Tile info panel - moved to bottom-right to avoid overlap
+    // Tile info panel - moved to bottom-right to avoid overlap - Using PanelBuilder
     commands.spawn((
         Node {
             position_type: PositionType::Absolute,
             bottom: Val::Px(10.0),
             right: Val::Px(10.0),  // Changed from left to right
-            padding: UiRect::all(Val::Px(10.0)),
             min_width: Val::Px(250.0),
             ..default()
         },
-        BackgroundColor(COLOR_TILE_INFO_BACKGROUND),
         TileInfoPanel,
         ZIndex(100),
         GameUIRoot,  // Mark for cleanup
     )).with_children(|parent| {
-        parent.spawn((
-            Text::new("Click a tile to see info"),
-            TextFont {
-                font_size: 16.0,
+        // Create panel with custom background color
+        let mut panel_commands = parent.spawn((
+            Node {
+                padding: UiRect::all(Val::Px(10.0)),
                 ..default()
             },
-            TextColor(Color::WHITE),
-            TileInfoText,
+            BackgroundColor(COLOR_TILE_INFO_BACKGROUND),
         ));
+        panel_commands.with_children(|panel| {
+            panel.spawn((
+                Text::new("Click a tile to see info"),
+                TextFont {
+                    font_size: 16.0,
+                    ..default()
+                },
+                TextColor(Color::WHITE),
+                TileInfoText,
+            ));
+        });
     });
     
     // Bottom-left controls removed - consolidated with top UI elements

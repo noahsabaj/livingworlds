@@ -191,64 +191,78 @@ impl ButtonBuilder {
     
     /// Build the button and return its entity
     pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
-        let base_color = if self.enabled {
-            self.style.base_color()
-        } else {
-            Color::srgb(0.1, 0.1, 0.1)
-        };
-        
-        let text_color = if self.enabled {
-            self.style.text_color()
-        } else {
-            colors::TEXT_MUTED
-        };
-        
-        let border_color = if self.enabled {
-            self.style.border_color()
-        } else {
-            Color::srgb(0.2, 0.2, 0.2)
-        };
-        
-        let mut entity_commands = parent.spawn((
-            Button,
-            StyledButton {
-                style: self.style,
-                size: self.size,
-                enabled: self.enabled,
-            },
-            Node {
-                width: Val::Px(self.size.width()),
-                height: Val::Px(self.size.height()),
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                border: helpers::standard_border(),
-                margin: self.margin.unwrap_or_default(),
-                ..default()
-            },
-            BackgroundColor(base_color),
-            BorderColor(border_color),
-        ));
-        
-        // Add custom marker if provided
+        // If we have a custom marker, we need to handle it differently
         if let Some(marker_fn) = self.marker {
-            marker_fn(&mut entity_commands);
-        }
-        
-        let entity = entity_commands.id();
-        
-        // Add text child
-        entity_commands.with_children(|button| {
-            button.spawn((
-                Text::new(self.text),
-                TextFont {
-                    font_size: self.size.font_size(),
+            // We have to build manually when using custom markers
+            // because we can't access the entity commands after spawning
+            let base_color = if self.enabled {
+                self.style.base_color()
+            } else {
+                Color::srgb(0.1, 0.1, 0.1)
+            };
+            
+            let text_color = if self.enabled {
+                self.style.text_color()
+            } else {
+                colors::TEXT_MUTED
+            };
+            
+            let border_color = if self.enabled {
+                self.style.border_color()
+            } else {
+                Color::srgb(0.2, 0.2, 0.2)
+            };
+            
+            let mut entity_commands = parent.spawn((
+                Button,
+                StyledButton {
+                    style: self.style,
+                    size: self.size,
+                    enabled: self.enabled,
+                },
+                Node {
+                    width: Val::Px(self.size.width()),
+                    height: Val::Px(self.size.height()),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    border: helpers::standard_border(),
+                    margin: self.margin.unwrap_or_default(),
                     ..default()
                 },
-                TextColor(text_color),
+                BackgroundColor(base_color),
+                BorderColor(border_color),
             ));
-        });
-        
-        entity
+            
+            // Add custom marker
+            marker_fn(&mut entity_commands);
+            
+            let entity = entity_commands.id();
+            
+            // Add text child
+            entity_commands.with_children(|button| {
+                button.spawn((
+                    Text::new(self.text),
+                    TextFont {
+                        font_size: self.size.font_size(),
+                        ..default()
+                    },
+                    TextColor(text_color),
+                ));
+            });
+            
+            entity
+        } else {
+            // No custom marker, use the helper function
+            spawn_button_full(
+                parent,
+                self.text,
+                self.style,
+                self.size,
+                self.enabled,
+                self.margin,
+                None::<Button>,
+            )
+        }
     }
 }
 
@@ -297,6 +311,92 @@ pub mod presets {
     ) -> ButtonBuilder {
         ButtonBuilder::new(text).style(ButtonStyle::Ghost)
     }
+}
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+/// Static helper to spawn a button without using the builder pattern
+/// This avoids lifetime issues in preset functions and other contexts
+pub fn spawn_button(
+    parent: &mut ChildSpawnerCommands,
+    text: impl Into<String>,
+    style: ButtonStyle,
+    size: ButtonSize,
+) -> Entity {
+    spawn_button_full(parent, text, style, size, true, None, None::<Button>)
+}
+
+/// Static helper to spawn a button with all options
+pub fn spawn_button_full<M: Component>(
+    parent: &mut ChildSpawnerCommands,
+    text: impl Into<String>,
+    style: ButtonStyle,
+    size: ButtonSize,
+    enabled: bool,
+    margin: Option<UiRect>,
+    marker: Option<M>,
+) -> Entity {
+    let text = text.into();
+    let base_color = if enabled {
+        style.base_color()
+    } else {
+        Color::srgb(0.1, 0.1, 0.1)
+    };
+    
+    let text_color = if enabled {
+        style.text_color()
+    } else {
+        colors::TEXT_MUTED
+    };
+    
+    let border_color = if enabled {
+        style.border_color()
+    } else {
+        Color::srgb(0.2, 0.2, 0.2)
+    };
+    
+    let mut entity_commands = parent.spawn((
+        Button,
+        StyledButton {
+            style,
+            size,
+            enabled,
+        },
+        Node {
+            width: Val::Px(size.width()),
+            height: Val::Px(size.height()),
+            justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center,
+            border: helpers::standard_border(),
+            margin: margin.unwrap_or_default(),
+            ..default()
+        },
+        BackgroundColor(base_color),
+        BorderColor(border_color),
+    ));
+    
+    // Add marker if provided
+    if let Some(m) = marker {
+        entity_commands.insert(m);
+    }
+    
+    let entity = entity_commands.id();
+    
+    // Add text child
+    entity_commands.with_children(|button| {
+        button.spawn((
+            Text::new(text),
+            TextFont {
+                font_size: size.font_size(),
+                ..default()
+            },
+            TextColor(text_color),
+        ));
+    });
+    
+    entity
 }
 
 /// Universal hover system for styled buttons
