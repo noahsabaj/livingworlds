@@ -15,7 +15,7 @@ Thumbs.db
 
 # Project specific
 *.log
-save_games/
+saves/
 coverage/
 CLAUDE.md
 PERFORMANCE_METRICS.csv
