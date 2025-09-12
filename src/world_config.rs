@@ -6,11 +6,16 @@
 
 use bevy::prelude::*;
 use rand::Rng;
+use bevy_simple_text_input::{
+    TextInputPlugin, TextInput, TextInputSettings, TextInputSubmitEvent,
+    TextInputValue, TextInputTextFont, TextInputTextColor
+};
 
 use crate::states::{GameState, RequestStateTransition};
-use crate::resources::{WorldSize, WorldSeed};
-use crate::ui::buttons::{ButtonBuilder, ButtonStyle, ButtonSize};
-use crate::ui::styles::{colors, dimensions};
+use crate::resources::WorldSize;
+use crate::ui::buttons::{ButtonBuilder, ButtonStyle, ButtonSize, StyledButton};
+use crate::ui::styles::{colors, dimensions, helpers};
+use crate::name_generator::{NameGenerator, NameType};
 
 // ============================================================================
 // PLUGIN
@@ -35,6 +40,7 @@ impl Plugin for WorldConfigPlugin {
             .add_systems(Update, (
                 handle_config_interactions,
                 handle_preset_selection,
+                handle_preset_hover,
                 handle_size_selection,
                 handle_advanced_toggle,
                 handle_slider_interactions,
@@ -44,6 +50,7 @@ impl Plugin for WorldConfigPlugin {
                 handle_resource_selection,
                 update_seed_display,
                 update_slider_displays,
+                handle_text_input_changes,
                 handle_generate_button,
                 handle_back_button,
                 handle_random_buttons,
@@ -88,8 +95,9 @@ pub struct WorldGenerationSettings {
 
 impl Default for WorldGenerationSettings {
     fn default() -> Self {
+        let mut gen = NameGenerator::new();
         Self {
-            world_name: generate_random_world_name(),
+            world_name: gen.generate(NameType::World),
             world_size: WorldSize::Medium,
             custom_dimensions: None,
             seed: rand::thread_rng().gen(),
@@ -115,7 +123,7 @@ impl Default for WorldGenerationSettings {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum WorldPreset {
     Balanced,
     Pangaea,
@@ -125,7 +133,7 @@ pub enum WorldPreset {
     Custom,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum IslandFrequency {
     None,
     Sparse,
@@ -133,7 +141,7 @@ pub enum IslandFrequency {
     Abundant,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ClimateType {
     Arctic,
     Temperate,
@@ -142,14 +150,14 @@ pub enum ClimateType {
     Mixed,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum MountainDensity {
     Few,
     Normal,
     Many,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum AggressionLevel {
     Peaceful,
     Balanced,
@@ -157,14 +165,14 @@ pub enum AggressionLevel {
     Chaotic,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TradePropensity {
     Isolationist,
     Normal,
     Mercantile,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ResourceAbundance {
     Scarce,
     Normal,
@@ -172,7 +180,7 @@ pub enum ResourceAbundance {
     Bountiful,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum MineralDistribution {
     Even,
     Clustered,
@@ -190,7 +198,16 @@ struct WorldConfigRoot;
 struct WorldNameInput;
 
 #[derive(Component)]
+struct WorldNameText;  // The actual text display
+
+#[derive(Component)]
 struct SeedInput;
+
+#[derive(Component)]
+struct SeedText;  // The actual text display
+
+#[derive(Component)]
+struct WorldPreviewText;
 
 #[derive(Component)]
 struct PresetButton(WorldPreset);
@@ -259,6 +276,18 @@ struct AggressionButton(AggressionLevel);
 #[derive(Component)]
 struct ResourceButton(ResourceAbundance);
 
+#[derive(Component)]
+struct PresetDescription(String);
+
+#[derive(Component)]
+struct PresetDescriptionText;
+
+#[derive(Component)]
+struct GenerationTimeEstimate;
+
+#[derive(Component)]
+struct AdvancedToggleText;
+
 // ============================================================================
 // SYSTEMS - INITIALIZATION
 // ============================================================================
@@ -285,18 +314,20 @@ fn spawn_world_config_ui(mut commands: Commands) {
         BackgroundColor(colors::OVERLAY_DARK),
         WorldConfigRoot,
     )).with_children(|parent| {
-        // Main configuration panel
+        // Main configuration panel - expanded width with helpful information
         parent.spawn((
             Node {
-                width: Val::Px(700.0),
-                min_height: Val::Px(600.0),
-                padding: UiRect::all(Val::Px(30.0)),
+                width: Val::Px(1000.0),  // Expanded from 700px for better spacing
+                min_height: Val::Px(700.0),  // Increased to accommodate help text
+                padding: UiRect::all(Val::Px(40.0)),  // More generous padding
                 flex_direction: FlexDirection::Column,
-                row_gap: Val::Px(20.0),
+                row_gap: Val::Px(dimensions::MARGIN_LARGE),  // Use standard spacing
+                border: helpers::standard_border(),
                 ..default()
             },
-            BackgroundColor(Color::srgb(0.15, 0.15, 0.15)),
-            BorderRadius::all(Val::Px(10.0)),
+            BackgroundColor(colors::BACKGROUND_DARK),
+            BorderColor(colors::BORDER_DEFAULT),
+            BorderRadius::all(Val::Px(dimensions::CORNER_RADIUS)),
         )).with_children(|panel| {
             // Title
             panel.spawn((
@@ -307,10 +338,44 @@ fn spawn_world_config_ui(mut commands: Commands) {
                 },
                 TextColor(colors::TEXT_PRIMARY),
                 Node {
-                    margin: UiRect::bottom(Val::Px(20.0)),
+                    margin: UiRect::bottom(Val::Px(10.0)),
                     ..default()
                 },
             ));
+            
+            // World Preview Info Section
+            panel.spawn((
+                Node {
+                    width: Val::Percent(100.0),
+                    padding: UiRect::all(Val::Px(15.0)),
+                    margin: UiRect::bottom(Val::Px(15.0)),
+                    border: helpers::standard_border(),
+                    flex_direction: FlexDirection::Column,
+                    row_gap: Val::Px(5.0),
+                    ..default()
+                },
+                BackgroundColor(colors::BACKGROUND_LIGHT),
+                BorderColor(colors::BORDER_DEFAULT),
+                BorderRadius::all(Val::Px(5.0)),
+            )).with_children(|info| {
+                info.spawn((
+                    Text::new("World Preview"),
+                    TextFont {
+                        font_size: 14.0,
+                        ..default()
+                    },
+                    TextColor(colors::TEXT_SECONDARY),
+                ));
+                info.spawn((
+                    Text::new("• Estimated land coverage: ~40%\n• Starting civilizations: 8 nations\n• World complexity: Moderate"),
+                    TextFont {
+                        font_size: 16.0,
+                        ..default()
+                    },
+                    TextColor(colors::TEXT_PRIMARY),
+                    WorldPreviewText,
+                ));
+            });
             
             // World Name Section
             spawn_world_name_section(panel);
@@ -333,14 +398,16 @@ fn spawn_world_config_ui(mut commands: Commands) {
                     justify_content: JustifyContent::Center,
                     align_items: AlignItems::Center,
                     margin: UiRect::vertical(Val::Px(10.0)),
+                    border: helpers::standard_border(),
                     ..default()
                 },
-                BackgroundColor(Color::srgb(0.2, 0.2, 0.25)),
-                BorderRadius::all(Val::Px(5.0)),
+                BackgroundColor(colors::BACKGROUND_LIGHT),
+                BorderColor(colors::BORDER_DEFAULT),
+                BorderRadius::all(Val::Px(dimensions::CORNER_RADIUS)),
                 AdvancedToggle,
             )).with_children(|button| {
                 button.spawn((
-                    Text::new("▼ Advanced Settings"),
+                    Text::new("⚙️ Show Advanced Settings"),
                     TextFont {
                         font_size: 20.0,
                         ..default()
@@ -352,13 +419,39 @@ fn spawn_world_config_ui(mut commands: Commands) {
             // Advanced Settings Panel (initially hidden)
             spawn_advanced_panel(panel);
             
+            // Generation time estimate
+            panel.spawn((
+                Node {
+                    width: Val::Percent(100.0),
+                    padding: UiRect::all(Val::Px(10.0)),
+                    margin: UiRect::top(Val::Px(20.0)),
+                    border: helpers::standard_border(),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    ..default()
+                },
+                BackgroundColor(colors::BACKGROUND_LIGHT),
+                BorderColor(colors::BORDER_DEFAULT),
+                BorderRadius::all(Val::Px(5.0)),
+            )).with_children(|estimate| {
+                estimate.spawn((
+                    Text::new("⏱️ Estimated generation time: ~3-7 seconds"),
+                    TextFont {
+                        font_size: 14.0,
+                        ..default()
+                    },
+                    TextColor(colors::TEXT_MUTED),
+                    GenerationTimeEstimate,
+                ));
+            });
+            
             // Bottom buttons
             panel.spawn((
                 Node {
                     width: Val::Percent(100.0),
                     flex_direction: FlexDirection::Row,
                     justify_content: JustifyContent::SpaceBetween,
-                    margin: UiRect::top(Val::Px(30.0)),
+                    margin: UiRect::top(Val::Px(15.0)),
                     ..default()
                 },
             )).with_children(|buttons| {
@@ -385,7 +478,7 @@ fn spawn_world_name_section(parent: &mut ChildSpawnerCommands) {
         Node {
             width: Val::Percent(100.0),
             flex_direction: FlexDirection::Column,
-            row_gap: Val::Px(8.0),
+            row_gap: Val::Px(5.0),
             ..default()
         },
     )).with_children(|section| {
@@ -408,38 +501,66 @@ fn spawn_world_name_section(parent: &mut ChildSpawnerCommands) {
                 ..default()
             },
         )).with_children(|row| {
-            // Text input field (styled as button for now)
+            // Real text input field using bevy_simple_text_input
             row.spawn((
-                Button,
                 Node {
                     flex_grow: 1.0,
                     height: Val::Px(40.0),
                     padding: UiRect::horizontal(Val::Px(15.0)),
                     justify_content: JustifyContent::FlexStart,
                     align_items: AlignItems::Center,
+                    border: helpers::standard_border(),
                     ..default()
                 },
-                BackgroundColor(Color::srgb(0.1, 0.1, 0.1)),
+                BackgroundColor(colors::BACKGROUND_LIGHT),
+                BorderColor(colors::BORDER_DEFAULT),
                 BorderRadius::all(Val::Px(5.0)),
-                WorldNameInput,
-            )).with_children(|input| {
-                input.spawn((
+            )).with_children(|input_container| {
+                // Add the text input components
+                input_container.spawn((
                     Text::new("Aetheria Prime"),
                     TextFont {
                         font_size: 18.0,
                         ..default()
                     },
                     TextColor(colors::TEXT_PRIMARY),
+                    TextInput,
+                    TextInputSettings {
+                        retain_on_submit: true,
+                        ..default()
+                    },
+                    TextInputValue("Aetheria Prime".to_string()),
+                    TextInputTextFont(TextFont {
+                        font_size: 18.0,
+                        ..default()
+                    }),
+                    TextInputTextColor(TextColor(colors::TEXT_PRIMARY)),
+                    WorldNameInput,
+                    WorldNameText,
                 ));
             });
             
-            // Random button
-            ButtonBuilder::new("🎲")
+            // Random button with ButtonBuilder
+            ButtonBuilder::new("🎲 Random")
                 .style(ButtonStyle::Secondary)
                 .size(ButtonSize::Small)
                 .with_marker(RandomNameButton)
                 .build(row);
         });
+        
+        // Help text
+        section.spawn((
+            Text::new("Give your world a unique identity. The name will appear in game history."),
+            TextFont {
+                font_size: 14.0,
+                ..default()
+            },
+            TextColor(colors::TEXT_MUTED),
+            Node {
+                margin: UiRect::left(Val::Px(5.0)),
+                ..default()
+            },
+        ));
     });
 }
 
@@ -448,7 +569,7 @@ fn spawn_world_size_section(parent: &mut ChildSpawnerCommands) {
         Node {
             width: Val::Percent(100.0),
             flex_direction: FlexDirection::Column,
-            row_gap: Val::Px(8.0),
+            row_gap: Val::Px(5.0),
             ..default()
         },
     )).with_children(|section| {
@@ -462,7 +583,7 @@ fn spawn_world_size_section(parent: &mut ChildSpawnerCommands) {
             TextColor(colors::TEXT_SECONDARY),
         ));
         
-        // Size buttons
+        // Size buttons row
         section.spawn((
             Node {
                 width: Val::Percent(100.0),
@@ -471,28 +592,37 @@ fn spawn_world_size_section(parent: &mut ChildSpawnerCommands) {
                 ..default()
             },
         )).with_children(|row| {
-            for (size, label, desc) in [
-                (WorldSize::Small, "Small", "300k provinces"),
-                (WorldSize::Medium, "Medium", "600k provinces"),
-                (WorldSize::Large, "Large", "900k provinces"),
+            for (size, label, desc, provinces) in [
+                (WorldSize::Small, "Small", "Quick games", "300,000 provinces"),
+                (WorldSize::Medium, "Medium", "Balanced", "600,000 provinces"),
+                (WorldSize::Large, "Large", "Epic scale", "900,000 provinces"),
             ] {
+                // Create a container for each size option
                 row.spawn((
                     Button,
                     Node {
                         flex_grow: 1.0,
-                        height: Val::Px(50.0),
+                        height: Val::Px(65.0),
                         flex_direction: FlexDirection::Column,
                         justify_content: JustifyContent::Center,
                         align_items: AlignItems::Center,
+                        padding: UiRect::all(Val::Px(5.0)),
+                        border: helpers::standard_border(),
                         ..default()
                     },
                     BackgroundColor(if size == WorldSize::Medium {
                         colors::PRIMARY
                     } else {
-                        Color::srgb(0.2, 0.2, 0.2)
+                        colors::BACKGROUND_LIGHT
+                    }),
+                    BorderColor(if size == WorldSize::Medium {
+                        colors::PRIMARY
+                    } else {
+                        colors::BORDER_DEFAULT
                     }),
                     BorderRadius::all(Val::Px(5.0)),
                     SizeButton(size),
+                    // Hover effects handled by interaction system
                 )).with_children(|button| {
                     button.spawn((
                         Text::new(label),
@@ -500,19 +630,53 @@ fn spawn_world_size_section(parent: &mut ChildSpawnerCommands) {
                             font_size: 20.0,
                             ..default()
                         },
-                        TextColor(Color::WHITE),
+                        TextColor(if size == WorldSize::Medium {
+                            Color::WHITE
+                        } else {
+                            colors::TEXT_PRIMARY
+                        }),
                     ));
                     button.spawn((
                         Text::new(desc),
                         TextFont {
+                            font_size: 12.0,
+                            ..default()
+                        },
+                        TextColor(if size == WorldSize::Medium {
+                            Color::srgba(1.0, 1.0, 1.0, 0.8)
+                        } else {
+                            colors::TEXT_MUTED
+                        }),
+                    ));
+                    button.spawn((
+                        Text::new(provinces),
+                        TextFont {
                             font_size: 14.0,
                             ..default()
                         },
-                        TextColor(colors::TEXT_SECONDARY),
+                        TextColor(if size == WorldSize::Medium {
+                            Color::srgba(1.0, 1.0, 1.0, 0.9)
+                        } else {
+                            colors::TEXT_SECONDARY
+                        }),
                     ));
                 });
             }
         });
+        
+        // Help text
+        section.spawn((
+            Text::new("Larger worlds offer more strategic depth but take longer to generate and simulate."),
+            TextFont {
+                font_size: 14.0,
+                ..default()
+            },
+            TextColor(colors::TEXT_MUTED),
+            Node {
+                margin: UiRect::left(Val::Px(5.0)),
+                ..default()
+            },
+        ));
     });
 }
 
@@ -521,7 +685,7 @@ fn spawn_seed_section(parent: &mut ChildSpawnerCommands) {
         Node {
             width: Val::Percent(100.0),
             flex_direction: FlexDirection::Column,
-            row_gap: Val::Px(8.0),
+            row_gap: Val::Px(5.0),
             ..default()
         },
     )).with_children(|section| {
@@ -544,38 +708,66 @@ fn spawn_seed_section(parent: &mut ChildSpawnerCommands) {
                 ..default()
             },
         )).with_children(|row| {
-            // Seed input field
+            // Real seed input field using bevy_simple_text_input
             row.spawn((
-                Button,
                 Node {
                     flex_grow: 1.0,
                     height: Val::Px(40.0),
                     padding: UiRect::horizontal(Val::Px(15.0)),
                     justify_content: JustifyContent::FlexStart,
                     align_items: AlignItems::Center,
+                    border: helpers::standard_border(),
                     ..default()
                 },
-                BackgroundColor(Color::srgb(0.1, 0.1, 0.1)),
+                BackgroundColor(colors::BACKGROUND_LIGHT),
+                BorderColor(colors::BORDER_DEFAULT),
                 BorderRadius::all(Val::Px(5.0)),
-                SeedInput,
-            )).with_children(|input| {
-                input.spawn((
+            )).with_children(|input_container| {
+                // Add the text input components
+                input_container.spawn((
                     Text::new("1234567890"),
                     TextFont {
                         font_size: 18.0,
                         ..default()
                     },
                     TextColor(colors::TEXT_PRIMARY),
+                    TextInput,
+                    TextInputSettings {
+                        retain_on_submit: true,
+                        ..default()
+                    },
+                    TextInputValue("1234567890".to_string()),
+                    TextInputTextFont(TextFont {
+                        font_size: 18.0,
+                        ..default()
+                    }),
+                    TextInputTextColor(TextColor(colors::TEXT_PRIMARY)),
+                    SeedInput,
+                    SeedText,
                 ));
             });
             
-            // Random button
-            ButtonBuilder::new("🎲")
+            // Random button with ButtonBuilder
+            ButtonBuilder::new("🎲 Random")
                 .style(ButtonStyle::Secondary)
                 .size(ButtonSize::Small)
                 .with_marker(RandomSeedButton)
                 .build(row);
         });
+        
+        // Help text
+        section.spawn((
+            Text::new("Same seed = same world generation. Share seeds with friends for identical worlds."),
+            TextFont {
+                font_size: 14.0,
+                ..default()
+            },
+            TextColor(colors::TEXT_MUTED),
+            Node {
+                margin: UiRect::left(Val::Px(5.0)),
+                ..default()
+            },
+        ));
     });
 }
 
@@ -584,7 +776,7 @@ fn spawn_preset_section(parent: &mut ChildSpawnerCommands) {
         Node {
             width: Val::Percent(100.0),
             flex_direction: FlexDirection::Column,
-            row_gap: Val::Px(8.0),
+            row_gap: Val::Px(5.0),
             ..default()
         },
     )).with_children(|section| {
@@ -598,17 +790,44 @@ fn spawn_preset_section(parent: &mut ChildSpawnerCommands) {
             TextColor(colors::TEXT_SECONDARY),
         ));
         
+        // Preset description that updates on hover
+        section.spawn((
+            Node {
+                width: Val::Percent(100.0),
+                height: Val::Px(30.0),
+                padding: UiRect::all(Val::Px(10.0)),
+                margin: UiRect::bottom(Val::Px(5.0)),
+                border: helpers::standard_border(),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            BackgroundColor(colors::BACKGROUND_LIGHT),
+            BorderColor(colors::BORDER_DEFAULT),
+            BorderRadius::all(Val::Px(5.0)),
+        )).with_children(|desc_box| {
+            desc_box.spawn((
+                Text::new("Hover over a preset to see its description"),
+                TextFont {
+                    font_size: 14.0,
+                    ..default()
+                },
+                TextColor(colors::TEXT_MUTED),
+                PresetDescriptionText,
+            ));
+        });
+        
         // Preset buttons (2 rows)
         for row_presets in [
             vec![
-                (WorldPreset::Balanced, "Balanced", "Default settings"),
-                (WorldPreset::Pangaea, "Pangaea", "One supercontinent"),
-                (WorldPreset::Archipelago, "Archipelago", "Many islands"),
+                (WorldPreset::Balanced, "Balanced", "Default settings for a well-rounded experience"),
+                (WorldPreset::Pangaea, "Pangaea", "One massive supercontinent surrounded by ocean"),
+                (WorldPreset::Archipelago, "Archipelago", "Scattered islands connected by trade routes"),
             ],
             vec![
-                (WorldPreset::IceAge, "Ice Age", "Frozen world"),
-                (WorldPreset::DesertWorld, "Desert", "Arid with oases"),
-                (WorldPreset::Custom, "Custom", "Your settings"),
+                (WorldPreset::IceAge, "Ice Age", "Frozen world with harsh survival conditions"),
+                (WorldPreset::DesertWorld, "Desert", "Arid landscape with rare fertile oases"),
+                (WorldPreset::Custom, "Custom", "Your personalized world settings"),
             ],
         ] {
             section.spawn((
@@ -620,7 +839,7 @@ fn spawn_preset_section(parent: &mut ChildSpawnerCommands) {
                     ..default()
                 },
             )).with_children(|row| {
-                for (preset, label, _desc) in row_presets {
+                for (preset, label, desc) in row_presets {
                     row.spawn((
                         Button,
                         Node {
@@ -628,15 +847,23 @@ fn spawn_preset_section(parent: &mut ChildSpawnerCommands) {
                             height: Val::Px(40.0),
                             justify_content: JustifyContent::Center,
                             align_items: AlignItems::Center,
+                            border: helpers::standard_border(),
                             ..default()
                         },
                         BackgroundColor(if preset == WorldPreset::Balanced {
                             colors::PRIMARY
                         } else {
-                            Color::srgb(0.2, 0.2, 0.2)
+                            colors::BACKGROUND_LIGHT
+                        }),
+                        BorderColor(if preset == WorldPreset::Balanced {
+                            colors::PRIMARY
+                        } else {
+                            colors::BORDER_DEFAULT
                         }),
                         BorderRadius::all(Val::Px(5.0)),
                         PresetButton(preset),
+                        PresetDescription(desc.to_string()),
+                        // Hover effects handled by interaction system
                     )).with_children(|button| {
                         button.spawn((
                             Text::new(label),
@@ -644,12 +871,30 @@ fn spawn_preset_section(parent: &mut ChildSpawnerCommands) {
                                 font_size: 18.0,
                                 ..default()
                             },
-                            TextColor(Color::WHITE),
+                            TextColor(if preset == WorldPreset::Balanced {
+                                Color::WHITE
+                            } else {
+                                colors::TEXT_PRIMARY
+                            }),
                         ));
                     });
                 }
             });
         }
+        
+        // Help text
+        section.spawn((
+            Text::new("Presets automatically configure all settings for specific gameplay experiences."),
+            TextFont {
+                font_size: 14.0,
+                ..default()
+            },
+            TextColor(colors::TEXT_MUTED),
+            Node {
+                margin: UiRect::left(Val::Px(5.0)),
+                ..default()
+            },
+        ));
     });
 }
 
@@ -659,44 +904,93 @@ fn spawn_advanced_panel(parent: &mut ChildSpawnerCommands) {
             width: Val::Percent(100.0),
             display: Display::None, // Initially hidden
             flex_direction: FlexDirection::Column,
-            padding: UiRect::all(Val::Px(15.0)),
+            padding: UiRect::all(Val::Px(20.0)),
+            border: helpers::standard_border(),
             ..default()
         },
-        BackgroundColor(Color::srgb(0.1, 0.1, 0.12)),
-        BorderRadius::all(Val::Px(5.0)),
+        BackgroundColor(colors::BACKGROUND_LIGHT),
+        BorderColor(colors::BORDER_DEFAULT),
+        BorderRadius::all(Val::Px(dimensions::CORNER_RADIUS)),
         AdvancedPanel,
     )).with_children(|panel| {
-        // Create a horizontal container for the columns
+        // Title
+        panel.spawn((
+            Text::new("⚙️ Advanced Settings"),
+            TextFont {
+                font_size: 20.0,
+                ..default()
+            },
+            TextColor(colors::TEXT_PRIMARY),
+            Node {
+                margin: UiRect::bottom(Val::Px(15.0)),
+                ..default()
+            },
+        ));
+        
+        // Help text for advanced settings
+        panel.spawn((
+            Text::new("Fine-tune world generation parameters for a customized experience."),
+            TextFont {
+                font_size: 14.0,
+                ..default()
+            },
+            TextColor(colors::TEXT_MUTED),
+            Node {
+                margin: UiRect::bottom(Val::Px(20.0)),
+                ..default()
+            },
+        ));
+        
+        // Create a two-column layout with better spacing
         panel.spawn((
             Node {
                 width: Val::Percent(100.0),
                 flex_direction: FlexDirection::Row,
-                column_gap: Val::Px(30.0),
+                column_gap: Val::Px(40.0),
                 ..default()
             },
         )).with_children(|columns| {
-            // ===== LEFT COLUMN: GEOGRAPHY & CLIMATE =====
+            // ===== LEFT COLUMN: WORLD GEOGRAPHY =====
             columns.spawn((
                 Node {
-                    flex_basis: Val::Percent(33.0),
+                    flex_basis: Val::Percent(50.0),
                     flex_direction: FlexDirection::Column,
-                    row_gap: Val::Px(15.0),
+                    row_gap: Val::Px(dimensions::MARGIN_MEDIUM),
                     ..default()
                 },
             )).with_children(|left_col| {
-                // Section header
+                // Section header with help
                 left_col.spawn((
-                    Text::new("Geography & Climate"),
-                    TextFont {
-                        font_size: 18.0,
-                        ..default()
-                    },
-                    TextColor(colors::TEXT_PRIMARY),
                     Node {
-                        margin: UiRect::bottom(Val::Px(5.0)),
+                        width: Val::Percent(100.0),
+                        padding: UiRect::all(Val::Px(10.0)),
+                        margin: UiRect::bottom(Val::Px(10.0)),
+                        border: helpers::standard_border(),
+                        flex_direction: FlexDirection::Column,
+                        row_gap: Val::Px(5.0),
                         ..default()
                     },
-                ));
+                    BackgroundColor(colors::BACKGROUND_DARK),
+                    BorderColor(colors::PRIMARY.with_alpha(0.3)),
+                    BorderRadius::all(Val::Px(5.0)),
+                )).with_children(|header| {
+                    header.spawn((
+                        Text::new("🌍 World Geography"),
+                        TextFont {
+                            font_size: 18.0,
+                            ..default()
+                        },
+                        TextColor(colors::TEXT_PRIMARY),
+                    ));
+                    header.spawn((
+                        Text::new("Shape the physical world: continents, oceans, and terrain."),
+                        TextFont {
+                            font_size: 13.0,
+                            ..default()
+                        },
+                        TextColor(colors::TEXT_MUTED),
+                    ));
+                });
                 
                 // Continent Count Slider
                 spawn_slider_control(left_col, "Continents", "7", 1.0, 12.0, 7.0, ContinentSlider, ContinentValueText);
@@ -706,49 +1000,46 @@ fn spawn_advanced_panel(parent: &mut ChildSpawnerCommands) {
                 
                 // River Density Slider
                 spawn_slider_control(left_col, "River Density", "1.0x", 0.5, 2.0, 1.0, RiverSlider, RiverValueText);
-            });
-            
-            // ===== MIDDLE COLUMN: CLIMATE & TERRAIN =====
-            columns.spawn((
-                Node {
-                    flex_basis: Val::Percent(33.0),
-                    flex_direction: FlexDirection::Column,
-                    row_gap: Val::Px(15.0),
-                    ..default()
-                },
-            )).with_children(|middle_col| {
-                // Section header (invisible for alignment)
-                middle_col.spawn((
-                    Text::new(""),
-                    TextFont {
-                        font_size: 18.0,
-                        ..default()
-                    },
-                    TextColor(Color::NONE),
-                    Node {
-                        margin: UiRect::bottom(Val::Px(5.0)),
-                        ..default()
-                    },
-                ));
                 
-                // Climate Type Selection
-                spawn_selection_row(
-                    middle_col,
-                    "Climate Type",
-                    vec![
-                        ("Arctic", ClimateType::Arctic),
-                        ("Temperate", ClimateType::Temperate),
-                        ("Tropical", ClimateType::Tropical),
-                        ("Desert", ClimateType::Desert),
-                        ("Mixed", ClimateType::Mixed),
-                    ],
-                    ClimateType::Mixed,
-                    |climate| ClimateButton(climate),
-                );
+                // Climate Type Selection with help text
+                left_col.spawn((
+                    Node {
+                        width: Val::Percent(100.0),
+                        flex_direction: FlexDirection::Column,
+                        row_gap: Val::Px(3.0),
+                        ..default()
+                    },
+                )).with_children(|climate_section| {
+                    spawn_selection_row(
+                        climate_section,
+                        "Climate Type",
+                        vec![
+                            ("Arctic", ClimateType::Arctic),
+                            ("Temperate", ClimateType::Temperate),
+                            ("Tropical", ClimateType::Tropical),
+                            ("Desert", ClimateType::Desert),
+                            ("Mixed", ClimateType::Mixed),
+                        ],
+                        ClimateType::Mixed,
+                        |climate| ClimateButton(climate),
+                    );
+                    climate_section.spawn((
+                        Text::new("Affects temperature, rainfall, and biome distribution."),
+                        TextFont {
+                            font_size: 12.0,
+                            ..default()
+                        },
+                        TextColor(colors::TEXT_MUTED),
+                        Node {
+                            margin: UiRect::horizontal(Val::Px(5.0)),
+                            ..default()
+                        },
+                    ));
+                });
                 
                 // Island Frequency Selection
                 spawn_selection_row(
-                    middle_col,
+                    left_col,
                     "Islands",
                     vec![
                         ("None", IslandFrequency::None),
@@ -759,10 +1050,94 @@ fn spawn_advanced_panel(parent: &mut ChildSpawnerCommands) {
                     IslandFrequency::Moderate,
                     |freq| IslandButton(freq),
                 );
+            });
+            
+            // ===== RIGHT COLUMN: CIVILIZATIONS & RESOURCES =====
+            columns.spawn((
+                Node {
+                    flex_basis: Val::Percent(50.0),
+                    flex_direction: FlexDirection::Column,
+                    row_gap: Val::Px(dimensions::MARGIN_MEDIUM),
+                    ..default()
+                },
+            )).with_children(|right_col| {
+                // Section header with help
+                right_col.spawn((
+                    Node {
+                        width: Val::Percent(100.0),
+                        padding: UiRect::all(Val::Px(10.0)),
+                        margin: UiRect::bottom(Val::Px(10.0)),
+                        border: helpers::standard_border(),
+                        flex_direction: FlexDirection::Column,
+                        row_gap: Val::Px(5.0),
+                        ..default()
+                    },
+                    BackgroundColor(colors::BACKGROUND_DARK),
+                    BorderColor(colors::PRIMARY.with_alpha(0.3)),
+                    BorderRadius::all(Val::Px(5.0)),
+                )).with_children(|header| {
+                    header.spawn((
+                        Text::new("👑 Civilizations & Resources"),
+                        TextFont {
+                            font_size: 18.0,
+                            ..default()
+                        },
+                        TextColor(colors::TEXT_PRIMARY),
+                    ));
+                    header.spawn((
+                        Text::new("Configure nations, their behavior, and available resources."),
+                        TextFont {
+                            font_size: 13.0,
+                            ..default()
+                        },
+                        TextColor(colors::TEXT_MUTED),
+                    ));
+                });
+                
+                // Starting Nations Slider
+                spawn_slider_control(right_col, "Starting Nations", "8", 2.0, 20.0, 8.0, StartingNationsSlider, StartingNationsValueText);
+                
+                // Tech Progression Speed Slider
+                spawn_slider_control(right_col, "Tech Speed", "1.0x", 0.5, 2.0, 1.0, TechSpeedSlider, TechSpeedValueText);
+                
+                // Aggression Level Selection with help text
+                right_col.spawn((
+                    Node {
+                        width: Val::Percent(100.0),
+                        flex_direction: FlexDirection::Column,
+                        row_gap: Val::Px(3.0),
+                        ..default()
+                    },
+                )).with_children(|aggression_section| {
+                    spawn_selection_row(
+                        aggression_section,
+                        "Aggression",
+                        vec![
+                            ("Peaceful", AggressionLevel::Peaceful),
+                            ("Balanced", AggressionLevel::Balanced),
+                            ("Warlike", AggressionLevel::Warlike),
+                            ("Chaotic", AggressionLevel::Chaotic),
+                        ],
+                        AggressionLevel::Balanced,
+                        |aggr| AggressionButton(aggr),
+                    );
+                    aggression_section.spawn((
+                        Text::new("How likely nations are to declare war and expand."),
+                        TextFont {
+                            font_size: 12.0,
+                            ..default()
+                        },
+                        TextColor(colors::TEXT_MUTED),
+                        Node {
+                            margin: UiRect::horizontal(Val::Px(5.0)),
+                            ..default()
+                        },
+                    ));
+                });
                 
                 // Resource Abundance Selection
                 spawn_selection_row(
-                    middle_col,
+                    right_col,
                     "Resources",
                     vec![
                         ("Scarce", ResourceAbundance::Scarce),
@@ -772,50 +1147,6 @@ fn spawn_advanced_panel(parent: &mut ChildSpawnerCommands) {
                     ],
                     ResourceAbundance::Normal,
                     |res| ResourceButton(res),
-                );
-            });
-            
-            // ===== RIGHT COLUMN: CIVILIZATIONS =====
-            columns.spawn((
-                Node {
-                    flex_basis: Val::Percent(33.0),
-                    flex_direction: FlexDirection::Column,
-                    row_gap: Val::Px(15.0),
-                    ..default()
-                },
-            )).with_children(|right_col| {
-                // Section header
-                right_col.spawn((
-                    Text::new("Civilizations"),
-                    TextFont {
-                        font_size: 18.0,
-                        ..default()
-                    },
-                    TextColor(colors::TEXT_PRIMARY),
-                    Node {
-                        margin: UiRect::bottom(Val::Px(5.0)),
-                        ..default()
-                    },
-                ));
-                
-                // Starting Nations Slider
-                spawn_slider_control(right_col, "Starting Nations", "8", 2.0, 20.0, 8.0, StartingNationsSlider, StartingNationsValueText);
-                
-                // Tech Progression Speed Slider
-                spawn_slider_control(right_col, "Tech Speed", "1.0x", 0.5, 2.0, 1.0, TechSpeedSlider, TechSpeedValueText);
-                
-                // Aggression Level Selection
-                spawn_selection_row(
-                    right_col,
-                    "Aggression",
-                    vec![
-                        ("Peaceful", AggressionLevel::Peaceful),
-                        ("Balanced", AggressionLevel::Balanced),
-                        ("Warlike", AggressionLevel::Warlike),
-                        ("Chaotic", AggressionLevel::Chaotic),
-                    ],
-                    AggressionLevel::Balanced,
-                    |aggr| AggressionButton(aggr),
                 );
             });
         });
@@ -994,11 +1325,45 @@ fn handle_config_interactions(
     // Placeholder for handling various UI interactions
 }
 
+fn handle_preset_hover(
+    interactions: Query<(&Interaction, &PresetDescription), (Changed<Interaction>, With<PresetButton>)>,
+    mut description_text: Query<&mut Text, With<PresetDescriptionText>>,
+) {
+    for (interaction, preset_desc) in &interactions {
+        if *interaction == Interaction::Hovered {
+            if let Ok(mut text) = description_text.get_single_mut() {
+                text.0 = preset_desc.0.clone();
+            }
+        }
+    }
+}
+
+fn handle_text_input_changes(
+    mut name_events: EventReader<TextInputSubmitEvent>,
+    mut settings: ResMut<WorldGenerationSettings>,
+    name_inputs: Query<&TextInputValue, With<WorldNameInput>>,
+    seed_inputs: Query<&TextInputValue, (With<SeedInput>, Without<WorldNameInput>)>,
+) {
+    // Handle world name changes
+    for event in name_events.read() {
+        if let Ok(value) = name_inputs.get(event.entity) {
+            settings.world_name = value.0.clone();
+            println!("World name changed to: {}", settings.world_name);
+        }
+        if let Ok(value) = seed_inputs.get(event.entity) {
+            if let Ok(seed) = value.0.parse::<u32>() {
+                settings.seed = seed;
+                println!("Seed changed to: {}", settings.seed);
+            }
+        }
+    }
+}
+
 fn handle_preset_selection(
     mut interactions: Query<(&Interaction, &PresetButton, &mut BackgroundColor), Changed<Interaction>>,
     mut settings: ResMut<WorldGenerationSettings>,
 ) {
-    for (interaction, preset_button, mut bg_color) in &mut interactions {
+    for (interaction, preset_button, bg_color) in &mut interactions {
         if *interaction == Interaction::Pressed {
             settings.preset = preset_button.0.clone();
             apply_preset(&mut settings);
@@ -1011,7 +1376,7 @@ fn handle_size_selection(
     mut interactions: Query<(&Interaction, &SizeButton, &mut BackgroundColor), Changed<Interaction>>,
     mut settings: ResMut<WorldGenerationSettings>,
 ) {
-    for (interaction, size_button, mut bg_color) in &mut interactions {
+    for (interaction, size_button, bg_color) in &mut interactions {
         if *interaction == Interaction::Pressed {
             settings.world_size = size_button.0.clone();
             println!("Selected world size: {:?}", size_button.0);
@@ -1020,18 +1385,35 @@ fn handle_size_selection(
 }
 
 fn handle_advanced_toggle(
-    mut interactions: Query<&Interaction, (Changed<Interaction>, With<AdvancedToggle>)>,
+    interactions: Query<&Interaction, (Changed<Interaction>, With<AdvancedToggle>)>,
     mut advanced_panel: Query<&mut Node, With<AdvancedPanel>>,
-    mut toggle_text: Query<&mut Text, With<AdvancedToggle>>,
+    mut toggle_button: Query<&Children, With<AdvancedToggle>>,
+    mut text_query: Query<&mut Text>,
 ) {
     for interaction in &interactions {
         if *interaction == Interaction::Pressed {
             if let Ok(mut panel_style) = advanced_panel.get_single_mut() {
-                panel_style.display = match panel_style.display {
-                    Display::None => Display::Flex,
-                    _ => Display::None,
+                let is_showing = panel_style.display == Display::Flex;
+                panel_style.display = if is_showing {
+                    Display::None
+                } else {
+                    Display::Flex
                 };
-                println!("Toggled advanced settings");
+                
+                // Update button text
+                if let Ok(children) = toggle_button.get_single() {
+                    for child in children.iter() {
+                        if let Ok(mut text) = text_query.get_mut(child) {
+                            text.0 = if is_showing {
+                                "⚙️ Show Advanced Settings".to_string()
+                            } else {
+                                "⚙️ Hide Advanced Settings".to_string()
+                            };
+                        }
+                    }
+                }
+                
+                println!("Toggled advanced settings: {}", if !is_showing { "showing" } else { "hidden" });
             }
         }
     }
@@ -1039,16 +1421,30 @@ fn handle_advanced_toggle(
 
 fn update_seed_display(
     settings: Res<WorldGenerationSettings>,
-    mut seed_text: Query<&mut Text, With<SeedInput>>,
+    mut seed_text: Query<(&mut Text, &mut TextInputValue), With<SeedInput>>,
+    mut time_estimate: Query<&mut Text, (With<GenerationTimeEstimate>, Without<SeedInput>)>,
 ) {
     if settings.is_changed() {
-        for mut text in &mut seed_text {
+        // Update seed display
+        for (mut text, mut input_value) in &mut seed_text {
             text.0 = settings.seed.to_string();
+            input_value.0 = settings.seed.to_string();
+        }
+        
+        // Update time estimate based on world size
+        if let Ok(mut estimate_text) = time_estimate.get_single_mut() {
+            let time_range = match settings.world_size {
+                WorldSize::Small => "~1-3 seconds",
+                WorldSize::Medium => "~3-5 seconds",
+                WorldSize::Large => "~5-7 seconds",
+            };
+            estimate_text.0 = format!("⏱️ Estimated generation time: {}", time_range);
         }
     }
 }
 
 fn handle_generate_button(
+    mut commands: Commands,
     interactions: Query<&Interaction, (Changed<Interaction>, With<GenerateButton>)>,
     settings: Res<WorldGenerationSettings>,
     mut state_events: EventWriter<RequestStateTransition>,
@@ -1058,10 +1454,25 @@ fn handle_generate_button(
             println!("Generate World button pressed");
             println!("Settings: {:?}", *settings);
             
-            // Transition to world generation loading screen
+            // Signal that we need to generate a world (with small delay for loading screen to render)
+            commands.insert_resource(crate::states::PendingWorldGeneration {
+                pending: true,
+                delay_timer: 0.1,  // 100ms delay to render loading screen
+            });
+            
+            // Initialize loading screen for world generation
+            let mut loading_state = crate::loading_screen::LoadingState::default();
+            crate::loading_screen::start_world_generation_loading(
+                &mut loading_state,
+                settings.seed,
+                format!("{:?}", settings.world_size),
+            );
+            commands.insert_resource(loading_state);
+            
+            // Transition to loading screen first
             state_events.write(RequestStateTransition {
                 from: GameState::WorldConfiguration,
-                to: GameState::WorldGenerationLoading,
+                to: GameState::LoadingWorld,
             });
         }
     }
@@ -1083,17 +1494,20 @@ fn handle_back_button(
 }
 
 fn handle_random_buttons(
-    mut name_interactions: Query<&Interaction, (Changed<Interaction>, With<RandomNameButton>)>,
-    mut seed_interactions: Query<&Interaction, (Changed<Interaction>, With<RandomSeedButton>, Without<RandomNameButton>)>,
+    name_interactions: Query<&Interaction, (Changed<Interaction>, With<RandomNameButton>)>,
+    seed_interactions: Query<&Interaction, (Changed<Interaction>, With<RandomSeedButton>, Without<RandomNameButton>)>,
     mut settings: ResMut<WorldGenerationSettings>,
-    mut name_text: Query<&mut Text, (With<WorldNameInput>, Without<SeedInput>)>,
+    mut name_inputs: Query<(&mut Text, &mut TextInputValue), With<WorldNameInput>>,
+    mut seed_inputs: Query<(&mut Text, &mut TextInputValue), (With<SeedInput>, Without<WorldNameInput>)>,
 ) {
     // Random name button
     for interaction in &name_interactions {
         if *interaction == Interaction::Pressed {
-            settings.world_name = generate_random_world_name();
-            for mut text in &mut name_text {
+            let mut gen = NameGenerator::new();
+            settings.world_name = gen.generate(NameType::World);
+            for (mut text, mut input_value) in &mut name_inputs {
                 text.0 = settings.world_name.clone();
+                input_value.0 = settings.world_name.clone();
             }
             println!("Generated random name: {}", settings.world_name);
         }
@@ -1103,17 +1517,21 @@ fn handle_random_buttons(
     for interaction in &seed_interactions {
         if *interaction == Interaction::Pressed {
             settings.seed = rand::thread_rng().gen();
+            for (mut text, mut input_value) in &mut seed_inputs {
+                text.0 = settings.seed.to_string();
+                input_value.0 = settings.seed.to_string();
+            }
             println!("Generated random seed: {}", settings.seed);
         }
     }
 }
 
 fn handle_slider_interactions(
-    mut interactions: Query<(&Interaction, &Node, &Children), With<Button>>,
-    mut continent_sliders: Query<&mut Node, (With<ContinentSlider>, Without<Button>)>,
-    mut ocean_sliders: Query<&mut Node, (With<OceanSlider>, Without<Button>, Without<ContinentSlider>)>,
-    mut river_sliders: Query<&mut Node, (With<RiverSlider>, Without<Button>, Without<ContinentSlider>, Without<OceanSlider>)>,
-    mut settings: ResMut<WorldGenerationSettings>,
+    interactions: Query<(&Interaction, &Node, &Children), With<Button>>,
+    continent_sliders: Query<&mut Node, (With<ContinentSlider>, Without<Button>)>,
+    ocean_sliders: Query<&mut Node, (With<OceanSlider>, Without<Button>, Without<ContinentSlider>)>,
+    river_sliders: Query<&mut Node, (With<RiverSlider>, Without<Button>, Without<ContinentSlider>, Without<OceanSlider>)>,
+    settings: ResMut<WorldGenerationSettings>,
     windows: Query<&Window>,
 ) {
     // TODO: Implement actual slider dragging logic
@@ -1332,27 +1750,5 @@ fn apply_preset(settings: &mut WorldGenerationSettings) {
     }
 }
 
-fn generate_random_world_name() -> String {
-    let prefixes = vec![
-        "New", "Ancient", "Lost", "Eternal", "Prime", "Nova", "Neo", "Crystal",
-        "Golden", "Silver", "Mystic", "Shadow", "Dawn", "Twilight", "Astral",
-    ];
-    
-    let roots = vec![
-        "Terra", "Gaia", "Eden", "Avalon", "Elysium", "Pangaea", "Atlantis",
-        "Aetheria", "Celestia", "Arcadia", "Zephyr", "Olympus", "Valhalla",
-        "Midgard", "Asgard", "Nibiru", "Xanadu", "Shangri-La", "Lemuria",
-    ];
-    
-    let suffixes = vec![
-        "", " Prime", " Nova", " Alpha", " Beta", " Omega", " Major", " Minor",
-        " III", " VII", " IX", " XI", " Reborn", " Ascendant", " Eternal",
-    ];
-    
-    let mut rng = rand::thread_rng();
-    let prefix = prefixes[rng.gen_range(0..prefixes.len())];
-    let root = roots[rng.gen_range(0..roots.len())];
-    let suffix = suffixes[rng.gen_range(0..suffixes.len())];
-    
-    format!("{} {}{}", prefix, root, suffix).trim().to_string()
-}
+// World name generation has been moved to the universal name_generator module
+// Use NameGenerator::new().generate(NameType::World) instead

@@ -15,9 +15,12 @@ pub mod generation;
 pub mod menus;
 pub mod minerals;
 pub mod music;
+pub mod name_generator;
 pub mod overlay;
 pub mod resources;
+pub mod save_load;
 pub mod settings;
+pub mod modding;
 pub mod simulation;
 pub mod mesh;
 pub mod setup;
@@ -25,7 +28,11 @@ pub mod states;
 pub mod terrain;
 pub mod ui;
 pub mod world_config;
-pub mod world_generation_loading;
+pub mod loading_screen;
+
+// Steam integration (only when feature is enabled)
+#[cfg(feature = "steam")]
+pub mod steam;
 
 // Re-export commonly used items for convenient access
 pub mod prelude {
@@ -90,6 +97,10 @@ use crate::ui::UIPlugin;
 pub fn build_app() -> App {
     let mut app = App::new();
     
+    // Add Steam plugin FIRST (must be before DefaultPlugins/RenderPlugin)
+    #[cfg(feature = "steam")]
+    app.add_plugins(crate::steam::SteamPlugin);
+    
     // Configure Bevy's default plugins with our settings
     app.add_plugins(
         DefaultPlugins
@@ -111,14 +122,16 @@ pub fn build_app() -> App {
     
     // Add all Living Worlds game plugins
     app.add_plugins(StatesPlugin)  // State management system (must be first)
+        .add_plugins(crate::modding::ModdingPlugin)  // Mod system (loads configs early)
         .add_plugins(MenusPlugin)   // Menu UI system (needs states)
         .add_plugins(world_config::WorldConfigPlugin) // World configuration UI
-        .add_plugins(world_generation_loading::WorldGenerationLoadingPlugin) // Generation visualization
+        .add_plugins(loading_screen::LoadingScreenPlugin) // Unified loading screen
         .add_plugins(SettingsPlugin) // Settings menu system
         .add_plugins(CloudPlugin)
         .add_plugins(TerrainPlugin)
         .add_plugins(OverlayPlugin)
         .add_plugins(SimulationPlugin)
+        .add_plugins(crate::save_load::SaveLoadPlugin)
         .add_plugins(UIPlugin)
         .add_plugins(CameraPlugin)
         .add_plugins(BorderPlugin);  // GPU-instanced border rendering
