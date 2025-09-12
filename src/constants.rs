@@ -35,17 +35,17 @@ pub const MAP_WIDTH_PIXELS: f32 = PROVINCES_PER_ROW as f32 * HEX_SIZE_PIXELS * 1
 pub const MAP_HEIGHT_PIXELS: f32 = PROVINCES_PER_COL as f32 * HEX_SIZE_PIXELS * SQRT3;
 
 // ============================================================================
-// OCEAN DEPTH CONSTANTS
+// OCEAN ELEVATION CONSTANTS
 // ============================================================================
 
-/// Ocean depth threshold for shallow water (0-12% of max depth)
-pub const OCEAN_DEPTH_SHALLOW: f32 = 0.12;
+/// Ocean elevation threshold for shallow water (above 12% elevation = shallow)
+pub const OCEAN_ELEVATION_SHALLOW: f32 = 0.12;
 
-/// Ocean depth threshold for medium depth (12-7% of max depth) 
-pub const OCEAN_DEPTH_MEDIUM: f32 = 0.07;
+/// Ocean elevation threshold for medium depth (7-12% elevation = medium) 
+pub const OCEAN_ELEVATION_MEDIUM: f32 = 0.07;
 
-/// Ocean depth threshold for deep ocean (below 7% of max depth)
-pub const OCEAN_DEPTH_DEEP: f32 = 0.02;
+/// Ocean elevation threshold for deep ocean (below 7% elevation = deep)
+pub const OCEAN_ELEVATION_DEEP: f32 = 0.02;
 
 // ============================================================================
 // CAMERA CONSTANTS

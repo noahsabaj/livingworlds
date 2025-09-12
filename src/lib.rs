@@ -40,9 +40,10 @@ pub mod prelude {
     pub use crate::camera::CameraPlugin;
     pub use crate::clouds::CloudPlugin;
     pub use crate::components::{
-        Province, SelectedProvince,
+        Province,
         TileInfoPanel, TileInfoText,
         ProvinceResources, MineralType,
+        GameWorld,
     };
     pub use crate::constants::*;
     pub use crate::resources::{
