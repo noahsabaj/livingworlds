@@ -7,14 +7,14 @@
 use bevy::prelude::*;
 use rand::Rng;
 use bevy_simple_text_input::{
-    TextInputPlugin, TextInput, TextInputSettings, TextInputSubmitEvent,
-    TextInputValue, TextInputTextFont, TextInputTextColor, TextInputInactive
+    TextInputPlugin, TextInput, TextInputSubmitEvent, TextInputValue
 };
 
 use crate::states::{GameState, RequestStateTransition};
 use crate::resources::WorldSize;
 use crate::ui::buttons::{ButtonBuilder, ButtonStyle, ButtonSize, StyledButton};
 use crate::ui::styles::{colors, dimensions, helpers};
+use crate::ui::text_inputs::{text_input, FocusGroupId};
 use crate::name_generator::{NameGenerator, NameType};
 
 // ============================================================================
@@ -51,7 +51,6 @@ impl Plugin for WorldConfigPlugin {
                 update_seed_display,
                 update_slider_displays,
                 handle_text_input_changes,
-                handle_text_input_focus,
                 handle_generate_button,
                 handle_back_button,
                 handle_random_buttons,
@@ -502,45 +501,17 @@ fn spawn_world_name_section(parent: &mut ChildSpawnerCommands) {
                 ..default()
             },
         )).with_children(|row| {
-            // Real text input field using bevy_simple_text_input
-            row.spawn((
-                Node {
-                    flex_grow: 1.0,
-                    height: Val::Px(40.0),
-                    padding: UiRect::horizontal(Val::Px(15.0)),
-                    justify_content: JustifyContent::FlexStart,
-                    align_items: AlignItems::Center,
-                    border: helpers::standard_border(),
-                    ..default()
-                },
-                BackgroundColor(colors::BACKGROUND_LIGHT),
-                BorderColor(colors::BORDER_DEFAULT),
-                BorderRadius::all(Val::Px(5.0)),
-            )).with_children(|input_container| {
-                // Add the text input components
-                input_container.spawn((
-                    Text::new("Aetheria Prime"),
-                    TextFont {
-                        font_size: 18.0,
-                        ..default()
-                    },
-                    TextColor(colors::TEXT_PRIMARY),
-                    TextInput,
-                    TextInputSettings {
-                        retain_on_submit: true,
-                        ..default()
-                    },
-                    TextInputValue("Aetheria Prime".to_string()),
-                    TextInputTextFont(TextFont {
-                        font_size: 18.0,
-                        ..default()
-                    }),
-                    TextInputTextColor(TextColor(colors::TEXT_PRIMARY)),
-                    TextInputInactive(true),  // Prevent auto-focus
-                    WorldNameInput,
-                    WorldNameText,
-                ));
-            });
+            // World Name text input using TextInputBuilder
+            text_input()
+                .with_value("Aetheria Prime")
+                .with_font_size(18.0)
+                .with_width(Val::Auto)
+                .with_padding(UiRect::horizontal(Val::Px(15.0)))
+                .with_focus_group(FocusGroupId::WorldConfig)
+                .inactive()
+                .with_marker(WorldNameInput)
+                .and_marker(WorldNameText)
+                .build(row);
             
             // Random button with ButtonBuilder
             ButtonBuilder::new("Random")
@@ -710,45 +681,17 @@ fn spawn_seed_section(parent: &mut ChildSpawnerCommands) {
                 ..default()
             },
         )).with_children(|row| {
-            // Real seed input field using bevy_simple_text_input
-            row.spawn((
-                Node {
-                    flex_grow: 1.0,
-                    height: Val::Px(40.0),
-                    padding: UiRect::horizontal(Val::Px(15.0)),
-                    justify_content: JustifyContent::FlexStart,
-                    align_items: AlignItems::Center,
-                    border: helpers::standard_border(),
-                    ..default()
-                },
-                BackgroundColor(colors::BACKGROUND_LIGHT),
-                BorderColor(colors::BORDER_DEFAULT),
-                BorderRadius::all(Val::Px(5.0)),
-            )).with_children(|input_container| {
-                // Add the text input components
-                input_container.spawn((
-                    Text::new("1234567890"),
-                    TextFont {
-                        font_size: 18.0,
-                        ..default()
-                    },
-                    TextColor(colors::TEXT_PRIMARY),
-                    TextInput,
-                    TextInputSettings {
-                        retain_on_submit: true,
-                        ..default()
-                    },
-                    TextInputValue("1234567890".to_string()),
-                    TextInputTextFont(TextFont {
-                        font_size: 18.0,
-                        ..default()
-                    }),
-                    TextInputTextColor(TextColor(colors::TEXT_PRIMARY)),
-                    TextInputInactive(true),  // Prevent auto-focus
-                    SeedInput,
-                    SeedText,
-                ));
-            });
+            // World Seed text input using TextInputBuilder
+            text_input()
+                .with_value("1234567890")
+                .with_font_size(18.0)
+                .with_width(Val::Auto)
+                .with_padding(UiRect::horizontal(Val::Px(15.0)))
+                .with_focus_group(FocusGroupId::WorldConfig)
+                .inactive()
+                .with_marker(SeedInput)
+                .and_marker(SeedText)
+                .build(row);
             
             // Random button with ButtonBuilder
             ButtonBuilder::new("Random")
@@ -1362,26 +1305,6 @@ fn handle_text_input_changes(
     }
 }
 
-fn handle_text_input_focus(
-    mut commands: Commands,
-    interactions: Query<(Entity, &Interaction), (Changed<Interaction>, With<TextInput>)>,
-    all_text_inputs: Query<Entity, With<TextInput>>,
-) {
-    for (entity, interaction) in &interactions {
-        if *interaction == Interaction::Pressed {
-            // Focus the clicked text input and unfocus all others
-            for text_input_entity in &all_text_inputs {
-                if text_input_entity == entity {
-                    // Remove inactive from clicked input to focus it
-                    commands.entity(text_input_entity).insert(TextInputInactive(false));
-                } else {
-                    // Add inactive to all other inputs to unfocus them
-                    commands.entity(text_input_entity).insert(TextInputInactive(true));
-                }
-            }
-        }
-    }
-}
 
 fn handle_preset_selection(
     mut interactions: Query<(&Interaction, &PresetButton), Changed<Interaction>>,

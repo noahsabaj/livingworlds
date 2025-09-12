@@ -8,12 +8,12 @@
 
 use bevy::prelude::*;
 use bevy_simple_text_input::{
-    TextInputPlugin, TextInput, TextInputSettings, TextInputSubmitEvent, 
-    TextInputValue, TextInputTextFont, TextInputTextColor, TextInputInactive
+    TextInputPlugin, TextInput, TextInputSubmitEvent, TextInputValue
 };
 use crate::states::{GameState, RequestStateTransition};
 use crate::ui::styles::{colors, dimensions, layers};
 use crate::ui::buttons::{ButtonBuilder, ButtonStyle, ButtonSize, StyledButton};
+use crate::ui::text_inputs::{text_input, FocusGroupId};
 use crate::loading_screen::{LoadingOperation, LoadingState, start_mod_application_loading};
 use super::manager::ModManager;
 use super::{ModEnabledEvent, ModDisabledEvent};
@@ -208,7 +208,6 @@ impl Plugin for ModBrowserUIPlugin {
                 handle_apply_changes,
                 handle_search_input_changes,
                 handle_search_submit,
-                handle_search_input_focus,
                 update_mod_browser_ui,
             ).chain());
     }
@@ -291,33 +290,17 @@ pub fn spawn_mod_browser(
                     .build(tabs);
             });
             
-            // Search bar with bevy_simple_text_input
-            header.spawn((
-                Node {
-                    width: Val::Px(300.0),
-                    height: Val::Px(40.0),
-                    padding: UiRect::all(Val::Px(10.0)),
-                    border: UiRect::all(Val::Px(2.0)),
-                    justify_content: JustifyContent::Start,
-                    align_items: AlignItems::Center,
-                    ..default()
-                },
-                BackgroundColor(colors::BACKGROUND_LIGHT),
-                BorderColor(colors::BORDER_DEFAULT),
-                TextInput,
-                TextInputValue(browser_state.search_query.clone()),
-                TextInputTextFont(TextFont {
-                    font_size: 16.0,
-                    ..default()
-                }),
-                TextInputTextColor(TextColor(colors::TEXT_PRIMARY)),
-                TextInputSettings {
-                    retain_on_submit: true,
-                    ..default()
-                },
-                TextInputInactive(true),  // Prevent auto-focus
-                SearchInputMarker,
-            ));
+            // Search bar using TextInputBuilder
+            text_input()
+                .with_value(browser_state.search_query.clone())
+                .with_font_size(16.0)
+                .with_width(Val::Px(300.0))
+                .with_height(Val::Px(40.0))
+                .with_padding(UiRect::all(Val::Px(10.0)))
+                .independent()  // Search is independent, not part of a group
+                .inactive()
+                .with_marker(SearchInputMarker)
+                .build(header);
             
             // User info
             header.spawn((
@@ -1121,18 +1104,6 @@ fn handle_search_submit(
     }
 }
 
-/// Handle clicking on search input to focus it
-fn handle_search_input_focus(
-    mut commands: Commands,
-    interactions: Query<(Entity, &Interaction), (Changed<Interaction>, With<TextInput>, With<SearchInputMarker>)>,
-) {
-    for (entity, interaction) in &interactions {
-        if *interaction == Interaction::Pressed {
-            // Remove inactive to focus the search input
-            commands.entity(entity).insert(TextInputInactive(false));
-        }
-    }
-}
 
 /// Update the mod browser UI based on current state
 fn update_mod_browser_ui(

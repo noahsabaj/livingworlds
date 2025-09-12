@@ -8,6 +8,7 @@ pub mod styles;
 pub mod buttons;
 pub mod dialogs;
 pub mod components;
+pub mod text_inputs;
 
 use bevy::prelude::*;
 use crate::resources::{ResourceOverlay, SelectedProvinceInfo, GameTime};
@@ -41,6 +42,7 @@ impl Plugin for UIPlugin {
         // Add sub-plugins for UI systems
         app.add_plugins(buttons::ButtonPlugin);
         app.add_plugins(dialogs::DialogPlugin);
+        app.add_plugins(text_inputs::TextInputPlugin);
         
         app
             .add_systems(OnEnter(GameState::InGame), setup_ui)
