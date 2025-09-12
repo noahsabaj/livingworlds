@@ -2,14 +2,13 @@
 
 use bevy::prelude::*;
 use std::collections::HashMap;
-use crate::components::{Province, ProvinceResources};
+use crate::components::Province;
 
 /// Complete generated world data, ready for rendering
 #[derive(Debug, Clone)]
 pub struct GeneratedWorld {
     pub provinces: Vec<Province>,
     pub rivers: RiverSystem,
-    pub minerals: HashMap<u32, ProvinceResources>,
     pub spatial_index: HashMap<(i32, i32), u32>,
     pub map_dimensions: MapDimensions,
     pub clouds: CloudSystem,

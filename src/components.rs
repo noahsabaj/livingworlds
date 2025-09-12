@@ -236,6 +236,22 @@ impl From<u8> for Abundance {
 }
 
 // ============================================================================
+// HEXAGON DIRECTIONS
+// ============================================================================
+
+/// The 6 directions for hexagonal neighbors
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(u8)]
+pub enum HexDirection {
+    NorthEast = 0,
+    East = 1,
+    SouthEast = 2,
+    SouthWest = 3,
+    West = 4,
+    NorthWest = 5,
+}
+
+// ============================================================================
 // VALIDATION CONSTANTS
 // ============================================================================
 
@@ -256,15 +272,21 @@ pub const DEFAULT_POPULATION: u32 = 1000;
 /// The Component derive is kept for backwards compatibility but will be removed.
 #[derive(Component, Clone, Debug, Reflect, Serialize, Deserialize)]
 pub struct Province {
+    // === Identity & Location (16 bytes) ===
     /// Unique identifier for this province
     pub id: ProvinceId,
     
     /// World position in 2D space
     pub position: Vec2,
     
+    // === Population (8 bytes) ===
     /// Current population (now properly an integer)
     pub population: u32,
     
+    /// Maximum population this province can support
+    pub max_population: u32,
+    
+    // === Terrain & Geography (aligned) ===
     /// Terrain type determining base characteristics
     pub terrain: TerrainType,
     
@@ -276,6 +298,40 @@ pub struct Province {
     
     /// Distance to nearest river/delta in hexagon units
     pub fresh_water_distance: Distance,
+    
+    // === Mineral Resources (7 bytes, will be padded to 8) ===
+    /// Iron abundance - Common, used for tools and weapons
+    pub iron: Abundance,
+    
+    /// Copper abundance - Common, used for bronze
+    pub copper: Abundance,
+    
+    /// Tin abundance - Rare, essential for bronze
+    pub tin: Abundance,
+    
+    /// Gold abundance - Rare, used for currency
+    pub gold: Abundance,
+    
+    /// Coal abundance - Common in lowlands, fuel source
+    pub coal: Abundance,
+    
+    /// Stone abundance - Ubiquitous, building material
+    pub stone: Abundance,
+    
+    /// Gems abundance - Very rare, luxury goods
+    pub gems: Abundance,
+    
+    // === Spatial Relationships (48 bytes) ===
+    /// IDs of the 6 neighboring hexagons (NE, E, SE, SW, W, NW)
+    /// None if neighbor is off-map or doesn't exist
+    pub neighbors: [Option<ProvinceId>; 6],
+    
+    // === Change Tracking (8 bytes) ===
+    /// Version number incremented on each change
+    pub version: u32,
+    
+    /// Dirty flag for systems that need to track changes
+    pub dirty: bool,
 }
 
 impl Default for Province {
@@ -284,10 +340,21 @@ impl Default for Province {
             id: ProvinceId::default(),
             position: Vec2::ZERO,
             population: DEFAULT_POPULATION,
+            max_population: DEFAULT_POPULATION * 10,
             terrain: TerrainType::Plains,
             elevation: Elevation::default(),
             agriculture: Agriculture::default(),
             fresh_water_distance: Distance::infinite(),
+            iron: Abundance::default(),
+            copper: Abundance::default(),
+            tin: Abundance::default(),
+            gold: Abundance::default(),
+            coal: Abundance::default(),
+            stone: Abundance::default(),
+            gems: Abundance::default(),
+            neighbors: [None; 6],
+            version: 0,
+            dirty: false,
         }
     }
 }
@@ -307,6 +374,77 @@ impl Province {
         ProvinceBuilder::new(id)
     }
     
+    /// Mark this province as modified
+    pub fn mark_dirty(&mut self) {
+        self.dirty = true;
+        self.version = self.version.wrapping_add(1);
+    }
+    
+    /// Clear the dirty flag
+    pub fn clear_dirty(&mut self) {
+        self.dirty = false;
+    }
+    
+    /// Set population with validation and change tracking
+    pub fn set_population(&mut self, population: u32) {
+        if self.population != population {
+            self.population = population.min(self.max_population);
+            self.mark_dirty();
+        }
+    }
+    
+    /// Update max population based on current conditions
+    pub fn update_max_population(&mut self) {
+        // Base capacity from terrain
+        let terrain_capacity = match self.terrain {
+            TerrainType::Ocean => 0,
+            TerrainType::River | TerrainType::Delta => 50_000,
+            TerrainType::Plains => 30_000,
+            TerrainType::Forest => 20_000,
+            TerrainType::Hills => 15_000,
+            TerrainType::Mountains => 5_000,
+            TerrainType::Desert => 3_000,
+            TerrainType::Tundra => 2_000,
+            TerrainType::Beach => 10_000,
+            TerrainType::Ice => 500,
+            TerrainType::Jungle => 25_000,
+        };
+        
+        // Modifiers
+        let agriculture_multiplier = 1.0 + self.agriculture.value();
+        let water_multiplier = if self.fresh_water_distance.value() <= 1.0 {
+            2.0
+        } else if self.fresh_water_distance.value() <= 3.0 {
+            1.5
+        } else {
+            1.0
+        };
+        
+        let new_max = (terrain_capacity as f32 * agriculture_multiplier * water_multiplier) as u32;
+        if self.max_population != new_max {
+            self.max_population = new_max;
+            self.mark_dirty();
+        }
+    }
+    
+    /// Get the neighbor in a specific direction
+    pub fn get_neighbor(&self, direction: HexDirection) -> Option<ProvinceId> {
+        self.neighbors[direction as usize]
+    }
+    
+    /// Set a neighbor in a specific direction
+    pub fn set_neighbor(&mut self, direction: HexDirection, neighbor: Option<ProvinceId>) {
+        self.neighbors[direction as usize] = neighbor;
+    }
+    
+    /// Check if this province can support more population
+    pub fn can_grow(&self) -> bool {
+        self.population < self.max_population && match self.terrain {
+            TerrainType::Ocean => false,
+            _ => true,
+        }
+    }
+    
     /// Check if this province has access to fresh water
     pub fn has_fresh_water(&self) -> bool {
         self.fresh_water_distance.within(FRESH_WATER_MAX_DISTANCE)
@@ -319,12 +457,34 @@ impl Province {
     
     /// Calculate population growth rate
     pub fn growth_rate(&self) -> f32 {
+        if !self.can_grow() {
+            return 0.0;
+        }
+        
         let base_rate = 0.02; // 2% base growth
         let agriculture_bonus = self.agriculture.multiplier();
         let water_bonus = if self.has_fresh_water() { 1.5 } else { 1.0 };
         let terrain_modifier = self.terrain.population_multiplier();
         
-        base_rate * agriculture_bonus * water_bonus * terrain_modifier
+        // Crowding penalty as we approach max population
+        let crowding = self.population as f32 / self.max_population as f32;
+        let crowding_modifier = 1.0 - (crowding * crowding * 0.5);
+        
+        base_rate * agriculture_bonus * water_bonus * terrain_modifier * crowding_modifier
+    }
+    
+    /// Calculate total mineral richness
+    pub fn total_mineral_richness(&self) -> f32 {
+        // Weighted sum of all minerals
+        let iron_value = self.iron.value() as f32 * 1.0;
+        let copper_value = self.copper.value() as f32 * 1.5;
+        let tin_value = self.tin.value() as f32 * 3.0;  // Rare
+        let gold_value = self.gold.value() as f32 * 10.0;  // Very valuable
+        let coal_value = self.coal.value() as f32 * 0.8;
+        let stone_value = self.stone.value() as f32 * 0.2;  // Common
+        let gem_value = self.gems.value() as f32 * 20.0;  // Extremely valuable
+        
+        (iron_value + copper_value + tin_value + gold_value + coal_value + stone_value + gem_value) / 100.0
     }
 }
 
@@ -380,8 +540,21 @@ impl ProvinceBuilder {
         self
     }
     
-    /// Build the province
-    pub fn build(self) -> Province {
+    /// Set mineral resources
+    pub fn minerals(mut self, iron: u8, copper: u8, tin: u8, gold: u8, coal: u8, stone: u8, gems: u8) -> Self {
+        self.province.iron = Abundance::new(iron);
+        self.province.copper = Abundance::new(copper);
+        self.province.tin = Abundance::new(tin);
+        self.province.gold = Abundance::new(gold);
+        self.province.coal = Abundance::new(coal);
+        self.province.stone = Abundance::new(stone);
+        self.province.gems = Abundance::new(gems);
+        self
+    }
+    
+    /// Build the province and calculate max population
+    pub fn build(mut self) -> Province {
+        self.province.update_max_population();
         self.province
     }
 }
@@ -406,105 +579,6 @@ pub struct GameWorld;
 // ============================================================================
 // RESOURCE COMPONENTS - Mineral wealth and infrastructure
 // ============================================================================
-
-/// Mineral resources present in a province with validated abundance
-/// 
-/// Small struct that can be efficiently copied
-#[derive(Component, Default, Clone, Copy, Debug, Reflect, Serialize, Deserialize)]
-pub struct ProvinceResources {
-    /// Iron abundance - Common, used for tools and weapons
-    pub iron: Abundance,
-    
-    /// Copper abundance - Common, used for bronze
-    pub copper: Abundance,
-    
-    /// Tin abundance - Rare, essential for bronze
-    pub tin: Abundance,
-    
-    /// Gold abundance - Rare, used for currency
-    pub gold: Abundance,
-    
-    /// Coal abundance - Common in lowlands, fuel source
-    pub coal: Abundance,
-    
-    /// Stone abundance - Ubiquitous, building material
-    pub stone: Abundance,
-    
-    /// Gems abundance - Very rare, luxury goods
-    pub gems: Abundance,
-}
-
-impl ProvinceResources {
-    /// Create new resources with all minerals at zero
-    pub fn empty() -> Self {
-        Self::default()
-    }
-    
-    /// Create resources with specified values, automatically validated
-    pub fn new(iron: u8, copper: u8, tin: u8, gold: u8, coal: u8, stone: u8, gems: u8) -> Self {
-        Self {
-            iron: Abundance::new(iron),
-            copper: Abundance::new(copper),
-            tin: Abundance::new(tin),
-            gold: Abundance::new(gold),
-            coal: Abundance::new(coal),
-            stone: Abundance::new(stone),
-            gems: Abundance::new(gems),
-        }
-    }
-    
-    /// Get total mineral richness (sum of all minerals)
-    pub fn total_richness(&self) -> u16 {
-        self.iron.value() as u16 
-            + self.copper.value() as u16 
-            + self.tin.value() as u16 
-            + self.gold.value() as u16 
-            + self.coal.value() as u16 
-            + self.stone.value() as u16 
-            + self.gems.value() as u16
-    }
-    
-    /// Check if this province has any minerals
-    pub fn has_minerals(&self) -> bool {
-        self.total_richness() > 0
-    }
-    
-    /// Get abundance of a specific mineral type
-    pub fn get_abundance(&self, mineral: MineralType) -> Abundance {
-        match mineral {
-            MineralType::Iron => self.iron,
-            MineralType::Copper => self.copper,
-            MineralType::Tin => self.tin,
-            MineralType::Gold => self.gold,
-            MineralType::Coal => self.coal,
-            MineralType::Stone => self.stone,
-            MineralType::Gems => self.gems,
-        }
-    }
-    
-    /// Set abundance of a specific mineral type
-    pub fn set_abundance(&mut self, mineral: MineralType, abundance: u8) {
-        let abundance = Abundance::new(abundance);
-        match mineral {
-            MineralType::Iron => self.iron = abundance,
-            MineralType::Copper => self.copper = abundance,
-            MineralType::Tin => self.tin = abundance,
-            MineralType::Gold => self.gold = abundance,
-            MineralType::Coal => self.coal = abundance,
-            MineralType::Stone => self.stone = abundance,
-            MineralType::Gems => self.gems = abundance,
-        }
-    }
-    
-    /// Deplete a mineral by amount, returns actual amount depleted
-    pub fn deplete(&mut self, mineral: MineralType, amount: u8) -> u8 {
-        let current = self.get_abundance(mineral);
-        let depleted = amount.min(current.value());
-        let new_value = current.value().saturating_sub(amount);
-        self.set_abundance(mineral, new_value);
-        depleted
-    }
-}
 
 /// Types of minerals in the world
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Reflect, Serialize, Deserialize)]

@@ -106,9 +106,9 @@ impl WorldGenerator {
         
         // Step 6: Generate mineral resources using tectonic data for placement
         println!("\n[6/6] Generating mineral resources...");
-        let minerals = crate::minerals::generate_world_minerals_with_tectonics(
+        crate::minerals::generate_world_minerals_with_tectonics(
             self.seed, 
-            &provinces,
+            &mut provinces,
             &tectonics
         );
         
@@ -137,7 +137,6 @@ impl WorldGenerator {
         GeneratedWorld {
             provinces,
             rivers,
-            minerals,
             spatial_index,
             map_dimensions: self.dimensions,
             clouds,

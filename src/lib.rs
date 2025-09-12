@@ -42,7 +42,7 @@ pub mod prelude {
     pub use crate::components::{
         Province, ProvinceId, Elevation, Agriculture, Distance, Abundance,
         TileInfoPanel, TileInfoText,
-        ProvinceResources, MineralType,
+        MineralType,
         GameWorld, ProvinceBuilder,
     };
     pub use crate::constants::*;

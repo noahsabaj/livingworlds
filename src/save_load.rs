@@ -18,7 +18,7 @@ use zstd::stream::{encode_all, decode_all};
 use crate::menus::SpawnSaveBrowserEvent;
 
 use crate::mesh::ProvinceStorage;
-use crate::resources::{WorldSeed, WorldSize, MapDimensions, GameTime, WorldTension, MineralStorage, ResourceOverlay};
+use crate::resources::{WorldSeed, WorldSize, MapDimensions, GameTime, WorldTension, ResourceOverlay};
 use crate::states::{GameState, RequestStateTransition};
 use crate::ui_toolbox::buttons::{ButtonBuilder, ButtonStyle, ButtonSize};
 use crate::loading_screen::{LoadingState, start_save_loading, set_loading_progress};
@@ -71,7 +71,6 @@ pub struct SaveGameData {
     pub map_dimensions: MapDimensions,
     pub game_time: GameTime,
     pub world_tension: WorldTension,
-    pub mineral_storage: MineralStorage,
     pub resource_overlay: ResourceOverlay,
     pub provinces: Vec<crate::components::Province>,
 }
@@ -210,7 +209,6 @@ impl Plugin for SaveLoadPlugin {
         
         // Register types for reflection
         app.register_type::<crate::components::Province>()
-            .register_type::<crate::components::ProvinceResources>()
             .register_type::<crate::components::MineralType>()
             .register_type::<crate::terrain::TerrainType>()
             .register_type::<WorldSeed>()
@@ -218,7 +216,6 @@ impl Plugin for SaveLoadPlugin {
             .register_type::<MapDimensions>()
             .register_type::<GameTime>()
             .register_type::<WorldTension>()
-            .register_type::<MineralStorage>()
             .register_type::<ResourceOverlay>()
             .register_type::<ProvinceStorage>();
     }
@@ -276,7 +273,6 @@ fn handle_save_game(
     map_dims: Option<Res<MapDimensions>>,
     game_time: Option<Res<GameTime>>,
     world_tension: Option<Res<WorldTension>>,
-    mineral_storage: Option<Res<MineralStorage>>,
     resource_overlay: Option<Res<ResourceOverlay>>,
     province_storage: Option<Res<ProvinceStorage>>,
 ) {
@@ -292,7 +288,6 @@ fn handle_save_game(
             map_dimensions: map_dims.as_deref().copied().unwrap_or_default(),
             game_time: game_time.as_deref().cloned().unwrap_or_default(),
             world_tension: world_tension.as_deref().cloned().unwrap_or_default(),
-            mineral_storage: mineral_storage.as_deref().cloned().unwrap_or_default(),
             resource_overlay: resource_overlay.as_deref().copied().unwrap_or_default(),
             provinces: province_storage.as_ref()
                 .map(|s| s.provinces.clone())
@@ -474,7 +469,6 @@ fn check_for_pending_load(
         commands.insert_resource(load_data.0.map_dimensions);
         commands.insert_resource(load_data.0.game_time.clone());
         commands.insert_resource(load_data.0.world_tension.clone());
-        commands.insert_resource(load_data.0.mineral_storage.clone());
         commands.insert_resource(load_data.0.resource_overlay);
         set_loading_progress(&mut loading_state, 0.4, "Resources restored...");
         

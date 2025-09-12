@@ -9,7 +9,6 @@ use bevy::reflect::Reflect;
 use bevy::math::Vec2;
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
-// Note: MineralType is used for MineralStorage resource
 use crate::components::MineralType;
 
 // ============================================================================
@@ -325,17 +324,6 @@ impl ProvincesSpatialIndex {
         
         results
     }
-}
-
-// ============================================================================
-// MINERAL RESOURCES
-// ============================================================================
-
-/// Storage for province mineral resources in mega-mesh architecture
-/// Uses Vec for O(1) indexed access since province IDs are sequential (0..n)
-#[derive(Resource, Default, Reflect, Clone, Serialize, Deserialize)]
-pub struct MineralStorage {
-    pub resources: Vec<Option<crate::components::ProvinceResources>>,
 }
 
 /// Pre-calculated overlay colors for instant switching

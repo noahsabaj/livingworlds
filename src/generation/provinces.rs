@@ -278,15 +278,14 @@ pub fn generate_with_ocean_coverage(
                 (PROVINCE_MIN_POPULATION + (elevation * PROVINCE_MAX_ADDITIONAL_POPULATION)) as u32
             };
             
-            Province {
-                id: ProvinceId::new(province_id),
-                position,
-                population: base_pop,
-                terrain,
-                elevation: Elevation::new(elevation),
-                agriculture: Agriculture::new(0.0),  // Will be calculated later
-                fresh_water_distance: Distance::infinite(),  // Will be calculated later
-            }
+            Province::builder(ProvinceId::new(province_id))
+                .position(position)
+                .population(base_pop)
+                .terrain(terrain)
+                .elevation(elevation)
+                .agriculture(0.0)  // Will be calculated later
+                .fresh_water_distance(f32::INFINITY)  // Will be calculated later
+                .build()
         })
         .collect();
     
