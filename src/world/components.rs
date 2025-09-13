@@ -31,10 +31,3 @@ pub struct CloudEntity;
 #[derive(Component, Default)]
 pub struct BorderEntity;
 
-/// Legacy marker being phased out - use specific markers above instead
-/// 
-/// This was the generic marker for all game world entities but is being
-/// replaced with more specific markers for better code organization.
-#[deprecated(note = "Use TerrainEntity, CloudEntity, or BorderEntity instead")]
-#[derive(Component, Default)]
-pub struct GameWorld;

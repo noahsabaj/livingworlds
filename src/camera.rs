@@ -109,7 +109,7 @@ pub fn setup_camera(mut commands: Commands) {
         Transform::from_xyz(0.0, 0.0, 0.0),
         CameraController::default(),
         Name::new("Main Camera"),
-        // NOTE: Camera must NOT have GameWorld component - it needs to persist across all states!
+        // NOTE: Camera persists across all game states - not tied to world entities
     ));
 }
 

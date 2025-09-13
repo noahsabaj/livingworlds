@@ -419,30 +419,6 @@ pub fn get_terrain_bias(mineral: MineralType, terrain: &TerrainType, elevation: 
     0.0
 }
 
-/// Legacy wrapper functions for backward compatibility
-pub fn iron_terrain_bias(terrain: &TerrainType, elevation: f32) -> f32 {
-    get_terrain_bias(MineralType::Iron, terrain, elevation)
-}
-
-pub fn copper_terrain_bias(terrain: &TerrainType, elevation: f32) -> f32 {
-    get_terrain_bias(MineralType::Copper, terrain, elevation)
-}
-
-pub fn tin_terrain_bias(terrain: &TerrainType, elevation: f32) -> f32 {
-    get_terrain_bias(MineralType::Tin, terrain, elevation)
-}
-
-pub fn gold_terrain_bias(terrain: &TerrainType, elevation: f32) -> f32 {
-    get_terrain_bias(MineralType::Gold, terrain, elevation)
-}
-
-pub fn coal_terrain_bias(terrain: &TerrainType, elevation: f32) -> f32 {
-    get_terrain_bias(MineralType::Coal, terrain, elevation)
-}
-
-pub fn gem_terrain_bias(terrain: &TerrainType, elevation: f32) -> f32 {
-    get_terrain_bias(MineralType::Gems, terrain, elevation)
-}
 
 // ============================================================================
 // RESOURCE CALCULATION (OPTIMIZED WITH SPATIAL INDEX)

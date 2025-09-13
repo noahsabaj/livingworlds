@@ -178,30 +178,6 @@ fn get_volcanic_influence(position: Vec2, tectonics: &TectonicSystem) -> f32 {
     max_influence
 }
 
-/// Legacy function for backward compatibility - use ProvinceBuilder instead
-#[deprecated(note = "Use ProvinceBuilder::new() instead")]
-pub fn generate(
-    tectonics: &TectonicSystem,
-    dimensions: MapDimensions,
-    perlin: &Perlin,
-    rng: &mut StdRng,
-) -> Vec<Province> {
-    ProvinceBuilder::new(tectonics, dimensions, perlin, rng).build()
-}
-
-/// Legacy function for backward compatibility - use ProvinceBuilder instead
-#[deprecated(note = "Use ProvinceBuilder::new().with_ocean_coverage() instead")]
-pub fn generate_with_ocean_coverage(
-    tectonics: &TectonicSystem,
-    dimensions: MapDimensions,
-    perlin: &Perlin,
-    rng: &mut StdRng,
-    ocean_coverage: f32,
-) -> Vec<Province> {
-    ProvinceBuilder::new(tectonics, dimensions, perlin, rng)
-        .with_ocean_coverage(ocean_coverage)
-        .build()
-}
 
 // Internal implementation moved to ProvinceBuilder
 fn generate_provinces_internal(

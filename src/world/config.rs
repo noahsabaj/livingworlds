@@ -39,7 +39,6 @@ impl Plugin for WorldConfigPlugin {
             
             // Update systems
             .add_systems(Update, (
-                handle_config_interactions,
                 handle_preset_selection,
                 handle_preset_hover,
                 handle_size_selection,
@@ -1254,11 +1253,6 @@ fn despawn_world_config_ui(
 // SYSTEMS - INTERACTIONS
 // ============================================================================
 
-fn handle_config_interactions(
-    // TODO: Implement interaction handling
-) {
-    // Placeholder for handling various UI interactions
-}
 
 fn handle_preset_hover(
     interactions: Query<(&Interaction, &PresetDescription), (Changed<Interaction>, With<PresetButton>)>,
@@ -1605,8 +1599,8 @@ fn handle_slider_interactions(
     settings: ResMut<WorldGenerationSettings>,
     windows: Query<&Window>,
 ) {
-    // TODO: Implement actual slider dragging logic
-    // For now, just handle clicks on the slider tracks
+    // Slider interactions are handled by the SliderBuilder system in ui/sliders.rs
+    // This function remains for potential future custom slider behavior
 }
 
 fn handle_climate_selection(

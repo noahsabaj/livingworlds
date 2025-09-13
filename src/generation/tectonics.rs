@@ -220,19 +220,6 @@ pub struct Volcano {
 // GENERATION FUNCTIONS
 // ============================================================================
 
-/// Legacy function for backward compatibility - use TectonicsBuilder instead
-#[deprecated(note = "Use TectonicsBuilder::new() instead")]
-pub fn generate(rng: &mut StdRng, bounds: MapBounds, seed: u32) -> TectonicSystem {
-    TectonicsBuilder::new(rng, bounds, seed).build()
-}
-
-/// Legacy function for backward compatibility - use TectonicsBuilder instead
-#[deprecated(note = "Use TectonicsBuilder::new().with_continent_count() instead")]
-pub fn generate_with_count(rng: &mut StdRng, bounds: MapBounds, seed: u32, continent_count: u32) -> TectonicSystem {
-    TectonicsBuilder::new(rng, bounds, seed)
-        .with_continent_count(continent_count)
-        .build()
-}
 
 // Internal implementation moved to TectonicsBuilder
 fn generate_tectonics_internal(rng: &mut StdRng, bounds: MapBounds, seed: u32, continent_count: u32) -> TectonicSystem {

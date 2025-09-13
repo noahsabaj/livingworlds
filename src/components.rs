@@ -563,11 +563,6 @@ impl ProvinceBuilder {
     }
 }
 
-// Note: SelectedProvince marker component was removed (dead code - never used)
-// The codebase uses SelectedProvinceInfo resource instead
-
-// Note: UI marker components (TileInfoPanel, TileInfoText) moved to ui/components.rs
-// Note: World entity markers (GameWorld replaced by TerrainEntity, CloudEntity, BorderEntity) moved to world/components.rs
 
 // ============================================================================
 // RESOURCE COMPONENTS - Mineral wealth and infrastructure

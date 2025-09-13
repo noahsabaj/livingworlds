@@ -61,11 +61,6 @@ impl<'a> CloudBuilder<'a> {
     }
 }
 
-/// Legacy function for backward compatibility - use CloudBuilder instead
-#[deprecated(note = "Use CloudBuilder::new() instead")]
-pub fn generate(rng: &mut StdRng, dimensions: &MapDimensions) -> CloudSystem {
-    CloudBuilder::new(rng, dimensions).build()
-}
 
 // Internal implementation moved to CloudBuilder
 fn generate_clouds_internal(rng: &mut StdRng, dimensions: &MapDimensions) -> CloudSystem {

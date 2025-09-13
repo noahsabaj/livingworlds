@@ -5,10 +5,9 @@
 //! currently selected province, using just ONE entity that moves to the selected 
 //! province position.
 //! 
-//! Performance impact:
-//! - Old system: 900,000 border entities (one per province)
-//! - New system: 1 border entity
-//! - Result: 899,999 fewer entities to process every frame!
+//! In the mega-mesh architecture, provinces are data stored in ProvinceStorage,
+//! not individual entities. This dramatically improves performance by reducing
+//! entity count from hundreds of thousands to just one for the selection border.
 
 use bevy::prelude::*;
 use bevy::render::mesh::PrimitiveTopology;
@@ -167,7 +166,6 @@ pub fn handle_tile_selection(
     let world_pos = ray.origin.truncate();
     
     // Clear previous selection
-    selected_info.entity = None;
     selected_info.province_id = None;
     
     // Find clicked province using spatial index (O(1) instead of O(n))
@@ -181,7 +179,7 @@ pub fn handle_tile_selection(
     let mut closest_province = None;
     let mut closest_distance = f32::MAX;
     
-    for (_entity, pos, province_id) in nearby_provinces {
+    for (pos, province_id) in nearby_provinces {
         let dx = world_pos.x - pos.x;
         let dy = world_pos.y - pos.y;
         
@@ -204,7 +202,6 @@ pub fn handle_tile_selection(
     
     // Select the closest province if found
     if let Some(province_id) = closest_province {
-        selected_info.entity = None;  // No entity in mega-mesh architecture
         selected_info.province_id = Some(province_id);
         
         // Get province data for debug output - O(1) HashMap lookup
