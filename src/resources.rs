@@ -10,6 +10,7 @@ use bevy::math::Vec2;
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 use crate::components::MineralType;
+use crate::math::distance::euclidean_vec2;
 
 // ============================================================================
 // WORLD CONFIGURATION RESOURCES
@@ -98,8 +99,8 @@ impl MapDimensions {
         let provinces_per_row = provinces_per_row as u32;
         let provinces_per_col = provinces_per_col as u32;
         
-        use crate::constants::{HEX_SIZE_PIXELS, SQRT_3};
-        let hex_size = HEX_SIZE_PIXELS;
+        use crate::math::hexagon::{HEX_SIZE, SQRT_3};
+        let hex_size = HEX_SIZE;
         let width_pixels = provinces_per_row as f32 * hex_size * 1.5;
         let height_pixels = provinces_per_col as f32 * hex_size * SQRT_3;
         
@@ -312,9 +313,10 @@ pub struct ProvincesSpatialIndex {
 
 impl Default for ProvincesSpatialIndex {
     fn default() -> Self {
-        use crate::constants::{HEX_SIZE_PIXELS, SPATIAL_INDEX_CELL_SIZE_MULTIPLIER};
+        use crate::math::hexagon::HEX_SIZE;
+        use crate::constants::SPATIAL_INDEX_CELL_SIZE_MULTIPLIER;
         Self {
-            cell_size: HEX_SIZE_PIXELS * SPATIAL_INDEX_CELL_SIZE_MULTIPLIER,
+            cell_size: HEX_SIZE * SPATIAL_INDEX_CELL_SIZE_MULTIPLIER,
             grid: HashMap::new(),
         }
     }
@@ -349,7 +351,7 @@ impl ProvincesSpatialIndex {
             for y in min_y..=max_y {
                 if let Some(provinces) = self.grid.get(&(x, y)) {
                     for &(pos, id) in provinces {
-                        let dist = world_pos.distance(pos);
+                        let dist = euclidean_vec2(world_pos, pos);
                         if dist <= search_radius {
                             results.push((pos, id));
                         }
@@ -362,22 +364,150 @@ impl ProvincesSpatialIndex {
     }
 }
 
-/// Pre-calculated overlay colors for instant switching
-/// Each Vec contains colors for all provinces (7 vertices each)
-#[derive(Resource, Default)]
+/// Lazy-loaded overlay colors with LRU cache for memory efficiency
+/// Instead of pre-calculating all 9 overlays (~1.2GB), we load on-demand (~135MB each)
+#[derive(Resource)]
 pub struct CachedOverlayColors {
-    /// Natural terrain colors
-    pub terrain: Vec<[f32; 4]>,
-    /// Mineral overlay colors
-    pub iron: Vec<[f32; 4]>,
-    pub copper: Vec<[f32; 4]>,
-    pub tin: Vec<[f32; 4]>,
-    pub gold: Vec<[f32; 4]>,
-    pub coal: Vec<[f32; 4]>,
-    pub stone: Vec<[f32; 4]>,
-    pub gems: Vec<[f32; 4]>,
-    /// Combined mineral richness
-    pub all_minerals: Vec<[f32; 4]>,
+    /// Currently active overlay colors (always loaded)
+    pub current: Vec<[f32; 4]>,
+    /// Current overlay type for tracking
+    pub current_type: ResourceOverlay,
+    /// LRU cache: stores recently used overlays (max 2 entries)
+    /// This allows fast switching between recent overlays
+    pub cache: std::collections::HashMap<ResourceOverlay, Vec<[f32; 4]>>,
+    /// Maximum cache entries (default: 2 = current + 1 previous)
+    pub max_cache_size: usize,
+}
+
+impl Default for CachedOverlayColors {
+    fn default() -> Self {
+        Self {
+            current: Vec::new(),
+            current_type: ResourceOverlay::None,
+            cache: std::collections::HashMap::new(),
+            max_cache_size: 2,  // Keep current + 1 previous overlay
+        }
+    }
+}
+
+impl CachedOverlayColors {
+    /// Get colors for an overlay, calculating if not cached
+    pub fn get_or_calculate(
+        &mut self,
+        overlay: ResourceOverlay,
+        province_storage: &super::world::mesh::ProvinceStorage,
+    ) -> &Vec<[f32; 4]> {
+        use crate::components::MineralType;
+        use crate::colors::{get_terrain_color_gradient, mineral_abundance_color, stone_abundance_color, combined_richness_color};
+        use crate::minerals::calculate_total_richness;
+        use crate::world::terrain::TerrainType;
+        use crate::math::hexagon::VERTICES_PER_HEX;
+
+        // If requesting current overlay, return it
+        if overlay == self.current_type {
+            return &self.current;
+        }
+
+        // Check cache first
+        if let Some(cached) = self.cache.get(&overlay) {
+            // Move to current
+            self.current = cached.clone();
+            self.current_type = overlay;
+            return &self.current;
+        }
+
+        // Calculate new overlay colors
+        info!("Calculating overlay colors for: {}", overlay.display_name());
+        let start = std::time::Instant::now();
+
+        // Generate colors for all vertices (7 colors per province)
+        let colors: Vec<[f32; 4]> = province_storage.provinces
+            .iter()  // Use sequential iteration since order matters
+            .flat_map(|province| {
+                let province_color = match overlay {
+                    ResourceOverlay::None => {
+                        get_terrain_color_gradient(province.terrain, province.elevation.value())
+                    },
+                    ResourceOverlay::Mineral(mineral_type) => {
+                        let color = if let Some(abundance) = province.get_mineral_abundance(mineral_type) {
+                            if mineral_type == MineralType::Stone {
+                                stone_abundance_color(abundance)
+                            } else {
+                                mineral_abundance_color(abundance)
+                            }
+                        } else {
+                            get_terrain_color_gradient(province.terrain, province.elevation.value())
+                        };
+                        // Helper for ocean default
+                        if province.terrain == TerrainType::Ocean {
+                            get_terrain_color_gradient(province.terrain, province.elevation.value())
+                        } else {
+                            color
+                        }
+                    },
+                    ResourceOverlay::AllMinerals => {
+                        let color = {
+                            let total_richness = calculate_total_richness(province);
+                            combined_richness_color(total_richness)
+                        };
+                        if province.terrain == TerrainType::Ocean {
+                            get_terrain_color_gradient(province.terrain, province.elevation.value())
+                        } else {
+                            color
+                        }
+                    },
+                };
+
+                let linear = province_color.to_linear();
+                let color_array = [linear.red, linear.green, linear.blue, linear.alpha];
+                vec![color_array; VERTICES_PER_HEX]
+            })
+            .collect();
+
+        debug!("Calculated {} overlay in {:.2}ms (buffer size: {} colors for {} provinces = {} vertices)",
+               overlay.display_name(),
+               start.elapsed().as_secs_f32() * 1000.0,
+               colors.len(),
+               province_storage.provinces.len(),
+               province_storage.provinces.len() * VERTICES_PER_HEX);
+
+        // Store in cache and manage size
+        if self.cache.len() >= self.max_cache_size {
+            // Remove least recently used (not current)
+            if let Some(key_to_remove) = self.cache.keys()
+                .find(|&&k| k != self.current_type)
+                .cloned() {
+                self.cache.remove(&key_to_remove);
+            }
+        }
+
+        // Add previous current to cache if it's not None
+        if self.current_type != ResourceOverlay::None && !self.current.is_empty() {
+            self.cache.insert(self.current_type, self.current.clone());
+        }
+
+        // Update current
+        self.current = colors;
+        self.current_type = overlay;
+
+        &self.current
+    }
+
+    /// Clear cache to free memory
+    pub fn clear_cache(&mut self) {
+        self.cache.clear();
+        debug!("Cleared overlay color cache");
+    }
+
+    /// Get memory usage in MB
+    pub fn memory_usage_mb(&self) -> f32 {
+        const BYTES_PER_MB: f32 = 1024.0 * 1024.0;
+        let current_size = self.current.len() * std::mem::size_of::<[f32; 4]>();
+        let cache_size: usize = self.cache.values()
+            .map(|v| v.len() * std::mem::size_of::<[f32; 4]>())
+            .sum();
+        (current_size + cache_size) as f32 / BYTES_PER_MB
+    }
 }
 
 
@@ -386,7 +516,7 @@ pub struct CachedOverlayColors {
 // ============================================================================
 
 /// Resource visualization overlay modes for displaying mineral distribution
-#[derive(Resource, Debug, Clone, Copy, PartialEq, Eq, Reflect, Serialize, Deserialize)]
+#[derive(Resource, Debug, Clone, Copy, PartialEq, Eq, Hash, Reflect, Serialize, Deserialize)]
 pub enum ResourceOverlay {
     /// No overlay - show normal political/terrain colors
     None,
@@ -405,6 +535,7 @@ impl Default for ResourceOverlay {
 impl ResourceOverlay {
     /// Cycle to the next overlay mode
     pub fn cycle(&mut self) {
+        use crate::components::MineralType;
         *self = match self {
             ResourceOverlay::None => ResourceOverlay::Mineral(MineralType::Iron),
             ResourceOverlay::Mineral(MineralType::Iron) => ResourceOverlay::Mineral(MineralType::Copper),
@@ -415,12 +546,12 @@ impl ResourceOverlay {
             ResourceOverlay::Mineral(MineralType::Stone) => ResourceOverlay::Mineral(MineralType::Gems),
             ResourceOverlay::Mineral(MineralType::Gems) => ResourceOverlay::AllMinerals,
             ResourceOverlay::AllMinerals => ResourceOverlay::None,
-            _ => ResourceOverlay::None,
         }
     }
-    
+
     /// Get display name for current overlay
     pub fn display_name(&self) -> &str {
+        use crate::components::MineralType;
         match self {
             ResourceOverlay::None => "Natural Terrain",
             ResourceOverlay::Mineral(MineralType::Iron) => "Iron Deposits",
@@ -431,7 +562,6 @@ impl ResourceOverlay {
             ResourceOverlay::Mineral(MineralType::Stone) => "Stone Deposits",
             ResourceOverlay::Mineral(MineralType::Gems) => "Gem Deposits",
             ResourceOverlay::AllMinerals => "All Minerals",
-            _ => "Unknown",
         }
     }
 }
