@@ -76,32 +76,71 @@ The project uses a **modular plugin architecture** with Bevy's ECS (Entity Compo
 
 ```
 livingworlds/
-├── src/                    # Source code (~200 KB, ~5000 lines)
-│   ├── generation/        # Modular world generation system (8 files)
-│   │   ├── mod.rs         # World generation orchestrator
-│   │   ├── types.rs       # Shared data structures
-│   │   ├── provinces.rs   # Province generation with parallel processing
-│   │   ├── rivers.rs      # River systems with flow accumulation
-│   │   ├── agriculture.rs # Fertility and fresh water calculations
-│   │   ├── clouds.rs      # Procedural atmospheric effects
-│   │   ├── tectonics.rs   # Continental drift simulation
+├── src/                    # Source code (~1 MB, ~25,000 lines)
+│   ├── generation/        # World generation builders (7 files)
+│   │   ├── mod.rs         # WorldBuilder orchestrator
+│   │   ├── provinces.rs   # ProvinceBuilder with parallel processing
+│   │   ├── rivers.rs      # RiverBuilder with flow accumulation
+│   │   ├── tectonics.rs   # TectonicsBuilder for continental plates
+│   │   ├── clouds.rs      # CloudBuilder for atmospheric effects
+│   │   ├── agriculture.rs # Agriculture and fertility calculations
 │   │   └── utils.rs       # Utility functions
+│   ├── world/             # World data and rendering (9 files)
+│   │   ├── mod.rs         # World module exports
+│   │   ├── data.rs        # Core data structures (World, RiverSystem, etc.)
+│   │   ├── terrain.rs     # Terrain types and climate zones
+│   │   ├── mesh.rs        # Mega-mesh building and vertex generation
+│   │   ├── borders.rs     # Selection border rendering
+│   │   ├── overlay.rs     # Map overlay with dynamic vertex colors
+│   │   ├── clouds.rs      # Cloud rendering and animation
+│   │   ├── config.rs      # World configuration UI
+│   │   └── components.rs  # World-specific components
+│   ├── ui/                # User interface system (10 files)
+│   │   ├── mod.rs         # UI plugin and coordination
+│   │   ├── styles.rs      # Centralized colors and dimensions
+│   │   ├── buttons.rs     # StyledButton builder system
+│   │   ├── dialogs.rs     # DialogBuilder for consistent dialogs
+│   │   ├── text_inputs.rs # TextInputBuilder with validation
+│   │   ├── sliders.rs     # SliderBuilder for value controls
+│   │   ├── components.rs  # Common UI components
+│   │   ├── form.rs        # Form handling
+│   │   ├── toolbar.rs     # Toolbar system
+│   │   └── builders.rs    # UI builder utilities
+│   ├── geometry/          # Hexagon calculations (2 files)
+│   │   ├── mod.rs         # Module exports
+│   │   └── hexagon.rs     # Single source of truth for hex math
+│   ├── settings/          # Settings management (8 files)
+│   │   ├── mod.rs         # Settings plugin
+│   │   ├── settings_ui.rs # Settings menu UI
+│   │   ├── handlers.rs    # Event handlers
+│   │   ├── persistence.rs # Save/load settings
+│   │   ├── resolution.rs  # Resolution detection
+│   │   ├── types.rs       # Settings data structures
+│   │   ├── navigation.rs  # Tab navigation
+│   │   └── components.rs  # Settings components
+│   ├── modding/           # Modding system (5 files)
+│   │   ├── mod.rs         # Modding plugin
+│   │   ├── types.rs       # Mod data structures
+│   │   ├── loader.rs      # Mod loading system
+│   │   ├── manager.rs     # Mod management
+│   │   └── ui.rs          # Mod browser UI
 │   ├── lib.rs             # Library root, plugin orchestration
-│   ├── main.rs            # Binary entry point (minimal launcher)
-│   ├── setup.rs           # World initialization, MEGA-MESH creation
-│   ├── mesh.rs            # Mega-mesh building and texture generation
-│   ├── simulation.rs      # Time simulation, world tension, population
-│   ├── terrain.rs         # Terrain types, climate zones, biomes
-│   ├── minerals.rs        # Resource generation and extraction
-│   ├── overlay.rs         # Map overlay rendering with vertex colors
-│   ├── clouds.rs          # Cloud animation and weather systems
+│   ├── main.rs            # Binary entry point
+│   ├── setup.rs           # World initialization using builders
+│   ├── simulation.rs      # Time simulation and population
+│   ├── minerals.rs        # Mineral resources and extraction
 │   ├── camera.rs          # Camera controls and viewport
-│   ├── ui.rs              # User interface and HUD
-│   ├── colors.rs          # All terrain and mineral color functions
-│   ├── borders.rs         # Selection border (1 entity only!)
-│   ├── components.rs      # ECS components definitions
+│   ├── colors.rs          # Terrain and mineral color functions
+│   ├── components.rs      # Core ECS components
 │   ├── resources.rs       # Global game resources
-│   └── constants.rs       # Game configuration constants
+│   ├── constants.rs       # Game configuration constants
+│   ├── states.rs          # Game state management
+│   ├── menus.rs           # Main and pause menus
+│   ├── loading_screen.rs  # Loading screen system
+│   ├── save_load.rs       # Save/load game functionality
+│   ├── province_events.rs # Province event handling
+│   ├── name_generator.rs  # Procedural name generation
+│   └── steam.rs           # Steam integration
 ├── images/                 # Screenshots and documentation
 ├── Cargo.toml             # Rust dependencies
 ├── CLAUDE.md              # Detailed technical documentation
@@ -112,8 +151,11 @@ NOTE: No assets/ directory - everything is procedurally generated!
 
 ### Key Systems
 - **Mega-Mesh Renderer**: Single mesh with 2.7M+ vertices for 60+ FPS on 900k provinces
+- **Builder Pattern Architecture**: All generation uses fluent builder APIs (WorldBuilder, ProvinceBuilder, etc.)
 - **ECS Architecture**: Leverages Bevy's parallel processing
 - **Plugin System**: Each module is a self-contained Bevy plugin
+- **Single Source of Truth**: Centralized data structures in world/data.rs
+- **Hexagon Geometry**: All hex calculations in geometry/hexagon.rs
 - **Deterministic Simulation**: Fixed-point math for consistency
 - **Spatial Indexing**: O(1) province lookups for performance
 - **Dynamic Vertex Colors**: Real-time overlay updates without recreating mesh
