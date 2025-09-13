@@ -11,7 +11,60 @@ use bevy::prelude::*;
 use rand::{Rng, rngs::StdRng};
 use voronator::{delaunator::Point, VoronoiDiagram};
 use crate::constants::*;
-use super::types::MapBounds;
+use crate::resources::MapBounds;
+
+/// Builder for generating tectonic systems following the builder pattern
+/// 
+/// This builder encapsulates tectonic plate generation with configurable continent count.
+pub struct TectonicsBuilder<'a> {
+    rng: &'a mut StdRng,
+    bounds: MapBounds,
+    seed: u32,
+    continent_count: Option<u32>,
+    min_plates: u32,
+    max_plates: u32,
+}
+
+impl<'a> TectonicsBuilder<'a> {
+    /// Create a new tectonics builder
+    pub fn new(rng: &'a mut StdRng, bounds: MapBounds, seed: u32) -> Self {
+        Self {
+            rng,
+            bounds,
+            seed,
+            continent_count: None, // Auto-determine by default
+            min_plates: 6,
+            max_plates: 20,
+        }
+    }
+    
+    /// Set specific number of continents/plates
+    pub fn with_continent_count(mut self, count: u32) -> Self {
+        self.continent_count = Some(count.clamp(self.min_plates, self.max_plates));
+        self
+    }
+    
+    /// Set minimum number of plates
+    pub fn with_min_plates(mut self, min: u32) -> Self {
+        self.min_plates = min;
+        self
+    }
+    
+    /// Set maximum number of plates
+    pub fn with_max_plates(mut self, max: u32) -> Self {
+        self.max_plates = max;
+        self
+    }
+    
+    /// Build the tectonic system
+    pub fn build(mut self) -> TectonicSystem {
+        // Delegate to the existing internal implementation
+        let continent_count = self.continent_count.unwrap_or_else(|| {
+            self.rng.gen_range(7..=12)
+        });
+        generate_tectonics_internal(self.rng, self.bounds, self.seed, continent_count)
+    }
+}
 
 // ============================================================================
 // CORE DATA STRUCTURES (5 SYSTEMS ONLY)
@@ -167,15 +220,22 @@ pub struct Volcano {
 // GENERATION FUNCTIONS
 // ============================================================================
 
-/// Generate simplified tectonic system with real Voronoi tessellation
+/// Legacy function for backward compatibility - use TectonicsBuilder instead
+#[deprecated(note = "Use TectonicsBuilder::new() instead")]
 pub fn generate(rng: &mut StdRng, bounds: MapBounds, seed: u32) -> TectonicSystem {
-    // Default to 7-12 plates for backward compatibility
-    let num_plates = rng.gen_range(7..=12);
-    generate_with_count(rng, bounds, seed, num_plates)
+    TectonicsBuilder::new(rng, bounds, seed).build()
 }
 
-/// Generate tectonic system with specified number of continents
+/// Legacy function for backward compatibility - use TectonicsBuilder instead
+#[deprecated(note = "Use TectonicsBuilder::new().with_continent_count() instead")]
 pub fn generate_with_count(rng: &mut StdRng, bounds: MapBounds, seed: u32, continent_count: u32) -> TectonicSystem {
+    TectonicsBuilder::new(rng, bounds, seed)
+        .with_continent_count(continent_count)
+        .build()
+}
+
+// Internal implementation moved to TectonicsBuilder
+fn generate_tectonics_internal(rng: &mut StdRng, bounds: MapBounds, seed: u32, continent_count: u32) -> TectonicSystem {
     println!("Generating tectonic system with {} continents using real Voronoi...", continent_count);
     
     // Generate the specified number of plates (continents)

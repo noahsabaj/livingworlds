@@ -2,10 +2,73 @@
 
 use bevy::prelude::*;
 use rand::{Rng, rngs::StdRng};
-use super::types::{CloudSystem, CloudData, CloudLayer, MapDimensions};
+use crate::resources::MapDimensions;
+use crate::world::{CloudSystem, CloudData, CloudLayer};
 
-/// Generate cloud positions and parameters
+/// Builder for generating cloud systems following the builder pattern
+/// 
+/// This builder encapsulates cloud generation with configurable density and layers.
+pub struct CloudBuilder<'a> {
+    rng: &'a mut StdRng,
+    dimensions: &'a MapDimensions,
+    cloud_density: f32,
+    high_layer_count: usize,
+    medium_layer_count: usize,
+    low_layer_count: usize,
+}
+
+impl<'a> CloudBuilder<'a> {
+    /// Create a new cloud builder
+    pub fn new(rng: &'a mut StdRng, dimensions: &'a MapDimensions) -> Self {
+        Self {
+            rng,
+            dimensions,
+            cloud_density: 1.0,
+            high_layer_count: 20,
+            medium_layer_count: 30,
+            low_layer_count: 40,
+        }
+    }
+    
+    /// Set overall cloud density multiplier
+    pub fn with_density(mut self, density: f32) -> Self {
+        self.cloud_density = density.max(0.0);
+        self
+    }
+    
+    /// Set number of high altitude clouds
+    pub fn with_high_clouds(mut self, count: usize) -> Self {
+        self.high_layer_count = count;
+        self
+    }
+    
+    /// Set number of medium altitude clouds
+    pub fn with_medium_clouds(mut self, count: usize) -> Self {
+        self.medium_layer_count = count;
+        self
+    }
+    
+    /// Set number of low altitude clouds
+    pub fn with_low_clouds(mut self, count: usize) -> Self {
+        self.low_layer_count = count;
+        self
+    }
+    
+    /// Build the cloud system
+    pub fn build(self) -> CloudSystem {
+        // Delegate to the existing internal implementation
+        generate_clouds_internal(self.rng, self.dimensions)
+    }
+}
+
+/// Legacy function for backward compatibility - use CloudBuilder instead
+#[deprecated(note = "Use CloudBuilder::new() instead")]
 pub fn generate(rng: &mut StdRng, dimensions: &MapDimensions) -> CloudSystem {
+    CloudBuilder::new(rng, dimensions).build()
+}
+
+// Internal implementation moved to CloudBuilder
+fn generate_clouds_internal(rng: &mut StdRng, dimensions: &MapDimensions) -> CloudSystem {
     let map_width = dimensions.bounds.x_max - dimensions.bounds.x_min;
     let map_height = dimensions.bounds.y_max - dimensions.bounds.y_min;
     

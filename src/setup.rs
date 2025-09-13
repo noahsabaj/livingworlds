@@ -6,11 +6,11 @@ use bevy::prelude::*;
 use bevy::sprite::MeshMaterial2d;
 use bevy::render::mesh::Mesh2d;
 use std::collections::HashMap;
-use crate::resources::{ProvincesSpatialIndex};
-use crate::terrain::TerrainType;
-use crate::generation::WorldGenerator;
-use crate::mesh::{ProvinceStorage, WorldMeshHandle, build_world_mesh};
-use crate::world_config::WorldGenerationSettings;
+use crate::resources::{ProvincesSpatialIndex, WorldSeed, WorldName};
+use crate::world::terrain::TerrainType;
+use crate::generation::WorldBuilder;
+use crate::world::mesh::{ProvinceStorage, WorldMeshHandle, build_world_mesh};
+use crate::world::config::WorldGenerationSettings;
 use crate::states::GameState;
 use crate::loading_screen::{LoadingState, set_loading_progress};
 
@@ -36,7 +36,7 @@ pub fn setup_world(
     println!("Advanced settings: {} continents, {:.0}% ocean, {:?} climate",
         settings.continent_count, settings.ocean_coverage * 100.0, settings.climate_type);
     
-    let generator = WorldGenerator::new(
+    let builder = WorldBuilder::new(
         settings.seed, 
         settings.world_size.clone(),
         settings.continent_count,
@@ -44,21 +44,28 @@ pub fn setup_world(
         settings.river_density,
     );
     set_loading_progress(&mut loading_state, 0.1, "Generating terrain...");
-    let generated_world = generator.generate();
+    let world = builder.build();
     set_loading_progress(&mut loading_state, 0.6, "Building world mesh...");
     
     // Store map dimensions as resource
-    commands.insert_resource(generated_world.map_dimensions);
+    commands.insert_resource(world.map_dimensions);
+    
+    // Store world seed and name as resources
+    commands.insert_resource(WorldSeed(settings.seed));
+    commands.insert_resource(WorldName(settings.world_name.clone()));
+    
+    // Insert MapDimensions resource for camera system
+    commands.insert_resource(crate::resources::MapDimensions::from_world_size(&settings.world_size));
     
     // =========================================================================
     // BUILD MEGA-MESH FOR RENDERING
     // =========================================================================
     
-    println!("Building mega-mesh with {} hexagons...", generated_world.provinces.len());
+    println!("Building mega-mesh with {} hexagons...", world.provinces.len());
     let mesh_start = std::time::Instant::now();
     
     // Delegate mesh building to the mesh module
-    let mesh_handle = build_world_mesh(&generated_world.provinces, &mut meshes);
+    let mesh_handle = build_world_mesh(&world.provinces, &mut meshes);
     set_loading_progress(&mut loading_state, 0.8, "Spawning entities...");
     
     // Spawn the world as a single entity
@@ -70,7 +77,7 @@ pub fn setup_world(
         ViewVisibility::default(),
         InheritedVisibility::default(),
         Name::new("World Mega-Mesh"),
-        crate::components::GameWorld,  // Mark as game world entity
+        crate::world::TerrainEntity,  // Mark as terrain entity
     ));
     
     println!("Mega-mesh built in {:.2}s - ONE entity instead of 900,000!", 
@@ -88,26 +95,26 @@ pub fn setup_world(
     // =========================================================================
     
     // Store cloud data for the clouds module to spawn entities from
-    commands.insert_resource(generated_world.clouds.clone());
+    commands.insert_resource(world.clouds.clone());
     
     // =========================================================================
     // STORE RESOURCES
     // =========================================================================
     
     // Calculate statistics before moving provinces
-    let total_provinces = generated_world.provinces.len();
-    let land_count = generated_world.provinces.iter()
+    let total_provinces = world.provinces.len();
+    let land_count = world.provinces.iter()
         .filter(|p| p.terrain != TerrainType::Ocean)
         .count();
     
     // Build HashMap for O(1) province position lookups (avoiding O(n²) bug!)
-    let province_positions: HashMap<u32, Vec2> = generated_world.provinces.iter()
+    let province_positions: HashMap<u32, Vec2> = world.provinces.iter()
         .map(|p| (p.id.value(), p.position))
         .collect();
     
     // Build spatial index using the HashMap for fast lookups
     let mut spatial_index = ProvincesSpatialIndex::default();
-    for (grid_pos, province_id) in generated_world.spatial_index {
+    for (grid_pos, province_id) in world.spatial_index {
         // In mega-mesh architecture, we use Entity::PLACEHOLDER since provinces aren't entities
         // The province_id is what matters for lookups
         if let Some(&position) = province_positions.get(&province_id) {
@@ -118,19 +125,18 @@ pub fn setup_world(
     commands.insert_resource(spatial_index);
     
     // Build HashMap for O(1) province lookups by ID (for UI and selection systems)
-    let province_by_id: HashMap<u32, usize> = generated_world.provinces.iter()
+    let province_by_id: HashMap<u32, usize> = world.provinces.iter()
         .enumerate()
         .map(|(idx, p)| (p.id.value(), idx))
         .collect();
     
     // Get total provinces count before moving
-    let total_provinces = generated_world.provinces.len();
+    let total_provinces = world.provinces.len();
     
     // Store provinces for later access - MOVE ownership instead of cloning!
     commands.insert_resource(ProvinceStorage {
-        provinces: generated_world.provinces,  // Move, not clone - saves 36MB!
+        provinces: world.provinces,  // Move, not clone - saves 36MB!
         province_by_id,  // O(1) lookups for UI/selection
-        mesh_handle: mesh_handle.clone(),
     });
     
     // Store mesh handle for overlay system

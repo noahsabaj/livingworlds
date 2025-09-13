@@ -2,8 +2,9 @@
 
 use std::collections::HashSet;
 use crate::components::{Province, Agriculture, Distance};
-use crate::terrain::TerrainType;
-use super::types::{MapDimensions, RiverSystem};
+use crate::world::terrain::TerrainType;
+use crate::resources::MapDimensions;
+use crate::world::RiverSystem;
 
 pub fn calculate(
     provinces: &mut [Province],

@@ -14,10 +14,51 @@ use noise::Perlin;
 use rand::rngs::StdRng;
 
 use crate::components::{Province, ProvinceId, Elevation, Agriculture, Distance};
-use crate::terrain::{TerrainType, classify_terrain_with_sea_level};
+use crate::world::terrain::{TerrainType, classify_terrain_with_sea_level};
 use crate::constants::*;
-use super::types::MapDimensions;
+use crate::resources::MapDimensions;
 use super::tectonics::{TectonicSystem, TectonicPlate, BoundaryType};
+
+/// Builder for generating provinces following the builder pattern
+/// 
+/// This builder encapsulates all province generation logic and configuration.
+pub struct ProvinceBuilder<'a> {
+    tectonics: &'a TectonicSystem,
+    dimensions: MapDimensions,
+    perlin: &'a Perlin,
+    rng: &'a mut StdRng,
+    ocean_coverage: f32,
+}
+
+impl<'a> ProvinceBuilder<'a> {
+    /// Create a new province builder with required dependencies
+    pub fn new(
+        tectonics: &'a TectonicSystem,
+        dimensions: MapDimensions,
+        perlin: &'a Perlin,
+        rng: &'a mut StdRng,
+    ) -> Self {
+        Self {
+            tectonics,
+            dimensions,
+            perlin,
+            rng,
+            ocean_coverage: 0.6, // Default 60% ocean
+        }
+    }
+    
+    /// Set the desired ocean coverage (0.0 to 1.0)
+    pub fn with_ocean_coverage(mut self, coverage: f32) -> Self {
+        self.ocean_coverage = coverage.clamp(0.0, 1.0);
+        self
+    }
+    
+    /// Build the provinces with the configured settings
+    pub fn build(self) -> Vec<Province> {
+        // Delegate to the existing internal implementation
+        generate_provinces_internal(self.tectonics, self.dimensions, self.perlin, self.rng, self.ocean_coverage)
+    }
+}
 
 /// Check if a point is inside a polygon using ray casting algorithm
 fn point_in_polygon(point: Vec2, polygon: &[Vec2]) -> bool {
@@ -137,18 +178,33 @@ fn get_volcanic_influence(position: Vec2, tectonics: &TectonicSystem) -> f32 {
     max_influence
 }
 
+/// Legacy function for backward compatibility - use ProvinceBuilder instead
+#[deprecated(note = "Use ProvinceBuilder::new() instead")]
 pub fn generate(
     tectonics: &TectonicSystem,
     dimensions: MapDimensions,
     perlin: &Perlin,
-    _rng: &mut StdRng,
+    rng: &mut StdRng,
 ) -> Vec<Province> {
-    // Default ocean coverage of 60%
-    generate_with_ocean_coverage(tectonics, dimensions, perlin, _rng, 0.6)
+    ProvinceBuilder::new(tectonics, dimensions, perlin, rng).build()
 }
 
-/// Generate provinces with specified ocean coverage
+/// Legacy function for backward compatibility - use ProvinceBuilder instead
+#[deprecated(note = "Use ProvinceBuilder::new().with_ocean_coverage() instead")]
 pub fn generate_with_ocean_coverage(
+    tectonics: &TectonicSystem,
+    dimensions: MapDimensions,
+    perlin: &Perlin,
+    rng: &mut StdRng,
+    ocean_coverage: f32,
+) -> Vec<Province> {
+    ProvinceBuilder::new(tectonics, dimensions, perlin, rng)
+        .with_ocean_coverage(ocean_coverage)
+        .build()
+}
+
+// Internal implementation moved to ProvinceBuilder
+fn generate_provinces_internal(
     tectonics: &TectonicSystem,
     dimensions: MapDimensions,
     perlin: &Perlin,
@@ -183,10 +239,11 @@ pub fn generate_with_ocean_coverage(
             let province_id = idx;
             
             // Calculate position
-            let (pos_x, pos_y) = crate::constants::calculate_hex_position(
+            let pos = crate::geometry::calculate_grid_position(
                 col, row, dimensions.hex_size, 
                 dimensions.provinces_per_row, dimensions.provinces_per_col
             );
+            let (pos_x, pos_y) = (pos.x, pos.y);
             
             let position = Vec2::new(pos_x, pos_y);
             
@@ -200,7 +257,7 @@ pub fn generate_with_ocean_coverage(
                 .map(|p| (p.center.x, p.center.y))
                 .collect();
             
-            let mut elevation = crate::terrain::generate_elevation_with_edges(
+            let mut elevation = crate::world::terrain::generate_elevation_with_edges(
                 pos_x, pos_y, perlin, &continent_centers,
                 dimensions.bounds.x_max - dimensions.bounds.x_min,
                 dimensions.bounds.y_max - dimensions.bounds.y_min,
@@ -275,7 +332,7 @@ pub fn generate_with_ocean_coverage(
             let base_pop = if terrain == TerrainType::Ocean {
                 0
             } else {
-                (PROVINCE_MIN_POPULATION + (elevation * PROVINCE_MAX_ADDITIONAL_POPULATION)) as u32
+                (PROVINCE_MIN_POPULATION as f32 + (elevation * PROVINCE_MAX_ADDITIONAL_POPULATION as f32)) as u32
             };
             
             Province::builder(ProvinceId::new(province_id))

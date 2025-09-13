@@ -5,22 +5,83 @@ use bevy::prelude::*;
 use rand::rngs::StdRng;
 
 use crate::components::{Province, ProvinceId};
-use crate::terrain::TerrainType;
+use crate::world::terrain::TerrainType;
 use crate::constants::*;
-use super::types::{MapDimensions, RiverSystem};
+use crate::resources::MapDimensions;
+use crate::world::RiverSystem;
 use super::utils::hex_neighbors;
 
+/// Builder for generating river systems following the builder pattern
+/// 
+/// This builder encapsulates river generation logic with configurable density.
+pub struct RiverBuilder<'a> {
+    provinces: &'a mut [Province],
+    dimensions: MapDimensions,
+    rng: &'a mut StdRng,
+    river_density: f32,
+    min_elevation: f32,
+}
+
+impl<'a> RiverBuilder<'a> {
+    /// Create a new river builder
+    pub fn new(
+        provinces: &'a mut [Province],
+        dimensions: MapDimensions,
+        rng: &'a mut StdRng,
+    ) -> Self {
+        Self {
+            provinces,
+            dimensions,
+            rng,
+            river_density: 1.0, // Default density
+            min_elevation: RIVER_MIN_ELEVATION,
+        }
+    }
+    
+    /// Set the river density multiplier (0.5 = half rivers, 2.0 = double rivers)
+    pub fn with_density(mut self, density: f32) -> Self {
+        self.river_density = density.max(0.0);
+        self
+    }
+    
+    /// Set minimum elevation for river sources
+    pub fn with_min_elevation(mut self, elevation: f32) -> Self {
+        self.min_elevation = elevation;
+        self
+    }
+    
+    /// Build the river system
+    pub fn build(self) -> RiverSystem {
+        // Delegate to the existing internal implementation
+        generate_rivers_internal(self.provinces, self.dimensions, self.rng, self.river_density)
+    }
+}
+
+/// Legacy function for backward compatibility - use RiverBuilder instead
+#[deprecated(note = "Use RiverBuilder::new() instead")]
 pub fn generate(
     provinces: &mut [Province],
     dimensions: MapDimensions,
-    _rng: &mut StdRng,
+    rng: &mut StdRng,
 ) -> RiverSystem {
-    // Default river density of 1.0
-    generate_with_density(provinces, dimensions, _rng, 1.0)
+    RiverBuilder::new(provinces, dimensions, rng).build()
 }
 
-/// Generate rivers with specified density multiplier
+/// Legacy function for backward compatibility - use RiverBuilder instead
+#[deprecated(note = "Use RiverBuilder::new().with_density() instead")]
 pub fn generate_with_density(
+    provinces: &mut [Province],
+    dimensions: MapDimensions,
+    rng: &mut StdRng,
+    river_density: f32,
+) -> RiverSystem {
+    RiverBuilder::new(provinces, dimensions, rng)
+        .with_density(river_density)
+        .build()
+}
+
+// Internal implementation moved to RiverBuilder
+fn generate_rivers_internal(
     provinces: &mut [Province],
     dimensions: MapDimensions,
     _rng: &mut StdRng,
