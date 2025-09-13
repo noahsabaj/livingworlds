@@ -13,7 +13,7 @@ pub mod states;
 
 // World generation and representation
 pub mod generation;  // Tools and builders for world creation
-pub mod geometry;    // Single source of truth for spatial math
+pub mod math;        // Single source of truth for spatial math and noise
 pub mod world;       // World representation and rendering
 pub mod setup;       // World initialization
 

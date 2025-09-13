@@ -42,7 +42,7 @@ pub use mesh::{
     ProvinceStorage,
     WorldMeshHandle,
     MeshBuilder,
-    MeshStatistics,
+    MeshBuildStats,
 };
 
 // Re-export world configuration
