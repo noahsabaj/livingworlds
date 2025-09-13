@@ -17,10 +17,14 @@ use serde::{Serialize, Deserialize};
 use zstd::stream::{encode_all, decode_all};
 use crate::menus::SpawnSaveBrowserEvent;
 
-use crate::mesh::ProvinceStorage;
-use crate::resources::{WorldSeed, WorldSize, MapDimensions, GameTime, WorldTension, ResourceOverlay};
+use crate::world::mesh::ProvinceStorage;
+use crate::resources::{WorldSeed, WorldName, WorldSize, MapDimensions, GameTime, WorldTension, ResourceOverlay};
 use crate::states::{GameState, RequestStateTransition};
-use crate::ui_toolbox::buttons::{ButtonBuilder, ButtonStyle, ButtonSize};
+use crate::ui::buttons::{ButtonBuilder, ButtonStyle, ButtonSize};
+use crate::ui::text_inputs::TextInputBuilder;
+use crate::ui::styles::{colors, dimensions};
+use crate::colors::theme;
+use bevy_simple_text_input::{TextInputValue, TextInputSubmitEvent};
 use crate::loading_screen::{LoadingState, start_save_loading, set_loading_progress};
 
 // ============================================================================
@@ -55,6 +59,8 @@ pub struct SaveGameInfo {
     pub name: String,
     pub path: PathBuf,
     pub date_created: DateTime<Local>,
+    pub world_name: String,  // Name of the world
+    pub world_seed: u32,      // Seed used for world generation
     pub world_size: String,
     pub game_time: f32,
     pub version: u32,
@@ -66,6 +72,7 @@ pub struct SaveGameInfo {
 pub struct SaveGameData {
     pub version: u32,
     pub timestamp: DateTime<Local>,
+    pub world_name: String,  // Name of the world
     pub world_seed: u32,
     pub world_size: WorldSize,
     pub map_dimensions: MapDimensions,
@@ -129,6 +136,44 @@ pub struct LoadingScreenRoot;
 #[derive(Component)]
 pub struct LoadingProgressText;
 
+/// Marker for save dialog UI
+#[derive(Component)]
+pub struct SaveDialogRoot;
+
+/// Marker for save name input field
+#[derive(Component)]
+pub struct SaveNameInput;
+
+/// Marker for save dialog confirm button
+#[derive(Component)]
+pub struct SaveDialogConfirmButton;
+
+/// Marker for save dialog cancel button
+#[derive(Component)]
+pub struct SaveDialogCancelButton;
+
+/// Marker for search input in save dialog
+#[derive(Component)]
+pub struct SaveSearchInput;
+
+/// Marker for existing save list in save dialog
+#[derive(Component)]
+pub struct ExistingSavesList;
+
+/// Marker for existing save item that can be clicked to overwrite
+#[derive(Component)]
+pub struct ExistingSaveItem {
+    pub save_info: SaveGameInfo,
+}
+
+/// Resource to track save dialog state
+#[derive(Resource, Default)]
+pub struct SaveDialogState {
+    pub is_open: bool,
+    pub selected_save: Option<String>,
+    pub search_filter: String,
+}
+
 // ============================================================================
 // EVENTS
 // ============================================================================
@@ -138,6 +183,14 @@ pub struct LoadingProgressText;
 pub struct SaveGameEvent {
     pub slot_name: String,
 }
+
+/// Event to open the save dialog
+#[derive(Event)]
+pub struct OpenSaveDialogEvent;
+
+/// Event to close the save dialog
+#[derive(Event)]
+pub struct CloseSaveDialogEvent;
 
 /// Event to trigger deleting a save file
 #[derive(Event)]
@@ -178,6 +231,7 @@ impl Plugin for SaveLoadPlugin {
             // Resources
             .init_resource::<SaveGameList>()
             .init_resource::<SaveBrowserState>()
+            .init_resource::<SaveDialogState>()
             .insert_resource(AutoSaveTimer {
                 timer: Timer::from_seconds(AUTO_SAVE_INTERVAL, TimerMode::Repeating),
                 enabled: true,
@@ -189,6 +243,8 @@ impl Plugin for SaveLoadPlugin {
             .add_event::<SaveCompleteEvent>()
             .add_event::<LoadCompleteEvent>()
             .add_event::<DeleteSaveEvent>()
+            .add_event::<OpenSaveDialogEvent>()
+            .add_event::<CloseSaveDialogEvent>()
             
             // Systems
             .add_systems(Update, (
@@ -201,6 +257,9 @@ impl Plugin for SaveLoadPlugin {
                 handle_spawn_save_browser_event,
                 handle_delete_button_click,
                 handle_delete_confirmation,
+                handle_open_save_dialog,
+                handle_close_save_dialog,
+                handle_save_dialog_interactions,
             ))
             .add_systems(OnEnter(GameState::LoadingWorld), check_for_pending_load)
             .add_systems(OnExit(GameState::MainMenu), close_save_browser)
@@ -210,7 +269,7 @@ impl Plugin for SaveLoadPlugin {
         // Register types for reflection
         app.register_type::<crate::components::Province>()
             .register_type::<crate::components::MineralType>()
-            .register_type::<crate::terrain::TerrainType>()
+            .register_type::<crate::world::terrain::TerrainType>()
             .register_type::<WorldSeed>()
             .register_type::<WorldSize>()
             .register_type::<MapDimensions>()
@@ -269,6 +328,7 @@ fn handle_save_game(
     mut save_events: EventReader<SaveGameEvent>,
     mut complete_events: EventWriter<SaveCompleteEvent>,
     world_seed: Option<Res<WorldSeed>>,
+    world_name: Option<Res<WorldName>>,
     world_size: Option<Res<WorldSize>>,
     map_dims: Option<Res<MapDimensions>>,
     game_time: Option<Res<GameTime>>,
@@ -283,6 +343,7 @@ fn handle_save_game(
         let save_data = SaveGameData {
             version: SAVE_VERSION,
             timestamp: Local::now(),
+            world_name: world_name.as_ref().map(|n| n.0.clone()).unwrap_or_else(|| "Unnamed World".to_string()),
             world_seed: world_seed.as_ref().map(|s| s.0).unwrap_or(0),
             world_size: world_size.as_deref().copied().unwrap_or(WorldSize::Medium),
             map_dimensions: map_dims.as_deref().copied().unwrap_or_default(),
@@ -465,6 +526,7 @@ fn check_for_pending_load(
         
         // Insert all the loaded resources
         commands.insert_resource(WorldSeed(load_data.0.world_seed));
+        commands.insert_resource(WorldName(load_data.0.world_name.clone()));
         commands.insert_resource(load_data.0.world_size);
         commands.insert_resource(load_data.0.map_dimensions);
         commands.insert_resource(load_data.0.game_time.clone());
@@ -473,7 +535,7 @@ fn check_for_pending_load(
         set_loading_progress(&mut loading_state, 0.4, "Resources restored...");
         
         // Build the world mesh from loaded provinces
-        use crate::mesh::{build_world_mesh, WorldMeshHandle};
+        use crate::world::mesh::{build_world_mesh, WorldMeshHandle};
         use bevy::render::mesh::Mesh2d;
         use bevy::sprite::MeshMaterial2d;
         
@@ -502,7 +564,6 @@ fn check_for_pending_load(
         commands.insert_resource(ProvinceStorage {
             provinces: load_data.0.provinces.clone(),
             province_by_id,
-            mesh_handle,
         });
         
         // Create the spatial index for fast province lookups
@@ -515,23 +576,9 @@ fn check_for_pending_load(
         
         // Generate cloud system based on world seed (clouds are procedural, not saved)
         use rand::{SeedableRng, rngs::StdRng};
-        use crate::generation::types::{MapDimensions as GenMapDimensions, MapBounds};
-        use crate::constants::HEX_SIZE_PIXELS;
         
         let mut rng = StdRng::seed_from_u64(load_data.0.world_seed as u64);
-        let gen_dimensions = GenMapDimensions {
-            provinces_per_row: load_data.0.map_dimensions.provinces_per_row,
-            provinces_per_col: load_data.0.map_dimensions.provinces_per_col,
-            hex_size: HEX_SIZE_PIXELS,
-            bounds: MapBounds {
-                x_min: -load_data.0.map_dimensions.width_pixels / 2.0,
-                x_max: load_data.0.map_dimensions.width_pixels / 2.0,
-                y_min: -load_data.0.map_dimensions.height_pixels / 2.0,
-                y_max: load_data.0.map_dimensions.height_pixels / 2.0,
-            },
-        };
-        
-        let cloud_system = crate::generation::clouds::generate(&mut rng, &gen_dimensions);
+        let cloud_system = crate::generation::clouds::generate(&mut rng, &load_data.0.map_dimensions);
         commands.insert_resource(cloud_system);
         
         // Remove the pending load data
@@ -684,6 +731,24 @@ pub fn spawn_save_browser(
                                         ..default()
                                     },
                                     TextColor(Color::srgb(0.9, 0.9, 0.9)),
+                                ));
+                                
+                                // World info
+                                info.spawn((
+                                    Text::new(format!("World: {} | Seed: {} | Size: {}",
+                                        save_info.world_name,
+                                        save_info.world_seed,
+                                        save_info.world_size
+                                    )),
+                                    TextFont {
+                                        font_size: 16.0,
+                                        ..default()
+                                    },
+                                    TextColor(Color::srgb(0.7, 0.8, 0.9)),
+                                    Node {
+                                        margin: UiRect::top(Val::Px(3.0)),
+                                        ..default()
+                                    },
                                 ));
                                 
                                 // Save details
@@ -863,7 +928,7 @@ pub fn load_latest_save(world: &mut World) {
 
 /// Extract minimal metadata from a save file efficiently
 /// Only reads the first 8KB of the compressed file to avoid performance issues
-fn extract_save_metadata(path: &Path) -> Option<(String, f32, u32)> {
+fn extract_save_metadata(path: &Path) -> Option<(String, f32, u32, String, u32)> {
     use std::io::{BufReader, Read as IoRead};
     
     // Read only the first 8KB of the compressed file (should contain metadata)
@@ -934,7 +999,39 @@ fn extract_save_metadata(path: &Path) -> Option<(String, f32, u32)> {
         1
     };
     
-    Some((world_size, game_time, version))
+    // Extract world_name
+    let world_name = if let Some(idx) = data_str.find("world_name:") {
+        let substr = &data_str[idx + 11..]; // Skip "world_name:"
+        // Look for the string delimiters
+        if let Some(start_quote) = substr.find('"') {
+            let string_start = &substr[start_quote + 1..];
+            if let Some(end_quote) = string_start.find('"') {
+                string_start[..end_quote].to_string()
+            } else {
+                "Unnamed World".to_string()
+            }
+        } else {
+            "Unnamed World".to_string()
+        }
+    } else {
+        "Unnamed World".to_string()
+    };
+    
+    // Extract world_seed
+    let world_seed = if let Some(idx) = data_str.find("world_seed:") {
+        let substr = &data_str[idx + 11..]; // Skip "world_seed:"
+        if let Some(end_idx) = substr.find(',') {
+            substr[..end_idx].trim().parse::<u32>().unwrap_or(0)
+        } else if let Some(end_idx) = substr.find('\n') {
+            substr[..end_idx].trim().parse::<u32>().unwrap_or(0)
+        } else {
+            0
+        }
+    } else {
+        0
+    };
+    
+    Some((world_size, game_time, version, world_name, world_seed))
 }
 
 /// Internal function for scanning save files without ECS wrapper
@@ -988,14 +1085,16 @@ pub fn scan_save_files_internal(save_list: &mut SaveGameList) {
                                 };
                                 
                                 // Extract actual metadata from the save file
-                                let (world_size, game_time, version) = 
+                                let (world_size, game_time, version, world_name, world_seed) = 
                                     extract_save_metadata(&entry.path())
-                                        .unwrap_or_else(|| ("Unknown".to_string(), 0.0, 1));
+                                        .unwrap_or_else(|| ("Unknown".to_string(), 0.0, 1, "Unnamed World".to_string(), 0));
                                 
                                 let save_info = SaveGameInfo {
                                     name: name.to_string(),
                                     path: entry.path(),
                                     date_created,
+                                    world_name,
+                                    world_seed,
                                     world_size,
                                     game_time,
                                     version,
@@ -1195,3 +1294,228 @@ fn handle_delete_confirmation(
     }
 }
 
+
+// ============================================================================
+// SAVE DIALOG SYSTEMS
+// ============================================================================
+
+/// Handle opening the save dialog
+fn handle_open_save_dialog(
+    mut events: EventReader<OpenSaveDialogEvent>,
+    mut commands: Commands,
+    mut dialog_state: ResMut<SaveDialogState>,
+    mut save_list: ResMut<SaveGameList>,
+    world_seed: Option<Res<WorldSeed>>,
+    world_name: Option<Res<WorldName>>,
+) {
+    for _ in events.read() {
+        if !dialog_state.is_open {
+            dialog_state.is_open = true;
+            dialog_state.selected_save = None;
+            dialog_state.search_filter.clear();
+            
+            // Scan for existing saves
+            scan_save_files_internal(&mut save_list);
+            
+            // Generate default save name with timestamp
+            let timestamp = Local::now().format("%Y%m%d_%H%M%S");
+            let default_name = format!("save_{}", timestamp);
+            
+            spawn_save_dialog(
+                &mut commands,
+                default_name,
+                &save_list,
+                world_name.as_ref().map(|n| n.0.clone()).unwrap_or_else(|| "Unnamed World".to_string()),
+                world_seed.as_ref().map(|s| s.0).unwrap_or(0),
+            );
+        }
+    }
+}
+
+/// Handle closing the save dialog
+fn handle_close_save_dialog(
+    mut events: EventReader<CloseSaveDialogEvent>,
+    mut commands: Commands,
+    mut dialog_state: ResMut<SaveDialogState>,
+    dialog_query: Query<Entity, With<SaveDialogRoot>>,
+) {
+    for _ in events.read() {
+        if dialog_state.is_open {
+            dialog_state.is_open = false;
+            
+            // Despawn the dialog
+            if let Ok(dialog_entity) = dialog_query.get_single() {
+                commands.entity(dialog_entity).despawn_recursive();
+            }
+        }
+    }
+}
+
+/// Spawn the save dialog UI
+fn spawn_save_dialog(
+    commands: &mut Commands,
+    default_name: String,
+    save_list: &SaveGameList,
+    world_name: String,
+    world_seed: u32,
+) {
+    commands.spawn((
+        Node {
+            width: Val::Percent(100.0),
+            height: Val::Percent(100.0),
+            position_type: PositionType::Absolute,
+            justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center,
+            ..default()
+        },
+        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.8)),
+        SaveDialogRoot,
+    )).with_children(|parent| {
+        // Dialog panel
+        parent.spawn((
+            Node {
+                width: Val::Px(900.0),
+                height: Val::Px(700.0),
+                flex_direction: FlexDirection::Column,
+                padding: UiRect::all(Val::Px(20.0)),
+                ..default()
+            },
+            BackgroundColor(theme::DIALOG_BACKGROUND),
+        )).with_children(|parent| {
+            // Title
+            parent.spawn((
+                Text::new("Save Game"),
+                TextFont {
+                    font_size: 32.0,
+                    ..default()
+                },
+                TextColor(colors::TEXT_PRIMARY),
+                Node {
+                    margin: UiRect::bottom(Val::Px(20.0)),
+                    ..default()
+                },
+            ));
+            
+            // World info
+            parent.spawn((
+                Node {
+                    flex_direction: FlexDirection::Row,
+                    margin: UiRect::bottom(Val::Px(15.0)),
+                    column_gap: Val::Px(20.0),
+                    ..default()
+                },
+            )).with_children(|info_parent| {
+                // World name
+                info_parent.spawn((
+                    Text::new(format!("World: {}", world_name)),
+                    TextFont {
+                        font_size: 18.0,
+                        ..default()
+                    },
+                    TextColor(colors::TEXT_SECONDARY),
+                ));
+                
+                // Seed
+                info_parent.spawn((
+                    Text::new(format!("Seed: {}", world_seed)),
+                    TextFont {
+                        font_size: 18.0,
+                        ..default()
+                    },
+                    TextColor(colors::TEXT_SECONDARY),
+                ));
+            });
+            
+            // Save name input section
+            parent.spawn((
+                Node {
+                    flex_direction: FlexDirection::Column,
+                    margin: UiRect::bottom(Val::Px(20.0)),
+                    ..default()
+                },
+            )).with_children(|section| {
+                // Label
+                section.spawn((
+                    Text::new("Save Name:"),
+                    TextFont {
+                        font_size: 20.0,
+                        ..default()
+                    },
+                    TextColor(colors::TEXT_PRIMARY),
+                    Node {
+                        margin: UiRect::bottom(Val::Px(8.0)),
+                        ..default()
+                    },
+                ));
+                
+                // Text input for save name (pre-populated with timestamp)
+                TextInputBuilder::new()
+                    .with_value(default_name)
+                    .with_placeholder("Enter save name...")
+                    .with_width(Val::Px(850.0))
+                    .with_font_size(18.0)
+                    .retain_on_submit(true)
+                    .with_marker(SaveNameInput)
+                    .build(section);
+            });
+            
+            // Bottom buttons
+            parent.spawn((
+                Node {
+                    width: Val::Percent(100.0),
+                    justify_content: JustifyContent::Center,
+                    column_gap: Val::Px(20.0),
+                    ..default()
+                },
+            )).with_children(|buttons| {
+                // Save button
+                ButtonBuilder::new("Save Game")
+                    .style(ButtonStyle::Primary)
+                    .size(ButtonSize::Large)
+                    .with_marker(SaveDialogConfirmButton)
+                    .build(buttons);
+                
+                // Cancel button
+                ButtonBuilder::new("Cancel")
+                    .style(ButtonStyle::Secondary)
+                    .size(ButtonSize::Large)
+                    .with_marker(SaveDialogCancelButton)
+                    .build(buttons);
+            });
+        });
+    });
+}
+
+/// Handle save dialog interactions
+fn handle_save_dialog_interactions(
+    mut interactions: Query<
+        (&Interaction, AnyOf<(&SaveDialogConfirmButton, &SaveDialogCancelButton)>),
+        Changed<Interaction>
+    >,
+    mut save_events: EventWriter<SaveGameEvent>,
+    mut close_events: EventWriter<CloseSaveDialogEvent>,
+    save_name_query: Query<&TextInputValue, With<SaveNameInput>>,
+) {
+    for (interaction, (confirm, cancel)) in &mut interactions {
+        if *interaction == Interaction::Pressed {
+            if confirm.is_some() {
+                // Get the save name from the input
+                if let Ok(save_name_value) = save_name_query.get_single() {
+                    let save_name = save_name_value.0.trim();
+                    if !save_name.is_empty() {
+                        // Trigger save with the chosen name
+                        save_events.send(SaveGameEvent {
+                            slot_name: save_name.to_string(),
+                        });
+                        
+                        // Close dialog
+                        close_events.send(CloseSaveDialogEvent);
+                    }
+                }
+            } else if cancel.is_some() {
+                // Just close the dialog
+                close_events.send(CloseSaveDialogEvent);
+            }
+        }
+    }
+}

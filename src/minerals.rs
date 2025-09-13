@@ -2,19 +2,43 @@
 //! 
 //! This module handles generation, extraction, and processing of mineral resources.
 //! Resources drive technological advancement, trade, and conflict between nations.
+//!
+//! # Performance Characteristics
+//! - Vein generation: O(n) where n = number of veins
+//! - Resource calculation: O(1) per province using spatial indexing
+//! - Parallel processing: Scales linearly with CPU cores
+//! - Memory usage: ~7 bytes per province for mineral storage
 
 use bevy::prelude::*;
 use rand::prelude::*;
 use rand::rngs::StdRng;
+use rayon::prelude::*;
 use std::collections::HashMap;
+use thiserror::Error;
 
 use crate::components::{
     Province,
     MineralType, Abundance
 };
-use crate::terrain::TerrainType;
+use crate::world::terrain::TerrainType;
 use crate::constants::*;
 use crate::generation::tectonics::{TectonicSystem, BoundaryType};
+
+// ============================================================================
+// ERROR TYPES
+// ============================================================================
+
+#[derive(Debug, Error)]
+pub enum MineralGenerationError {
+    #[error("No suitable provinces found for {mineral:?} generation")]
+    NoSuitableProvinces { mineral: MineralType },
+    
+    #[error("Invalid position: {0}")]
+    InvalidPosition(String),
+    
+    #[error("Invalid richness value {0} (must be between {1} and {2})")]
+    InvalidRichness(f32, f32, f32),
+}
 
 // ============================================================================
 // MINERAL GENERATION CONSTANTS
@@ -28,8 +52,38 @@ pub const GOLD_VEIN_COUNT: usize = 10;
 pub const COAL_DEPOSIT_COUNT: usize = 25;
 pub const GEM_VEIN_COUNT: usize = 5;
 
-/// Falloff distance for ore vein abundance (in map units)
+/// Vein generation parameters
 pub const VEIN_FALLOFF_DISTANCE: f32 = 500.0;
+pub const MIN_RICHNESS: f32 = 0.5;
+pub const MAX_RICHNESS: f32 = 2.0;
+pub const VEINS_PER_BOUNDARY_SEGMENT: usize = 2;
+pub const COPPER_VEIN_CHANCE: f64 = 0.5;
+pub const VEIN_POSITION_JITTER: f32 = 50.0;
+pub const GOLD_HOTSPOT_CHANCE: f64 = 0.3;
+
+/// Stone abundance by terrain
+pub const STONE_ABUNDANCE_MOUNTAINS: u8 = 80;
+pub const STONE_ABUNDANCE_HILLS: u8 = 60;
+pub const STONE_ABUNDANCE_TUNDRA: u8 = 50;
+pub const STONE_ABUNDANCE_DESERT: u8 = 40;
+pub const STONE_ABUNDANCE_BEACH: u8 = 30;
+pub const STONE_ABUNDANCE_DEFAULT: u8 = 20;
+
+/// Mineral value weights for richness calculation
+pub const IRON_VALUE_WEIGHT: f32 = 1.0;
+pub const COPPER_VALUE_WEIGHT: f32 = 1.5;
+pub const TIN_VALUE_WEIGHT: f32 = 3.0;
+pub const GOLD_VALUE_WEIGHT: f32 = 10.0;
+pub const COAL_VALUE_WEIGHT: f32 = 0.8;
+pub const STONE_VALUE_WEIGHT: f32 = 0.2;
+pub const GEM_VALUE_WEIGHT: f32 = 20.0;
+
+/// Abundance calculation parameters
+pub const ABUNDANCE_BASE_MULTIPLIER: f32 = 100.0;
+pub const MAX_ABUNDANCE: f32 = 100.0;
+
+/// Spatial index cell size (should be ~2x VEIN_FALLOFF_DISTANCE for optimal performance)
+pub const VEIN_SPATIAL_CELL_SIZE: f32 = 1000.0;
 
 /// Base extraction rates per day (with level 1 mine)
 pub const EXTRACTION_RATES: [(MineralType, f32); 7] = [
@@ -54,15 +108,114 @@ pub const DEPLETION_RATES: [(MineralType, f32); 7] = [
 ];
 
 // ============================================================================
+// BEVY PLUGIN
+// ============================================================================
+
+pub struct MineralPlugin;
+
+impl Plugin for MineralPlugin {
+    fn build(&self, app: &mut App) {
+        app
+            .init_resource::<VeinSpatialIndex>();
+        // Note: Overlay update system would be added here when overlay system is integrated
+    }
+}
+
+// System to update mineral overlays would go here when integrated
+
+// ============================================================================
 // ORE VEIN GENERATION
 // ============================================================================
 
 /// Represents a concentrated deposit of a mineral
 #[derive(Debug, Clone)]
 pub struct OreVein {
-    pub position: Vec2,
-    pub mineral_type: MineralType,
-    pub richness: f32,  // 0.5 to 2.0 multiplier
+    position: Vec2,
+    mineral_type: MineralType,
+    richness: f32,  // MIN_RICHNESS to MAX_RICHNESS multiplier
+}
+
+impl OreVein {
+    /// Get the position of this vein
+    pub fn position(&self) -> Vec2 {
+        self.position
+    }
+    
+    /// Get the mineral type
+    pub fn mineral_type(&self) -> MineralType {
+        self.mineral_type
+    }
+    
+    /// Get the richness multiplier
+    pub fn richness(&self) -> f32 {
+        self.richness
+    }
+    
+    /// Validate that position is finite
+    fn validate_position(position: Vec2) -> Result<(), MineralGenerationError> {
+        if !position.x.is_finite() || !position.y.is_finite() {
+            return Err(MineralGenerationError::InvalidPosition(
+                format!("Position contains non-finite values: {:?}", position)
+            ));
+        }
+        Ok(())
+    }
+}
+
+/// Builder for creating ore veins with validation
+pub struct OreVeinBuilder {
+    position: Option<Vec2>,
+    mineral_type: Option<MineralType>,
+    richness: f32,
+}
+
+impl OreVeinBuilder {
+    pub fn new() -> Self {
+        Self {
+            position: None,
+            mineral_type: None,
+            richness: 1.0,
+        }
+    }
+    
+    pub fn position(mut self, pos: Vec2) -> Self {
+        self.position = Some(pos);
+        self
+    }
+    
+    pub fn mineral_type(mut self, mineral: MineralType) -> Self {
+        self.mineral_type = Some(mineral);
+        self
+    }
+    
+    pub fn richness(mut self, richness: f32) -> Self {
+        self.richness = richness.clamp(MIN_RICHNESS, MAX_RICHNESS);
+        self
+    }
+    
+    pub fn build(self) -> Result<OreVein, MineralGenerationError> {
+        let position = self.position.ok_or_else(|| {
+            MineralGenerationError::InvalidPosition("Position not set".into())
+        })?;
+        
+        OreVein::validate_position(position)?;
+        
+        let mineral_type = self.mineral_type.ok_or_else(|| {
+            MineralGenerationError::InvalidPosition("Mineral type not set".into())
+        })?;
+        
+        if self.richness < MIN_RICHNESS || self.richness > MAX_RICHNESS {
+            return Err(MineralGenerationError::InvalidRichness(
+                self.richness, MIN_RICHNESS, MAX_RICHNESS
+            ));
+        }
+        
+        Ok(OreVein {
+            position,
+            mineral_type,
+            richness: self.richness,
+        })
+    }
 }
 
 /// Generate ore vein centers using clustering algorithm
@@ -72,9 +225,9 @@ pub fn generate_ore_veins(
     seed: u32,
     provinces: &[Province],
     terrain_bias: fn(&TerrainType, f32) -> f32,
-) -> Vec<OreVein> {
+) -> Result<Vec<OreVein>, MineralGenerationError> {
     let mut rng = StdRng::seed_from_u64(seed as u64);
-    let mut veins = Vec::new();
+    let mut veins = Vec::with_capacity(count);
     
     // Filter provinces by terrain suitability
     let suitable_provinces: Vec<&Province> = provinces.iter()
@@ -82,170 +235,346 @@ pub fn generate_ore_veins(
         .collect();
     
     if suitable_provinces.is_empty() {
-        return veins;
+        warn!("No suitable provinces found for {:?} generation", mineral_type);
+        return Ok(veins);  // Return empty vec instead of error for flexibility
     }
     
     // Generate vein centers biased toward suitable terrain
     for _ in 0..count {
-        let province = suitable_provinces.choose(&mut rng).unwrap();
+        let province = suitable_provinces
+            .choose(&mut rng)
+            .ok_or_else(|| MineralGenerationError::NoSuitableProvinces { mineral: mineral_type })?;
         
         // Add some random offset within the province
         let offset_x = rng.gen_range(-HEX_SIZE_PIXELS..HEX_SIZE_PIXELS);
         let offset_y = rng.gen_range(-HEX_SIZE_PIXELS..HEX_SIZE_PIXELS);
         
-        veins.push(OreVein {
-            position: Vec2::new(
+        let vein = OreVeinBuilder::new()
+            .position(Vec2::new(
                 province.position.x + offset_x,
                 province.position.y + offset_y,
-            ),
-            mineral_type,
-            richness: rng.gen_range(0.5..2.0),
-        });
+            ))
+            .mineral_type(mineral_type)
+            .richness(rng.gen_range(MIN_RICHNESS..MAX_RICHNESS))
+            .build()?;
+        
+        veins.push(vein);
     }
     
-    veins
-}
-
-/// Terrain bias functions for different minerals
-pub fn iron_terrain_bias(terrain: &TerrainType, elevation: f32) -> f32 {
-    match terrain {
-        TerrainType::Mountains => 3.0,
-        TerrainType::Hills => 2.0,
-        TerrainType::Tundra => 2.5,  // Arctic regions are iron-rich (Siberia, Sweden)
-        TerrainType::Desert if elevation > 0.5 => 1.5,
-        _ => 0.0,
-    }
-}
-
-pub fn copper_terrain_bias(terrain: &TerrainType, elevation: f32) -> f32 {
-    match terrain {
-        TerrainType::Mountains => 2.0,
-        TerrainType::Hills => 1.5,
-        TerrainType::Tundra => 1.8,  // Arctic copper deposits (Alaska, Russia)
-        TerrainType::Desert if elevation > 0.4 => 1.0,
-        _ => 0.0,
-    }
-}
-
-pub fn tin_terrain_bias(terrain: &TerrainType, elevation: f32) -> f32 {
-    // Tin is very rare and specific
-    match terrain {
-        TerrainType::Mountains if elevation > 0.8 => 4.0,
-        TerrainType::Hills if elevation > 0.65 => 1.0,
-        TerrainType::Tundra if elevation > 0.6 => 0.8,  // Some arctic tin deposits
-        _ => 0.0,
-    }
-}
-
-pub fn gold_terrain_bias(terrain: &TerrainType, elevation: f32) -> f32 {
-    // Gold in high mountains, rivers, and arctic regions
-    match terrain {
-        TerrainType::Mountains if elevation > 0.85 => 5.0,
-        TerrainType::River if elevation > 0.4 => 2.0,  // Alluvial gold
-        TerrainType::Tundra if elevation > 0.65 => 1.5,  // Arctic gold (Alaska, Yukon)
-        _ => 0.0,
-    }
-}
-
-pub fn coal_terrain_bias(terrain: &TerrainType, elevation: f32) -> f32 {
-    // Coal in ancient swamps and permafrost regions
-    match terrain {
-        TerrainType::Forest if elevation < 0.4 => 3.0,
-        TerrainType::Plains if elevation < 0.35 => 2.0,
-        TerrainType::Tundra if elevation < 0.5 => 2.0,  // Permafrost coal (Siberia)
-        TerrainType::Jungle if elevation < 0.3 => 1.5,
-        _ => 0.0,
-    }
-}
-
-pub fn gem_terrain_bias(terrain: &TerrainType, elevation: f32) -> f32 {
-    // Gems in the highest peaks and frozen tundra
-    match terrain {
-        TerrainType::Mountains if elevation > 0.9 => 10.0,
-        TerrainType::Tundra if elevation > 0.7 => 3.0,  // Arctic diamonds (Canada, Russia)
-        _ => 0.0,
-    }
+    Ok(veins)
 }
 
 // ============================================================================
-// RESOURCE CALCULATION
+// SPATIAL INDEXING FOR O(1) VEIN LOOKUPS
+// ============================================================================
+
+/// Spatial index for fast vein proximity queries
+#[derive(Resource)]
+pub struct VeinSpatialIndex {
+    /// Grid of vein indices organized by spatial cells
+    grid: HashMap<(i32, i32), Vec<usize>>,
+    /// All veins stored flat for index access
+    veins: Vec<OreVein>,
+    /// Cell size for spatial hashing
+    cell_size: f32,
+}
+
+impl Default for VeinSpatialIndex {
+    fn default() -> Self {
+        Self::new(VEIN_SPATIAL_CELL_SIZE)
+    }
+}
+
+impl VeinSpatialIndex {
+    pub fn new(cell_size: f32) -> Self {
+        Self {
+            grid: HashMap::new(),
+            veins: Vec::new(),
+            cell_size,
+        }
+    }
+    
+    /// Build spatial index from ore veins
+    pub fn build_from_veins(&mut self, ore_veins: HashMap<MineralType, Vec<OreVein>>) {
+        self.grid.clear();
+        self.veins.clear();
+        
+        // Flatten all veins and build spatial index
+        for (_mineral_type, veins) in ore_veins {
+            for vein in veins {
+                let idx = self.veins.len();
+                let cell_x = (vein.position.x / self.cell_size).floor() as i32;
+                let cell_y = (vein.position.y / self.cell_size).floor() as i32;
+                
+                self.grid
+                    .entry((cell_x, cell_y))
+                    .or_insert_with(Vec::new)
+                    .push(idx);
+                
+                self.veins.push(vein);
+            }
+        }
+        
+        info!("Built spatial index with {} veins in {} cells", 
+            self.veins.len(), self.grid.len());
+    }
+    
+    /// Query veins near a position (returns indices and distances)
+    pub fn query_near(&self, position: Vec2, mineral_type: MineralType, radius: f32) -> Vec<(usize, f32)> {
+        let mut results = Vec::new();
+        
+        // Calculate cells to check
+        let min_x = ((position.x - radius) / self.cell_size).floor() as i32;
+        let max_x = ((position.x + radius) / self.cell_size).floor() as i32;
+        let min_y = ((position.y - radius) / self.cell_size).floor() as i32;
+        let max_y = ((position.y + radius) / self.cell_size).floor() as i32;
+        
+        // Check relevant cells
+        for x in min_x..=max_x {
+            for y in min_y..=max_y {
+                if let Some(indices) = self.grid.get(&(x, y)) {
+                    for &idx in indices {
+                        if let Some(vein) = self.veins.get(idx) {
+                            if vein.mineral_type == mineral_type {
+                                let distance = position.distance(vein.position);
+                                if distance <= radius {
+                                    results.push((idx, distance));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        results
+    }
+    
+    /// Get vein by index
+    pub fn get_vein(&self, idx: usize) -> Option<&OreVein> {
+        self.veins.get(idx)
+    }
+}
+
+/// Terrain bias configuration for data-driven approach
+#[derive(Debug, Clone)]
+pub struct TerrainBiasConfig {
+    pub terrain: TerrainType,
+    pub min_elevation: Option<f32>,
+    pub max_elevation: Option<f32>,
+    pub bias: f32,
+}
+
+/// Get terrain bias for a mineral type using data-driven configuration
+pub fn get_terrain_bias(mineral: MineralType, terrain: &TerrainType, elevation: f32) -> f32 {
+    use MineralType::*;
+    use TerrainType::*;
+    
+    let configs = match mineral {
+        Iron => vec![
+            TerrainBiasConfig { terrain: Mountains, min_elevation: None, max_elevation: None, bias: 3.0 },
+            TerrainBiasConfig { terrain: Hills, min_elevation: None, max_elevation: None, bias: 2.0 },
+            TerrainBiasConfig { terrain: Tundra, min_elevation: None, max_elevation: None, bias: 2.5 },
+            TerrainBiasConfig { terrain: Desert, min_elevation: Some(0.5), max_elevation: None, bias: 1.5 },
+        ],
+        Copper => vec![
+            TerrainBiasConfig { terrain: Mountains, min_elevation: None, max_elevation: None, bias: 2.0 },
+            TerrainBiasConfig { terrain: Hills, min_elevation: None, max_elevation: None, bias: 1.5 },
+            TerrainBiasConfig { terrain: Tundra, min_elevation: None, max_elevation: None, bias: 1.8 },
+            TerrainBiasConfig { terrain: Desert, min_elevation: Some(0.4), max_elevation: None, bias: 1.0 },
+        ],
+        Tin => vec![
+            TerrainBiasConfig { terrain: Mountains, min_elevation: Some(0.8), max_elevation: None, bias: 4.0 },
+            TerrainBiasConfig { terrain: Hills, min_elevation: Some(0.65), max_elevation: None, bias: 1.0 },
+            TerrainBiasConfig { terrain: Tundra, min_elevation: Some(0.6), max_elevation: None, bias: 0.8 },
+        ],
+        Gold => vec![
+            TerrainBiasConfig { terrain: Mountains, min_elevation: Some(0.85), max_elevation: None, bias: 5.0 },
+            TerrainBiasConfig { terrain: River, min_elevation: Some(0.4), max_elevation: None, bias: 2.0 },
+            TerrainBiasConfig { terrain: Tundra, min_elevation: Some(0.65), max_elevation: None, bias: 1.5 },
+        ],
+        Coal => vec![
+            TerrainBiasConfig { terrain: Forest, min_elevation: None, max_elevation: Some(0.4), bias: 3.0 },
+            TerrainBiasConfig { terrain: Plains, min_elevation: None, max_elevation: Some(0.35), bias: 2.0 },
+            TerrainBiasConfig { terrain: Tundra, min_elevation: None, max_elevation: Some(0.5), bias: 2.0 },
+            TerrainBiasConfig { terrain: Jungle, min_elevation: None, max_elevation: Some(0.3), bias: 1.5 },
+        ],
+        Gems => vec![
+            TerrainBiasConfig { terrain: Mountains, min_elevation: Some(0.9), max_elevation: None, bias: 10.0 },
+            TerrainBiasConfig { terrain: Tundra, min_elevation: Some(0.7), max_elevation: None, bias: 3.0 },
+        ],
+        _ => vec![],
+    };
+    
+    for config in configs {
+        if config.terrain == *terrain {
+            let elevation_ok = config.min_elevation.map_or(true, |min| elevation >= min) &&
+                              config.max_elevation.map_or(true, |max| elevation <= max);
+            if elevation_ok {
+                return config.bias;
+            }
+        }
+    }
+    
+    0.0
+}
+
+/// Legacy wrapper functions for backward compatibility
+pub fn iron_terrain_bias(terrain: &TerrainType, elevation: f32) -> f32 {
+    get_terrain_bias(MineralType::Iron, terrain, elevation)
+}
+
+pub fn copper_terrain_bias(terrain: &TerrainType, elevation: f32) -> f32 {
+    get_terrain_bias(MineralType::Copper, terrain, elevation)
+}
+
+pub fn tin_terrain_bias(terrain: &TerrainType, elevation: f32) -> f32 {
+    get_terrain_bias(MineralType::Tin, terrain, elevation)
+}
+
+pub fn gold_terrain_bias(terrain: &TerrainType, elevation: f32) -> f32 {
+    get_terrain_bias(MineralType::Gold, terrain, elevation)
+}
+
+pub fn coal_terrain_bias(terrain: &TerrainType, elevation: f32) -> f32 {
+    get_terrain_bias(MineralType::Coal, terrain, elevation)
+}
+
+pub fn gem_terrain_bias(terrain: &TerrainType, elevation: f32) -> f32 {
+    get_terrain_bias(MineralType::Gems, terrain, elevation)
+}
+
+// ============================================================================
+// RESOURCE CALCULATION (OPTIMIZED WITH SPATIAL INDEX)
 // ============================================================================
 
 /// Calculate mineral abundance for a province based on distance to ore veins
 pub fn calculate_province_resources(
     province: &mut Province,
-    ore_veins: &HashMap<MineralType, Vec<OreVein>>,
+    spatial_index: &VeinSpatialIndex,
 ) {
     // Mark province as modified
     province.mark_dirty();
     
     // Stone is everywhere but concentrated in rocky areas
-    province.stone = Abundance::new(match province.terrain {
-        TerrainType::Mountains => 80,
-        TerrainType::Hills => 60,
-        TerrainType::Tundra => 50,  // Arctic regions have exposed bedrock
-        TerrainType::Desert => 40,
-        TerrainType::Beach => 30,
-        _ => 20,
-    });
+    province.stone = Abundance::new(get_stone_abundance(&province.terrain));
     
-    // Calculate abundance for each mineral based on distance to veins
-    if let Some(iron_veins) = ore_veins.get(&MineralType::Iron) {
-        province.iron = Abundance::new(calculate_abundance(province.position, iron_veins, &province.terrain));
-    }
+    // Use generic function to eliminate DRY violations
+    set_mineral_abundance(province, MineralType::Iron, spatial_index);
+    set_mineral_abundance(province, MineralType::Copper, spatial_index);
+    set_mineral_abundance(province, MineralType::Tin, spatial_index);
+    set_mineral_abundance(province, MineralType::Gold, spatial_index);
+    set_mineral_abundance(province, MineralType::Coal, spatial_index);
+    set_mineral_abundance(province, MineralType::Gems, spatial_index);
+}
+
+/// Generic function to set mineral abundance (eliminates DRY)
+fn set_mineral_abundance(
+    province: &mut Province,
+    mineral_type: MineralType,
+    spatial_index: &VeinSpatialIndex,
+) {
+    let abundance = calculate_abundance_with_index(
+        province.position,
+        mineral_type,
+        &province.terrain,
+        spatial_index,
+    );
     
-    if let Some(copper_veins) = ore_veins.get(&MineralType::Copper) {
-        province.copper = Abundance::new(calculate_abundance(province.position, copper_veins, &province.terrain));
-    }
-    
-    if let Some(tin_veins) = ore_veins.get(&MineralType::Tin) {
-        province.tin = Abundance::new(calculate_abundance(province.position, tin_veins, &province.terrain));
-    }
-    
-    if let Some(gold_veins) = ore_veins.get(&MineralType::Gold) {
-        province.gold = Abundance::new(calculate_abundance(province.position, gold_veins, &province.terrain));
-    }
-    
-    if let Some(coal_veins) = ore_veins.get(&MineralType::Coal) {
-        province.coal = Abundance::new(calculate_abundance(province.position, coal_veins, &province.terrain));
-    }
-    
-    if let Some(gem_veins) = ore_veins.get(&MineralType::Gems) {
-        province.gems = Abundance::new(calculate_abundance(province.position, gem_veins, &province.terrain));
+    match mineral_type {
+        MineralType::Iron => province.iron = Abundance::new(abundance),
+        MineralType::Copper => province.copper = Abundance::new(abundance),
+        MineralType::Tin => province.tin = Abundance::new(abundance),
+        MineralType::Gold => province.gold = Abundance::new(abundance),
+        MineralType::Coal => province.coal = Abundance::new(abundance),
+        MineralType::Gems => province.gems = Abundance::new(abundance),
+        MineralType::Stone => province.stone = Abundance::new(abundance),
+        _ => {}
     }
 }
 
-/// Calculate abundance based on distance to nearest vein with Gaussian falloff
-fn calculate_abundance(
+/// Calculate abundance using spatial index for O(1) lookups
+fn calculate_abundance_with_index(
     position: Vec2,
-    veins: &[OreVein],
+    mineral_type: MineralType,
     terrain: &TerrainType,
+    spatial_index: &VeinSpatialIndex,
 ) -> u8 {
-    if veins.is_empty() {
+    // Query nearby veins using spatial index (O(1) average case)
+    let nearby_veins = spatial_index.query_near(position, mineral_type, VEIN_FALLOFF_DISTANCE);
+    
+    if nearby_veins.is_empty() {
         return 0;
     }
     
-    // Find closest vein
-    let mut min_distance = f32::MAX;
-    let mut closest_richness = 1.0;
+    // Find closest vein from the pre-filtered results
+    let (closest_idx, min_distance) = nearby_veins
+        .iter()
+        .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
+        .copied()
+        .unwrap_or((0, f32::MAX));
     
-    for vein in veins {
-        let distance = position.distance(vein.position);
-        if distance < min_distance {
-            min_distance = distance;
-            closest_richness = vein.richness;
-        }
-    }
-    
-    // Apply Gaussian falloff
     if min_distance > VEIN_FALLOFF_DISTANCE {
         return 0;
     }
     
-    let base_abundance = 100.0 * (-min_distance / VEIN_FALLOFF_DISTANCE).exp();
+    let closest_richness = spatial_index
+        .get_vein(closest_idx)
+        .map(|v| v.richness())
+        .unwrap_or(1.0);
+    
+    // Apply Gaussian falloff
+    let base_abundance = ABUNDANCE_BASE_MULTIPLIER * (-min_distance / VEIN_FALLOFF_DISTANCE).exp();
     let terrain_multiplier = get_terrain_extraction_bonus(terrain);
     
-    (base_abundance * closest_richness * terrain_multiplier).min(100.0) as u8
+    (base_abundance * closest_richness * terrain_multiplier).min(MAX_ABUNDANCE) as u8
+}
+
+/// Get stone abundance based on terrain type
+fn get_stone_abundance(terrain: &TerrainType) -> u8 {
+    match terrain {
+        TerrainType::Mountains => STONE_ABUNDANCE_MOUNTAINS,
+        TerrainType::Hills => STONE_ABUNDANCE_HILLS,
+        TerrainType::Tundra => STONE_ABUNDANCE_TUNDRA,
+        TerrainType::Desert => STONE_ABUNDANCE_DESERT,
+        TerrainType::Beach => STONE_ABUNDANCE_BEACH,
+        _ => STONE_ABUNDANCE_DEFAULT,
+    }
+}
+
+/// Calculate resources for all provinces in parallel
+pub fn calculate_all_province_resources(
+    provinces: &mut [Province],
+    spatial_index: &VeinSpatialIndex,
+) {
+    // Use rayon for parallel processing
+    provinces.par_iter_mut().for_each(|province| {
+        // Mark province as modified
+        province.mark_dirty();
+        
+        // Stone abundance
+        province.stone = Abundance::new(get_stone_abundance(&province.terrain));
+        
+        // Calculate each mineral (can't use the mutable helper here due to parallel access)
+        province.iron = Abundance::new(calculate_abundance_with_index(
+            province.position, MineralType::Iron, &province.terrain, spatial_index
+        ));
+        province.copper = Abundance::new(calculate_abundance_with_index(
+            province.position, MineralType::Copper, &province.terrain, spatial_index
+        ));
+        province.tin = Abundance::new(calculate_abundance_with_index(
+            province.position, MineralType::Tin, &province.terrain, spatial_index
+        ));
+        province.gold = Abundance::new(calculate_abundance_with_index(
+            province.position, MineralType::Gold, &province.terrain, spatial_index
+        ));
+        province.coal = Abundance::new(calculate_abundance_with_index(
+            province.position, MineralType::Coal, &province.terrain, spatial_index
+        ));
+        province.gems = Abundance::new(calculate_abundance_with_index(
+            province.position, MineralType::Gems, &province.terrain, spatial_index
+        ));
+    });
 }
 
 /// Terrain affects how easy resources are to extract
@@ -273,6 +602,9 @@ pub fn generate_world_minerals_with_tectonics(
     provinces: &mut [Province],
     tectonics: &TectonicSystem,
 ) {
+    info!("Generating mineral resources for {} provinces", provinces.len());
+    let start_time = std::time::Instant::now();
+    
     let mut rng = StdRng::seed_from_u64(seed as u64);
     let mut ore_veins: HashMap<MineralType, Vec<OreVein>> = HashMap::new();
     
@@ -285,20 +617,32 @@ pub fn generate_world_minerals_with_tectonics(
         if matches!(boundary.boundary_type, BoundaryType::Convergent { .. }) {
             // Place veins along boundary segments
             for segment in &boundary.segments {
-                for _ in 0..2 {
+                for _ in 0..VEINS_PER_BOUNDARY_SEGMENT {
                     let t = rng.gen::<f32>();
                     let pos = segment.start.lerp(segment.end, t);
-                    iron_veins.push(OreVein {
-                        position: pos,
-                        mineral_type: MineralType::Iron,
-                        richness: rng.gen_range(1.0..2.0),
-                    });
-                    if rng.gen_bool(0.5) {
-                        copper_veins.push(OreVein {
-                            position: pos + Vec2::new(rng.gen_range(-50.0..50.0), rng.gen_range(-50.0..50.0)),
-                            mineral_type: MineralType::Copper,
-                            richness: rng.gen_range(0.8..1.5),
-                        });
+                    
+                    // Use builder pattern for iron veins
+                    if let Ok(vein) = OreVeinBuilder::new()
+                        .position(pos)
+                        .mineral_type(MineralType::Iron)
+                        .richness(rng.gen_range(1.0..MAX_RICHNESS))
+                        .build() {
+                        iron_veins.push(vein);
+                    }
+                    
+                    // Copper veins with jitter
+                    if rng.gen_bool(COPPER_VEIN_CHANCE) {
+                        let jittered_pos = pos + Vec2::new(
+                            rng.gen_range(-VEIN_POSITION_JITTER..VEIN_POSITION_JITTER),
+                            rng.gen_range(-VEIN_POSITION_JITTER..VEIN_POSITION_JITTER)
+                        );
+                        if let Ok(vein) = OreVeinBuilder::new()
+                            .position(jittered_pos)
+                            .mineral_type(MineralType::Copper)
+                            .richness(rng.gen_range(0.8..1.5))
+                            .build() {
+                            copper_veins.push(vein);
+                        }
                     }
                 }
             }
@@ -308,12 +652,14 @@ pub fn generate_world_minerals_with_tectonics(
     // Gold at volcanic hotspots
     let mut gold_veins = Vec::new();
     for hotspot in &tectonics.hotspots {
-        if rng.gen_bool(0.3) {  // Gold is rare
-            gold_veins.push(OreVein {
-                position: hotspot.position,
-                mineral_type: MineralType::Gold,
-                richness: rng.gen_range(1.5..3.0),  // Rich deposits
-            });
+        if rng.gen_bool(GOLD_HOTSPOT_CHANCE) {
+            if let Ok(vein) = OreVeinBuilder::new()
+                .position(hotspot.position)
+                .mineral_type(MineralType::Gold)
+                .richness(rng.gen_range(1.5..3.0))
+                .build() {
+                gold_veins.push(vein);
+            }
         }
     }
     
@@ -324,11 +670,13 @@ pub fn generate_world_minerals_with_tectonics(
         .collect();
     for _ in 0..TIN_VEIN_COUNT {
         if let Some(province) = mountain_provinces.choose(&mut rng) {
-            tin_veins.push(OreVein {
-                position: province.position,
-                mineral_type: MineralType::Tin,
-                richness: rng.gen_range(1.0..2.0),
-            });
+            if let Ok(vein) = OreVeinBuilder::new()
+                .position(province.position)
+                .mineral_type(MineralType::Tin)
+                .richness(rng.gen_range(1.0..2.0))
+                .build() {
+                tin_veins.push(vein);
+            }
         }
     }
     
@@ -339,11 +687,13 @@ pub fn generate_world_minerals_with_tectonics(
         .collect();
     for _ in 0..COAL_DEPOSIT_COUNT {
         if let Some(province) = lowland_provinces.choose(&mut rng) {
-            coal_veins.push(OreVein {
-                position: province.position,
-                mineral_type: MineralType::Coal,
-                richness: rng.gen_range(0.8..1.5),
-            });
+            if let Ok(vein) = OreVeinBuilder::new()
+                .position(province.position)
+                .mineral_type(MineralType::Coal)
+                .richness(rng.gen_range(0.8..1.5))
+                .build() {
+                coal_veins.push(vein);
+            }
         }
     }
     
@@ -354,11 +704,13 @@ pub fn generate_world_minerals_with_tectonics(
         .collect();
     for _ in 0..GEM_VEIN_COUNT {
         if let Some(province) = peak_provinces.choose(&mut rng) {
-            gem_veins.push(OreVein {
-                position: province.position,
-                mineral_type: MineralType::Gems,
-                richness: rng.gen_range(2.0..3.0),  // Very rich but rare
-            });
+            if let Ok(vein) = OreVeinBuilder::new()
+                .position(province.position)
+                .mineral_type(MineralType::Gems)
+                .richness(rng.gen_range(2.0..3.0))
+                .build() {
+                gem_veins.push(vein);
+            }
         }
     }
     
@@ -370,10 +722,15 @@ pub fn generate_world_minerals_with_tectonics(
     ore_veins.insert(MineralType::Coal, coal_veins);
     ore_veins.insert(MineralType::Gems, gem_veins);
     
-    // Calculate resources for each province
-    for province in provinces.iter_mut() {
-        calculate_province_resources(province, &ore_veins);
-    }
+    // Build spatial index for O(1) lookups
+    let mut spatial_index = VeinSpatialIndex::new(VEIN_SPATIAL_CELL_SIZE);
+    spatial_index.build_from_veins(ore_veins);
+    
+    // Calculate resources for all provinces in parallel
+    calculate_all_province_resources(provinces, &spatial_index);
+    
+    let elapsed = start_time.elapsed();
+    info!("Mineral generation completed in {:.2}ms", elapsed.as_secs_f32() * 1000.0);
 }
 
 // ============================================================================
@@ -400,13 +757,13 @@ pub fn get_mineral_abundance(
 /// Calculate total mineral richness for a province
 pub fn calculate_total_richness(province: &Province) -> f32 {
     // Weighted sum of all minerals
-    let iron_value = province.iron.value() as f32 * 1.0;
-    let copper_value = province.copper.value() as f32 * 1.5;
-    let tin_value = province.tin.value() as f32 * 3.0;  // Rare
-    let gold_value = province.gold.value() as f32 * 10.0;  // Very valuable
-    let coal_value = province.coal.value() as f32 * 0.8;
-    let stone_value = province.stone.value() as f32 * 0.2;  // Common
-    let gem_value = province.gems.value() as f32 * 20.0;  // Extremely valuable
+    let iron_value = province.iron.value() as f32 * IRON_VALUE_WEIGHT;
+    let copper_value = province.copper.value() as f32 * COPPER_VALUE_WEIGHT;
+    let tin_value = province.tin.value() as f32 * TIN_VALUE_WEIGHT;
+    let gold_value = province.gold.value() as f32 * GOLD_VALUE_WEIGHT;
+    let coal_value = province.coal.value() as f32 * COAL_VALUE_WEIGHT;
+    let stone_value = province.stone.value() as f32 * STONE_VALUE_WEIGHT;
+    let gem_value = province.gems.value() as f32 * GEM_VALUE_WEIGHT;
     
-    (iron_value + copper_value + tin_value + gold_value + coal_value + stone_value + gem_value) / 100.0
+    (iron_value + copper_value + tin_value + gold_value + coal_value + stone_value + gem_value) / MAX_ABUNDANCE
 }
