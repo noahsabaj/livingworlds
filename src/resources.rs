@@ -19,6 +19,16 @@ use crate::components::MineralType;
 #[derive(Resource, Reflect, Clone, Serialize, Deserialize)]
 pub struct WorldSeed(pub u32);
 
+/// The name of the current world
+#[derive(Resource, Reflect, Clone, Serialize, Deserialize)]
+pub struct WorldName(pub String);
+
+impl Default for WorldName {
+    fn default() -> Self {
+        Self("Unnamed World".to_string())
+    }
+}
+
 /// World size configuration controlling map dimensions
 #[derive(Resource, Clone, Copy, Debug, PartialEq, Reflect, Serialize, Deserialize)]
 pub enum WorldSize {
@@ -45,13 +55,24 @@ impl WorldSize {
     }
 }
 
-/// Map dimensions calculated from world size
+/// Single source of truth for map dimensions - used by generation, camera, and all systems
 #[derive(Resource, Debug, Clone, Copy, Reflect, Default, Serialize, Deserialize)]
 pub struct MapDimensions {
     pub provinces_per_row: u32,
     pub provinces_per_col: u32,
     pub width_pixels: f32,
     pub height_pixels: f32,
+    pub hex_size: f32,
+    pub bounds: MapBounds,
+}
+
+/// Map boundary information
+#[derive(Debug, Clone, Copy, Reflect, Default, Serialize, Deserialize)]
+pub struct MapBounds {
+    pub x_min: f32,
+    pub x_max: f32,
+    pub y_min: f32,
+    pub y_max: f32,
 }
 
 impl MapDimensions {
@@ -60,15 +81,23 @@ impl MapDimensions {
         let provinces_per_row = provinces_per_row as u32;
         let provinces_per_col = provinces_per_col as u32;
         
-        use crate::constants::{HEX_SIZE_PIXELS, SQRT3};
-        let width_pixels = provinces_per_row as f32 * HEX_SIZE_PIXELS * 1.5;
-        let height_pixels = provinces_per_col as f32 * HEX_SIZE_PIXELS * SQRT3;
+        use crate::constants::{HEX_SIZE_PIXELS, SQRT_3};
+        let hex_size = HEX_SIZE_PIXELS;
+        let width_pixels = provinces_per_row as f32 * hex_size * 1.5;
+        let height_pixels = provinces_per_col as f32 * hex_size * SQRT_3;
         
         Self {
             provinces_per_row,
             provinces_per_col,
             width_pixels,
             height_pixels,
+            hex_size,
+            bounds: MapBounds {
+                x_min: -width_pixels / 2.0,
+                x_max: width_pixels / 2.0,
+                y_min: -height_pixels / 2.0,
+                y_max: height_pixels / 2.0,
+            },
         }
     }
 }
@@ -97,7 +126,7 @@ impl Default for GameTime {
     }
 }
 
-/// World Tension - Global metric driving music and atmosphere
+/// World Tension - Global metric tracking conflict and instability
 /// 
 /// Tension ranges from 0.0 (perfect peace) to 1.0 (world war).
 /// It rises quickly with conflicts but falls slowly during peace,

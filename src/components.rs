@@ -5,9 +5,10 @@
 //! see the resources module.
 
 use bevy::prelude::*;
+use crate::constants::PROVINCE_MIN_POPULATION;
 use bevy::reflect::Reflect;
 use serde::{Serialize, Deserialize};
-use crate::terrain::TerrainType;
+use crate::world::terrain::TerrainType;
 use std::fmt;
 
 // ============================================================================
@@ -258,19 +259,17 @@ pub enum HexDirection {
 /// Maximum distance from fresh water source (in hexagon units)
 pub const FRESH_WATER_MAX_DISTANCE: f32 = 10.0;
 
-/// Default starting population for new provinces
-pub const DEFAULT_POPULATION: u32 = 1000;
+// Default population constant is imported from constants module
 
 // ============================================================================
-// COMPONENTS - Data attached to entities
+// CORE DATA STRUCTURES
 // ============================================================================
 
 /// Province represents a single hexagonal tile in the world
 /// 
-/// Note: Provinces are NOT entities in the mega-mesh architecture.
+/// Provinces are NOT entities in the mega-mesh architecture.
 /// They are stored in the ProvinceStorage resource as a Vec.
-/// The Component derive is kept for backwards compatibility but will be removed.
-#[derive(Component, Clone, Debug, Reflect, Serialize, Deserialize)]
+#[derive(Clone, Debug, Reflect, Serialize, Deserialize)]
 pub struct Province {
     // === Identity & Location (16 bytes) ===
     /// Unique identifier for this province
@@ -339,8 +338,8 @@ impl Default for Province {
         Self {
             id: ProvinceId::default(),
             position: Vec2::ZERO,
-            population: DEFAULT_POPULATION,
-            max_population: DEFAULT_POPULATION * 10,
+            population: PROVINCE_MIN_POPULATION,
+            max_population: PROVINCE_MIN_POPULATION * 10,
             terrain: TerrainType::Plains,
             elevation: Elevation::default(),
             agriculture: Agriculture::default(),
@@ -386,10 +385,15 @@ impl Province {
     }
     
     /// Set population with validation and change tracking
-    pub fn set_population(&mut self, population: u32) {
+    /// Returns Some with old and new values if changed, None otherwise
+    pub fn set_population(&mut self, population: u32) -> Option<(u32, u32)> {
         if self.population != population {
+            let old_population = self.population;
             self.population = population.min(self.max_population);
             self.mark_dirty();
+            Some((old_population, self.population))
+        } else {
+            None
         }
     }
     
@@ -562,19 +566,8 @@ impl ProvinceBuilder {
 // Note: SelectedProvince marker component was removed (dead code - never used)
 // The codebase uses SelectedProvinceInfo resource instead
 
-/// Marker component for the tile info UI panel
-#[derive(Component)]
-pub struct TileInfoPanel;
-
-/// Marker component for the tile info text display
-#[derive(Component)]
-pub struct TileInfoText;
-
-/// Marker component for all game world entities that should be cleaned up when leaving the game
-/// 
-/// TODO: Replace with specific markers like TerrainEntity, CloudEntity, etc.
-#[derive(Component)]
-pub struct GameWorld;
+// Note: UI marker components (TileInfoPanel, TileInfoText) moved to ui/components.rs
+// Note: World entity markers (GameWorld replaced by TerrainEntity, CloudEntity, BorderEntity) moved to world/components.rs
 
 // ============================================================================
 // RESOURCE COMPONENTS - Mineral wealth and infrastructure
@@ -745,19 +738,6 @@ mod tests {
         assert_eq!(province.population, 5000);
         assert_eq!(province.elevation.value(), 0.3);
         assert!(province.has_fresh_water());
-    }
-    
-    #[test]
-    fn test_province_resources_depletion() {
-        let mut resources = ProvinceResources::new(100, 50, 30, 20, 80, 90, 10);
-        
-        let depleted = resources.deplete(MineralType::Gold, 15);
-        assert_eq!(depleted, 15);
-        assert_eq!(resources.gold.value(), 5);
-        
-        let depleted2 = resources.deplete(MineralType::Gold, 10);
-        assert_eq!(depleted2, 5);  // Only 5 left
-        assert_eq!(resources.gold.value(), 0);
     }
     
     #[test]

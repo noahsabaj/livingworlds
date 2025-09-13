@@ -6,6 +6,17 @@
 use bevy::prelude::Color;
 
 // ============================================================================
+// MATHEMATICAL CONSTANTS
+// ============================================================================
+
+/// Square root of 3, used frequently in hexagon math
+/// Using standard Rust naming convention matching std::f32::consts
+pub const SQRT_3: f32 = 1.732050808;
+
+/// Common division factor
+pub const HALF: f32 = 0.5;
+
+// ============================================================================
 // WORLD & MAP CONSTANTS
 // ============================================================================
 
@@ -18,33 +29,35 @@ pub const PROVINCES_PER_ROW: u32 = 300;
 /// Number of province rows in the world  
 pub const PROVINCES_PER_COL: u32 = 200;
 
-/// Square root of 3, used frequently in hexagon math
-pub const SQRT3: f32 = 1.732050808;
-
 /// Distance from map edge where ocean is forced (in pixels)
-pub const EDGE_BUFFER: f32 = 200.0;
+pub const EDGE_BUFFER_PIXELS: f32 = 200.0;
 
 // Derived constants for convenience
 /// Total number of provinces in the world
 pub const TOTAL_PROVINCES: u32 = PROVINCES_PER_ROW * PROVINCES_PER_COL;
 
 /// Map width in pixels (for flat-top hexagons)
+/// Formula: columns * hex_radius * 1.5 (horizontal spacing between columns)
 pub const MAP_WIDTH_PIXELS: f32 = PROVINCES_PER_ROW as f32 * HEX_SIZE_PIXELS * 1.5;
 
-/// Map height in pixels (for flat-top hexagons)
-pub const MAP_HEIGHT_PIXELS: f32 = PROVINCES_PER_COL as f32 * HEX_SIZE_PIXELS * SQRT3;
+/// Map height in pixels (for flat-top hexagons)  
+/// Formula: rows * hex_radius * sqrt(3) (vertical spacing between rows)
+pub const MAP_HEIGHT_PIXELS: f32 = PROVINCES_PER_COL as f32 * HEX_SIZE_PIXELS * SQRT_3;
 
 // ============================================================================
 // OCEAN ELEVATION CONSTANTS
 // ============================================================================
 
-/// Ocean elevation threshold for shallow water (above 12% elevation = shallow)
+/// Ocean elevation threshold for shallow water
+/// Above 12% elevation = shallow coastal waters (light blue)
 pub const OCEAN_ELEVATION_SHALLOW: f32 = 0.12;
 
-/// Ocean elevation threshold for medium depth (7-12% elevation = medium) 
+/// Ocean elevation threshold for medium depth
+/// 7-12% elevation = continental shelf (medium blue)
 pub const OCEAN_ELEVATION_MEDIUM: f32 = 0.07;
 
-/// Ocean elevation threshold for deep ocean (below 7% elevation = deep)
+/// Ocean elevation threshold for deep ocean
+/// Below 2% elevation = abyssal depths (dark blue)
 pub const OCEAN_ELEVATION_DEEP: f32 = 0.02;
 
 // ============================================================================
@@ -55,10 +68,12 @@ pub const OCEAN_ELEVATION_DEEP: f32 = 0.02;
 pub const CAMERA_ZOOM_SPEED: f32 = 0.1;
 
 /// Minimum zoom level (zoomed in, 1.0 = normal)
+/// 0.3 allows close inspection of individual provinces
 pub const CAMERA_MIN_ZOOM: f32 = 0.3;
 
 /// Maximum zoom level (zoomed out, higher = see more)
-pub const CAMERA_MAX_ZOOM: f32 = 6.0;  // Increased for massive 900k hex worlds
+/// 6.0 allows viewing the entire 900k hex world
+pub const CAMERA_MAX_ZOOM: f32 = 6.0;
 
 /// Base pan speed for keyboard movement (pixels per second)
 pub const CAMERA_PAN_SPEED_BASE: f32 = 500.0;
@@ -93,10 +108,14 @@ pub const UI_MARGIN_PERCENT: f32 = 2.0;
 // ============================================================================
 
 /// Starting year for the simulation
-pub const SIMULATION_STARTING_YEAR: u64 = 1000;
+/// Year 1000 represents a medieval-like starting point
+pub const SIMULATION_STARTING_YEAR: u32 = 1000;
 
-/// Days per year in simulation
-pub const SIMULATION_DAYS_PER_YEAR: f32 = 365.0;
+/// Days per year in simulation (standard Earth year)
+pub const SIMULATION_DAYS_PER_YEAR: u16 = 365;
+
+/// Days per year as float for time calculations
+pub const SIMULATION_DAYS_PER_YEAR_F32: f32 = 365.0;
 
 /// Default simulation speed multiplier
 pub const SIMULATION_DEFAULT_SPEED: f32 = 1.0;
@@ -120,6 +139,9 @@ pub const CLOUD_LAYER_COUNT: usize = 3;
 /// Base cloud movement speed
 pub const CLOUD_BASE_SPEED: f32 = 10.0;
 
+/// Z-coordinate for off-screen positioning
+pub const OFF_SCREEN_Z: f32 = -1000.0;
+
 // ============================================================================
 // COLOR CONSTANTS
 // ============================================================================
@@ -138,53 +160,61 @@ pub const COLOR_TILE_INFO_BACKGROUND: Color = Color::srgba(0.0, 0.0, 0.0, 0.7); 
 // ============================================================================
 
 /// Minimum population for land provinces
-pub const PROVINCE_MIN_POPULATION: f32 = 1000.0;
+/// 1000 represents a small rural settlement
+pub const PROVINCE_MIN_POPULATION: u32 = 1000;
 
 /// Maximum additional population for land provinces
-pub const PROVINCE_MAX_ADDITIONAL_POPULATION: f32 = 49000.0;
+/// Total max = 1000 + 49000 = 50000 (a modest city)
+pub const PROVINCE_MAX_ADDITIONAL_POPULATION: u32 = 49000;
 
 /// Number of nations to spawn
 pub const NATION_COUNT: usize = 8;
 
 /// Number of tectonic plates (base value, actual is base + seed variation)
-pub const TECTONIC_PLATES_BASE: usize = 4;  // Realistic number like Earth
+/// 4-7 plates creates Earth-like continental distribution
+pub const TECTONIC_PLATES_BASE: usize = 4;
 
 /// Maximum additional tectonic plates
-pub const TECTONIC_PLATES_VARIATION: u32 = 3;  // Results in 4-7 major landmasses
+pub const TECTONIC_PLATES_VARIATION: u32 = 3;
 
-/// Number of island chains to generate (disabled to reduce ocean clutter)
-pub const ISLAND_CHAIN_COUNT: usize = 0;  // No small islands - rely on rare volcanic hotspots
+/// Number of island chains to generate
+/// Set to 0 to reduce ocean clutter, relying on volcanic hotspots instead
+pub const ISLAND_CHAIN_COUNT: usize = 0;
 
 /// Number of archipelagos between continents
-pub const ARCHIPELAGO_COUNT: usize = 2;  // Minimal archipelagos
+/// 2 creates strategic island chains like Indonesia/Caribbean
+pub const ARCHIPELAGO_COUNT: usize = 2;
 
 /// Continent size multiplier (1.0 = original, 1.5 = 50% larger for 25% land coverage)
 pub const CONTINENT_SIZE_MULTIPLIER: f32 = 1.5;
 
 /// Massive continent base radius (Eurasia-sized) - scaled for 900k hex worlds
-pub const CONTINENT_MASSIVE_BASE: f32 = 8000.0;  // MUCH larger for huge worlds
+pub const CONTINENT_MASSIVE_BASE: f32 = 8000.0;
 pub const CONTINENT_MASSIVE_VARIATION: f32 = 3000.0;
 
 /// Medium continent base radius (Australia-sized)
-pub const CONTINENT_MEDIUM_BASE: f32 = 5000.0;  // Scaled up significantly
+pub const CONTINENT_MEDIUM_BASE: f32 = 5000.0;
 pub const CONTINENT_MEDIUM_VARIATION: f32 = 2000.0;
 
 /// Archipelago base radius (Indonesia-sized)
-pub const CONTINENT_ARCHIPELAGO_BASE: f32 = 2000.0;  // Still sizable
+pub const CONTINENT_ARCHIPELAGO_BASE: f32 = 2000.0;
 pub const CONTINENT_ARCHIPELAGO_VARIATION: f32 = 800.0;
 
 /// Tiny island base radius (Hawaii-sized)
-pub const CONTINENT_TINY_BASE: f32 = 800.0;  // Even tiny islands are bigger
+pub const CONTINENT_TINY_BASE: f32 = 800.0;
 pub const CONTINENT_TINY_VARIATION: f32 = 400.0;
 
-/// Falloff power for continent edges (higher = sharper edges, less land)
-pub const CONTINENT_FALLOFF_BASE: f32 = 0.8;  // Gentler falloff for larger continents
+/// Falloff power for continent edges
+/// 0.8 creates gentler slopes for more realistic coastlines
+pub const CONTINENT_FALLOFF_BASE: f32 = 0.8;
 pub const CONTINENT_FALLOFF_VARIATION: f32 = 0.3;
 
-/// Number of rivers to generate (increased for better coverage)
+/// Number of rivers to generate
+/// 200 rivers provides good coverage for large worlds
 pub const RIVER_COUNT: usize = 200;
 
-/// Minimum mountain elevation to spawn a river (lowered for more rivers)
+/// Minimum mountain elevation to spawn a river
+/// 0.5 (50% elevation) ensures rivers start from highlands
 pub const RIVER_MIN_ELEVATION: f32 = 0.5;
 
 // ============================================================================
@@ -201,6 +231,12 @@ pub const OCEAN_DEPTH_GRID_SIZE_MULTIPLIER: f32 = 3.0;
 // HEXAGON GEOMETRY CONSTANTS
 // ============================================================================
 
+/// Number of vertices in a hexagon
+pub const HEXAGON_VERTICES: usize = 6;
+
+/// Degrees per hexagon vertex (360 / 6)
+pub const DEGREES_PER_HEXAGON_VERTEX: f32 = 60.0;
+
 /// Antialiasing width for hexagon texture edges (in pixels)
 pub const HEXAGON_AA_WIDTH: f32 = 1.5;
 
@@ -210,17 +246,41 @@ pub const TEXTURE_ALPHA_OPAQUE: u8 = 255;
 /// Full transparency value for texture pixels
 pub const TEXTURE_ALPHA_TRANSPARENT: u8 = 0;
 
+/// Column offset divisor for odd-q hexagon layout
+pub const HEXAGON_COLUMN_OFFSET_DIVISOR: u32 = 2;
+
 // ============================================================================
-// HEXAGON CALCULATIONS
+// COMMON CONVERSION CONSTANTS
 // ============================================================================
 
-/// Calculate hexagon position for a given grid coordinate
-/// Uses flat-top hexagon with odd-q offset coordinate system
-#[inline]
-pub fn calculate_hex_position(col: u32, row: u32, hex_size: f32, provinces_per_row: u32, provinces_per_col: u32) -> (f32, f32) {
-    // FLAT-TOP HONEYCOMB: Odd columns shift UP by half the vertical spacing
-    let y_offset = if col % 2 == 1 { hex_size * SQRT3 / 2.0 } else { 0.0 };
-    let x = (col as f32 - provinces_per_row as f32 / 2.0) * hex_size * 1.5;
-    let y = (row as f32 - provinces_per_col as f32 / 2.0) * hex_size * SQRT3 + y_offset;
-    (x, y)
-}
+/// Milliseconds per second for time conversions
+pub const MS_PER_SECOND: f32 = 1000.0;
+
+/// Degrees in a full circle
+pub const DEGREES_IN_CIRCLE: f32 = 360.0;
+
+// ============================================================================
+// COMPILE-TIME ASSERTIONS
+// ============================================================================
+
+// Validate camera zoom invariants
+const _: () = assert!(CAMERA_MIN_ZOOM > 0.0, "Minimum zoom must be positive");
+const _: () = assert!(CAMERA_MIN_ZOOM < CAMERA_MAX_ZOOM, "Min zoom must be less than max zoom");
+
+// Validate ocean elevation thresholds are in correct order
+const _: () = assert!(OCEAN_ELEVATION_DEEP < OCEAN_ELEVATION_MEDIUM, "Deep ocean must be lower than medium");
+const _: () = assert!(OCEAN_ELEVATION_MEDIUM < OCEAN_ELEVATION_SHALLOW, "Medium ocean must be lower than shallow");
+
+// Validate world dimensions
+const _: () = assert!(PROVINCES_PER_ROW > 0, "Must have at least one column");
+const _: () = assert!(PROVINCES_PER_COL > 0, "Must have at least one row");
+
+// Validate simulation speeds
+const _: () = assert!(SIMULATION_DEFAULT_SPEED > 0.0, "Default speed must be positive");
+const _: () = assert!(SIMULATION_MAX_SPEED >= SIMULATION_DEFAULT_SPEED, "Max speed must be >= default");
+
+// Validate population ranges
+const _: () = assert!(PROVINCE_MIN_POPULATION > 0, "Minimum population must be positive");
+
+// Note: The calculate_hex_position function has been moved to src/geometry.rs
+// as it represents logic rather than data constants
