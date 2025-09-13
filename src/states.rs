@@ -51,6 +51,9 @@ pub enum GameState {
     
     /// Game is paused (ESC menu)
     Paused,
+    
+    /// World generation failed - shows error dialog
+    WorldGenerationFailed,
 }
 
 /// Sub-states for menu navigation (only active during MainMenu state)
@@ -188,6 +191,13 @@ impl Plugin for StatesPlugin {
             .add_systems(OnEnter(GameState::Paused), enter_paused)
             .add_systems(OnExit(GameState::Paused), exit_paused)
             
+            .add_systems(OnEnter(GameState::WorldGenerationFailed), enter_world_generation_failed)
+            .add_systems(Update, 
+                handle_error_dialog_buttons
+                    .run_if(in_state(GameState::WorldGenerationFailed))
+            )
+            .add_systems(OnExit(GameState::WorldGenerationFailed), exit_world_generation_failed)
+            
             // Debug state logging - only when state actually changes
             .add_systems(Update, log_state_changes.run_if(state_changed::<GameState>));
     }
@@ -312,11 +322,8 @@ fn enter_loading(
     #[cfg(feature = "debug-states")]
     println!("Entering Loading state");
     
-    // TODO: Spawn loading screen UI here
-    // TODO: Load game assets here
-    
-    // For now, immediately transition to MainMenu
-    // In production, this should happen after assets are loaded
+    // Immediately transition to MainMenu since the game has no external assets to load
+    // All content is procedurally generated at runtime
     next_state.set(GameState::MainMenu);
 }
 
@@ -324,7 +331,6 @@ fn enter_loading(
 fn exit_loading(commands: Commands) {
     #[cfg(feature = "debug-states")]
     println!("Exiting Loading state");
-    // TODO: Cleanup loading screen UI
 }
 
 /// System that runs when entering the MainMenu state
@@ -517,6 +523,73 @@ fn exit_paused(commands: Commands) {
         println!("[EXIT COMPLETE] Paused state exited in {:.1}ms", start.elapsed().as_secs_f32() * 1000.0);
     }
     // Pause menu UI cleanup handled by menus.rs module
+}
+
+/// System that runs when entering the WorldGenerationFailed state
+fn enter_world_generation_failed(
+    mut commands: Commands,
+    error_resource: Res<crate::resources::WorldGenerationError>,
+) {
+    #[cfg(feature = "debug-states")]
+    println!("Entering WorldGenerationFailed state with error: {}", error_resource.error_message);
+    
+    // Spawn the error dialog
+    crate::ui::dialogs::presets::world_generation_error_dialog(
+        commands,
+        &error_resource.error_message
+    );
+}
+
+/// Handle button clicks in the error dialog
+fn handle_error_dialog_buttons(
+    mut commands: Commands,
+    mut next_state: ResMut<NextState<GameState>>,
+    dialog_query: Query<Entity, With<crate::ui::dialogs::WorldGenerationErrorDialog>>,
+    confirm_button_query: Query<&Interaction, (Changed<Interaction>, With<crate::ui::dialogs::ConfirmButton>)>,
+    cancel_button_query: Query<&Interaction, (Changed<Interaction>, With<crate::ui::dialogs::CancelButton>)>,
+) {
+    // Check confirm button ("Try Again")
+    for interaction in &confirm_button_query {
+        if *interaction == Interaction::Pressed {
+            // Go back to world configuration
+            next_state.set(GameState::WorldConfiguration);
+            
+            // Remove the error dialog
+            for entity in &dialog_query {
+                commands.entity(entity).despawn_recursive();
+            }
+        }
+    }
+    
+    // Check cancel button ("Main Menu")
+    for interaction in &cancel_button_query {
+        if *interaction == Interaction::Pressed {
+            // Go back to main menu
+            next_state.set(GameState::MainMenu);
+            
+            // Remove the error dialog
+            for entity in &dialog_query {
+                commands.entity(entity).despawn_recursive();
+            }
+        }
+    }
+}
+
+/// Cleanup when exiting the WorldGenerationFailed state
+fn exit_world_generation_failed(
+    mut commands: Commands,
+    dialog_query: Query<Entity, With<crate::ui::dialogs::DialogOverlay>>,
+) {
+    #[cfg(feature = "debug-states")]
+    println!("Exiting WorldGenerationFailed state");
+    
+    // Clean up any remaining dialogs
+    for entity in &dialog_query {
+        commands.entity(entity).despawn_recursive();
+    }
+    
+    // Remove the error resource
+    commands.remove_resource::<crate::resources::WorldGenerationError>();
 }
 
 // ============================================================================

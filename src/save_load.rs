@@ -22,9 +22,9 @@ use crate::resources::{WorldSeed, WorldName, WorldSize, MapDimensions, GameTime,
 use crate::states::{GameState, RequestStateTransition};
 use crate::ui::buttons::{ButtonBuilder, ButtonStyle, ButtonSize};
 use crate::ui::text_inputs::TextInputBuilder;
-use crate::ui::styles::{colors, dimensions};
+use crate::ui::styles::colors;
 use crate::colors::theme;
-use bevy_simple_text_input::{TextInputValue, TextInputSubmitEvent};
+use bevy_simple_text_input::TextInputValue;
 use crate::loading_screen::{LoadingState, start_save_loading, set_loading_progress};
 
 // ============================================================================
@@ -558,7 +558,7 @@ fn check_for_pending_load(
         // Create province storage with the loaded provinces and mesh handle
         let mut province_by_id = std::collections::HashMap::new();
         for (idx, province) in load_data.0.provinces.iter().enumerate() {
-            province_by_id.insert(province.id.value(), idx);
+            province_by_id.insert(province.id, idx);
         }
         
         commands.insert_resource(ProvinceStorage {

@@ -557,11 +557,6 @@ impl Plugin for SliderPlugin {
 // SYSTEMS
 // ============================================================================
 
-/// Track which slider entity is currently being dragged
-#[derive(Resource, Default)]
-struct DraggedSlider {
-    entity: Option<Entity>,
-}
 
 /// Handle slider dragging interaction
 fn handle_slider_interaction(

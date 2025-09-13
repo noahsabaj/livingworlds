@@ -81,7 +81,6 @@ livingworlds/
 │   │   ├── mod.rs         # WorldBuilder orchestrator
 │   │   ├── provinces.rs   # ProvinceBuilder with parallel processing
 │   │   ├── rivers.rs      # RiverBuilder with flow accumulation
-│   │   ├── tectonics.rs   # TectonicsBuilder for continental plates
 │   │   ├── clouds.rs      # CloudBuilder for atmospheric effects
 │   │   ├── agriculture.rs # Agriculture and fertility calculations
 │   │   └── utils.rs       # Utility functions

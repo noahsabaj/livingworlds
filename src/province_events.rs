@@ -53,14 +53,40 @@ pub struct ProvinceTerrainChanged {
 impl ProvinceTerrainChanged {
     /// Check if this represents desertification
     pub fn is_desertification(&self) -> bool {
-        matches!(self.new_terrain, TerrainType::Desert) && 
-        !matches!(self.old_terrain, TerrainType::Desert)
+        matches!(self.new_terrain,
+            TerrainType::ColdDesert |
+            TerrainType::SubtropicalDesert |
+            TerrainType::TropicalDesert |
+            TerrainType::PolarDesert
+        ) &&
+        !matches!(self.old_terrain,
+            TerrainType::ColdDesert |
+            TerrainType::SubtropicalDesert |
+            TerrainType::TropicalDesert |
+            TerrainType::PolarDesert
+        )
     }
-    
+
     /// Check if this represents deforestation
     pub fn is_deforestation(&self) -> bool {
-        matches!(self.old_terrain, TerrainType::Forest | TerrainType::Jungle) &&
-        !matches!(self.new_terrain, TerrainType::Forest | TerrainType::Jungle)
+        matches!(self.old_terrain,
+            TerrainType::TropicalRainforest |
+            TerrainType::TropicalSeasonalForest |
+            TerrainType::TemperateRainforest |
+            TerrainType::TemperateDeciduousForest |
+            TerrainType::MediterraneanForest |
+            TerrainType::BorealForest |
+            TerrainType::Taiga
+        ) &&
+        !matches!(self.new_terrain,
+            TerrainType::TropicalRainforest |
+            TerrainType::TropicalSeasonalForest |
+            TerrainType::TemperateRainforest |
+            TerrainType::TemperateDeciduousForest |
+            TerrainType::MediterraneanForest |
+            TerrainType::BorealForest |
+            TerrainType::Taiga
+        )
     }
 }
 

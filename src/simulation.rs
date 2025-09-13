@@ -7,8 +7,6 @@
 use bevy::prelude::*;
 use crate::resources::GameTime;
 use crate::states::GameState;
-use crate::world::mesh::ProvinceStorage;
-use crate::province_events::{ProvincePopulationChanged, BatchPopulationUpdate};
 use crate::constants::{SIMULATION_STARTING_YEAR, SIMULATION_DAYS_PER_YEAR_F32};
 
 // Constants for simulation speeds
@@ -262,86 +260,6 @@ fn resume_from_pause_menu(
     }
 }
 
-// ============================================================================
-// POPULATION GROWTH SYSTEM - Example of event-driven architecture
-// ============================================================================
-
-// /// Simulate population growth and emit events for changes
-// /// This is a simple example system that demonstrates the new event architecture
-// fn simulate_population_growth(
-//     mut province_storage: ResMut<ProvinceStorage>,
-//     game_time: Res<GameTime>,
-//     _time: Res<Time>,
-//     mut population_events: EventWriter<ProvincePopulationChanged>,
-//     mut batch_events: EventWriter<BatchPopulationUpdate>,
-// ) {
-//     // Don't update if paused
-//     if game_time.paused {
-//         return;
-//     }
-    
-//     // Only update once per game day
-//     static mut LAST_UPDATE_DAY: f32 = 0.0;
-//     let current_day = game_time.current_date;
-    
-//     unsafe {
-//         // Check if we've already updated this day
-//         if (current_day - LAST_UPDATE_DAY).abs() < 1.0 {
-//             return;
-//         }
-//         LAST_UPDATE_DAY = current_day;
-//     }
-    
-//     // Collect all population changes
-//     let mut changes = Vec::new();
-    
-//     // Update each province's population
-//     for province in &mut province_storage.provinces {
-//         // Skip ocean provinces
-//         if province.terrain == crate::terrain::TerrainType::Ocean {
-//             continue;
-//         }
-        
-//         // Calculate growth rate
-//         let growth_rate = province.growth_rate();
-//         if growth_rate <= 0.0 {
-//             continue;
-//         }
-        
-//         // Calculate new population (daily growth)
-//         let growth_amount = (province.population as f32 * growth_rate * 0.001) as u32;
-//         if growth_amount == 0 {
-//             continue;
-//         }
-        
-//         let new_population = (province.population + growth_amount).min(province.max_population);
-        
-//         // Update population and check if it changed
-//         if let Some((old_pop, new_pop)) = province.set_population(new_population) {
-//             // Create event for this change
-//             changes.push(ProvincePopulationChanged {
-//                 province_id: province.id,
-//                 old_population: old_pop,
-//                 new_population: new_pop,
-//                 max_population: province.max_population,
-//             });
-//         }
-//     }
-    
-//     // Emit individual events (for systems that care about specific provinces)
-//     for change in &changes {
-//         population_events.send(change.clone());
-//     }
-    
-//     // Also emit a batch event (for systems that process all changes at once)
-//     if !changes.is_empty() {
-//         let current_year = SIMULATION_STARTING_YEAR + (game_time.current_date / SIMULATION_DAYS_PER_YEAR_F32) as u32;
-//         batch_events.send(BatchPopulationUpdate {
-//             updates: changes,
-//             simulation_year: current_year,
-//         });
-//     }
-// }
 
 // ============================================================================
 // FUTURE SYSTEMS (To be implemented when nations/civilizations are added)

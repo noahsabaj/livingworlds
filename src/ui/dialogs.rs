@@ -23,6 +23,7 @@ pub enum DialogType {
     Error,
     Info,
     Custom,
+    WorldGenerationError,
 }
 
 /// Component for dialog containers
@@ -62,6 +63,10 @@ pub struct ResolutionConfirmDialog;
 /// Marker for countdown text in resolution dialog
 #[derive(Component)]
 pub struct CountdownText;
+
+/// Marker for world generation error dialog
+#[derive(Component)]
+pub struct WorldGenerationErrorDialog;
 
 /// Button markers for dialog actions
 #[derive(Component)]
@@ -344,10 +349,8 @@ impl DialogBuilder {
                                 builder = builder.with_marker(DiscardButton);
                             }
                             DialogButtonMarker::Custom(_marker_fn) => {
-                                // For custom markers, we need to spawn manually 
-                                // since we can't pass the marker function through the builder
-                                // This is a limitation of the current design
-                                // TODO: Consider refactoring to support custom markers in builder
+                                // Custom markers require manual spawning as closures
+                                // cannot be stored in the builder pattern structure
                                 continue;
                             }
                         }
@@ -403,6 +406,19 @@ pub mod presets {
             .width(dimensions::DIALOG_WIDTH_SMALL)
             .confirm_button("Apply")
             .cancel_button("Cancel")
+            .build(&mut commands)
+    }
+    
+    /// Create a world generation error dialog
+    pub fn world_generation_error_dialog(mut commands: Commands, error_message: &str) -> Entity {
+        DialogBuilder::new(DialogType::WorldGenerationError)
+            .title("World Generation Failed")
+            .body(format!("Failed to generate world:\n\n{}\n\nWould you like to try again with different settings?", error_message))
+            .width(dimensions::DIALOG_WIDTH_MEDIUM)
+            .dismissible(false)
+            .z_index(layers::CRITICAL_DIALOG)
+            .confirm_button("Try Again")
+            .cancel_button("Main Menu")
             .build(&mut commands)
     }
     
