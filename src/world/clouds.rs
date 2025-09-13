@@ -1,15 +1,16 @@
 //! Cloud rendering and animation system for Living Worlds
-//! 
-//! Provides procedural cloud generation using Perlin noise with layered
-//! sprites for realistic atmospheric effects.
+//!
+//! Provides procedural cloud generation using our centralized Perlin noise
+//! module with layered sprites for realistic atmospheric effects.
 
 use bevy::prelude::*;
-use noise::{NoiseFn, Perlin};
 use rand::prelude::*;
 use rand::rngs::StdRng;
 use rayon::prelude::*;
 use crate::constants::*;
 use crate::resources::{WeatherSystem, WeatherState};
+use crate::math::perlin::PerlinNoise;
+use crate::math::interpolation::smoothstep;
 use super::{CloudSystem, CloudLayer};
 
 /// Component for cloud sprites with movement properties
@@ -130,12 +131,13 @@ impl Default for CloudTextureParams {
 
 /// Create a procedural cloud texture with enhanced variety
 pub fn create_cloud_texture(params: CloudTextureParams) -> Image {
-    let perlin = Perlin::new(params.seed);
-    
+    // Use our centralized noise generator - works out of the box!
+    let noise = PerlinNoise::with_seed(params.seed);
+
     // Calculate center and radius for edge falloff
     let center = params.size as f64 / 2.0;
     let radius = params.size as f64 / (2.2 - params.edge_hardness as f64 * 0.5); // Harder edges = larger radius
-    
+
     // Generate pixels in PARALLEL for massive speedup!
     // Each row can be processed independently
     let pixels: Vec<u8> = (0..params.size)
@@ -143,41 +145,34 @@ pub fn create_cloud_texture(params: CloudTextureParams) -> Image {
         .flat_map(|y| {
             // Process each row's pixels
             let mut row_pixels = Vec::with_capacity((params.size * 4) as usize);
-            
+
             for x in 0..params.size {
             // Apply stretch transformation
             let stretched_x = (x as f64 - center) / (params.stretch.x as f64) + center;
             let stretched_y = (y as f64 - center) / (params.stretch.y as f64) + center;
-            
+
             // Normalize coordinates to [0, 1]
             let nx = stretched_x / params.size as f64;
             let ny = stretched_y / params.size as f64;
-            
-            // Generate multi-octave noise for cloud detail
-            let mut noise_value = 0.0;
-            let mut amplitude = 1.0;
-            let mut frequency = 2.0;  // Base frequency
-            let mut max_amplitude = 0.0;
-            
-            // Add turbulence by using absolute value of noise
-            for i in 0..params.octaves {
-                let sample = perlin.get([nx * frequency, ny * frequency]);
-                
-                // Apply turbulence
-                let turbulent_sample = if params.turbulence > 0.0 && i > 0 {
-                    sample.abs() * params.turbulence as f64 + sample * (1.0 - params.turbulence as f64)
-                } else {
-                    sample
-                };
-                
-                noise_value += turbulent_sample * amplitude;
-                max_amplitude += amplitude;
-                amplitude *= 0.5;
-                frequency *= 2.0;
-            }
-            
-            // Normalize and apply coverage threshold
-            noise_value = (noise_value / max_amplitude + 1.0) / 2.0;  // Map to [0, 1]
+
+            // Use our ready-made cloud sampling with turbulence!
+            // All the complexity of multi-octave noise is handled internally
+            let noise_value = if params.turbulence > 0.0 {
+                // Sample clouds with billow effect for fluffy appearance
+                use crate::math::perlin::CloudPreset;
+                noise.sample_clouds(nx * 2.0, ny * 2.0, CloudPreset::Fluffy)
+            } else {
+                // Regular FBM for smoother clouds
+                use crate::math::perlin::FbmSettings;
+                noise.sample_fbm(nx * 2.0, ny * 2.0, FbmSettings {
+                    octaves: params.octaves as u32,
+                    frequency: 0.02,  // Cloud frequency
+                    persistence: 0.5,
+                    lacunarity: 2.0,
+                })
+            };
+
+            // Already normalized to [0, 1] by our module!
             
             // Apply coverage factor (higher coverage = more clouds)
             let threshold = 1.0 - params.coverage as f64;
@@ -194,11 +189,11 @@ pub fn create_cloud_texture(params: CloudTextureParams) -> Image {
             let edge_falloff = (1.0 - (dist_from_center / radius).min(1.0).powf(edge_power)).max(0.0);
             cloud_density *= edge_falloff;
             
-            // Apply smoothstep for softer cloud appearance (less smoothing for harder edges)
+            // Apply smoothstep for softer cloud appearance using centralized function
             let smooth_factor = 1.0 - params.edge_hardness as f64 * 0.7;
             let smoothed = if smooth_factor > 0.0 {
-                cloud_density * cloud_density * (3.0 - 2.0 * cloud_density) * smooth_factor 
-                + cloud_density * (1.0 - smooth_factor)
+                let smooth_value = smoothstep(0.0, 1.0, cloud_density as f32) as f64;
+                smooth_value * smooth_factor + cloud_density * (1.0 - smooth_factor)
             } else {
                 cloud_density
             };

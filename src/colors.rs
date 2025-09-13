@@ -10,6 +10,7 @@ use crate::components::MineralType;
 use crate::world::terrain::TerrainType;
 use crate::constants::*;
 use crate::resources::{WeatherSystem, GameTime};
+use crate::math::interpolation::{lerp_color, weighted_blend_colors};
 
 // ============================================================================
 // TYPE-SAFE WRAPPERS
@@ -62,22 +63,43 @@ impl SafeColor {
 pub mod theme {
     use bevy::prelude::Color;
     
-    // Terrain base colors
+    // Water colors
     pub const OCEAN_DEEP: Color = Color::srgb(0.02, 0.15, 0.35);
     pub const OCEAN_MEDIUM: Color = Color::srgb(0.08, 0.25, 0.45);
     pub const OCEAN_SHALLOW: Color = Color::srgb(0.15, 0.35, 0.55);
     pub const BEACH: Color = Color::srgb(0.9, 0.85, 0.65);
-    pub const PLAINS: Color = Color::srgb(0.3, 0.6, 0.3);
-    pub const HILLS: Color = Color::srgb(0.5, 0.45, 0.35);
-    pub const MOUNTAINS: Color = Color::srgb(0.65, 0.65, 0.7);
-    pub const SNOW: Color = Color::srgb(0.95, 0.95, 1.0);
-    pub const ICE: Color = Color::srgb(0.92, 0.95, 1.0);
-    pub const TUNDRA: Color = Color::srgb(0.65, 0.6, 0.55);
-    pub const DESERT: Color = Color::srgb(0.9, 0.8, 0.6);
-    pub const FOREST: Color = Color::srgb(0.15, 0.35, 0.12);
-    pub const JUNGLE: Color = Color::srgb(0.05, 0.3, 0.08);
     pub const RIVER: Color = Color::srgb(0.2, 0.45, 0.55);
     pub const DELTA: Color = Color::srgb(0.35, 0.5, 0.25);
+
+    // Polar biome colors
+    pub const POLAR_DESERT: Color = Color::srgb(0.88, 0.88, 0.92);  // Icy grey-white
+    pub const TUNDRA: Color = Color::srgb(0.65, 0.6, 0.55);         // Grey-brown
+
+    // Cold biome colors
+    pub const TAIGA: Color = Color::srgb(0.1, 0.25, 0.15);          // Dark evergreen
+    pub const BOREAL_FOREST: Color = Color::srgb(0.12, 0.3, 0.18);  // Slightly lighter evergreen
+
+    // Temperate biome colors
+    pub const TEMPERATE_RAINFOREST: Color = Color::srgb(0.05, 0.35, 0.15);      // Deep lush green
+    pub const TEMPERATE_DECIDUOUS_FOREST: Color = Color::srgb(0.15, 0.4, 0.12); // Mixed forest green
+    pub const TEMPERATE_GRASSLAND: Color = Color::srgb(0.4, 0.65, 0.3);         // Prairie green
+    pub const COLD_DESERT: Color = Color::srgb(0.7, 0.65, 0.55);                // Grey-tan
+
+    // Subtropical biome colors
+    pub const MEDITERRANEAN_FOREST: Color = Color::srgb(0.3, 0.45, 0.25);  // Olive green
+    pub const CHAPARRAL: Color = Color::srgb(0.55, 0.5, 0.35);            // Dry shrubland brown
+    pub const SUBTROPICAL_DESERT: Color = Color::srgb(0.92, 0.82, 0.6);    // Sandy yellow
+
+    // Tropical biome colors
+    pub const TROPICAL_RAINFOREST: Color = Color::srgb(0.02, 0.28, 0.05);       // Deep jungle green
+    pub const TROPICAL_SEASONAL_FOREST: Color = Color::srgb(0.15, 0.38, 0.08);  // Monsoon forest
+    pub const SAVANNA: Color = Color::srgb(0.75, 0.7, 0.4);                     // Dry grass yellow
+    pub const TROPICAL_DESERT: Color = Color::srgb(0.95, 0.85, 0.55);           // Bright sand
+
+    // Special biome colors
+    pub const ALPINE: Color = Color::srgb(0.75, 0.75, 0.8);        // Mountain meadow grey-green
+    pub const WETLANDS: Color = Color::srgb(0.25, 0.35, 0.2);      // Swamp dark green
+    pub const MANGROVE: Color = Color::srgb(0.18, 0.32, 0.22);     // Coastal marsh green
     
     // Mineral colors
     pub const IRON: Color = Color::srgb(0.5, 0.3, 0.2);
@@ -103,13 +125,6 @@ pub mod theme {
 // FAST MATH APPROXIMATIONS
 // ============================================================================
 
-/// Fast sine approximation using Taylor series (error < 0.001)
-#[inline]
-fn fast_sin(x: f32) -> f32 {
-    let x = x % (2.0 * std::f32::consts::PI);
-    let x2 = x * x;
-    x * (1.0 - x2 / 6.0 + x2 * x2 / 120.0)
-}
 
 /// Position-based hash for deterministic variation
 #[inline]
@@ -139,10 +154,22 @@ impl TerrainColorPalettes {
         
         // Generate 256 color steps for each terrain type
         for terrain_type in [
-            TerrainType::Ocean, TerrainType::Beach, TerrainType::Plains,
-            TerrainType::Hills, TerrainType::Mountains, TerrainType::Ice,
-            TerrainType::Tundra, TerrainType::Desert, TerrainType::Forest,
-            TerrainType::Jungle, TerrainType::River, TerrainType::Delta,
+            // Water terrains
+            TerrainType::Ocean, TerrainType::Beach, TerrainType::River, TerrainType::Delta,
+            // Polar biomes
+            TerrainType::PolarDesert, TerrainType::Tundra,
+            // Cold biomes
+            TerrainType::Taiga, TerrainType::BorealForest,
+            // Temperate biomes
+            TerrainType::TemperateRainforest, TerrainType::TemperateDeciduousForest,
+            TerrainType::TemperateGrassland, TerrainType::ColdDesert,
+            // Subtropical biomes
+            TerrainType::MediterraneanForest, TerrainType::Chaparral, TerrainType::SubtropicalDesert,
+            // Tropical biomes
+            TerrainType::TropicalRainforest, TerrainType::TropicalSeasonalForest,
+            TerrainType::Savanna, TerrainType::TropicalDesert,
+            // Special biomes
+            TerrainType::Alpine, TerrainType::Wetlands, TerrainType::Mangrove,
         ] {
             let mut colors = Vec::with_capacity(256);
             for i in 0..256 {
@@ -161,7 +188,7 @@ impl TerrainColorPalettes {
         self.palettes.get(&terrain)
             .and_then(|palette| palette.get(index))
             .copied()
-            .unwrap_or(theme::PLAINS)
+            .unwrap_or(theme::TEMPERATE_GRASSLAND)
     }
 }
 
@@ -170,6 +197,7 @@ fn compute_terrain_color(terrain: TerrainType, elevation: f32) -> Color {
     let elevation = elevation.clamp(0.0, 1.0);
     
     match terrain {
+        // Water terrains
         TerrainType::Ocean => {
             // Correctly interpret elevation for ocean depth
             if elevation >= OCEAN_ELEVATION_SHALLOW {
@@ -185,41 +213,111 @@ fn compute_terrain_color(terrain: TerrainType, elevation: f32) -> Color {
             let sand_var = elevation * 0.1;
             SafeColor::srgb(0.9 + sand_var * 0.5, 0.85 + sand_var * 0.5, 0.65 + sand_var)
         },
-        TerrainType::Plains => {
-            // Green plains with elevation variation
-            let factor = (elevation - 0.2) / 0.25;
-            SafeColor::srgb(0.25 + factor * 0.1, 0.55 + factor * 0.1, 0.25 + factor * 0.05)
-        },
-        TerrainType::Hills => {
-            // Brown to grey transition
-            let factor = (elevation - 0.45) / 0.2;
-            SafeColor::srgb(0.45 + factor * 0.1, 0.4 + factor * 0.05, 0.3 + factor * 0.15)
-        },
-        TerrainType::Mountains => {
-            // Rocky grey to snow white
-            let snow_factor = ((elevation - 0.65) / 0.35).clamp(0.0, 1.0);
-            let grey = 0.6 + snow_factor * 0.35;
-            SafeColor::srgb(grey, grey, grey + snow_factor * 0.05)
-        },
-        TerrainType::Ice => theme::ICE,
-        TerrainType::Tundra => theme::TUNDRA,
-        TerrainType::Desert => {
-            // Warm tan with subtle variation
-            let var = elevation * 0.05;
-            SafeColor::srgb(0.9 + var, 0.8 + var, 0.6)
-        },
-        TerrainType::Forest => {
-            // Rich green with depth variation
-            let factor = (elevation - 0.3) / 0.2;
-            SafeColor::srgb(0.15 + factor * 0.05, 0.35 + factor * 0.1, 0.12 + factor * 0.03)
-        },
-        TerrainType::Jungle => {
-            // Deep vibrant green
-            let var = elevation * 0.1;
-            SafeColor::srgb(0.05 + var, 0.3 + var * 1.5, 0.08 + var * 0.5)
-        },
         TerrainType::River => theme::RIVER,
         TerrainType::Delta => theme::DELTA,
+
+        // Polar biomes
+        TerrainType::PolarDesert => {
+            // Icy white with blue tint at higher elevations
+            let ice_factor = elevation * 0.1;
+            SafeColor::srgb(0.88 + ice_factor, 0.88 + ice_factor, 0.92 + ice_factor * 0.5)
+        },
+        TerrainType::Tundra => {
+            // Grey-brown with lighter shades at elevation
+            let tundra_var = elevation * 0.15;
+            SafeColor::srgb(0.65 + tundra_var, 0.6 + tundra_var, 0.55 + tundra_var)
+        },
+
+        // Cold biomes
+        TerrainType::Taiga => {
+            // Dark evergreen with variation
+            let forest_depth = elevation * 0.1;
+            SafeColor::srgb(0.1 + forest_depth, 0.25 + forest_depth * 1.5, 0.15 + forest_depth)
+        },
+        TerrainType::BorealForest => {
+            // Slightly lighter evergreen
+            let boreal_var = elevation * 0.12;
+            SafeColor::srgb(0.12 + boreal_var, 0.3 + boreal_var * 1.2, 0.18 + boreal_var)
+        },
+
+        // Temperate biomes
+        TerrainType::TemperateRainforest => {
+            // Deep lush green with elevation darkening
+            let rain_factor = (1.0 - elevation) * 0.15;
+            SafeColor::srgb(0.05 + rain_factor, 0.35 + rain_factor * 2.0, 0.15 + rain_factor)
+        },
+        TerrainType::TemperateDeciduousForest => {
+            // Mixed forest green with seasonal variation hint
+            let deciduous_var = elevation * 0.2;
+            SafeColor::srgb(0.15 + deciduous_var * 0.5, 0.4 + deciduous_var, 0.12 + deciduous_var * 0.3)
+        },
+        TerrainType::TemperateGrassland => {
+            // Prairie green-yellow
+            let grass_factor = elevation * 0.15;
+            SafeColor::srgb(0.4 + grass_factor, 0.65 + grass_factor * 0.5, 0.3 + grass_factor * 0.3)
+        },
+        TerrainType::ColdDesert => {
+            // Grey-tan cold desert
+            let cold_var = elevation * 0.1;
+            SafeColor::srgb(0.7 + cold_var, 0.65 + cold_var, 0.55 + cold_var * 0.5)
+        },
+
+        // Subtropical biomes
+        TerrainType::MediterraneanForest => {
+            // Olive green with warm tones
+            let med_factor = elevation * 0.15;
+            SafeColor::srgb(0.3 + med_factor * 0.5, 0.45 + med_factor * 0.3, 0.25 + med_factor * 0.2)
+        },
+        TerrainType::Chaparral => {
+            // Dry shrubland brown-green
+            let chap_var = elevation * 0.12;
+            SafeColor::srgb(0.55 + chap_var, 0.5 + chap_var * 0.8, 0.35 + chap_var * 0.5)
+        },
+        TerrainType::SubtropicalDesert => {
+            // Sandy yellow with reddish tint
+            let sub_desert = elevation * 0.08;
+            SafeColor::srgb(0.92 + sub_desert * 0.5, 0.82 + sub_desert * 0.3, 0.6 - sub_desert)
+        },
+
+        // Tropical biomes
+        TerrainType::TropicalRainforest => {
+            // Deep jungle green, darkest of all forests
+            let jungle_depth = (1.0 - elevation) * 0.1;
+            SafeColor::srgb(0.02 + jungle_depth, 0.28 + jungle_depth * 2.0, 0.05 + jungle_depth * 0.5)
+        },
+        TerrainType::TropicalSeasonalForest => {
+            // Monsoon forest - between rainforest and savanna
+            let seasonal_var = elevation * 0.15;
+            SafeColor::srgb(0.15 + seasonal_var, 0.38 + seasonal_var * 0.5, 0.08 + seasonal_var * 0.3)
+        },
+        TerrainType::Savanna => {
+            // Dry grass yellow-brown
+            let savanna_factor = elevation * 0.1;
+            SafeColor::srgb(0.75 + savanna_factor, 0.7 + savanna_factor * 0.5, 0.4 - savanna_factor)
+        },
+        TerrainType::TropicalDesert => {
+            // Bright sand with intense heat shimmer
+            let trop_desert = elevation * 0.05;
+            SafeColor::srgb(0.95 + trop_desert * 0.3, 0.85 + trop_desert * 0.2, 0.55 - trop_desert * 0.5)
+        },
+
+        // Special biomes
+        TerrainType::Alpine => {
+            // Mountain meadow transitioning to snow
+            let alpine_snow = elevation.powf(2.0);  // More snow at higher elevations
+            let base_grey = 0.75 + alpine_snow * 0.2;
+            SafeColor::srgb(base_grey, base_grey, base_grey + alpine_snow * 0.05)
+        },
+        TerrainType::Wetlands => {
+            // Swamp dark green-brown
+            let wetland_var = elevation * 0.08;
+            SafeColor::srgb(0.25 + wetland_var * 0.5, 0.35 + wetland_var, 0.2 + wetland_var * 0.3)
+        },
+        TerrainType::Mangrove => {
+            // Coastal marsh green with tidal influence
+            let mangrove_tide = (elevation * 2.0).sin() * 0.05 + elevation * 0.1;
+            SafeColor::srgb(0.18 + mangrove_tide, 0.32 + mangrove_tide * 1.5, 0.22 + mangrove_tide)
+        },
     }
 }
 
@@ -464,30 +562,18 @@ impl WorldColors {
     }
     
     /// Interpolate between two colors for smooth transitions
+    /// Now uses centralized interpolation from math module
     pub fn interpolate(from: Color, to: Color, t: f32) -> Color {
-        Color::from(from).mix(&to, t.clamp(0.0, 1.0))
+        lerp_color(from, to, t)
     }
-    
+
     /// Blend colors for biome transitions
+    /// Now uses centralized weighted blend from math module
     pub fn blend_biomes(colors: &[(Color, f32)]) -> Color {
-        let total_weight: f32 = colors.iter().map(|(_, w)| w).sum();
-        if total_weight == 0.0 {
-            return theme::PLAINS;
+        if colors.is_empty() || colors.iter().all(|(_, w)| *w <= 0.0) {
+            return theme::TEMPERATE_GRASSLAND;
         }
-        
-        let mut r = 0.0;
-        let mut g = 0.0;
-        let mut b = 0.0;
-        
-        for (color, weight) in colors {
-            let normalized_weight = weight / total_weight;
-            let rgba = color.to_srgba();
-            r += rgba.red * normalized_weight;
-            g += rgba.green * normalized_weight;
-            b += rgba.blue * normalized_weight;
-        }
-        
-        SafeColor::srgb(r, g, b)
+        weighted_blend_colors(colors)
     }
 }
 

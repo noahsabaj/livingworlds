@@ -11,6 +11,7 @@ use bevy::window::{PrimaryWindow, CursorGrabMode};
 use crate::constants::*;
 use crate::resources::MapDimensions;
 use crate::states::{GameState, RequestStateTransition};
+use crate::math::interpolation::{lerp_exp_vec3, lerp_exp};
 
 /// Camera control plugin for managing viewport and camera movement
 pub struct CameraPlugin;
@@ -333,17 +334,22 @@ fn apply_smooth_movement(
     time: Res<Time>,
 ) {
     for (mut transform, mut projection, mut controller) in query.iter_mut() {
-        // Smooth position interpolation
-        let position_lerp = 1.0 - (0.01_f32.powf(controller.position_smoothing * time.delta_secs()));
-        transform.translation = transform.translation.lerp(
+        // Smooth position interpolation using centralized function
+        transform.translation = lerp_exp_vec3(
+            transform.translation,
             controller.target_position,
-            position_lerp
+            controller.position_smoothing,
+            time.delta_secs()
         );
-        
-        // Smooth zoom interpolation
+
+        // Smooth zoom interpolation using centralized function
         if let Projection::Orthographic(ref mut ortho) = projection.as_mut() {
-            let zoom_lerp = 1.0 - (0.01_f32.powf(controller.zoom_smoothing * time.delta_secs()));
-            ortho.scale = ortho.scale.lerp(controller.target_zoom, zoom_lerp);
+            ortho.scale = lerp_exp(
+                ortho.scale,
+                controller.target_zoom,
+                controller.zoom_smoothing,
+                time.delta_secs()
+            );
             controller.current_zoom = ortho.scale;  // Cache for other systems
         }
     }
