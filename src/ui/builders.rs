@@ -3,7 +3,7 @@
 //! This module provides convenient access to all UI builder patterns in one place.
 //! Instead of importing from individual modules, you can use:
 //! ```rust
-//! use crate::ui_toolbox::builders::*;
+//! use crate::ui::builders::*;
 //! ```
 
 // Button builders
@@ -127,7 +127,7 @@ pub trait UIBuilder {
 // 
 // ## Basic Usage
 // ```rust
-// use crate::ui_toolbox::builders::*;
+// use crate::ui::builders::*;
 // 
 // // Create a button
 // button("Click Me")

@@ -683,6 +683,24 @@ pub mod presets {
 }
 
 // ============================================================================
+// GAME-SPECIFIC UI MARKERS
+// ============================================================================
+
+/// Marker component for the tile information panel UI
+/// 
+/// This component marks the UI panel that displays information about
+/// the currently selected or hovered province/tile.
+#[derive(Component, Default)]
+pub struct TileInfoPanel;
+
+/// Marker component for tile information text elements
+/// 
+/// This component marks individual text elements within the tile info panel
+/// that display specific pieces of information (population, terrain, etc.)
+#[derive(Component, Default)]
+pub struct TileInfoText;
+
+// ============================================================================
 // STATIC HELPER FUNCTIONS (ONE-LINE SPAWNING)
 // ============================================================================
 

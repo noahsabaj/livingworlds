@@ -1,7 +1,7 @@
 //! Form builder system for creating complex forms with consistent layout
 //! 
 //! FormBuilder provides a high-level API for creating forms that automatically
-//! handles layout, spacing, and composition of other ui_toolbox builders.
+//! handles layout, spacing, and composition of other ui builders.
 
 use bevy::prelude::*;
 use super::styles::{colors, dimensions};
@@ -657,7 +657,6 @@ pub mod presets {
             // These would be more complex with actual SliderBuilder but we simplify for the preset
             for (label, value) in &[
                 ("Master Volume", 50.0),
-                ("Music Volume", 50.0),
                 ("SFX Volume", 50.0),
             ] {
                 form.spawn((

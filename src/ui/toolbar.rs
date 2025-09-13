@@ -323,7 +323,7 @@ pub mod presets {
             BackgroundColor(style.background_color()),
         )).with_children(|toolbar| {
             // Use our button helper functions from buttons module
-            use crate::ui_toolbox::buttons::{spawn_button, ButtonStyle, ButtonSize};
+            use crate::ui::buttons::{spawn_button, ButtonStyle, ButtonSize};
             
             let spawn_separator = |parent: &mut ChildSpawnerCommands| {
                 parent.spawn((
@@ -379,7 +379,7 @@ pub mod presets {
             },
             BackgroundColor(style.background_color()),
         )).with_children(|toolbar| {
-            use crate::ui_toolbox::buttons::{spawn_button, ButtonStyle, ButtonSize};
+            use crate::ui::buttons::{spawn_button, ButtonStyle, ButtonSize};
             
             spawn_button(toolbar, "←", ButtonStyle::Ghost, ButtonSize::Small);
             spawn_button(toolbar, "→", ButtonStyle::Ghost, ButtonSize::Small);
@@ -427,7 +427,7 @@ pub mod presets {
             },
             BackgroundColor(style.background_color()),
         )).with_children(|toolbar| {
-            use crate::ui_toolbox::buttons::{spawn_button, ButtonStyle, ButtonSize};
+            use crate::ui::buttons::{spawn_button, ButtonStyle, ButtonSize};
             
             spawn_button(toolbar, "Play", ButtonStyle::Primary, ButtonSize::Medium);
             spawn_button(toolbar, "Pause", ButtonStyle::Secondary, ButtonSize::Medium);

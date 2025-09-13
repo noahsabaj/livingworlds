@@ -16,9 +16,10 @@ pub mod builders;  // Centralized re-exports for all builders
 
 use bevy::prelude::*;
 use crate::resources::{ResourceOverlay, SelectedProvinceInfo, GameTime};
-use crate::components::{TileInfoPanel, TileInfoText, MineralType};
+use crate::components::MineralType;
+use crate::ui::components::{TileInfoPanel, TileInfoText};
 use crate::constants::COLOR_TILE_INFO_BACKGROUND;
-use crate::mesh::ProvinceStorage;
+use crate::world::mesh::ProvinceStorage;
 
 /// Marker component for the resource overlay display text
 #[derive(Component)]
