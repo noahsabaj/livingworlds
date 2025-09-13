@@ -6,95 +6,73 @@
 //! represented based on the current viewing mode.
 
 use bevy::prelude::*;
-use rayon::prelude::*;
 use bevy::render::mesh::Mesh;
 use crate::constants::MS_PER_SECOND;
 use crate::resources::ResourceOverlay;
-use super::terrain::TerrainType;
-use crate::minerals::calculate_total_richness;
-use crate::colors::{
-    get_terrain_color_gradient,
-    mineral_abundance_color, stone_abundance_color, 
-    combined_richness_color
-};
+// TerrainType import moved to CachedOverlayColors
+// Color calculations moved to CachedOverlayColors::get_or_calculate
 use super::mesh::ProvinceStorage;
 
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+/// Bytes per megabyte for memory calculations
+const BYTES_PER_MB: f32 = 1024.0 * 1024.0;
+
 /// System that updates province colors in the mega-mesh based on active overlay mode
-/// Uses pre-calculated cached colors for instant switching
+/// Uses lazy-loaded colors with LRU caching to reduce memory usage
 pub fn update_province_colors(
     overlay: Res<ResourceOverlay>,
-    cached_colors: Res<crate::resources::CachedOverlayColors>,
+    mut cached_colors: ResMut<crate::resources::CachedOverlayColors>,
+    province_storage: Res<ProvinceStorage>,
     mesh_handle: Res<super::mesh::WorldMeshHandle>,
     mut meshes: ResMut<Assets<Mesh>>,
     time: Res<Time>,
 ) {
     let start = std::time::Instant::now();
-    println!("[{:.3}s] Starting color update for overlay: {}", 
-             time.elapsed_secs(), 
-             overlay.display_name());
-    
+    trace!("Starting color update for overlay: {} at {:.3}s",
+           overlay.display_name(),
+           time.elapsed_secs());
+
     // System already only runs when overlay changes due to run_if condition
-    
-    // Get the mesh from the handle
+
+    // Get the mesh from the handle with proper error handling
     let Some(mesh) = meshes.get_mut(&mesh_handle.0) else {
+        warn!("Failed to get world mesh for overlay update");
         return;
     };
-    
+
     let mesh_lookup_time = start.elapsed();
-    
-    // Select the appropriate pre-calculated color buffer based on overlay mode
-    let colors = match *overlay {
-        ResourceOverlay::None => &cached_colors.terrain,
-        ResourceOverlay::Mineral(mineral_type) => {
-            use crate::components::MineralType;
-            match mineral_type {
-                MineralType::Iron => &cached_colors.iron,
-                MineralType::Copper => &cached_colors.copper,
-                MineralType::Tin => &cached_colors.tin,
-                MineralType::Gold => &cached_colors.gold,
-                MineralType::Coal => &cached_colors.coal,
-                MineralType::Stone => &cached_colors.stone,
-                MineralType::Gems => &cached_colors.gems,
-                _ => &cached_colors.terrain,
-            }
-        },
-        ResourceOverlay::AllMinerals => &cached_colors.all_minerals,
-    };
-    
+
+    // Get or calculate colors for the requested overlay (lazy loading)
+    let colors = cached_colors.get_or_calculate(*overlay, &province_storage);
+
     let selection_time = start.elapsed() - mesh_lookup_time;
-    
+
     // Calculate buffer size for logging
-    let buffer_size_mb = (colors.len() * std::mem::size_of::<[f32; 4]>()) as f32 / (1024.0 * 1024.0);
-    
-    // Fast copy using slice operations (avoids Vec overhead)
+    let buffer_size_mb = (colors.len() * std::mem::size_of::<[f32; 4]>()) as f32 / BYTES_PER_MB;
+
+    // Safe clone operation - Vec::clone() internally uses optimized memcpy for primitive types
     let clone_start = std::time::Instant::now();
-    
-    // Create a new Vec with exact capacity and copy data directly
-    let mut cloned_colors = Vec::with_capacity(colors.len());
-    unsafe {
-        // Set length before copying to avoid reallocation
-        cloned_colors.set_len(colors.len());
-        // Fast memcpy of the entire buffer
-        std::ptr::copy_nonoverlapping(
-            colors.as_ptr(),
-            cloned_colors.as_mut_ptr(),
-            colors.len()
-        );
-    }
+    let cloned_colors = colors.clone();
     let clone_time = clone_start.elapsed();
-    
+
     let insert_start = std::time::Instant::now();
     mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, cloned_colors);
     let insert_time = insert_start.elapsed();
-    
+
     let total_time = start.elapsed();
-    
-    println!("[{:.3}s] Color update complete: Total={:.1}ms (buffer={:.1}MB, clone={:.1}ms, GPU upload={:.1}ms)", 
-             time.elapsed_secs(),
-             total_time.as_secs_f32() * MS_PER_SECOND,
-             buffer_size_mb,
-             clone_time.as_secs_f32() * MS_PER_SECOND,
-             insert_time.as_secs_f32() * MS_PER_SECOND);
+
+    // Log memory usage for monitoring
+    let total_memory = cached_colors.memory_usage_mb();
+
+    debug!("Color update complete: Total={:.1}ms (buffer={:.1}MB, total_mem={:.1}MB, clone={:.1}ms, GPU upload={:.1}ms)",
+           total_time.as_secs_f32() * MS_PER_SECOND,
+           buffer_size_mb,
+           total_memory,
+           clone_time.as_secs_f32() * MS_PER_SECOND,
+           insert_time.as_secs_f32() * MS_PER_SECOND);
 }
 
 /// Plugin that manages map overlay rendering
@@ -103,12 +81,12 @@ pub struct OverlayPlugin;
 impl Plugin for OverlayPlugin {
     fn build(&self, app: &mut App) {
         use crate::states::GameState;
-        
+
         app
             .init_resource::<ResourceOverlay>()
             .init_resource::<crate::resources::CachedOverlayColors>()
-            // Precalculate colors ONCE during world loading, not on every resume from pause
-            .add_systems(OnExit(GameState::LoadingWorld), precalculate_overlay_colors)
+            // Initialize with default overlay only - others loaded on-demand
+            .add_systems(OnExit(GameState::LoadingWorld), initialize_overlay_colors)
             .add_systems(Update, (
                 handle_overlay_input,
                 update_province_colors.run_if(resource_changed::<ResourceOverlay>),
@@ -126,82 +104,32 @@ pub fn handle_overlay_input(
     if keyboard.just_pressed(KeyCode::KeyM) {
         let start = std::time::Instant::now();
         overlay_res.cycle();
-        println!("[{:.3}s] M key pressed, switching to: {} (input lag: {:.1}ms)", 
-                 time.elapsed_secs(),
-                 overlay_res.display_name(),
-                 start.elapsed().as_secs_f32() * MS_PER_SECOND);
+        debug!("Overlay switched to: {} (input lag: {:.1}ms)", 
+               overlay_res.display_name(),
+               start.elapsed().as_secs_f32() * MS_PER_SECOND);
     }
 }
 
-/// Pre-calculate all overlay colors at startup for instant switching
-pub fn precalculate_overlay_colors(
+// Helper function moved to CachedOverlayColors implementation
+
+/// Initialize the overlay system with the default terrain overlay
+/// Only calculates the initial overlay, others are loaded on-demand
+pub fn initialize_overlay_colors(
     province_storage: Res<ProvinceStorage>,
     mut cached_colors: ResMut<crate::resources::CachedOverlayColors>,
 ) {
-    use crate::components::MineralType;
-    
-    println!("Pre-calculating overlay colors for {} provinces...", province_storage.provinces.len());
+    info!("Initializing overlay system for {} provinces", province_storage.provinces.len());
     let start = std::time::Instant::now();
-    
-    // Helper function to calculate colors for a specific overlay
-    let calculate_overlay = |overlay_type: ResourceOverlay| -> Vec<[f32; 4]> {
-        province_storage.provinces
-            .par_iter()
-            .flat_map(|province| {
-                let province_color = match overlay_type {
-                    ResourceOverlay::None => {
-                        get_terrain_color_gradient(province.terrain, province.elevation.value())
-                    },
-                    ResourceOverlay::Mineral(mineral_type) => {
-                        if province.terrain == TerrainType::Ocean {
-                            get_terrain_color_gradient(province.terrain, province.elevation.value())
-                        } else {
-                            let abundance = match mineral_type {
-                                MineralType::Iron => province.iron.value(),
-                                MineralType::Copper => province.copper.value(),
-                                MineralType::Tin => province.tin.value(),
-                                MineralType::Gold => province.gold.value(),
-                                MineralType::Coal => province.coal.value(),
-                                MineralType::Stone => province.stone.value(),
-                                MineralType::Gems => province.gems.value(),
-                                _ => 0,
-                            };
-                            if mineral_type == MineralType::Stone {
-                                stone_abundance_color(abundance)
-                            } else {
-                                mineral_abundance_color(abundance)
-                            }
-                        }
-                    },
-                    ResourceOverlay::AllMinerals => {
-                        if province.terrain == TerrainType::Ocean {
-                            get_terrain_color_gradient(province.terrain, province.elevation.value())
-                        } else {
-                            let total_richness = calculate_total_richness(province);
-                            combined_richness_color(total_richness)
-                        }
-                    },
-                };
-                
-                let linear = province_color.to_linear();
-                let color_array = [linear.red, linear.green, linear.blue, linear.alpha];
-                // Return a Vec with 7 copies for parallel collection
-                vec![color_array; 7]
-            })
-            .collect()
-    };
-    
-    // Pre-calculate all overlay colors in parallel
-    cached_colors.terrain = calculate_overlay(ResourceOverlay::None);
-    cached_colors.iron = calculate_overlay(ResourceOverlay::Mineral(MineralType::Iron));
-    cached_colors.copper = calculate_overlay(ResourceOverlay::Mineral(MineralType::Copper));
-    cached_colors.tin = calculate_overlay(ResourceOverlay::Mineral(MineralType::Tin));
-    cached_colors.gold = calculate_overlay(ResourceOverlay::Mineral(MineralType::Gold));
-    cached_colors.coal = calculate_overlay(ResourceOverlay::Mineral(MineralType::Coal));
-    cached_colors.stone = calculate_overlay(ResourceOverlay::Mineral(MineralType::Stone));
-    cached_colors.gems = calculate_overlay(ResourceOverlay::Mineral(MineralType::Gems));
-    cached_colors.all_minerals = calculate_overlay(ResourceOverlay::AllMinerals);
-    
+
+    // Only pre-calculate the default terrain overlay
+    // Other overlays will be calculated on-demand when first accessed
+    let default_overlay = ResourceOverlay::None;
+    cached_colors.get_or_calculate(default_overlay, &province_storage);
+
     let elapsed = start.elapsed();
-    println!("Pre-calculated all overlay colors in {:.2}s", elapsed.as_secs_f32());
+    let memory_mb = cached_colors.memory_usage_mb();
+
+    info!("Overlay system initialized in {:.2}s (using {:.1}MB)",
+          elapsed.as_secs_f32(),
+          memory_mb);
 }

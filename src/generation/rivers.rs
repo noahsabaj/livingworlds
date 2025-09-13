@@ -132,8 +132,10 @@ fn find_river_sources(
             return Err(RiverGenerationError::NaNElevation(province.id.value()));
         }
         
-        if province.terrain == TerrainType::Mountains || 
-            (province.terrain == TerrainType::Hills && province.elevation.value() >= min_elevation) {
+        // Alpine terrain and other high-elevation areas can be river sources
+        if province.terrain == TerrainType::Alpine ||
+            (province.elevation.value() >= min_elevation &&
+             matches!(province.terrain, TerrainType::Chaparral | TerrainType::TemperateGrassland)) {
             potential_sources.push((province.id, province.position, province.elevation.value()));
         }
     }

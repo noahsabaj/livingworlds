@@ -129,20 +129,9 @@ pub fn calculate(
     Ok(())
 }
 
-/// Get base agriculture value for a terrain type
+/// Get base agriculture value for a terrain type - uses centralized properties
 fn get_base_agriculture(terrain: TerrainType) -> f32 {
-    match terrain {
-        TerrainType::Delta => DELTA_BASE_AGRICULTURE,
-        TerrainType::River => RIVER_BASE_AGRICULTURE,
-        TerrainType::Plains => PLAINS_BASE_AGRICULTURE,
-        TerrainType::Forest => FOREST_BASE_AGRICULTURE,
-        TerrainType::Hills => HILLS_BASE_AGRICULTURE,
-        TerrainType::Desert => DESERT_BASE_AGRICULTURE,
-        TerrainType::Tundra => TUNDRA_BASE_AGRICULTURE,
-        TerrainType::Mountains => MOUNTAINS_BASE_AGRICULTURE,
-        TerrainType::Ocean => OCEAN_BASE_AGRICULTURE,
-        _ => DEFAULT_BASE_AGRICULTURE,
-    }
+    terrain.properties().agriculture_base
 }
 
 /// Calculate water bonus based on proximity to water sources
@@ -243,7 +232,7 @@ mod tests {
     fn test_base_agriculture_values() {
         assert_eq!(get_base_agriculture(TerrainType::Delta), DELTA_BASE_AGRICULTURE);
         assert_eq!(get_base_agriculture(TerrainType::River), RIVER_BASE_AGRICULTURE);
-        assert_eq!(get_base_agriculture(TerrainType::Plains), PLAINS_BASE_AGRICULTURE);
+        assert_eq!(get_base_agriculture(TerrainType::TemperateGrassland), PLAINS_BASE_AGRICULTURE);
         assert_eq!(get_base_agriculture(TerrainType::Ocean), OCEAN_BASE_AGRICULTURE);
     }
     
@@ -251,7 +240,7 @@ mod tests {
     fn test_water_bonus_calculation() {
         let province = Province {
             id: ProvinceId::new(1),
-            terrain: TerrainType::Plains,
+            terrain: TerrainType::TemperateGrassland,
             position: Vec2::ZERO,
             elevation: crate::components::Elevation::new(0.5),
             population: 100,
