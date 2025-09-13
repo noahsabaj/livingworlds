@@ -8,22 +8,23 @@
 use bevy::prelude::*;
 use rayon::prelude::*;
 use bevy::render::mesh::Mesh;
+use crate::constants::MS_PER_SECOND;
 use crate::resources::ResourceOverlay;
-use crate::terrain::TerrainType;
+use super::terrain::TerrainType;
 use crate::minerals::calculate_total_richness;
 use crate::colors::{
     get_terrain_color_gradient,
     mineral_abundance_color, stone_abundance_color, 
     combined_richness_color
 };
-use crate::mesh::ProvinceStorage;
+use super::mesh::ProvinceStorage;
 
 /// System that updates province colors in the mega-mesh based on active overlay mode
 /// Uses pre-calculated cached colors for instant switching
 pub fn update_province_colors(
     overlay: Res<ResourceOverlay>,
     cached_colors: Res<crate::resources::CachedOverlayColors>,
-    mesh_handle: Res<crate::mesh::WorldMeshHandle>,
+    mesh_handle: Res<super::mesh::WorldMeshHandle>,
     mut meshes: ResMut<Assets<Mesh>>,
     time: Res<Time>,
 ) {
@@ -90,10 +91,10 @@ pub fn update_province_colors(
     
     println!("[{:.3}s] Color update complete: Total={:.1}ms (buffer={:.1}MB, clone={:.1}ms, GPU upload={:.1}ms)", 
              time.elapsed_secs(),
-             total_time.as_secs_f32() * 1000.0,
+             total_time.as_secs_f32() * MS_PER_SECOND,
              buffer_size_mb,
-             clone_time.as_secs_f32() * 1000.0,
-             insert_time.as_secs_f32() * 1000.0);
+             clone_time.as_secs_f32() * MS_PER_SECOND,
+             insert_time.as_secs_f32() * MS_PER_SECOND);
 }
 
 /// Plugin that manages map overlay rendering
@@ -128,7 +129,7 @@ pub fn handle_overlay_input(
         println!("[{:.3}s] M key pressed, switching to: {} (input lag: {:.1}ms)", 
                  time.elapsed_secs(),
                  overlay_res.display_name(),
-                 start.elapsed().as_secs_f32() * 1000.0);
+                 start.elapsed().as_secs_f32() * MS_PER_SECOND);
     }
 }
 

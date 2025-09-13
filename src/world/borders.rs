@@ -16,9 +16,9 @@ use bevy::render::render_asset::RenderAssetUsages;
 use bevy::sprite::MeshMaterial2d;
 use bevy::window::PrimaryWindow;
 
-use crate::constants::{HEX_SIZE_PIXELS, SQRT3};
+use crate::constants::{HEX_SIZE_PIXELS, SQRT_3};
 use crate::resources::{SelectedProvinceInfo, ProvincesSpatialIndex};
-use crate::mesh::ProvinceStorage;
+use super::mesh::ProvinceStorage;
 
 /// Plugin that manages selection border rendering
 pub struct BorderPlugin;
@@ -43,7 +43,7 @@ impl Plugin for BorderPlugin {
 
 /// Resource storing the single selection border entity
 #[derive(Resource, Default)]
-struct SelectionBorder {
+pub struct SelectionBorder {
     entity: Option<Entity>,
 }
 
@@ -191,9 +191,9 @@ pub fn handle_tile_selection(
         
         // Exact flat-top hexagon hit test for HONEYCOMB pattern
         // Check both horizontal bounds and diagonal bounds
-        if abs_y <= hex_size * SQRT3 / 2.0 && 
+        if abs_y <= hex_size * SQRT_3 / 2.0 && 
            abs_x <= hex_size &&
-           (abs_y / SQRT3 + abs_x / 2.0 <= hex_size) {
+           (abs_y / SQRT_3 + abs_x / 2.0 <= hex_size) {
             let distance = (dx * dx + dy * dy).sqrt();
             if distance < closest_distance {
                 closest_distance = distance;

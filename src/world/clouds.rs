@@ -10,7 +10,7 @@ use rand::rngs::StdRng;
 use rayon::prelude::*;
 use crate::constants::*;
 use crate::resources::{WeatherSystem, WeatherState};
-use crate::generation::{CloudSystem, CloudLayer};
+use super::{CloudSystem, CloudLayer};
 
 /// Component for cloud sprites with movement properties
 #[derive(Component)]
@@ -343,7 +343,7 @@ pub fn update_weather_system(
         
         // Hide clouds completely when very transparent
         if new_alpha < 0.01 {
-            transform.translation.z = -1000.0; // Move off-screen
+            transform.translation.z = OFF_SCREEN_Z; // Move off-screen
         } else {
             // Restore proper z-order
             let z_order = match cloud_sprite.layer {
@@ -417,7 +417,7 @@ pub fn dynamic_cloud_spawn_system(
                         base_alpha: 0.4,
                     },
                     Name::new("DynamicCloud"),
-                    crate::components::GameWorld,  // Mark for cleanup when leaving game
+                    crate::world::CloudEntity,  // Mark as cloud entity
                 ));
             }
         }
@@ -503,7 +503,7 @@ fn spawn_clouds_from_data(
                     base_alpha: cloud_data.alpha,
                 },
                 Name::new(format!("Cloud_{:?}", cloud_data.layer)),
-                crate::components::GameWorld,  // Mark for cleanup when leaving game
+                crate::world::CloudEntity,  // Mark as cloud entity
             ));
         }
         

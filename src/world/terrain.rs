@@ -188,7 +188,7 @@ pub fn generate_elevation_with_edges(x: f32, y: f32, perlin: &Perlin, continent_
     // Use dynamic map dimensions for bounds calculation
     let map_bound_x = map_width / 2.0;
     let map_bound_y = map_height / 2.0;
-    let edge_buffer = EDGE_BUFFER;
+    let edge_buffer = EDGE_BUFFER_PIXELS;
     
     // Force ocean at map edges
     let dist_from_edge_x = map_bound_x - x.abs();

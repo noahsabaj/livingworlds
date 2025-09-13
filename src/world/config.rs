@@ -12,10 +12,10 @@ use bevy_simple_text_input::{
 
 use crate::states::{GameState, RequestStateTransition};
 use crate::resources::WorldSize;
-use crate::ui_toolbox::buttons::{ButtonBuilder, ButtonStyle, ButtonSize, StyledButton};
-use crate::ui_toolbox::styles::{colors, dimensions, helpers};
-use crate::ui_toolbox::text_inputs::{text_input, FocusGroupId};
-use crate::ui_toolbox::sliders::{slider, ValueFormat};
+use crate::ui::buttons::{ButtonBuilder, ButtonStyle, ButtonSize, StyledButton};
+use crate::ui::styles::{colors, dimensions, helpers};
+use crate::ui::text_inputs::{text_input, FocusGroupId};
+use crate::ui::sliders::{slider, ValueFormat};
 use crate::name_generator::{NameGenerator, NameType};
 
 // ============================================================================
