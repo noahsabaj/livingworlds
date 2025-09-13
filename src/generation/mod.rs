@@ -105,11 +105,13 @@ impl WorldBuilder {
             &mut self.rng,
         )
         .with_density(self.river_density)
-        .build();
+        .build()
+        .expect("Failed to generate river systems");
         
         // Step 5: Calculate agriculture and fresh water
         println!("\n[5/6] Calculating agriculture and fresh water...");
-        agriculture::calculate(&mut provinces, &rivers, self.dimensions);
+        agriculture::calculate(&mut provinces, &rivers, self.dimensions)
+            .expect("Failed to calculate agriculture");
         
         // Step 6: Generate mineral resources using tectonic data for placement
         println!("\n[6/6] Generating mineral resources...");
