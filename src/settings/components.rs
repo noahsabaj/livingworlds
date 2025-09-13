@@ -93,10 +93,6 @@ pub struct SettingsSlider {
 #[derive(Component)]
 pub struct MasterVolumeSlider;
 
-/// Marker for music volume slider
-#[derive(Component)]
-pub struct MusicVolumeSlider;
-
 /// Marker for SFX volume slider
 #[derive(Component)]
 pub struct SFXVolumeSlider;
@@ -131,7 +127,7 @@ pub struct ResetButton;
 // DIALOG MARKERS
 // ============================================================================
 
-// Dialog components are now provided by crate::ui_toolbox::dialogs
+// Dialog components are now provided by crate::ui::dialogs
 
 // ============================================================================
 // TEXT MARKERS

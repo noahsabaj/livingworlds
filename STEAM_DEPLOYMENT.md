@@ -89,8 +89,8 @@ Shows what players are doing in their friends list:
 Planned mod types:
 - **World Presets** - Custom generation parameters
 - **Color Schemes** - Custom terrain/nation colors
-- **Music Packs** - Additional procedural parameters
 - **Balance Mods** - Modified simulation values
+- **Different Planets** - Mars, Venus, Luna, etc.
 
 ### 5. Statistics Tracking
 

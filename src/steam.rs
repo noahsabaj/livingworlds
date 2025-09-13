@@ -294,7 +294,6 @@ fn sync_cloud_saves(
 pub enum WorkshopItemType {
     WorldPreset,     // Custom world generation settings
     ColorScheme,     // Custom terrain/nation colors
-    MusicPack,       // Additional procedural music parameters
     BalanceMod,      // Modified simulation parameters
 }
 

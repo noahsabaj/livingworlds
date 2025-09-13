@@ -136,7 +136,7 @@ pub fn handle_toggle_buttons(
 
 /// Handle slider interactions using the new SliderBuilder system
 pub fn handle_slider_interactions(
-    sliders: Query<(&crate::ui_toolbox::sliders::Slider, &SettingsSlider), Changed<crate::ui_toolbox::sliders::Slider>>,
+    sliders: Query<(&crate::ui::sliders::Slider, &SettingsSlider), Changed<crate::ui::sliders::Slider>>,
     mut temp_settings: ResMut<TempGameSettings>,
 ) {
     for (slider, settings_slider) in &sliders {
@@ -144,7 +144,6 @@ pub fn handle_slider_interactions(
         match settings_slider.setting_type {
             SettingType::RenderScale => temp_settings.0.graphics.render_scale = slider.value,
             SettingType::MasterVolume => temp_settings.0.audio.master_volume = slider.value,
-            SettingType::MusicVolume => temp_settings.0.audio.music_volume = slider.value,
             SettingType::SfxVolume | SettingType::SFXVolume => temp_settings.0.audio.sfx_volume = slider.value,
             SettingType::UiScale | SettingType::UIScale => temp_settings.0.interface.ui_scale = slider.value,
             SettingType::TooltipDelay => temp_settings.0.interface.tooltip_delay = slider.value,
@@ -420,7 +419,6 @@ pub fn track_dirty_state(
         || (settings.graphics.render_scale - temp_settings.0.graphics.render_scale).abs() > 0.01
         || settings.graphics.shadow_quality != temp_settings.0.graphics.shadow_quality
         || (settings.audio.master_volume - temp_settings.0.audio.master_volume).abs() > 0.01
-        || (settings.audio.music_volume - temp_settings.0.audio.music_volume).abs() > 0.01
         || (settings.audio.sfx_volume - temp_settings.0.audio.sfx_volume).abs() > 0.01
         || settings.interface.ui_scale != temp_settings.0.interface.ui_scale
         || settings.interface.show_fps != temp_settings.0.interface.show_fps
@@ -441,8 +439,6 @@ pub fn track_dirty_state(
 pub fn apply_settings_changes(
     settings: Res<GameSettings>,
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
-    // Music is temporarily disabled, uncomment when re-enabled:
-    // mut music_settings: ResMut<crate::music::MusicSettings>,
 ) {
     if !settings.is_changed() {
         return;
@@ -476,12 +472,9 @@ pub fn apply_settings_changes(
     }
     
     // Apply audio settings
-    // When music is re-enabled:
-    // music_settings.volume = settings.audio.music_volume * settings.audio.master_volume;
     
     // Log the audio settings for now
     println!("  Master Volume: {:.0}%", settings.audio.master_volume * 100.0);
-    println!("  Music Volume: {:.0}%", settings.audio.music_volume * 100.0);
     println!("  SFX Volume: {:.0}%", settings.audio.sfx_volume * 100.0);
 }
 
@@ -533,7 +526,6 @@ pub fn validate_settings(
     // Clamp all values to sensible ranges
     temp_settings.0.graphics.render_scale = temp_settings.0.graphics.render_scale.clamp(0.5, 2.0);
     temp_settings.0.audio.master_volume = temp_settings.0.audio.master_volume.clamp(0.0, 1.0);
-    temp_settings.0.audio.music_volume = temp_settings.0.audio.music_volume.clamp(0.0, 1.0);
     temp_settings.0.audio.sfx_volume = temp_settings.0.audio.sfx_volume.clamp(0.0, 1.0);
     temp_settings.0.interface.ui_scale = temp_settings.0.interface.ui_scale.clamp(0.75, 2.0);
     temp_settings.0.controls.camera_speed = temp_settings.0.controls.camera_speed.clamp(0.1, 5.0);
@@ -613,15 +605,15 @@ pub fn update_apply_exit_button_hover(
 /// Spawn unsaved changes confirmation dialog
 fn spawn_unsaved_changes_dialog(commands: Commands) {
     // Use the new dialog builder system
-    use crate::ui_toolbox::dialogs::presets;
+    use crate::ui::dialogs::presets;
     presets::unsaved_changes_dialog(commands);
 }
 
 /// Handle unsaved changes dialog buttons
 pub fn handle_unsaved_changes_dialog(
-    interactions: Query<(&Interaction, AnyOf<(&crate::ui_toolbox::dialogs::SaveButton, &crate::ui_toolbox::dialogs::DiscardButton, &crate::ui_toolbox::dialogs::CancelButton)>), Changed<Interaction>>,
+    interactions: Query<(&Interaction, AnyOf<(&crate::ui::dialogs::SaveButton, &crate::ui::dialogs::DiscardButton, &crate::ui::dialogs::CancelButton)>), Changed<Interaction>>,
     mut commands: Commands,
-    dialog_query: Query<Entity, With<crate::ui_toolbox::dialogs::UnsavedChangesDialog>>,
+    dialog_query: Query<Entity, With<crate::ui::dialogs::UnsavedChangesDialog>>,
     settings_root: Query<Entity, With<SettingsMenuRoot>>,
     mut settings: ResMut<GameSettings>,
     temp_settings: Res<TempGameSettings>,

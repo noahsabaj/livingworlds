@@ -381,7 +381,6 @@ impl Default for SimulationConfig {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AudioConfig {
-    pub music: HashMap<String, f32>,
     pub effects: HashMap<String, f32>,
     pub ambient: HashMap<String, f32>,
 }
@@ -389,7 +388,6 @@ pub struct AudioConfig {
 impl Default for AudioConfig {
     fn default() -> Self {
         Self {
-            music: HashMap::new(),
             effects: HashMap::new(),
             ambient: HashMap::new(),
         }

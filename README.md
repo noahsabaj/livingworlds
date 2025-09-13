@@ -38,7 +38,6 @@ Living Worlds is a fully procedural civilization OBSERVER - like Fantasy Map Sim
   - Iron, Copper, Tin, Gold, Coal, Gems, Stone, Bronze, Steel
   - Heat map overlays for resource visualization
   - Combined richness view for all minerals
-- **🎵 Procedural Music**: World tension-based soundtrack that evolves with conflicts
 - **🏛️ Nations**: Territory-based civilizations with expansion mechanics
 - **⏱️ Time Simulation**: Pause/play with 1x, 3x, 6x, 9x speed controls
 - **📊 Map Overlays**: Political, individual minerals, all minerals, infrastructure views
@@ -47,7 +46,6 @@ Living Worlds is a fully procedural civilization OBSERVER - like Fantasy Map Sim
 - **Camera**: WASD/Arrow keys for panning, mouse wheel for zoom, edge scrolling
 - **Time**: Space to pause, 1-4 keys for speed control
 - **Overlays**: M to cycle through map modes
-- **Music Testing**: T/G to adjust world tension, Y/H for crisis events
 
 ## ⚡ Performance Achievements
 
@@ -97,7 +95,6 @@ livingworlds/
 │   ├── minerals.rs        # Resource generation and extraction
 │   ├── overlay.rs         # Map overlay rendering with vertex colors
 │   ├── clouds.rs          # Cloud animation and weather systems
-│   ├── music.rs           # Dynamic tension-based music
 │   ├── camera.rs          # Camera controls and viewport
 │   ├── ui.rs              # User interface and HUD
 │   ├── colors.rs          # All terrain and mineral color functions

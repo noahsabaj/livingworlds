@@ -125,7 +125,6 @@ pub enum GraphicsPreset {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AudioSettings {
     pub master_volume: f32,
-    pub music_volume: f32,
     pub sfx_volume: f32,
     pub mute_when_unfocused: bool,
 }
@@ -134,7 +133,6 @@ impl Default for AudioSettings {
     fn default() -> Self {
         Self {
             master_volume: 1.0,
-            music_volume: 0.7,
             sfx_volume: 1.0,
             mute_when_unfocused: false,
         }
@@ -300,7 +298,6 @@ pub enum SettingType {
     ShadowQuality,
     // Audio
     MasterVolume,
-    MusicVolume,
     SfxVolume,
     MuteWhenUnfocused,
     // Interface

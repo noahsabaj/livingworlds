@@ -2,8 +2,8 @@
 
 use bevy::prelude::*;
 use crate::states::{CurrentSettingsTab, SettingsTab};
-use crate::ui_toolbox::buttons::{ButtonBuilder, ButtonStyle, ButtonSize};
-use crate::ui_toolbox::sliders::{slider, ValueFormat};
+use crate::ui::buttons::{ButtonBuilder, ButtonStyle, ButtonSize};
+use crate::ui::sliders::{slider, ValueFormat};
 use super::types::*;
 use super::components::*;
 
@@ -293,7 +293,6 @@ fn spawn_audio_content(parent: &mut ChildSpawnerCommands, settings: &AudioSettin
         BackgroundColor(Color::NONE),
     )).with_children(|content| {
         create_slider_row(content, "Master Volume", settings.master_volume, 0.0, 1.0, SettingType::MasterVolume, true);
-        create_slider_row(content, "Music Volume", settings.music_volume, 0.0, 1.0, SettingType::MusicVolume, true);
         create_slider_row(content, "SFX Volume", settings.sfx_volume, 0.0, 1.0, SettingType::SFXVolume, true);
     });
 }

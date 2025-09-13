@@ -331,7 +331,11 @@ fn exit_loading(commands: Commands) {
 fn enter_main_menu(
     mut commands: Commands,
     mut menu_state: ResMut<NextState<MenuState>>,
-    game_world_query: Query<Entity, With<crate::components::GameWorld>>,
+    game_world_query: Query<Entity, Or<(
+        With<crate::world::TerrainEntity>,
+        With<crate::world::CloudEntity>,
+        With<crate::world::BorderEntity>
+    )>>,
     mut camera_query: Query<&mut Transform, With<Camera2d>>,
 ) {
     #[cfg(feature = "debug-states")]
@@ -427,7 +431,7 @@ fn check_and_trigger_world_generation(
     time: Res<Time>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    settings: Res<crate::world_config::WorldGenerationSettings>,
+    settings: Res<crate::world::config::WorldGenerationSettings>,
     mut next_state: ResMut<NextState<GameState>>,
     mut loading_state: ResMut<crate::loading_screen::LoadingState>,
 ) {

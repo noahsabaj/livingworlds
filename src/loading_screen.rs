@@ -5,7 +5,7 @@
 
 use bevy::prelude::*;
 use crate::states::GameState;
-use crate::ui_toolbox::styles::colors;
+use crate::ui::styles::colors;
 
 // ============================================================================
 // PLUGIN

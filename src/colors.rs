@@ -7,7 +7,7 @@ use bevy::prelude::*;
 use std::collections::HashMap;
 use std::sync::LazyLock;
 use crate::components::MineralType;
-use crate::terrain::TerrainType;
+use crate::world::terrain::TerrainType;
 use crate::constants::*;
 use crate::resources::{WeatherSystem, GameTime};
 
@@ -94,6 +94,9 @@ pub mod theme {
     pub const HEAT_MEDIUM: Color = Color::srgb(1.0, 0.5, 0.0);
     pub const HEAT_HIGH: Color = Color::srgb(1.0, 1.0, 0.0);
     pub const HEAT_MAX: Color = Color::srgb(1.0, 1.0, 1.0);
+    
+    // UI colors
+    pub const DIALOG_BACKGROUND: Color = Color::srgba(0.05, 0.05, 0.05, 0.95);
 }
 
 // ============================================================================

@@ -11,8 +11,8 @@ pub mod manager;
 pub mod loader;
 pub mod ui;
 
-#[cfg(test)]
-mod test;
+// #[cfg(test)]
+// mod test; // TODO: Add test module when needed
 
 use bevy::prelude::*;
 use manager::ModManager;

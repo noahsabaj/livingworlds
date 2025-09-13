@@ -17,7 +17,6 @@ Transform Living Worlds from a completely hardcoded game (ZERO moddability) into
 - [x] Create `colors.ron` with all color definitions
 - [x] Create `generation.ron` with world generation parameters
 - [x] Create `simulation.ron` with population/tension calculations
-- [x] Create `audio.ron` with music generation parameters
 - [x] Create mods directory structure (`mods/`, `mods/workshop/`)
 
 ### ✅ Step 2: Mod System Core
@@ -91,14 +90,6 @@ Transform Living Worlds from a completely hardcoded game (ZERO moddability) into
 - [ ] Make time speeds configurable
 - [ ] Update agriculture bonuses from config
 - [ ] Update terrain multipliers from config
-
-### ⬜ Step 9: Update Music System
-- [ ] Update `src/music.rs` to use config
-- [ ] Make FunDSP parameters configurable
-- [ ] Make scale definitions data-driven
-- [ ] Make tension-to-mood mapping configurable
-- [ ] Support custom music states
-
 ---
 
 ## Phase 3: Mod Types (Week 2) ⬜ NOT STARTED
