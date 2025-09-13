@@ -6,22 +6,19 @@
 use bevy::prelude::Color;
 
 // ============================================================================
-// MATHEMATICAL CONSTANTS
+// HEXAGON GEOMETRY - Import from single source of truth
 // ============================================================================
+// ALL hexagon constants come from geometry/hexagon.rs to prevent duplication
 
-/// Square root of 3, used frequently in hexagon math
-/// Using standard Rust naming convention matching std::f32::consts
-pub const SQRT_3: f32 = 1.732050808;
+// Re-export for backward compatibility (deprecated - use geometry::hexagon directly)
+pub use crate::math::hexagon::{SQRT_3, HEX_SIZE, HALF};
 
-/// Common division factor
-pub const HALF: f32 = 0.5;
+// Alias for backward compatibility (deprecated - use HEX_SIZE directly)
+pub const HEX_SIZE_PIXELS: f32 = HEX_SIZE;
 
 // ============================================================================
 // WORLD & MAP CONSTANTS
 // ============================================================================
-
-/// Size of each hexagon in pixels (radius)
-pub const HEX_SIZE_PIXELS: f32 = 50.0;
 
 /// Number of province columns in the world
 pub const PROVINCES_PER_ROW: u32 = 300;
@@ -185,29 +182,14 @@ pub const ISLAND_CHAIN_COUNT: usize = 0;
 /// 2 creates strategic island chains like Indonesia/Caribbean
 pub const ARCHIPELAGO_COUNT: usize = 2;
 
-/// Continent size multiplier (1.0 = original, 1.5 = 50% larger for 25% land coverage)
-pub const CONTINENT_SIZE_MULTIPLIER: f32 = 1.5;
+// All continent generation constants have been REMOVED!
+// Elevation is now generated from tectonic plates, not radial falloff.
+// See src/generation/elevation.rs for the new system.
 
-/// Massive continent base radius (Eurasia-sized) - scaled for 900k hex worlds
-pub const CONTINENT_MASSIVE_BASE: f32 = 8000.0;
-pub const CONTINENT_MASSIVE_VARIATION: f32 = 3000.0;
+/// Tectonic influence weight (reduced to prevent plate-defined continents)
+pub const TECTONIC_INFLUENCE_WEIGHT: f32 = 0.15;
 
-/// Medium continent base radius (Australia-sized)
-pub const CONTINENT_MEDIUM_BASE: f32 = 5000.0;
-pub const CONTINENT_MEDIUM_VARIATION: f32 = 2000.0;
-
-/// Archipelago base radius (Indonesia-sized)
-pub const CONTINENT_ARCHIPELAGO_BASE: f32 = 2000.0;
-pub const CONTINENT_ARCHIPELAGO_VARIATION: f32 = 800.0;
-
-/// Tiny island base radius (Hawaii-sized)
-pub const CONTINENT_TINY_BASE: f32 = 800.0;
-pub const CONTINENT_TINY_VARIATION: f32 = 400.0;
-
-/// Falloff power for continent edges
-/// 0.8 creates gentler slopes for more realistic coastlines
-pub const CONTINENT_FALLOFF_BASE: f32 = 0.8;
-pub const CONTINENT_FALLOFF_VARIATION: f32 = 0.3;
+// Terrain weights removed - now handled by tectonic elevation system
 
 /// Number of rivers to generate
 /// 200 rivers provides good coverage for large worlds
@@ -228,26 +210,23 @@ pub const SPATIAL_INDEX_CELL_SIZE_MULTIPLIER: f32 = 2.0;
 pub const OCEAN_DEPTH_GRID_SIZE_MULTIPLIER: f32 = 3.0;
 
 // ============================================================================
-// HEXAGON GEOMETRY CONSTANTS
+// HEXAGON GEOMETRY CONSTANTS (DEPRECATED - Use geometry::hexagon)
 // ============================================================================
+// These are re-exported for backward compatibility only
+// New code should import directly from crate::geometry::hexagon
 
-/// Number of vertices in a hexagon
-pub const HEXAGON_VERTICES: usize = 6;
-
-/// Degrees per hexagon vertex (360 / 6)
-pub const DEGREES_PER_HEXAGON_VERTEX: f32 = 60.0;
-
-/// Antialiasing width for hexagon texture edges (in pixels)
-pub const HEXAGON_AA_WIDTH: f32 = 1.5;
+pub use crate::math::hexagon::{
+    CORNERS as HEXAGON_VERTICES,
+    DEGREES_PER_CORNER as DEGREES_PER_HEXAGON_VERTEX,
+    AA_WIDTH as HEXAGON_AA_WIDTH,
+    COLUMN_OFFSET_DIVISOR as HEXAGON_COLUMN_OFFSET_DIVISOR,
+};
 
 /// Full opacity value for texture pixels
 pub const TEXTURE_ALPHA_OPAQUE: u8 = 255;
 
 /// Full transparency value for texture pixels
 pub const TEXTURE_ALPHA_TRANSPARENT: u8 = 0;
-
-/// Column offset divisor for odd-q hexagon layout
-pub const HEXAGON_COLUMN_OFFSET_DIVISOR: u32 = 2;
 
 // ============================================================================
 // COMMON CONVERSION CONSTANTS

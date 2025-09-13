@@ -340,7 +340,7 @@ impl Default for Province {
             position: Vec2::ZERO,
             population: PROVINCE_MIN_POPULATION,
             max_population: PROVINCE_MIN_POPULATION * 10,
-            terrain: TerrainType::Plains,
+            terrain: TerrainType::TemperateGrassland,
             elevation: Elevation::default(),
             agriculture: Agriculture::default(),
             fresh_water_distance: Distance::infinite(),
@@ -399,20 +399,8 @@ impl Province {
     
     /// Update max population based on current conditions
     pub fn update_max_population(&mut self) {
-        // Base capacity from terrain
-        let terrain_capacity = match self.terrain {
-            TerrainType::Ocean => 0,
-            TerrainType::River | TerrainType::Delta => 50_000,
-            TerrainType::Plains => 30_000,
-            TerrainType::Forest => 20_000,
-            TerrainType::Hills => 15_000,
-            TerrainType::Mountains => 5_000,
-            TerrainType::Desert => 3_000,
-            TerrainType::Tundra => 2_000,
-            TerrainType::Beach => 10_000,
-            TerrainType::Ice => 500,
-            TerrainType::Jungle => 25_000,
-        };
+        // Base capacity from terrain - use single source of truth
+        let terrain_capacity = self.terrain.properties().max_population_capacity;
         
         // Modifiers
         let agriculture_multiplier = 1.0 + self.agriculture.value();
@@ -487,8 +475,31 @@ impl Province {
         let coal_value = self.coal.value() as f32 * 0.8;
         let stone_value = self.stone.value() as f32 * 0.2;  // Common
         let gem_value = self.gems.value() as f32 * 20.0;  // Extremely valuable
-        
+
         (iron_value + copper_value + tin_value + gold_value + coal_value + stone_value + gem_value) / 100.0
+    }
+
+    /// Get the abundance value for a specific mineral type
+    /// Returns None for ocean terrain (no land minerals in ocean)
+    pub fn get_mineral_abundance(&self, mineral_type: MineralType) -> Option<u8> {
+        // Ocean provinces have no land-based minerals
+        if self.terrain == TerrainType::Ocean {
+            return None;
+        }
+
+        let abundance = match mineral_type {
+            MineralType::Iron => self.iron.value(),
+            MineralType::Copper => self.copper.value(),
+            MineralType::Tin => self.tin.value(),
+            MineralType::Gold => self.gold.value(),
+            MineralType::Coal => self.coal.value(),
+            MineralType::Stone => self.stone.value(),
+            MineralType::Gems => self.gems.value(),
+            // Future mineral types would return 0 by default
+            _ => 0,
+        };
+
+        Some(abundance)
     }
 }
 
@@ -650,20 +661,8 @@ impl MineralType {
 impl TerrainType {
     /// Get the population growth multiplier for this terrain
     pub fn population_multiplier(&self) -> f32 {
-        match self {
-            TerrainType::Ocean => 0.0,
-            TerrainType::Beach => 0.8,
-            TerrainType::Plains => 1.5,
-            TerrainType::Hills => 1.0,
-            TerrainType::Mountains => 0.3,
-            TerrainType::Ice => 0.1,
-            TerrainType::Tundra => 0.2,
-            TerrainType::Desert => 0.4,
-            TerrainType::Forest => 1.2,
-            TerrainType::Jungle => 1.3,
-            TerrainType::River => 2.0,
-            TerrainType::Delta => 3.0,
-        }
+        // Use the single source of truth in terrain.rs
+        self.properties().population_multiplier
     }
 }
 
@@ -723,7 +722,7 @@ mod tests {
         let province = Province::builder(ProvinceId::new(1))
             .position(Vec2::new(100.0, 200.0))
             .population(5000)
-            .terrain(TerrainType::Plains)
+            .terrain(TerrainType::TemperateGrassland)
             .elevation(0.3)
             .agriculture(2.5)
             .fresh_water_distance(5.0)
