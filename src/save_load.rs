@@ -570,7 +570,7 @@ fn check_for_pending_load(
         use crate::resources::ProvincesSpatialIndex;
         let mut spatial_index = ProvincesSpatialIndex::default();
         for province in &load_data.0.provinces {
-            spatial_index.insert_position_only(province.position, province.id.value());
+            spatial_index.insert(province.position, province.id.value());
         }
         commands.insert_resource(spatial_index);
         
@@ -578,7 +578,7 @@ fn check_for_pending_load(
         use rand::{SeedableRng, rngs::StdRng};
         
         let mut rng = StdRng::seed_from_u64(load_data.0.world_seed as u64);
-        let cloud_system = crate::generation::clouds::generate(&mut rng, &load_data.0.map_dimensions);
+        let cloud_system = crate::generation::clouds::CloudBuilder::new(&mut rng, &load_data.0.map_dimensions).build();
         commands.insert_resource(cloud_system);
         
         // Remove the pending load data
