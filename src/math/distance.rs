@@ -25,9 +25,7 @@
 
 use bevy::prelude::*;
 
-// ============================================================================
 // EUCLIDEAN DISTANCE - Standard geometric distance
-// ============================================================================
 
 /// Euclidean distance between two 2D points
 ///
@@ -92,9 +90,7 @@ pub fn euclidean_vec3(a: Vec3, b: Vec3) -> f32 {
     a.distance(b)  // Use Bevy's optimized implementation
 }
 
-// ============================================================================
 // MANHATTAN DISTANCE - Grid-based "taxicab" distance
-// ============================================================================
 
 /// Manhattan distance between two 2D points
 ///
@@ -124,9 +120,7 @@ pub fn manhattan_3d(x1: f32, y1: f32, z1: f32, x2: f32, y2: f32, z2: f32) -> f32
     (x2 - x1).abs() + (y2 - y1).abs() + (z2 - z1).abs()
 }
 
-// ============================================================================
 // CHEBYSHEV DISTANCE - Maximum coordinate difference
-// ============================================================================
 
 /// Chebyshev distance between two 2D points
 ///
@@ -155,9 +149,7 @@ pub fn chebyshev_vec2(a: Vec2, b: Vec2) -> f32 {
     dx.max(dy)
 }
 
-// ============================================================================
 // HEXAGON GRID DISTANCE - Distance in hexagonal grids
-// ============================================================================
 
 /// Calculate distance between two hexagons in a flat-top odd-q offset grid
 ///
@@ -198,9 +190,7 @@ pub fn hex_distance_world(pos1: Vec2, pos2: Vec2, hex_size: f32) -> f32 {
     euclidean_vec2(pos1, pos2) / spacing
 }
 
-// ============================================================================
 // DISTANCE FROM EDGE - For shapes and boundaries
-// ============================================================================
 
 /// Calculate distance from a point to the edge of a rectangle
 ///
@@ -240,9 +230,7 @@ pub fn normalized_edge_distance(
     dx.max(dy).clamp(0.0, 1.0)
 }
 
-// ============================================================================
 // WRAPPING DISTANCE - For toroidal/cylindrical maps
-// ============================================================================
 
 /// Calculate distance on a map that wraps horizontally
 ///
@@ -279,9 +267,7 @@ pub fn toroidal_distance_2d(
     (dx * dx + dy * dy).sqrt()
 }
 
-// ============================================================================
 // DISTANCE FALLOFF - For influence and field calculations
-// ============================================================================
 
 /// Linear distance falloff
 ///
@@ -345,9 +331,6 @@ pub fn smooth_falloff(distance: f32, inner_radius: f32, outer_radius: f32) -> f3
     }
 }
 
-// ============================================================================
-// SPECIALIZED GAME DISTANCES
-// ============================================================================
 
 /// Calculate influence based on distance with custom falloff
 ///
@@ -417,9 +400,6 @@ pub fn find_within_radius(
         .collect()
 }
 
-// ============================================================================
-// PERFORMANCE UTILITIES
-// ============================================================================
 
 /// Batch calculate distances from one point to many
 ///
@@ -442,9 +422,6 @@ pub fn batch_distances_squared(from: Vec2, to_points: &[Vec2]) -> Vec<f32> {
         .collect()
 }
 
-// ============================================================================
-// TESTS
-// ============================================================================
 
 #[cfg(test)]
 mod tests {

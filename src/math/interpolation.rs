@@ -23,10 +23,8 @@
 //! ```
 
 use bevy::prelude::*;
+use super::angles::{PI, fast_sin};
 
-// ============================================================================
-// BASIC LINEAR INTERPOLATION
-// ============================================================================
 
 /// Linear interpolation between two values
 ///
@@ -61,9 +59,6 @@ pub fn lerp_unclamped(a: f32, b: f32, t: f32) -> f32 {
     a + (b - a) * t
 }
 
-// ============================================================================
-// INVERSE INTERPOLATION
-// ============================================================================
 
 /// Inverse linear interpolation (unlerp)
 ///
@@ -98,9 +93,6 @@ pub fn remap(value: f32, from_min: f32, from_max: f32, to_min: f32, to_max: f32)
     lerp(to_min, to_max, t)
 }
 
-// ============================================================================
-// SMOOTH INTERPOLATION
-// ============================================================================
 
 /// Smoothstep interpolation
 ///
@@ -134,9 +126,6 @@ pub fn smootherstep(edge0: f32, edge1: f32, x: f32) -> f32 {
     t * t * t * (t * (t * 6.0 - 15.0) + 10.0)
 }
 
-// ============================================================================
-// EXPONENTIAL SMOOTHING
-// ============================================================================
 
 /// Exponential interpolation (frame-rate independent smoothing)
 ///
@@ -182,9 +171,6 @@ pub fn exponential_smooth(current: f32, new_value: f32, alpha: f32) -> f32 {
     current * (1.0 - alpha) + new_value * alpha
 }
 
-// ============================================================================
-// ASYMMETRIC SMOOTHING
-// ============================================================================
 
 /// Asymmetric smoothing with different rates for increase/decrease
 ///
@@ -208,9 +194,6 @@ pub fn asymmetric_smooth(
     lerp(current, target, t)
 }
 
-// ============================================================================
-// WEIGHTED BLENDING
-// ============================================================================
 
 /// Weighted blend of multiple values
 ///
@@ -256,9 +239,6 @@ pub fn weighted_blend_vec3(values: &[(Vec3, f32)]) -> Vec3 {
         .sum()
 }
 
-// ============================================================================
-// COLOR INTERPOLATION
-// ============================================================================
 
 /// Interpolate between two colors
 ///
@@ -294,9 +274,6 @@ pub fn weighted_blend_colors(colors: &[(Color, f32)]) -> Color {
     Color::LinearRgba(LinearRgba::new(r, g, b, a))
 }
 
-// ============================================================================
-// EASING FUNCTIONS
-// ============================================================================
 
 /// Quadratic ease-in (accelerating from zero velocity)
 #[inline]
@@ -360,7 +337,7 @@ pub fn ease_out_elastic(t: f32) -> f32 {
     let p = 0.3;
     let a = 1.0;
     let s = p / 4.0;
-    a * 2.0_f32.powf(-10.0 * t) * ((t - s) * (2.0 * std::f32::consts::PI) / p).sin() + 1.0
+    a * 2.0_f32.powf(-10.0 * t) * fast_sin((t - s) * (2.0 * PI) / p) + 1.0
 }
 
 /// Bounce ease-out (bouncing ball effect)
@@ -381,9 +358,7 @@ pub fn ease_out_bounce(t: f32) -> f32 {
     }
 }
 
-// ============================================================================
 // BILINEAR INTERPOLATION (for 2D grids like heightmaps)
-// ============================================================================
 
 /// Bilinear interpolation on a 2D grid
 ///
@@ -415,9 +390,6 @@ where
     lerp(v0, v1, fy)
 }
 
-// ============================================================================
-// UTILITY FUNCTIONS
-// ============================================================================
 
 /// Clamp a value between min and max
 #[inline]
@@ -454,9 +426,6 @@ pub fn ping_pong(value: f32, max: f32) -> f32 {
     }
 }
 
-// ============================================================================
-// TESTS
-// ============================================================================
 
 #[cfg(test)]
 mod tests {

@@ -43,9 +43,7 @@
 use noise::{Perlin, NoiseFn};
 use bevy::prelude::*;
 
-// ============================================================================
 // NOISE CONSTANTS - Centralized parameters for all noise generation
-// ============================================================================
 
 /// Default number of octaves for terrain generation
 pub const DEFAULT_OCTAVES: u32 = 6;
@@ -74,9 +72,6 @@ const NORMALIZATION_MAX: f64 = 1.0;
 /// Minimum value for normalization calculations
 const NORMALIZATION_MIN: f64 = -1.0;
 
-// ============================================================================
-// CORE PERLIN NOISE STRUCT
-// ============================================================================
 
 /// Main Perlin noise generator - your one-stop shop for all noise needs
 ///
@@ -99,7 +94,6 @@ pub struct PerlinNoise {
 }
 
 impl PerlinNoise {
-    /// Create a new Perlin noise generator with the given seed
     ///
     /// # Example
     /// ```
@@ -117,7 +111,6 @@ impl PerlinNoise {
         }
     }
 
-    /// Create a new generator with explicit seed (alias for clarity)
     pub fn with_seed(seed: u32) -> Self {
         Self::new(seed)
     }
@@ -127,13 +120,11 @@ impl PerlinNoise {
         PerlinBuilder::default()
     }
 
-    /// Get the seed used by this generator
     pub fn seed(&self) -> u32 {
         self.seed
     }
 
     // ========================================================================
-    // BASIC SAMPLING METHODS
     // ========================================================================
 
     /// Sample raw Perlin noise at a position (returns -1.0 to 1.0)
@@ -206,7 +197,6 @@ impl PerlinNoise {
     }
 
     // ========================================================================
-    // SPECIALIZED TERRAIN SAMPLING
     // ========================================================================
 
     /// Sample terrain with continental and detail layers
@@ -296,7 +286,6 @@ impl PerlinNoise {
     }
 
     // ========================================================================
-    // CLOUD GENERATION
     // ========================================================================
 
     /// Sample cloud density with preset patterns
@@ -322,7 +311,6 @@ impl PerlinNoise {
                 }
             }
             CloudPreset::Fluffy => {
-                // Standard cumulus clouds
                 self.sample_billow(x, y, CLOUD_FREQUENCY)
             }
             CloudPreset::Storm => {
@@ -372,7 +360,6 @@ impl PerlinNoise {
     /// Domain warping distorts the input coordinates before sampling,
     /// creating more organic-looking features.
     pub fn sample_warped(&self, x: f64, y: f64, warp_strength: f64) -> f64 {
-        // Get warping offsets
         let warp_x = self.perlin.get([x * 0.01, y * 0.01]) * warp_strength;
         let warp_y = self.perlin.get([x * 0.01 + 100.0, y * 0.01 + 100.0]) * warp_strength;
 
@@ -381,7 +368,6 @@ impl PerlinNoise {
     }
 
     // ========================================================================
-    // UTILITY METHODS
     // ========================================================================
 
     /// Normalize a value from [-1, 1] to [0, 1]
@@ -400,9 +386,6 @@ impl PerlinNoise {
     }
 }
 
-// ============================================================================
-// BUILDER PATTERN
-// ============================================================================
 
 /// Builder for creating customized PerlinNoise instances
 #[derive(Default)]
@@ -415,7 +398,6 @@ pub struct PerlinBuilder {
 }
 
 impl PerlinBuilder {
-    /// Set the seed
     pub fn seed(mut self, seed: u32) -> Self {
         self.seed = Some(seed);
         self
@@ -445,7 +427,6 @@ impl PerlinBuilder {
         self
     }
 
-    /// Build the PerlinNoise instance
     pub fn build(self) -> PerlinNoise {
         let seed = self.seed.unwrap_or(0);
         let mut noise = PerlinNoise::new(seed);
@@ -467,9 +448,6 @@ impl PerlinBuilder {
     }
 }
 
-// ============================================================================
-// CONFIGURATION STRUCTS
-// ============================================================================
 
 /// Settings for Fractal Brownian Motion
 #[derive(Debug, Clone, Copy)]
@@ -495,9 +473,6 @@ impl Default for FbmSettings {
     }
 }
 
-// ============================================================================
-// PRESET ENUMS
-// ============================================================================
 
 /// Preset terrain generation patterns
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -521,9 +496,6 @@ pub enum CloudPreset {
     Storm,
 }
 
-// ============================================================================
-// TESTS
-// ============================================================================
 
 #[cfg(test)]
 mod tests {

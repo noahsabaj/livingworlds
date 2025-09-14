@@ -1,13 +1,12 @@
 //! Single source of truth for hexagon geometry in Living Worlds
-//! 
+//!
 //! This module contains ALL hexagon-related calculations, constants, and geometry.
 //! We use FLAT-TOP hexagons with odd-q offset coordinate system throughout.
 
 use bevy::prelude::*;
+use super::angles::{degrees_to_radians, position_on_circle};
 
-// ============================================================================
 // HEXAGON CONSTANTS - All hexagon-related constants in one place
-// ============================================================================
 
 /// Default hexagon size (radius from center to corner) in pixels
 pub const HEX_SIZE: f32 = 50.0;
@@ -39,9 +38,7 @@ pub const COLUMN_OFFSET_DIVISOR: u32 = 2;
 /// Antialiasing width for smooth hexagon edges
 pub const AA_WIDTH: f32 = 1.5;
 
-// ============================================================================
 // HEXAGON GEOMETRY - Core hexagon structure and calculations
-// ============================================================================
 
 /// Single source of truth for hexagon geometry
 /// 
@@ -56,7 +53,6 @@ pub struct Hexagon {
 }
 
 impl Hexagon {
-    /// Create a hexagon at the given position with default size
     pub fn new(center: Vec2) -> Self {
         Self {
             size: HEX_SIZE,
@@ -64,7 +60,6 @@ impl Hexagon {
         }
     }
     
-    /// Create a hexagon with custom size
     pub fn with_size(center: Vec2, size: f32) -> Self {
         Self { size, center }
     }
@@ -81,12 +76,9 @@ impl Hexagon {
         
         // Corner vertices (flat-top starts at 0 degrees for vertex sharing)
         for i in 0..CORNERS {
-            let angle = (i as f32 * DEGREES_PER_CORNER).to_radians();
-            vertices[i + 1] = Vec3::new(
-                self.center.x + self.size * angle.cos(),
-                self.center.y + self.size * angle.sin(),
-                0.0,
-            );
+            let angle = degrees_to_radians(i as f32 * DEGREES_PER_CORNER);
+            let (x, y) = position_on_circle(self.center.x, self.center.y, self.size, angle);
+            vertices[i + 1] = Vec3::new(x, y, 0.0);
         }
         
         vertices
@@ -99,11 +91,9 @@ impl Hexagon {
         let mut corners = [Vec2::ZERO; CORNERS];
         
         for i in 0..CORNERS {
-            let angle = (i as f32 * DEGREES_PER_CORNER).to_radians();
-            corners[i] = Vec2::new(
-                self.center.x + self.size * angle.cos(),
-                self.center.y + self.size * angle.sin(),
-            );
+            let angle = degrees_to_radians(i as f32 * DEGREES_PER_CORNER);
+            let (x, y) = position_on_circle(self.center.x, self.center.y, self.size, angle);
+            corners[i] = Vec2::new(x, y);
         }
         
         corners
@@ -133,7 +123,6 @@ impl Hexagon {
         let dx = (point.x - self.center.x).abs();
         let dy = (point.y - self.center.y).abs();
         
-        // Quick bounding box check
         if dx > self.size || dy > self.size * SQRT_3 / 2.0 {
             return false;
         }
@@ -160,9 +149,7 @@ impl Hexagon {
     }
 }
 
-// ============================================================================
 // GRID POSITIONING - Calculate hexagon positions in grid layouts
-// ============================================================================
 
 /// Calculate hexagon position for a given grid coordinate
 /// 
@@ -214,7 +201,6 @@ pub fn world_to_grid(
         0.0
     };
     
-    // Calculate row
     let row_f = ((position.y - y_offset) / (hex_size * SQRT_3)) + (grid_height as f32 * HALF);
     let row = row_f.round() as i32;
     
@@ -225,7 +211,6 @@ pub fn world_to_grid(
     Some((col as u32, row as u32))
 }
 
-/// Get the 6 neighboring hexagon positions
 /// 
 /// Returns positions of all 6 neighbors in the odd-q offset system.
 pub fn get_neighbor_positions(col: i32, row: i32, hex_size: f32) -> [(i32, i32); 6] {
@@ -253,9 +238,6 @@ pub fn get_neighbor_positions(col: i32, row: i32, hex_size: f32) -> [(i32, i32);
     }
 }
 
-// ============================================================================
-// UTILITY FUNCTIONS
-// ============================================================================
 
 /// Validate that a position is finite (not NaN or infinite)
 pub fn validate_position(pos: Vec2) -> Result<(), String> {

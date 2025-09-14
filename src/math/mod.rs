@@ -14,6 +14,8 @@
 //! - [`perlin`] - All noise generation (terrain, clouds, everything)
 //! - [`interpolation`] - All interpolation, smoothing, and blending operations
 //! - [`distance`] - All distance calculations (Euclidean, Manhattan, hexagonal, etc.)
+//! - [`angles`] - All angle calculations, trigonometry, and rotation utilities
+//! - [`random`] - All random number generation and distribution utilities
 //!
 //! ---
 //!
@@ -310,12 +312,22 @@
 //! cargo test math
 //! ```
 
-pub mod hexagon;
-pub mod perlin;
-pub mod interpolation;
-pub mod distance;
+// INTERNAL MODULES - ALL PRIVATE
+// Gateway Architecture: All submodules are private. External code must use
+// the controlled re-exports below. This ensures all math operations go through
+// this single gateway, maintaining our "single source of truth" principle.
+mod hexagon;
+mod perlin;
+mod interpolation;
+mod distance;
+mod angles;
+mod random;
 
-// Re-export hexagon items for convenience
+// Only these carefully selected exports are available to external code.
+// This enforces our "single source of truth" principle - all math operations
+// must go through this gateway module.
+
+// Hexagon geometry exports
 pub use hexagon::{
     Hexagon,
     calculate_grid_position,
@@ -323,7 +335,6 @@ pub use hexagon::{
     get_neighbor_positions,
     validate_position,
     quantize_position,
-    // Constants
     HEX_SIZE,
     CORNERS,
     VERTICES_PER_HEX,
@@ -333,7 +344,7 @@ pub use hexagon::{
     HALF,
 };
 
-// Re-export perlin items for convenience
+// Perlin noise generation exports
 pub use perlin::{
     PerlinNoise,
     PerlinBuilder,
@@ -342,7 +353,7 @@ pub use perlin::{
     FbmSettings,
 };
 
-// Re-export interpolation items for convenience
+// Interpolation and smoothing exports
 pub use interpolation::{
     lerp, lerp_vec2, lerp_vec3,
     inverse_lerp, remap,
@@ -353,9 +364,8 @@ pub use interpolation::{
     lerp_color,
 };
 
-// Re-export distance items for convenience
+// Distance calculation exports
 pub use distance::{
-    // Basic distance functions
     euclidean_2d, euclidean_vec2, euclidean_vec3,
     euclidean_squared_2d, euclidean_squared_vec2,
     manhattan_2d, manhattan_vec2, manhattan_3d,
@@ -372,4 +382,43 @@ pub use distance::{
     calculate_influence, FalloffType,
     find_closest, find_within_radius,
     batch_distances, batch_distances_squared,
+};
+
+// Angle and trigonometry exports
+pub use angles::{
+    PI, TAU, HALF_PI, QUARTER_PI,
+    DEG_TO_RAD, RAD_TO_DEG,
+    // Conversions
+    degrees_to_radians, radians_to_degrees,
+    // Normalization
+    normalize_angle, normalize_angle_signed,
+    wrap_degrees, wrap_degrees_signed,
+    // Interpolation
+    lerp_angle, smoothstep_angle,
+    // Calculations
+    angle_between, angular_distance, angle_in_range,
+    // Vector operations
+    unit_vector_from_angle, vector_from_angle,
+    position_on_circle, positions_around_circle,
+    movement_vector, angle_variation,
+    // Trigonometric helpers
+    fast_sin, fast_cos, sin_cos,
+};
+
+// Random generation exports
+pub use random::{
+    // RNG creation
+    create_rng, create_rng_multi,
+    random_range, random_bool, random_01, random_11,
+    // Geometric
+    random_point_in_rect, random_point_in_circle,
+    random_point_on_circle, random_hex_offset,
+    random_unit_vector, random_vector,
+    // Distributions
+    random_normal, random_exponential, random_weighted_index,
+    // Game utilities
+    random_variation, random_spaced_positions, random_color_variation,
+    shuffle, choose, choose_multiple,
+    // Deterministic
+    hash_random, hash_random_int,
 };
