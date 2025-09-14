@@ -1,14 +1,19 @@
 //! Keyboard navigation for the settings menu
 
-use bevy::prelude::*;
 use super::components::*;
+use bevy::prelude::*;
 
 /// Handle keyboard navigation (Tab/Shift+Tab) and ESC
 pub fn handle_keyboard_navigation(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut focus: ResMut<FocusedElement>,
     mut param_set: ParamSet<(
-        Query<(Entity, &Focusable, &mut BackgroundColor, Option<&Interaction>)>,
+        Query<(
+            Entity,
+            &Focusable,
+            &mut BackgroundColor,
+            Option<&Interaction>,
+        )>,
         Query<&mut Interaction>,
     )>,
     settings_root: Query<Entity, With<SettingsMenuRoot>>,
@@ -21,7 +26,7 @@ pub fn handle_keyboard_navigation(
         }
         return;
     }
-    
+
     // Tab navigation
     if keyboard.just_pressed(KeyCode::Tab) {
         if keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight) {
@@ -39,7 +44,7 @@ pub fn handle_keyboard_navigation(
                 focus.index = 0;
             }
         }
-        
+
         for (_entity, focusable, mut bg_color, interaction) in &mut param_set.p0() {
             if focusable.order as usize == focus.index {
                 // Highlight focused element
@@ -47,13 +52,15 @@ pub fn handle_keyboard_navigation(
             } else if let Some(interaction) = interaction {
                 // Reset to normal state
                 match interaction {
-                    Interaction::Hovered => *bg_color = BackgroundColor(Color::srgb(0.18, 0.18, 0.2)),
+                    Interaction::Hovered => {
+                        *bg_color = BackgroundColor(Color::srgb(0.18, 0.18, 0.2))
+                    }
                     _ => *bg_color = BackgroundColor(Color::srgb(0.12, 0.12, 0.15)),
                 }
             }
         }
     }
-    
+
     // Enter/Space to activate focused element
     if keyboard.just_pressed(KeyCode::Enter) || keyboard.just_pressed(KeyCode::Space) {
         // First find the focused entity
@@ -64,7 +71,7 @@ pub fn handle_keyboard_navigation(
                 break;
             }
         }
-        
+
         // Then simulate the button press on that entity
         if let Some(entity) = focused_entity {
             if let Ok(mut interaction) = param_set.p1().get_mut(entity) {
@@ -75,11 +82,12 @@ pub fn handle_keyboard_navigation(
 }
 
 /// Update the maximum index for focused elements
-pub fn update_max_focus_index(
-    focusables: Query<&Focusable>,
-    mut focus: ResMut<FocusedElement>,
-) {
-    let max = focusables.iter().map(|f| f.order as usize).max().unwrap_or(0);
+pub fn update_max_focus_index(focusables: Query<&Focusable>, mut focus: ResMut<FocusedElement>) {
+    let max = focusables
+        .iter()
+        .map(|f| f.order as usize)
+        .max()
+        .unwrap_or(0);
     if focus.max_index != max {
         focus.max_index = max;
     }

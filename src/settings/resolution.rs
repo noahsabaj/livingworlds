@@ -1,7 +1,7 @@
 //! Resolution confirmation dialog system
 
-use bevy::prelude::*;
 use super::types::*;
+use bevy::prelude::*;
 
 /// Handle request to show resolution confirmation dialog  
 pub fn handle_resolution_confirm_request(
@@ -14,13 +14,13 @@ pub fn handle_resolution_confirm_request(
         if confirmation.active {
             continue; // Already showing dialog
         }
-        
+
         println!("Spawning resolution confirmation dialog");
         confirmation.active = true;
         confirmation.timer.reset();
         confirmation.original_resolution = settings.graphics.resolution.clone();
         confirmation.original_window_mode = settings.graphics.window_mode.clone();
-        
+
         // Use the new dialog system
         use crate::ui::dialog_presets;
         dialog_presets::resolution_confirm_dialog(commands.reborrow());
@@ -40,28 +40,28 @@ pub fn update_resolution_countdown(
     if !confirmation.active {
         return;
     }
-    
+
     confirmation.timer.tick(time.delta());
-    
+
     let remaining = confirmation.timer.remaining_secs();
     for mut text in &mut countdown_texts {
         **text = format!("Reverting in {} seconds...", remaining.ceil() as u32);
     }
-    
+
     // Auto-revert when timer expires
     if confirmation.timer.finished() {
         println!("Resolution confirmation timed out - reverting");
-        
+
         // Revert settings
         settings.graphics.resolution = confirmation.original_resolution.clone();
         settings.graphics.window_mode = confirmation.original_window_mode.clone();
         events.write(SettingsChanged);
-        
+
         // Clean up dialog
         for entity in &dialog_query {
             commands.entity(entity).despawn();
         }
-        
+
         confirmation.active = false;
     }
 }
@@ -79,34 +79,34 @@ pub fn handle_resolution_confirm_buttons(
     if !confirmation.active {
         return;
     }
-    
+
     for interaction in &keep_buttons {
         if *interaction == Interaction::Pressed {
             println!("Resolution confirmed - keeping settings");
-            
+
             // Clean up dialog
             for entity in &dialog_query {
                 commands.entity(entity).despawn();
             }
-            
+
             confirmation.active = false;
         }
     }
-    
+
     for interaction in &revert_buttons {
         if *interaction == Interaction::Pressed {
             println!("Resolution rejected - reverting");
-            
+
             // Revert settings
             settings.graphics.resolution = confirmation.original_resolution.clone();
             settings.graphics.window_mode = confirmation.original_window_mode.clone();
             events.write(SettingsChanged);
-            
+
             // Clean up dialog
             for entity in &dialog_query {
                 commands.entity(entity).despawn();
             }
-            
+
             confirmation.active = false;
         }
     }
@@ -129,12 +129,12 @@ impl ResolutionConfirmation {
     pub fn active(&self) -> bool {
         self.active
     }
-    
+
     pub fn activate(&mut self) {
         self.active = true;
         self.timer.reset();
     }
-    
+
     pub fn deactivate(&mut self) {
         self.active = false;
     }

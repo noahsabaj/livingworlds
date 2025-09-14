@@ -4,9 +4,8 @@
 //! including the main GameSettings, individual setting categories, and various
 //! enums for options.
 
-use serde::{Deserialize, Serialize};
 use bevy::prelude::*;
-
+use serde::{Deserialize, Serialize};
 
 /// Main settings structure containing all game settings
 #[derive(Resource, Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -37,7 +36,6 @@ impl Default for TempGameSettings {
         Self(GameSettings::default())
     }
 }
-
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct GraphicsSettings {
@@ -86,16 +84,25 @@ impl GraphicsSettings {
             }
         }
     }
-    
+
     /// Determine which preset matches current settings (if any)
     pub fn current_preset(&self) -> Option<GraphicsPreset> {
         if self.render_scale == 0.75 && self.shadow_quality == QualityLevel::Low && !self.vsync {
             Some(GraphicsPreset::Low)
-        } else if self.render_scale == 0.9 && self.shadow_quality == QualityLevel::Medium && self.vsync {
+        } else if self.render_scale == 0.9
+            && self.shadow_quality == QualityLevel::Medium
+            && self.vsync
+        {
             Some(GraphicsPreset::Medium)
-        } else if self.render_scale == 1.0 && self.shadow_quality == QualityLevel::High && self.vsync {
+        } else if self.render_scale == 1.0
+            && self.shadow_quality == QualityLevel::High
+            && self.vsync
+        {
             Some(GraphicsPreset::High)
-        } else if self.render_scale == 1.0 && self.shadow_quality == QualityLevel::Ultra && self.vsync {
+        } else if self.render_scale == 1.0
+            && self.shadow_quality == QualityLevel::Ultra
+            && self.vsync
+        {
             Some(GraphicsPreset::Ultra)
         } else {
             None // Custom settings
@@ -111,7 +118,6 @@ pub enum GraphicsPreset {
     High,
     Ultra,
 }
-
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AudioSettings {
@@ -129,7 +135,6 @@ impl Default for AudioSettings {
         }
     }
 }
-
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct InterfaceSettings {
@@ -152,7 +157,6 @@ impl Default for InterfaceSettings {
     }
 }
 
-
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ControlSettings {
     pub edge_pan_speed: f32,
@@ -174,7 +178,6 @@ impl Default for ControlSettings {
     }
 }
 
-
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub enum WindowModeOption {
     Windowed,
@@ -190,7 +193,7 @@ impl WindowModeOption {
             Self::Fullscreen => Self::Windowed,
         }
     }
-    
+
     pub fn as_str(&self) -> &str {
         match self {
             Self::Windowed => "Windowed",
@@ -209,23 +212,39 @@ pub struct ResolutionOption {
 impl ResolutionOption {
     pub fn common_resolutions() -> Vec<Self> {
         vec![
-            Self { width: 1280.0, height: 720.0 },
-            Self { width: 1600.0, height: 900.0 },
-            Self { width: 1920.0, height: 1080.0 },
-            Self { width: 2560.0, height: 1440.0 },
-            Self { width: 3840.0, height: 2160.0 },
+            Self {
+                width: 1280.0,
+                height: 720.0,
+            },
+            Self {
+                width: 1600.0,
+                height: 900.0,
+            },
+            Self {
+                width: 1920.0,
+                height: 1080.0,
+            },
+            Self {
+                width: 2560.0,
+                height: 1440.0,
+            },
+            Self {
+                width: 3840.0,
+                height: 2160.0,
+            },
         ]
     }
-    
+
     pub fn cycle(&self) -> Self {
         let resolutions = Self::common_resolutions();
-        let current_idx = resolutions.iter()
+        let current_idx = resolutions
+            .iter()
             .position(|r| r.width == self.width && r.height == self.height)
             .unwrap_or(0);
         let next_idx = (current_idx + 1) % resolutions.len();
         resolutions[next_idx].clone()
     }
-    
+
     pub fn as_str(&self) -> String {
         format!("{}x{}", self.width as i32, self.height as i32)
     }
@@ -233,7 +252,10 @@ impl ResolutionOption {
 
 impl Default for ResolutionOption {
     fn default() -> Self {
-        Self { width: 1920.0, height: 1080.0 }
+        Self {
+            width: 1920.0,
+            height: 1080.0,
+        }
     }
 }
 
@@ -254,7 +276,7 @@ impl QualityLevel {
             Self::Ultra => Self::Low,
         }
     }
-    
+
     pub fn as_str(&self) -> &str {
         match self {
             Self::Low => "Low",
@@ -264,7 +286,6 @@ impl QualityLevel {
         }
     }
 }
-
 
 /// Types of settings that can be modified
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -297,7 +318,6 @@ pub enum SettingType {
     ShowFPS,
 }
 
-
 /// Event triggered when settings are changed
 #[derive(Event)]
 pub struct SettingsChanged;
@@ -305,7 +325,6 @@ pub struct SettingsChanged;
 /// Event for requesting resolution confirmation dialog
 #[derive(Event)]
 pub struct RequestResolutionConfirm;
-
 
 /// Tracks whether settings have been modified
 #[derive(Resource, Default)]

@@ -3,10 +3,9 @@
 //! This module contains all the component markers used to identify
 //! and interact with various UI elements in the settings menu.
 
-use bevy::prelude::*;
-use crate::states::SettingsTab;
 use super::types::SettingType;
-
+use crate::states::SettingsTab;
+use bevy::prelude::*;
 
 /// Marker for the settings menu root entity
 #[derive(Component)]
@@ -15,7 +14,6 @@ pub struct SettingsMenuRoot;
 /// Marker for the resolution confirmation dialog
 #[derive(Component)]
 pub struct ResolutionConfirmDialog;
-
 
 /// Marker for tab buttons
 #[derive(Component)]
@@ -36,7 +34,6 @@ pub struct FocusedElement {
     pub index: usize,
     pub max_index: usize,
 }
-
 
 /// Component for cycle buttons that cycle through options
 #[derive(Component)]
@@ -70,7 +67,6 @@ pub struct SliderValueText {
     pub setting_type: SettingType,
 }
 
-
 /// Marker for settings sliders using the new SliderBuilder
 #[derive(Component)]
 pub struct SettingsSlider {
@@ -88,7 +84,6 @@ pub struct SFXVolumeSlider;
 /// Marker for render scale slider
 #[derive(Component)]
 pub struct RenderScaleSlider;
-
 
 /// Apply button marker
 #[derive(Component)]
@@ -108,9 +103,7 @@ pub struct PresetButton {
 #[derive(Component)]
 pub struct ResetButton;
 
-
 // Dialog components are now provided by crate::ui::dialogs
-
 
 /// Countdown text for resolution confirmation
 #[derive(Component)]
