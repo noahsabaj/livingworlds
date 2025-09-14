@@ -1,6 +1,5 @@
 //! Utility functions for world generation
 
-/// Get the 6 neighbors of a hexagon in odd-q offset coordinates
 pub fn hex_neighbors(col: i32, row: i32) -> Vec<(i32, i32)> {
     if col % 2 == 0 {
         // Even column neighbors

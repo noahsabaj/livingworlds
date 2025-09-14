@@ -7,7 +7,6 @@
 //! 
 //! In the mega-mesh architecture, provinces are data stored in ProvinceStorage,
 //! not individual entities. This dramatically improves performance by reducing
-//! entity count from hundreds of thousands to just one for the selection border.
 
 use bevy::prelude::*;
 use bevy::render::mesh::PrimitiveTopology;
@@ -16,14 +15,10 @@ use bevy::sprite::MeshMaterial2d;
 use bevy::window::PrimaryWindow;
 
 use crate::resources::{SelectedProvinceInfo, ProvincesSpatialIndex};
-use crate::math::hexagon::{Hexagon, HEX_SIZE as HEX_SIZE_PIXELS};
-use crate::math::distance::{euclidean_vec2, find_closest};
+use crate::math::{Hexagon, HEX_SIZE as HEX_SIZE_PIXELS, euclidean_vec2, find_closest};
 use super::mesh::ProvinceStorage;
 use crate::components::ProvinceId;
 
-// ============================================================================
-// CONSTANTS
-// ============================================================================
 
 /// Z-index for border rendering (above all provinces and terrain)
 const BORDER_Z_INDEX: f32 = 100.0;
@@ -49,7 +44,6 @@ impl Plugin for BorderPlugin {
             .init_resource::<SelectionBorder>()
             .init_resource::<SelectedProvinceInfo>()
             
-            // Systems
             .add_systems(OnEnter(GameState::InGame), setup_selection_border)
             .add_systems(Update, (
                 handle_tile_selection,
@@ -83,7 +77,6 @@ fn create_hexagon_border_mesh() -> Mesh {
     // Add first vertex again to close the hexagon
     vertices.push(Vec3::new(corners[0].x, corners[0].y, 0.0));
     
-    // Set vertex positions
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices.clone());
     
     // Line meshes need vertex colors - use our constant
@@ -102,7 +95,6 @@ fn setup_selection_border(
 ) {
     debug!("Setting up selection border system");
     
-    // Create the hexagon mesh
     let mesh_handle = meshes.add(create_hexagon_border_mesh());
     
     // Create golden material for selection using constants
@@ -113,7 +105,6 @@ fn setup_selection_border(
         GOLDEN_COLOR_ALPHA
     )));
     
-    // Spawn the single selection border entity (initially hidden)
     let entity = commands.spawn((
         Mesh2d(mesh_handle),
         MeshMaterial2d(golden_material),
@@ -142,7 +133,6 @@ fn update_selection_border(
         return;
     }
     
-    // Get the selection border entity
     let Some(border_entity) = selection_border.entity else { 
         warn!("Selection border entity not found");
         return; 
@@ -190,19 +180,16 @@ fn handle_tile_selection(
         return;
     }
     
-    // Get window with error logging
     let Ok(window) = windows.single() else { 
         warn!("Failed to get primary window for tile selection");
         return; 
     };
     
-    // Get cursor position with error logging
     let Some(cursor_pos) = window.cursor_position() else { 
         trace!("No cursor position available");
         return; 
     };
     
-    // Get camera with error logging
     let Ok((camera, camera_transform)) = camera_q.single() else { 
         warn!("Failed to get camera for tile selection");
         return; 
@@ -218,14 +205,12 @@ fn handle_tile_selection(
     // Clear previous selection
     selected_info.province_id = None;
     
-    // Find clicked province using spatial index (O(1) instead of O(n))
     let hex_size = HEX_SIZE_PIXELS;
     let search_radius = hex_size * HEXAGON_SEARCH_RADIUS_MULTIPLIER;
     
     // Query spatial index for provinces near click position
     let nearby_provinces = spatial_index.query_near(world_pos, search_radius);
     
-    // Find the closest province that contains the point
     let mut closest_province = None;
     let mut closest_distance = f32::MAX;
     
@@ -246,7 +231,6 @@ fn handle_tile_selection(
     if let Some(province_id) = closest_province {
         selected_info.province_id = Some(province_id);
         
-        // Get province data for debug output - O(1) HashMap lookup
         if let Some(&idx) = province_storage.province_by_id.get(&ProvinceId::new(province_id)) {
             let province = &province_storage.provinces[idx];
             trace!("Selected province {} at ({:.0}, {:.0}), terrain: {:?}", 

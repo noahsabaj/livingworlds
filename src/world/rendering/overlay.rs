@@ -13,9 +13,6 @@ use crate::resources::ResourceOverlay;
 // Color calculations moved to CachedOverlayColors::get_or_calculate
 use super::mesh::ProvinceStorage;
 
-// ============================================================================
-// CONSTANTS
-// ============================================================================
 
 /// Bytes per megabyte for memory calculations
 const BYTES_PER_MB: f32 = 1024.0 * 1024.0;
@@ -37,7 +34,6 @@ pub fn update_province_colors(
 
     // System already only runs when overlay changes due to run_if condition
 
-    // Get the mesh from the handle with proper error handling
     let Some(mesh) = meshes.get_mut(&mesh_handle.0) else {
         warn!("Failed to get world mesh for overlay update");
         return;
@@ -45,12 +41,10 @@ pub fn update_province_colors(
 
     let mesh_lookup_time = start.elapsed();
 
-    // Get or calculate colors for the requested overlay (lazy loading)
     let colors = cached_colors.get_or_calculate(*overlay, &province_storage);
 
     let selection_time = start.elapsed() - mesh_lookup_time;
 
-    // Calculate buffer size for logging
     let buffer_size_mb = (colors.len() * std::mem::size_of::<[f32; 4]>()) as f32 / BYTES_PER_MB;
 
     // Safe clone operation - Vec::clone() internally uses optimized memcpy for primitive types

@@ -18,7 +18,6 @@ pub struct CloudBuilder<'a> {
 }
 
 impl<'a> CloudBuilder<'a> {
-    /// Create a new cloud builder
     pub fn new(rng: &'a mut StdRng, dimensions: &'a MapDimensions) -> Self {
         Self {
             rng,
@@ -54,7 +53,6 @@ impl<'a> CloudBuilder<'a> {
         self
     }
     
-    /// Build the cloud system
     pub fn build(self) -> CloudSystem {
         // Delegate to the existing internal implementation
         generate_clouds_internal(self.rng, self.dimensions)

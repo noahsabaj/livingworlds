@@ -13,13 +13,12 @@ use crate::components::{Province, ProvinceId, Elevation, Agriculture, Distance, 
 use crate::world::terrain::TerrainType;
 use crate::constants::*;
 use crate::resources::MapDimensions;
-use crate::math::hexagon::{calculate_grid_position, get_neighbor_positions};
-use crate::math::perlin::{PerlinNoise, TerrainPreset};
-use crate::math::distance::{normalized_edge_distance, smooth_falloff};
+use crate::math::{
+    calculate_grid_position, get_neighbor_positions,
+    PerlinNoise, TerrainPreset,
+    normalized_edge_distance, smooth_falloff
+};
 
-// ============================================================================
-// CONFIGURATION
-// ============================================================================
 
 /// Default ocean coverage percentage (0.0 to 1.0)
 const DEFAULT_OCEAN_COVERAGE: f32 = 0.6;
@@ -38,7 +37,6 @@ pub struct ProvinceBuilder<'a> {
 }
 
 impl<'a> ProvinceBuilder<'a> {
-    /// Create a new province builder
     pub fn new(
         dimensions: MapDimensions,
         rng: &'a mut StdRng,
@@ -57,24 +55,20 @@ impl<'a> ProvinceBuilder<'a> {
         }
     }
 
-    /// Set the ocean coverage percentage
     pub fn with_ocean_coverage(mut self, coverage: f32) -> Self {
         self.ocean_coverage = coverage.clamp(0.1, 0.9);
         self
     }
 
-    /// Set the number of continents
     pub fn with_continent_count(mut self, count: u32) -> Self {
         self.continent_count = count.max(1);
         self
     }
 
-    /// Build the provinces
     pub fn build(mut self) -> Vec<Province> {
         let total_provinces = self.dimensions.provinces_per_row * self.dimensions.provinces_per_col;
         println!("  Generating {} hexagonal provinces", total_provinces);
 
-        // Calculate sea level based on desired ocean coverage
         let sea_level = self.calculate_sea_level();
         println!("  Sea level set to {:.3} for {:.0}% ocean coverage", sea_level, self.ocean_coverage * 100.0);
 
@@ -84,7 +78,6 @@ impl<'a> ProvinceBuilder<'a> {
             .map(|index| self.generate_province(index, sea_level))
             .collect();
 
-        // Calculate terrain statistics
         let ocean_count = provinces.iter().filter(|p| p.terrain == TerrainType::Ocean).count();
         let land_count = provinces.len() - ocean_count;
         println!("  Generated {} land provinces, {} ocean provinces", land_count, ocean_count);
@@ -92,7 +85,6 @@ impl<'a> ProvinceBuilder<'a> {
         provinces
     }
 
-    /// Generate a single province at the given index
     fn generate_province(&self, index: u32, sea_level: f32) -> Province {
         let col = index % self.dimensions.provinces_per_row;
         let row = index / self.dimensions.provinces_per_row;
@@ -112,7 +104,6 @@ impl<'a> ProvinceBuilder<'a> {
         // Determine terrain type based on elevation
         let terrain = self.classify_terrain(elevation, sea_level);
 
-        // Calculate neighbors (hexagonal pattern)
         let neighbors = self.calculate_hex_neighbors(col, row);
 
         Province {
@@ -223,7 +214,6 @@ impl<'a> ProvinceBuilder<'a> {
     fn calculate_hex_neighbors(&self, col: u32, row: u32) -> [Option<ProvinceId>; 6] {
         let mut neighbors = [None; 6];
 
-        // Get neighbor positions from the geometry module
         let neighbor_positions = get_neighbor_positions(
             col as i32,
             row as i32,
@@ -231,7 +221,6 @@ impl<'a> ProvinceBuilder<'a> {
         );
 
         for (i, &(neighbor_col, neighbor_row)) in neighbor_positions.iter().enumerate() {
-            // Check bounds
             if neighbor_col >= 0 && neighbor_col < self.dimensions.provinces_per_row as i32 &&
                neighbor_row >= 0 && neighbor_row < self.dimensions.provinces_per_col as i32 {
                 let neighbor_id = neighbor_row as u32 * self.dimensions.provinces_per_row + neighbor_col as u32;
@@ -247,7 +236,6 @@ impl<'a> ProvinceBuilder<'a> {
 pub fn calculate_ocean_depths(provinces: &mut [Province], dimensions: MapDimensions) {
     println!("  Calculating ocean depths...");
 
-    // Build spatial index for fast lookups
     let mut province_by_id: HashMap<u32, usize> = HashMap::new();
     for (idx, province) in provinces.iter().enumerate() {
         province_by_id.insert(province.id.value(), idx);

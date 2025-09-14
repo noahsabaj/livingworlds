@@ -8,9 +8,6 @@ use std::collections::HashMap;
 use crate::components::Province;
 use crate::resources::MapDimensions;
 
-// ============================================================================
-// COMPLETE WORLD DATA
-// ============================================================================
 
 /// Complete generated world data, ready for rendering and simulation
 /// 
@@ -67,9 +64,6 @@ impl World {
     }
 }
 
-// ============================================================================
-// RIVER SYSTEM DATA
-// ============================================================================
 
 /// River system with flow accumulation tracking
 /// 
@@ -88,7 +82,6 @@ pub struct RiverSystem {
 }
 
 impl RiverSystem {
-    /// Create a new empty river system
     pub fn new() -> Self {
         Self::default()
     }
@@ -103,27 +96,21 @@ impl RiverSystem {
         self.delta_tiles.contains(&province_id)
     }
     
-    /// Get the flow accumulation for a province
     pub fn get_flow(&self, province_id: u32) -> f32 {
         self.flow_accumulation.get(&province_id).copied().unwrap_or(0.0)
     }
     
-    /// Add a river tile
     pub fn add_river(&mut self, province_id: u32, flow: f32) {
         self.river_tiles.push(province_id);
         self.flow_accumulation.insert(province_id, flow);
     }
     
-    /// Add a delta tile
     pub fn add_delta(&mut self, province_id: u32, flow: f32) {
         self.delta_tiles.push(province_id);
         self.flow_accumulation.insert(province_id, flow);
     }
 }
 
-// ============================================================================
-// CLOUD SYSTEM DATA
-// ============================================================================
 
 /// Cloud system with all cloud instances
 /// 
@@ -136,12 +123,10 @@ pub struct CloudSystem {
 }
 
 impl CloudSystem {
-    /// Create a new empty cloud system
     pub fn new() -> Self {
         Self::default()
     }
     
-    /// Add a cloud to the system
     pub fn add_cloud(&mut self, cloud: CloudData) {
         self.clouds.push(cloud);
     }
@@ -184,7 +169,6 @@ pub struct CloudData {
 }
 
 impl CloudData {
-    /// Create a new cloud
     pub fn new(position: Vec2, layer: CloudLayer) -> Self {
         Self {
             position,
@@ -235,7 +219,6 @@ pub enum CloudLayer {
 }
 
 impl CloudLayer {
-    /// Get the typical altitude for this layer
     pub fn altitude(&self) -> f32 {
         match self {
             CloudLayer::High => 10000.0,
@@ -244,7 +227,6 @@ impl CloudLayer {
         }
     }
     
-    /// Get the typical speed multiplier for this layer
     pub fn speed_multiplier(&self) -> f32 {
         match self {
             CloudLayer::High => 1.5,
@@ -253,7 +235,6 @@ impl CloudLayer {
         }
     }
     
-    /// Get the typical alpha/transparency for this layer
     pub fn default_alpha(&self) -> f32 {
         match self {
             CloudLayer::High => 0.3,

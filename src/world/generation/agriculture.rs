@@ -63,7 +63,6 @@ pub fn calculate(
     river_system: &RiverSystem,
     dimensions: MapDimensions,
 ) -> Result<(), AgricultureError> {
-    // Input validation
     if provinces.is_empty() {
         return Err(AgricultureError::EmptyProvinces);
     }
@@ -74,7 +73,6 @@ pub fn calculate(
         ));
     }
     
-    // Build water source sets for quick lookups
     let river_set: HashSet<ProvinceId> = river_system.river_tiles
         .iter()
         .map(|&id| ProvinceId::new(id))
@@ -84,7 +82,6 @@ pub fn calculate(
         .map(|&id| ProvinceId::new(id))
         .collect();
     
-    // Calculate water distances using BFS
     let water_distances = calculate_water_distances(provinces, &river_set, &delta_set, &dimensions)?;
     
     // Apply agriculture values in parallel
@@ -148,7 +145,6 @@ fn calculate_water_bonus(
         return 1.0; // Base agriculture already accounts for water
     }
     
-    // Check if directly on a river or delta (shouldn't happen with above check, but safety)
     if river_set.contains(&province.id) || delta_set.contains(&province.id) {
         return 1.0; // Already accounted in terrain type
     }
@@ -170,7 +166,6 @@ fn calculate_water_distances(
     delta_set: &HashSet<ProvinceId>,
     dimensions: &MapDimensions,
 ) -> Result<HashMap<ProvinceId, f32>, AgricultureError> {
-    // Build spatial index for O(1) lookups
     let mut grid_to_province: HashMap<(i32, i32), ProvinceId> = HashMap::new();
     let mut province_to_grid: HashMap<ProvinceId, (i32, i32)> = HashMap::new();
     
@@ -204,11 +199,9 @@ fn calculate_water_distances(
             continue;
         }
         
-        // Get grid coordinates
         let (col, row) = province_to_grid.get(&current_id)
             .ok_or_else(|| AgricultureError::InvalidProvinceId(current_id.value()))?;
         
-        // Check all hexagonal neighbors
         for (neighbor_col, neighbor_row) in hex_neighbors(*col, *row) {
             if let Some(&neighbor_id) = grid_to_province.get(&(neighbor_col, neighbor_row)) {
                 // Only process if not already visited

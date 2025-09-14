@@ -1,0 +1,454 @@
+//! Province data structure and related types
+//!
+//! This module contains the core Province struct and its type-safe wrappers.
+//! Provinces represent individual hexagonal tiles in the game world.
+
+use bevy::prelude::*;
+use bevy::reflect::Reflect;
+use serde::{Serialize, Deserialize};
+use std::fmt;
+use crate::constants::PROVINCE_MIN_POPULATION;
+use super::terrain::TerrainType;
+
+// TYPE-SAFE WRAPPERS - Zero-cost abstractions for compile-time validation
+
+/// Type-safe province identifier
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Reflect, Serialize, Deserialize)]
+pub struct ProvinceId(pub u32);
+
+impl ProvinceId {
+    pub fn new(id: u32) -> Self {
+        Self(id)
+    }
+
+    pub fn value(&self) -> u32 {
+        self.0
+    }
+}
+
+impl fmt::Display for ProvinceId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Province#{}", self.0)
+    }
+}
+
+impl Default for ProvinceId {
+    fn default() -> Self {
+        Self(0)
+    }
+}
+
+/// Type-safe elevation with automatic clamping to [0.0, 1.0]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Reflect, Serialize, Deserialize)]
+pub struct Elevation(f32);
+
+impl Elevation {
+    pub fn new(value: f32) -> Self {
+        Self(value.clamp(0.0, 1.0))
+    }
+
+    pub fn value(&self) -> f32 {
+        self.0
+    }
+
+    /// Check if this is sea level
+    pub fn is_sea_level(&self) -> bool {
+        self.0 < 0.1
+    }
+
+    /// Check if this is mountain height
+    pub fn is_mountain(&self) -> bool {
+        self.0 > 0.65
+    }
+}
+
+impl Default for Elevation {
+    fn default() -> Self {
+        Self(0.5)
+    }
+}
+
+impl fmt::Display for Elevation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:.2}", self.0)
+    }
+}
+
+/// Type-safe agriculture value with validation [0.0, 3.0]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Reflect, Serialize, Deserialize)]
+pub struct Agriculture(f32);
+
+impl Agriculture {
+    /// Minimum agriculture value (barren land)
+    pub const MIN: f32 = 0.0;
+
+    /// Maximum agriculture value (most fertile land)
+    pub const MAX: f32 = 3.0;
+
+    pub fn new(value: f32) -> Self {
+        Self(value.clamp(Self::MIN, Self::MAX))
+    }
+
+    pub fn value(&self) -> f32 {
+        self.0
+    }
+
+    /// Check if land is arable (>= 0.5)
+    pub fn is_arable(&self) -> bool {
+        self.0 >= 0.5
+    }
+
+    /// Check if land is fertile (>= 1.5)
+    pub fn is_fertile(&self) -> bool {
+        self.0 >= 1.5
+    }
+
+    /// Check if land is very fertile (>= 2.5)
+    pub fn is_very_fertile(&self) -> bool {
+        self.0 >= 2.5
+    }
+}
+
+impl Default for Agriculture {
+    fn default() -> Self {
+        Self(0.5)
+    }
+}
+
+impl fmt::Display for Agriculture {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:.1}", self.0)
+    }
+}
+
+/// Type-safe distance measurement with special infinite value
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Reflect, Serialize, Deserialize)]
+pub struct Distance(f32);
+
+impl Distance {
+    /// Maximum valid distance
+    pub const MAX: f32 = 10000.0;
+
+    pub fn new(value: f32) -> Self {
+        if value < 0.0 {
+            Self(0.0)
+        } else if value > Self::MAX {
+            Self(f32::INFINITY)
+        } else {
+            Self(value)
+        }
+    }
+
+    pub fn infinite() -> Self {
+        Self(f32::INFINITY)
+    }
+
+    pub fn value(&self) -> f32 {
+        self.0
+    }
+
+    /// Check if distance is infinite
+    pub fn is_infinite(&self) -> bool {
+        self.0.is_infinite()
+    }
+
+    /// Check if within range
+    pub fn within(&self, range: f32) -> bool {
+        self.0 <= range
+    }
+}
+
+impl Default for Distance {
+    fn default() -> Self {
+        Self(0.0)
+    }
+}
+
+impl fmt::Display for Distance {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.is_infinite() {
+            write!(f, "∞")
+        } else {
+            write!(f, "{:.1}", self.0)
+        }
+    }
+}
+
+/// Type-safe mineral abundance percentage [0-100]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Reflect, Serialize, Deserialize)]
+pub struct Abundance(u8);
+
+impl Abundance {
+    pub fn new(value: u8) -> Self {
+        Self(value.min(100))
+    }
+
+    pub fn value(&self) -> u8 {
+        self.0
+    }
+
+    /// Check if there's any abundance
+    pub fn has_any(&self) -> bool {
+        self.0 > 0
+    }
+
+    /// Check if this is rich (> 75)
+    pub fn is_rich(&self) -> bool {
+        self.0 > 75
+    }
+
+    /// Get as normalized float [0.0, 1.0]
+    pub fn normalized(&self) -> f32 {
+        self.0 as f32 / 100.0
+    }
+}
+
+impl Default for Abundance {
+    fn default() -> Self {
+        Self(0)
+    }
+}
+
+impl fmt::Display for Abundance {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}%", self.0)
+    }
+}
+
+impl From<u8> for Abundance {
+    fn from(value: u8) -> Self {
+        Self::new(value)
+    }
+}
+
+
+/// The 6 directions for hexagonal neighbors
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(u8)]
+pub enum HexDirection {
+    NorthEast = 0,
+    East = 1,
+    SouthEast = 2,
+    SouthWest = 3,
+    West = 4,
+    NorthWest = 5,
+}
+
+
+/// Province represents a single hexagonal tile in the world
+///
+/// Provinces are NOT entities in the mega-mesh architecture.
+/// They are stored in the ProvinceStorage resource as a Vec.
+#[derive(Clone, Debug, Reflect, Serialize, Deserialize)]
+pub struct Province {
+    // === Identity & Location (16 bytes) ===
+    /// Unique identifier for this province
+    pub id: ProvinceId,
+
+    /// World position in 2D space
+    pub position: Vec2,
+
+    // === Population (8 bytes) ===
+    /// Current population (now properly an integer)
+    pub population: u32,
+
+    /// Maximum population this province can support
+    pub max_population: u32,
+
+    // === Terrain & Geography (aligned) ===
+    /// Terrain type determining base characteristics
+    pub terrain: TerrainType,
+
+    /// Elevation from 0.0 (sea level) to 1.0 (highest peaks)
+    pub elevation: Elevation,
+
+    /// Food production capacity
+    pub agriculture: Agriculture,
+
+    /// Distance to nearest river/delta in hexagon units
+    pub fresh_water_distance: Distance,
+
+    // === Mineral Resources (7 bytes, will be padded to 8) ===
+    /// Iron abundance - Common, used for tools and weapons
+    pub iron: Abundance,
+
+    /// Copper abundance - Common, used for bronze
+    pub copper: Abundance,
+
+    /// Tin abundance - Rare, essential for bronze
+    pub tin: Abundance,
+
+    /// Gold abundance - Rare, used for currency
+    pub gold: Abundance,
+
+    /// Coal abundance - Common in lowlands, fuel source
+    pub coal: Abundance,
+
+    /// Stone abundance - Ubiquitous, building material
+    pub stone: Abundance,
+
+    /// Gems abundance - Very rare, luxury goods
+    pub gems: Abundance,
+
+    // === Spatial Relationships (48 bytes) ===
+    /// IDs of the 6 neighboring hexagons (NE, E, SE, SW, W, NW)
+    /// None if neighbor is off-map or doesn't exist
+    pub neighbors: [Option<ProvinceId>; 6],
+
+    // === Change Tracking (8 bytes) ===
+    /// Version number incremented on each change
+    pub version: u32,
+
+    /// Dirty flag for systems that need to track changes
+    pub dirty: bool,
+}
+
+impl Default for Province {
+    fn default() -> Self {
+        Self {
+            id: ProvinceId::default(),
+            position: Vec2::ZERO,
+            population: PROVINCE_MIN_POPULATION,
+            max_population: PROVINCE_MIN_POPULATION * 10,
+            terrain: TerrainType::TemperateGrassland,
+            elevation: Elevation::default(),
+            agriculture: Agriculture::default(),
+            fresh_water_distance: Distance::infinite(),
+            iron: Abundance::default(),
+            copper: Abundance::default(),
+            tin: Abundance::default(),
+            gold: Abundance::default(),
+            coal: Abundance::default(),
+            stone: Abundance::default(),
+            gems: Abundance::default(),
+            neighbors: [None; 6],
+            version: 0,
+            dirty: false,
+        }
+    }
+}
+
+impl Province {
+    pub fn new(id: ProvinceId, position: Vec2) -> Self {
+        Self {
+            id,
+            position,
+            ..Default::default()
+        }
+    }
+
+    /// Mark this province as modified
+    pub fn mark_dirty(&mut self) {
+        self.dirty = true;
+        self.version = self.version.wrapping_add(1);
+    }
+
+    /// Clear the dirty flag
+    pub fn clear_dirty(&mut self) {
+        self.dirty = false;
+    }
+
+    /// Set population with validation and change tracking
+    /// Returns Some with old and new values if changed, None otherwise
+    pub fn set_population(&mut self, population: u32) -> Option<(u32, u32)> {
+        if self.population != population {
+            let old_population = self.population;
+            self.population = population.min(self.max_population);
+            self.mark_dirty();
+            Some((old_population, self.population))
+        } else {
+            None
+        }
+    }
+
+    /// Check if this province is habitable
+    pub fn is_habitable(&self) -> bool {
+        self.terrain != TerrainType::Ocean
+    }
+
+    /// Check if this province has fresh water access
+    pub fn has_fresh_water(&self) -> bool {
+        self.terrain == TerrainType::River ||
+        self.terrain == TerrainType::Delta ||
+        self.fresh_water_distance.within(2.0)
+    }
+
+    /// Calculate population growth multiplier based on terrain and resources
+    pub fn growth_multiplier(&self) -> f32 {
+        let base = match self.terrain {
+            TerrainType::Delta => 3.0,
+            TerrainType::River => 2.0,
+            TerrainType::TropicalRainforest | TerrainType::TemperateRainforest => 1.5,
+            TerrainType::TemperateGrassland | TerrainType::Savanna => 1.2,
+            TerrainType::Ocean => 0.0,
+            TerrainType::PolarDesert | TerrainType::TropicalDesert => 0.3,
+            _ => 1.0,
+        };
+
+        // Modify by agriculture
+        base * (0.5 + self.agriculture.value() / 3.0)
+    }
+}
+
+
+/// Builder for creating provinces with a fluent API
+pub struct ProvinceBuilder {
+    province: Province,
+}
+
+impl ProvinceBuilder {
+    pub fn new(id: ProvinceId) -> Self {
+        Self {
+            province: Province {
+                id,
+                ..Default::default()
+            }
+        }
+    }
+
+    pub fn position(mut self, position: Vec2) -> Self {
+        self.province.position = position;
+        self
+    }
+
+    pub fn terrain(mut self, terrain: TerrainType) -> Self {
+        self.province.terrain = terrain;
+        self
+    }
+
+    pub fn elevation(mut self, elevation: f32) -> Self {
+        self.province.elevation = Elevation::new(elevation);
+        self
+    }
+
+    pub fn agriculture(mut self, agriculture: f32) -> Self {
+        self.province.agriculture = Agriculture::new(agriculture);
+        self
+    }
+
+    pub fn population(mut self, population: u32) -> Self {
+        self.province.population = population;
+        self
+    }
+
+    pub fn max_population(mut self, max_population: u32) -> Self {
+        self.province.max_population = max_population;
+        self
+    }
+
+    /// Set a neighbor in the given direction
+    pub fn neighbor(mut self, direction: HexDirection, neighbor: ProvinceId) -> Self {
+        self.province.neighbors[direction as usize] = Some(neighbor);
+        self
+    }
+
+    /// Set all neighbors at once
+    pub fn neighbors(mut self, neighbors: [Option<ProvinceId>; 6]) -> Self {
+        self.province.neighbors = neighbors;
+        self
+    }
+
+    pub fn build(self) -> Province {
+        self.province
+    }
+}

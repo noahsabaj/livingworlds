@@ -6,9 +6,6 @@
 use bevy::prelude::*;
 use crate::constants::*;
 
-// ============================================================================
-// TERRAIN TYPES
-// ============================================================================
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Reflect, serde::Serialize, serde::Deserialize)]
 pub enum TerrainType {
@@ -49,9 +46,6 @@ pub enum TerrainType {
     Mangrove,              // Coastal mangrove swamps
 }
 
-// ============================================================================
-// CLIMATE ZONES
-// ============================================================================
 
 pub enum ClimateZone {
     Arctic,
@@ -80,9 +74,6 @@ fn get_climate_zone(y: f32, map_height: f32) -> ClimateZone {
     }
 }
 
-// ============================================================================
-// TERRAIN CLASSIFICATION
-// ============================================================================
 
 pub fn classify_terrain_with_climate(elevation: f32, x: f32, y: f32, map_height: f32) -> TerrainType {
     const DEFAULT_SEA_LEVEL: f32 = 0.2;
@@ -96,7 +87,6 @@ pub fn classify_terrain_with_sea_level(elevation: f32, x: f32, y: f32, map_heigh
         return TerrainType::Ocean;
     }
 
-    // Get climate zone based on latitude
     let climate = get_climate_zone(y, map_height);
 
     // Beaches are just above sea level
@@ -178,24 +168,17 @@ fn classify_terrain_with_sea_level_simple(elevation: f32, sea_level: f32) -> Ter
     }
 }
 
-// ============================================================================
-// POPULATION MODIFIERS
-// ============================================================================
 
 /// Get terrain population multiplier - uses centralized properties
 pub fn get_terrain_population_multiplier(terrain: TerrainType) -> f32 {
     terrain.properties().population_multiplier
 }
 
-// ============================================================================
-// BIOME TO TERRAIN CONVERSION
-// ============================================================================
 
 /// Convert a climate biome to a terrain type - 1:1 mapping for maximum variety!
 pub fn biome_to_terrain(biome: crate::generation::climate::Biome, elevation: f32) -> TerrainType {
     use crate::generation::climate::Biome;
 
-    // Handle water terrains first (these override biomes)
     const SEA_LEVEL: f32 = 0.2;
     if elevation < SEA_LEVEL {
         return TerrainType::Ocean;
@@ -226,9 +209,7 @@ pub fn biome_to_terrain(biome: crate::generation::climate::Biome, elevation: f32
     }
 }
 
-// ============================================================================
 // TERRAIN PROPERTIES - SINGLE SOURCE OF TRUTH
-// ============================================================================
 
 /// All properties for a terrain type in one place
 #[derive(Debug, Clone, Copy)]
@@ -519,9 +500,6 @@ impl TerrainType {
     }
 }
 
-// ============================================================================
-// PLUGIN
-// ============================================================================
 
 pub struct TerrainPlugin;
 

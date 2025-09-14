@@ -9,12 +9,9 @@ use std::collections::{HashMap, VecDeque};
 use rayon::prelude::*;
 use crate::components::{Province, Elevation};
 use crate::world::terrain::TerrainType;
-use crate::math::interpolation::exponential_smooth;
-use crate::math::distance::euclidean_vec2;
+use crate::math::{exponential_smooth, euclidean_vec2, PI, sin_cos};
 
-// ============================================================================
 // CONSTANTS - Climate parameters based on Earth
-// ============================================================================
 
 /// Base temperature at equator (Celsius)
 const EQUATOR_TEMP: f32 = 30.0;
@@ -54,9 +51,6 @@ const TRADE_WIND_ZONE: f32 = 0.3;     // 0-30° latitude
 const WESTERLIES_ZONE: f32 = 0.6;     // 30-60° latitude
 const POLAR_EASTERLIES_ZONE: f32 = 1.0; // 60-90° latitude
 
-// ============================================================================
-// DATA STRUCTURES
-// ============================================================================
 
 /// Climate data for a province
 #[derive(Debug, Clone)]
@@ -125,9 +119,6 @@ pub enum Biome {
     Mangrove,
 }
 
-// ============================================================================
-// CLIMATE SIMULATION
-// ============================================================================
 
 /// Main climate simulation system
 pub struct ClimateSystem {
@@ -138,7 +129,6 @@ pub struct ClimateSystem {
 }
 
 impl ClimateSystem {
-    /// Create a new climate system
     pub fn new(dimensions: crate::resources::MapDimensions) -> Self {
         Self {
             climates: HashMap::new(),
@@ -179,7 +169,6 @@ impl ClimateSystem {
         let mut queue = VecDeque::new();
         let mut distances = HashMap::new();
 
-        // Build a quick lookup map from province ID to index
         let province_lookup: HashMap<u32, usize> = provinces.iter()
             .enumerate()
             .map(|(idx, p)| (p.id.value(), idx))
@@ -207,11 +196,9 @@ impl ClimateSystem {
                     processed, provinces.len());
             }
 
-            // Get the province by its ID
             if let Some(&province_idx) = province_lookup.get(&province_id) {
                 let province = &provinces[province_idx];
 
-                // Check all 6 hexagonal neighbors (already pre-computed!)
                 for neighbor_opt in &province.neighbors {
                     if let Some(neighbor_id) = neighbor_opt {
                         let neighbor_id_val = neighbor_id.value();
@@ -246,7 +233,6 @@ impl ClimateSystem {
     fn calculate_temperatures(&mut self, provinces: &[Province]) {
         println!("    Calculating temperatures...");
 
-        // Calculate temperatures in parallel
         let temps: Vec<(u32, f32)> = provinces
             .par_iter()
             .map(|province| {
@@ -254,11 +240,9 @@ impl ClimateSystem {
                     .map(|c| c.ocean_distance)
                     .unwrap_or(f32::INFINITY);
 
-                // Get latitude (0.0 = south pole, 1.0 = north pole)
                 let latitude = (province.position.y - self.dimensions.bounds.y_min) /
                               (self.dimensions.bounds.y_max - self.dimensions.bounds.y_min);
 
-                // Calculate base temperature from latitude
                 let lat_from_equator = (latitude - 0.5).abs() * 2.0;
                 let base_temp = EQUATOR_TEMP * (1.0 - lat_from_equator) +
                                POLE_TEMP * lat_from_equator;
@@ -280,7 +264,6 @@ impl ClimateSystem {
             })
             .collect();
 
-        // Update climate data
         for (id, temp) in temps {
             self.climates.entry(id)
                 .or_insert_with(Climate::default)
@@ -296,7 +279,6 @@ impl ClimateSystem {
             let climate = self.climates.entry(province.id.value())
                 .or_insert_with(Climate::default);
 
-            // Get latitude
             let latitude = (province.position.y - self.dimensions.bounds.y_min) /
                           (self.dimensions.bounds.y_max - self.dimensions.bounds.y_min);
 
@@ -305,7 +287,7 @@ impl ClimateSystem {
 
             if lat_from_equator < TRADE_WIND_ZONE {
                 // Trade winds - blow from east to west
-                climate.wind_direction = std::f32::consts::PI; // West
+                climate.wind_direction = PI; // West
                 climate.wind_strength = 0.8;
             } else if lat_from_equator < WESTERLIES_ZONE {
                 // Westerlies - blow from west to east
@@ -313,7 +295,7 @@ impl ClimateSystem {
                 climate.wind_strength = 1.0;
             } else {
                 // Polar easterlies - blow from east to west
-                climate.wind_direction = std::f32::consts::PI; // West
+                climate.wind_direction = PI; // West
                 climate.wind_strength = 0.6;
             }
 
@@ -328,7 +310,6 @@ impl ClimateSystem {
     fn propagate_moisture(&mut self, provinces: &[Province]) {
         println!("    Propagating moisture from oceans...");
 
-        // Create a spatial grid for fast neighbor lookup
         let mut grid: HashMap<(i32, i32), Vec<usize>> = HashMap::new();
         let grid_size = self.dimensions.hex_size * 5.0;
 
@@ -349,7 +330,6 @@ impl ClimateSystem {
             // Clone current climate data for parallel read access
             let current_climates = self.climates.clone();
 
-            // Process provinces in parallel batches
             let batch_size = 10000;
             let num_batches = (provinces.len() + batch_size - 1) / batch_size;
 
@@ -357,7 +337,6 @@ impl ClimateSystem {
                 let start_idx = batch_idx * batch_size;
                 let end_idx = (start_idx + batch_size).min(provinces.len());
 
-                // Process batch in parallel
                 let batch_rainfall: Vec<(u32, f32)> = (start_idx..end_idx)
                     .into_par_iter()
                     .map(|idx| {
@@ -375,12 +354,10 @@ impl ClimateSystem {
                             OCEAN_RAINFALL * decay
                         };
 
-                        // Get moisture from upwind neighbors (simplified check)
                         // Only check immediate neighbors using the pre-computed neighbor array
                         for neighbor_opt in &province.neighbors {
                             if let Some(neighbor_id) = neighbor_opt {
                                 if let Some(neighbor_climate) = current_climates.get(&neighbor_id.value()) {
-                                    // Simple moisture transfer from upwind
                                     let transfer = neighbor_climate.rainfall * 0.05 * climate.wind_strength;
                                     rainfall += transfer;
                                 }
@@ -394,7 +371,6 @@ impl ClimateSystem {
                     })
                     .collect();
 
-                // Update rainfall values from this batch
                 for (id, rainfall) in batch_rainfall {
                     if let Some(climate) = self.climates.get_mut(&id) {
                         // Blend with existing value for smoother propagation
@@ -417,7 +393,6 @@ impl ClimateSystem {
     fn apply_rain_shadows(&mut self, provinces: &[Province]) {
         println!("    Applying rain shadow effects...");
 
-        // Build spatial index for fast lookups
         let mut spatial_grid: HashMap<(i32, i32), Vec<usize>> = HashMap::new();
         let grid_size = self.dimensions.hex_size * 2.0;
 
@@ -433,17 +408,13 @@ impl ClimateSystem {
         let current_climates = self.climates.clone();
         let hex_size = self.dimensions.hex_size;
 
-        // Process in parallel to find rain shadows
         let rain_shadows: Vec<u32> = provinces
             .par_iter()
             .filter_map(|province| {
                 let climate = current_climates.get(&province.id.value())?;
 
-                // Check for mountains upwind (reduced to 5 sample points)
-                let wind_source = Vec2::new(
-                    -climate.wind_direction.cos(),
-                    -climate.wind_direction.sin(),
-                );
+                let (cos_wind, sin_wind) = sin_cos(climate.wind_direction);
+                let wind_source = Vec2::new(-cos_wind, -sin_wind);
 
                 // Sample fewer points for performance
                 for i in 1..=5 {
@@ -451,12 +422,10 @@ impl ClimateSystem {
                     let grid_x = (check_pos.x / grid_size).floor() as i32;
                     let grid_y = (check_pos.y / grid_size).floor() as i32;
 
-                    // Check only the exact grid cell (not neighbors)
                     if let Some(indices) = spatial_grid.get(&(grid_x, grid_y)) {
                         for &idx in indices {
                             let other = &provinces[idx];
                             if euclidean_vec2(other.position, check_pos) < hex_size * 1.5 {
-                                // Check if it's a mountain
                                 if other.elevation.value() > 0.6 {
                                     return Some(province.id.value());
                                 }
@@ -483,7 +452,6 @@ impl ClimateSystem {
     fn calculate_humidity(&mut self, provinces: &[Province]) {
         println!("    Calculating humidity levels...");
 
-        // Calculate humidity in parallel
         let humidity_values: Vec<(u32, f32, f32)> = provinces
             .par_iter()
             .filter_map(|province| {
@@ -503,14 +471,12 @@ impl ClimateSystem {
 
                 let humidity = (base_humidity * temp_factor * ocean_factor).clamp(0.0, 1.0);
 
-                // Calculate continentality
                 let continentality = (climate.ocean_distance / 1000.0).min(1.0);
 
                 Some((province.id.value(), humidity, continentality))
             })
             .collect();
 
-        // Update climate data
         for (id, humidity, continentality) in humidity_values {
             if let Some(climate) = self.climates.get_mut(&id) {
                 climate.humidity = humidity;
@@ -605,9 +571,6 @@ impl ClimateSystem {
     }
 }
 
-// ============================================================================
-// BIOME COLOR GENERATION
-// ============================================================================
 
 impl Biome {
     /// Get base color for biome

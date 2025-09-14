@@ -1,12 +1,12 @@
 //! Mesh building and management for the mega-mesh rendering architecture
 //!
-//! This module implements a high-performance mesh system that renders up to 900,000
+//! This module implements a high-performance mesh system that renders up to 9,000,000
 //! hexagonal provinces in a single draw call. It includes optimizations for memory
 //! usage and parallel processing.
 //!
 //! # Performance Characteristics
-//! - Single draw call for entire world (900k provinces)
-//! - ~240MB GPU memory for 900k provinces
+//! - Single draw call for entire world (9M provinces)
+//! - ~2.4GB GPU memory for 9M provinces
 //! - Parallel mesh building with rayon for 4-8x speedup on multicore systems
 //! - CPU-accessible mesh for dynamic overlay updates
 //!
@@ -26,7 +26,7 @@ use std::collections::HashMap;
 
 use crate::components::{Province, ProvinceId};
 use crate::colors::get_terrain_color_gradient;
-use crate::math::hexagon::{
+use crate::math::{
     Hexagon, VERTICES_PER_HEX as VERTICES_PER_HEXAGON,
     TRIANGLES_PER_HEX as TRIANGLES_PER_HEXAGON,
     INDICES_PER_HEX as INDICES_PER_HEXAGON,
@@ -34,9 +34,6 @@ use crate::math::hexagon::{
     CORNERS as HEXAGON_CORNERS,
 };
 
-// ============================================================================
-// CONSTANTS
-// ============================================================================
 
 /// Minimum number of provinces to trigger parallel processing
 const PARALLEL_CHUNK_SIZE: usize = 10_000;
@@ -44,9 +41,6 @@ const PARALLEL_CHUNK_SIZE: usize = 10_000;
 /// Chunk size for parallel processing batches
 const PARALLEL_BATCH_SIZE: usize = 5_000;
 
-// ============================================================================
-// ERROR TYPES
-// ============================================================================
 
 /// Errors that can occur during mesh building
 #[derive(Debug, thiserror::Error)]
@@ -61,9 +55,6 @@ pub enum MeshBuildError {
     InvalidPosition { index: usize, x: f32, y: f32 },
 }
 
-// ============================================================================
-// MESH STATISTICS
-// ============================================================================
 
 /// Statistics about the mesh build process
 #[derive(Debug, Clone)]
@@ -87,9 +78,6 @@ impl std::fmt::Display for MeshBuildStats {
     }
 }
 
-// ============================================================================
-// HEXAGON GEOMETRY HELPER
-// ============================================================================
 
 /// Helper for hexagon vertex generation
 struct HexagonGeometry {
@@ -132,9 +120,6 @@ impl HexagonGeometry {
     }
 }
 
-// ============================================================================
-// RESOURCES
-// ============================================================================
 
 /// Handle to the world mega-mesh
 #[derive(Resource)]
@@ -168,9 +153,6 @@ impl ProvinceStorage {
     }
 }
 
-// ============================================================================
-// MESH BUILDING
-// ============================================================================
 
 /// Mesh builder with configuration options
 pub struct MeshBuilder {
@@ -186,14 +168,12 @@ impl Default for MeshBuilder {
 }
 
 impl MeshBuilder {
-    /// Create a new mesh builder with the specified hex size
     pub fn new(hex_size: f32) -> Self {
         Self {
             geometry: HexagonGeometry::new(hex_size),
         }
     }
 
-    /// Build the world mega-mesh
     pub fn build(
         &self,
         provinces: &[Province],
@@ -206,7 +186,6 @@ impl MeshBuilder {
             return Err(MeshBuildError::NoProvinces);
         }
 
-        // Check for vertex index overflow
         let total_vertices = provinces.len() * VERTICES_PER_HEXAGON;
         if total_vertices > u32::MAX as usize {
             return Err(MeshBuildError::VertexIndexOverflow(total_vertices));
@@ -224,7 +203,6 @@ impl MeshBuilder {
             self.build_sequential(provinces, &mut vertices, &mut indices, &mut colors)?;
         }
 
-        // Create the mega-mesh with CPU access for overlay updates
         let mut mesh = Mesh::new(
             PrimitiveTopology::TriangleList,
             RenderAssetUsages::RENDER_WORLD | RenderAssetUsages::MAIN_WORLD,
@@ -236,7 +214,6 @@ impl MeshBuilder {
 
         let handle = meshes.add(mesh);
 
-        // Calculate statistics
         let memory_usage = Self::calculate_memory_usage(&vertices, &indices, &colors);
         let stats = MeshBuildStats {
             total_vertices: vertices.len(),
@@ -259,7 +236,6 @@ impl MeshBuilder {
         indices: &mut Vec<u32>,
         colors: &mut Vec<[f32; 4]>,
     ) -> Result<(), MeshBuildError> {
-        // Process provinces in parallel chunks
         let chunks: Vec<_> = provinces
             .par_chunks(PARALLEL_BATCH_SIZE)
             .enumerate()
@@ -370,7 +346,6 @@ impl MeshBuilder {
     }
 }
 
-/// Build the world mega-mesh (compatibility wrapper for existing code)
 pub fn build_world_mesh(
     provinces: &[Province],
     meshes: &mut Assets<Mesh>,
@@ -379,7 +354,6 @@ pub fn build_world_mesh(
         Ok((handle, _stats)) => handle,
         Err(e) => {
             error!("Failed to build world mesh: {}", e);
-            // Return an empty mesh as fallback
             meshes.add(Mesh::new(
                 PrimitiveTopology::TriangleList,
                 RenderAssetUsages::RENDER_WORLD | RenderAssetUsages::MAIN_WORLD,

@@ -9,11 +9,9 @@ use rand::{Rng, rngs::StdRng, SeedableRng};
 use rayon::prelude::*;
 use std::collections::HashMap;
 use std::sync::Mutex;
-use crate::math::distance::{euclidean_vec2, linear_falloff};
+use crate::math::{euclidean_vec2, linear_falloff};
 
-// ============================================================================
 // CONSTANTS - Erosion parameters tuned for realism
-// ============================================================================
 
 /// Number of water droplets to simulate for hydraulic erosion
 const HYDRAULIC_ITERATIONS: usize = 500_000;
@@ -57,9 +55,6 @@ const SMOOTHING_RADIUS: usize = 2;
 /// Inertia - how much previous direction affects new direction
 const INERTIA: f32 = 0.3;
 
-// ============================================================================
-// DATA STRUCTURES
-// ============================================================================
 
 /// A water droplet for hydraulic erosion simulation
 #[derive(Debug, Clone)]
@@ -96,7 +91,6 @@ pub struct HeightMap {
 }
 
 impl HeightMap {
-    /// Create a new heightmap from elevation data
     pub fn new(width: usize, height: usize, cell_size: f32) -> Self {
         Self {
             width,
@@ -188,9 +182,6 @@ impl HeightMap {
     }
 }
 
-// ============================================================================
-// EROSION ALGORITHMS
-// ============================================================================
 
 /// Main erosion system that combines all erosion types
 pub struct ErosionSystem {
@@ -199,7 +190,6 @@ pub struct ErosionSystem {
 }
 
 impl ErosionSystem {
-    /// Create a new erosion system
     pub fn new(heightmap: HeightMap, rng: StdRng) -> Self {
         Self { heightmap, rng }
     }
@@ -238,11 +228,9 @@ impl ErosionSystem {
 
     /// Hydraulic erosion - water flowing and carving terrain (PARALLELIZED)
     fn hydraulic_erosion(&mut self, droplets: usize) {
-        // Process droplets in parallel batches for massive speedup
         let batch_size = 500;  // Process 500 droplets at a time
         let num_batches = (droplets + batch_size - 1) / batch_size;
 
-        // Get base seed for deterministic generation
         let base_seed = self.rng.gen::<u64>();
 
         for batch in 0..num_batches {
@@ -260,7 +248,6 @@ impl ErosionSystem {
             let heightmap_cell_size = self.heightmap.cell_size;
             let heightmap_data = &self.heightmap.data;
 
-            // Process batch of droplets in parallel
             let erosion_changes: Vec<(Vec2, f32)> = (0..batch_droplets)
                 .into_par_iter()
                 .flat_map(|i| {
@@ -277,7 +264,6 @@ impl ErosionSystem {
 
                     // Simulate droplet flowing downhill
                     while droplet.lifetime < MAX_DROPLET_LIFETIME && droplet.water > 0.001 {
-                        // Calculate gradient using thread-safe interpolation
                         let gradient = Self::calculate_gradient_static(
                             droplet.position,
                             heightmap_data,
@@ -286,10 +272,8 @@ impl ErosionSystem {
                             heightmap_cell_size
                         );
 
-                        // Calculate flow direction (downhill)
                         let flow_dir = -gradient.normalize_or_zero();
 
-                        // Update velocity with inertia
                         droplet.velocity = droplet.velocity * INERTIA + flow_dir * (1.0 - INERTIA);
                         droplet.velocity = droplet.velocity.normalize_or_zero() * droplet.velocity.length().min(1.0);
 
@@ -303,7 +287,6 @@ impl ErosionSystem {
                         droplet.position.y = droplet.position.y.clamp(0.0,
                             (heightmap_height - 1) as f32 * heightmap_cell_size);
 
-                        // Get height difference
                         let old_height = Self::get_interpolated_static(
                             old_pos,
                             heightmap_data,
@@ -320,7 +303,6 @@ impl ErosionSystem {
                         );
                         let height_diff = new_height - old_height;
 
-                        // Calculate sediment capacity
                         let slope = gradient.length().max(MIN_SLOPE);
                         let capacity = slope * droplet.water * droplet.velocity.length() * SEDIMENT_CAPACITY;
 
@@ -453,7 +435,6 @@ impl ErosionSystem {
     /// Thermal erosion - material sliding down steep slopes (PARALLELIZED)
     fn thermal_erosion(&mut self, iterations: usize) {
         for iter in 0..iterations {
-            // Process cells in parallel chunks
             let width = self.heightmap.width;
             let height = self.heightmap.height;
             let cell_size = self.heightmap.cell_size;
@@ -469,7 +450,6 @@ impl ErosionSystem {
                         let center_idx = y * width + x;
                         let center_height = heightmap_data[center_idx];
 
-                        // Check all neighbors
                         let mut max_diff = 0.0;
                         let mut lowest_neighbor = (x, y);
 
@@ -537,7 +517,6 @@ impl ErosionSystem {
         let height = self.heightmap.height;
         let old_data = &self.heightmap.data;
 
-        // Process rows in parallel
         let new_data: Vec<f32> = (0..height)
             .into_par_iter()
             .flat_map(|y| {
@@ -571,15 +550,11 @@ impl ErosionSystem {
         self.heightmap.data = new_data;
     }
 
-    /// Get the final eroded heightmap
     pub fn get_heightmap(self) -> HeightMap {
         self.heightmap
     }
 }
 
-// ============================================================================
-// INTEGRATION WITH WORLD GENERATION
-// ============================================================================
 
 /// Apply erosion to province elevations
 pub fn apply_erosion_to_provinces(
@@ -616,7 +591,6 @@ pub fn apply_erosion_to_provinces(
         }
     }
 
-    // Run erosion simulation
     let mut erosion = ErosionSystem::new(heightmap, rng);
     erosion.erode(iterations);
     let eroded = erosion.get_heightmap();

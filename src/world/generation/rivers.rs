@@ -54,7 +54,6 @@ pub struct RiverBuilder<'a> {
 }
 
 impl<'a> RiverBuilder<'a> {
-    /// Create a new river builder
     pub fn new(
         provinces: &'a mut [Province],
         dimensions: MapDimensions,
@@ -69,7 +68,6 @@ impl<'a> RiverBuilder<'a> {
         }
     }
     
-    /// Set the river density multiplier (0.5 = half rivers, 2.0 = double rivers)
     pub fn with_density(mut self, density: f32) -> Self {
         self.river_density = density.max(0.0);
         self
@@ -81,7 +79,6 @@ impl<'a> RiverBuilder<'a> {
         self
     }
     
-    /// Build the river system
     pub fn build(self) -> Result<RiverSystem, RiverGenerationError> {
         generate_rivers_internal(
             self.provinces,
@@ -127,7 +124,6 @@ fn find_river_sources(
     let mut potential_sources = Vec::new();
     
     for province in provinces.iter() {
-        // Check for NaN elevations
         if province.elevation.value().is_nan() {
             return Err(RiverGenerationError::NaNElevation(province.id.value()));
         }
@@ -185,7 +181,6 @@ fn trace_river_path(
                     continue;
                 }
                 
-                // Check if we reached ocean
                 if province.terrain == TerrainType::Ocean {
                     delta_tiles.push(province.id);
                     if !river_path.is_empty() {
@@ -235,7 +230,6 @@ fn apply_terrain_changes(
     delta_tiles: &[ProvinceId],
     flow_accumulation: &HashMap<u32, f32>,
 ) {
-    // Build HashMap for O(1) province lookups by ID
     let mut province_id_to_idx: HashMap<u32, usize> = HashMap::new();
     for (idx, province) in provinces.iter().enumerate() {
         province_id_to_idx.insert(province.id.value(), idx);
@@ -268,7 +262,6 @@ fn generate_rivers_internal(
 ) -> Result<RiverSystem, RiverGenerationError> {
     let start = std::time::Instant::now();
     
-    // Input validation
     if provinces.is_empty() {
         return Err(RiverGenerationError::EmptyProvinces);
     }
@@ -279,10 +272,8 @@ fn generate_rivers_internal(
         ));
     }
     
-    // Build spatial index for province lookups
     let position_to_province = build_spatial_index(provinces, &dimensions);
     
-    // Find potential river sources
     let potential_sources = find_river_sources(provinces, min_elevation)?;
     
     info!("Found {} potential river sources", potential_sources.len());
@@ -298,7 +289,6 @@ fn generate_rivers_internal(
     
     info!("Selected {} river sources to trace", selected_sources.len());
     
-    // Get RNG seed for thread-local RNGs
     let base_seed = rng.gen::<u64>();
     
     // Trace rivers in parallel for better performance
@@ -312,7 +302,6 @@ fn generate_rivers_internal(
                 base_seed,
             );
             
-            // Build flow map for this river
             let mut river_flow_map = HashMap::new();
             for &tile_id in &river_path {
                 *river_flow_map.entry(tile_id.value()).or_insert(0.0) += flow;

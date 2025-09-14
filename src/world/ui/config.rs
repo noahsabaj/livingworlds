@@ -18,9 +18,6 @@ use crate::ui::text_inputs::{text_input, FocusGroupId};
 use crate::ui::sliders::{slider, ValueFormat};
 use crate::name_generator::{NameGenerator, NameType};
 
-// ============================================================================
-// PLUGIN
-// ============================================================================
 
 pub struct WorldConfigPlugin;
 
@@ -37,7 +34,6 @@ impl Plugin for WorldConfigPlugin {
             ))
             .add_systems(OnExit(GameState::WorldConfiguration), despawn_world_config_ui)
             
-            // Update systems
             .add_systems(Update, (
                 handle_preset_selection,
                 handle_preset_hover,
@@ -58,14 +54,11 @@ impl Plugin for WorldConfigPlugin {
     }
 }
 
-// ============================================================================
 // RESOURCES & TYPES
-// ============================================================================
 
 /// Complete world generation settings
 #[derive(Resource, Clone, Debug)]
 pub struct WorldGenerationSettings {
-    // Basic settings
     pub world_name: String,
     pub world_size: WorldSize,
     pub custom_dimensions: Option<(u32, u32)>,
@@ -187,9 +180,6 @@ pub enum MineralDistribution {
     Strategic,
 }
 
-// ============================================================================
-// COMPONENTS
-// ============================================================================
 
 #[derive(Component)]
 struct WorldConfigRoot;
@@ -291,9 +281,7 @@ struct AdvancedToggleText;
 #[derive(Component)]
 struct AdvancedToggleChevron;
 
-// ============================================================================
 // SYSTEMS - INITIALIZATION
-// ============================================================================
 
 fn init_default_settings(mut commands: Commands) {
     commands.insert_resource(WorldGenerationSettings::default());
@@ -418,7 +406,6 @@ fn spawn_world_config_ui(
                 AdvancedToggle,
                 Interaction::default(),
             )).with_children(|button| {
-                // Container for text and chevron
                 button.spawn((
                     Node {
                         flex_direction: FlexDirection::Row,
@@ -519,7 +506,6 @@ fn spawn_world_name_section(parent: &mut ChildSpawnerCommands) {
             TextColor(colors::TEXT_SECONDARY),
         ));
         
-        // Input row - use SpaceBetween to keep Random button on the right
         section.spawn((
             Node {
                 width: Val::Percent(100.0),
@@ -595,11 +581,10 @@ fn spawn_world_size_section(parent: &mut ChildSpawnerCommands) {
             },
         )).with_children(|row| {
             for (size, label, desc, provinces) in [
-                (WorldSize::Small, "Small", "Quick games", "300,000 provinces"),
-                (WorldSize::Medium, "Medium", "Balanced", "600,000 provinces"),
-                (WorldSize::Large, "Large", "Epic scale", "900,000 provinces"),
+                (WorldSize::Small, "Small", "Quick games", "1,000,000 provinces"),
+                (WorldSize::Medium, "Medium", "Balanced", "2,000,000 provinces"),
+                (WorldSize::Large, "Large", "Epic scale", "3,000,000 provinces"),
             ] {
-                // Create a container for each size option
                 row.spawn((
                     Button,
                     Node {
@@ -701,7 +686,6 @@ fn spawn_seed_section(parent: &mut ChildSpawnerCommands, seed: u32) {
             TextColor(colors::TEXT_SECONDARY),
         ));
         
-        // Input row - use SpaceBetween to keep Random button on the right
         section.spawn((
             Node {
                 width: Val::Percent(100.0),
@@ -919,7 +903,6 @@ fn spawn_advanced_panel(parent: &mut ChildSpawnerCommands) {
             },
         ));
         
-        // Create a two-column layout with better spacing
         panel.spawn((
             Node {
                 width: Val::Percent(100.0),
@@ -1148,7 +1131,6 @@ fn spawn_advanced_panel(parent: &mut ChildSpawnerCommands) {
                     ));
                 });
                 
-                // Resource Abundance Selection
                 spawn_selection_row(
                     right_col,
                     "Resources",
@@ -1249,9 +1231,7 @@ fn despawn_world_config_ui(
     println!("Despawned world configuration UI");
 }
 
-// ============================================================================
 // SYSTEMS - INTERACTIONS
-// ============================================================================
 
 
 fn handle_preset_hover(
@@ -1273,7 +1253,6 @@ fn handle_text_input_changes(
     name_inputs: Query<&TextInputValue, (With<WorldNameInput>, Changed<TextInputValue>)>,
     seed_inputs: Query<&TextInputValue, (With<SeedInput>, Without<WorldNameInput>, Changed<TextInputValue>)>,
 ) {
-    // Handle world name changes in real-time
     for value in &name_inputs {
         if !value.0.is_empty() {
             settings.world_name = value.0.clone();
@@ -1281,7 +1260,6 @@ fn handle_text_input_changes(
         }
     }
     
-    // Handle seed changes in real-time
     for value in &seed_inputs {
         if !value.0.is_empty() {
             if let Ok(seed) = value.0.parse::<u32>() {
@@ -1321,14 +1299,12 @@ fn handle_preset_selection(
                 apply_preset(&mut settings);
                 println!("Selected preset: {:?}", preset_button.0);
                 
-                // Update all preset button colors and their text
                 for (entity, button, mut bg_color, mut border_color) in &mut all_preset_buttons {
                     if button.0 == preset_button.0 {
                         // Selected button
                         *bg_color = BackgroundColor(colors::PRIMARY);
                         *border_color = BorderColor(colors::PRIMARY);
                         
-                        // Update text color to white for selected button
                         if let Ok(children) = children_query.get(entity) {
                             for child in children.iter() {
                                 if let Ok(mut text_color) = text_query.get_mut(child) {
@@ -1341,7 +1317,6 @@ fn handle_preset_selection(
                         *bg_color = BackgroundColor(colors::BACKGROUND_LIGHT);
                         *border_color = BorderColor(colors::BORDER_DEFAULT);
                         
-                        // Update text color to default for unselected buttons
                         if let Ok(children) = children_query.get(entity) {
                             for child in children.iter() {
                                 if let Ok(mut text_color) = text_query.get_mut(child) {
@@ -1387,14 +1362,12 @@ fn handle_size_selection(
                 settings.world_size = size_button.0;
                 println!("Selected world size: {:?}", size_button.0);
                 
-                // Update all size button colors and their text
                 for (entity, button, mut bg_color, mut border_color) in &mut all_size_buttons {
                     if button.0 == size_button.0 {
                         // Selected button
                         *bg_color = BackgroundColor(colors::PRIMARY);
                         *border_color = BorderColor(colors::PRIMARY);
                         
-                        // Update text colors to white for selected button
                         if let Ok(children) = children_query.get(entity) {
                             for child in children.iter() {
                                 if let Ok(mut text_color) = text_query.get_mut(child) {
@@ -1407,7 +1380,6 @@ fn handle_size_selection(
                         *bg_color = BackgroundColor(colors::BACKGROUND_LIGHT);
                         *border_color = BorderColor(colors::BORDER_DEFAULT);
                         
-                        // Update text colors to default for unselected buttons
                         if let Ok(children) = children_query.get(entity) {
                             for child in children.iter() {
                                 if let Ok(mut text_color) = text_query.get_mut(child) {
@@ -1457,7 +1429,6 @@ fn handle_advanced_toggle(
                     Display::Flex
                 };
                 
-                // Update button text and chevron
                 if let Ok(children) = toggle_button.get_single() {
                     // First get all child entities, then look for the text container
                     for child in children.iter() {
@@ -1467,7 +1438,6 @@ fn handle_advanced_toggle(
                     }
                 }
                 
-                // Update text directly by querying for the components
                 for mut text in &mut toggle_text {
                     text.0 = if is_showing {
                         "Show Advanced Settings".to_string()
@@ -1490,18 +1460,16 @@ fn update_seed_display(
     mut time_estimate: Query<&mut Text, (With<GenerationTimeEstimate>, Without<SeedInput>)>,
 ) {
     if settings.is_changed() {
-        // Update seed display
         for (mut text, mut input_value) in &mut seed_text {
             text.0 = settings.seed.to_string();
             input_value.0 = settings.seed.to_string();
         }
         
-        // Update time estimate based on world size
         if let Ok(mut estimate_text) = time_estimate.get_single_mut() {
             let time_range = match settings.world_size {
-                WorldSize::Small => "~1-3 seconds",
-                WorldSize::Medium => "~3-5 seconds",
-                WorldSize::Large => "~5-7 seconds",
+                WorldSize::Small => "~1-2 seconds",
+                WorldSize::Medium => "~2-4 seconds",
+                WorldSize::Large => "~3-5 seconds",
             };
             estimate_text.0 = format!("Estimated generation time: {}", time_range);
         }
@@ -1599,7 +1567,6 @@ fn handle_slider_interactions(
     settings: ResMut<WorldGenerationSettings>,
     windows: Query<&Window>,
 ) {
-    // Slider interactions are handled by the SliderBuilder system in ui/sliders.rs
     // This function remains for potential future custom slider behavior
 }
 
@@ -1623,12 +1590,10 @@ fn handle_climate_selection(
     if let Some((climate_type, pressed_entity)) = pressed_climate {
         settings.climate_type = climate_type.clone();
         
-        // Update all climate button colors
         for (_, mut bg_color) in param_set.p1().iter_mut() {
             *bg_color = BackgroundColor(Color::srgb(0.15, 0.15, 0.15));
         }
         
-        // Set the pressed button to primary color
         if let Ok((_, mut bg_color)) = param_set.p1().get_mut(pressed_entity) {
             *bg_color = BackgroundColor(colors::PRIMARY);
         }
@@ -1657,12 +1622,10 @@ fn handle_island_selection(
     if let Some((island_freq, pressed_entity)) = pressed_island {
         settings.island_frequency = island_freq.clone();
         
-        // Update all island button colors
         for (_, mut bg_color) in param_set.p1().iter_mut() {
             *bg_color = BackgroundColor(Color::srgb(0.15, 0.15, 0.15));
         }
         
-        // Set the pressed button to primary color
         if let Ok((_, mut bg_color)) = param_set.p1().get_mut(pressed_entity) {
             *bg_color = BackgroundColor(colors::PRIMARY);
         }
@@ -1691,12 +1654,10 @@ fn handle_aggression_selection(
     if let Some((aggression_level, pressed_entity)) = pressed_aggression {
         settings.aggression_level = aggression_level.clone();
         
-        // Update all aggression button colors
         for (_, mut bg_color) in param_set.p1().iter_mut() {
             *bg_color = BackgroundColor(Color::srgb(0.15, 0.15, 0.15));
         }
         
-        // Set the pressed button to primary color
         if let Ok((_, mut bg_color)) = param_set.p1().get_mut(pressed_entity) {
             *bg_color = BackgroundColor(colors::PRIMARY);
         }
@@ -1725,12 +1686,10 @@ fn handle_resource_selection(
     if let Some((resource_abundance, pressed_entity)) = pressed_resource {
         settings.resource_abundance = resource_abundance.clone();
         
-        // Update all resource button colors
         for (_, mut bg_color) in param_set.p1().iter_mut() {
             *bg_color = BackgroundColor(Color::srgb(0.15, 0.15, 0.15));
         }
         
-        // Set the pressed button to primary color
         if let Ok((_, mut bg_color)) = param_set.p1().get_mut(pressed_entity) {
             *bg_color = BackgroundColor(colors::PRIMARY);
         }
@@ -1747,35 +1706,27 @@ fn update_slider_displays(
     mut nations_text: Query<&mut Text, (With<StartingNationsValueText>, Without<RiverValueText>, Without<OceanValueText>, Without<ContinentValueText>)>,
     mut tech_text: Query<&mut Text, (With<TechSpeedValueText>, Without<StartingNationsValueText>, Without<RiverValueText>, Without<OceanValueText>, Without<ContinentValueText>)>,
 ) {
-    // Update continent count display
     for mut text in &mut continent_text {
         text.0 = settings.continent_count.to_string();
     }
     
-    // Update ocean coverage display
     for mut text in &mut ocean_text {
         text.0 = format!("{}%", (settings.ocean_coverage * 100.0) as u32);
     }
     
-    // Update river density display
     for mut text in &mut river_text {
         text.0 = format!("{:.1}x", settings.river_density);
     }
     
-    // Update starting nations display
     for mut text in &mut nations_text {
         text.0 = settings.starting_nations.to_string();
     }
     
-    // Update tech speed display
     for mut text in &mut tech_text {
         text.0 = format!("{:.1}x", settings.tech_progression_speed);
     }
 }
 
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
 
 fn apply_preset(settings: &mut WorldGenerationSettings) {
     match settings.preset {

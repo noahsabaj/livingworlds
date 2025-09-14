@@ -9,8 +9,11 @@ use rand::rngs::StdRng;
 use rayon::prelude::*;
 use crate::constants::*;
 use crate::resources::{WeatherSystem, WeatherState};
-use crate::math::perlin::PerlinNoise;
-use crate::math::interpolation::smoothstep;
+use crate::math::{
+    PerlinNoise, smoothstep,
+    TAU, PI, sin_cos, fast_sin,
+    random_range, random_point_in_circle, random_point_in_rect
+};
 use super::{CloudSystem, CloudLayer};
 
 /// Component for cloud sprites with movement properties
@@ -47,11 +50,12 @@ pub fn generate_cloud_formation(
             // Clustered formation - clouds group together
             let cluster_radius = spread * 0.5;
             for _ in 0..count {
-                let angle = rng.gen_range(0.0..std::f32::consts::TAU);
-                let distance = rng.gen_range(0.0..cluster_radius) * rng.gen::<f32>().sqrt();
+                let angle = random_range(rng, 0.0, TAU);
+                let distance = random_range(rng, 0.0, cluster_radius) * rng.gen::<f32>().sqrt();
+                let (cos_angle, sin_angle) = sin_cos(angle);
                 let offset = Vec2::new(
-                    angle.cos() * distance,
-                    angle.sin() * distance,
+                    cos_angle * distance,
+                    sin_angle * distance,
                 );
                 positions.push(center + offset);
             }
@@ -68,8 +72,8 @@ pub fn generate_cloud_formation(
                 let x = center.x + (t - 0.5) * band_width;
                 
                 // Add sine wave variation for more natural looking stratus
-                let wave_offset = (t * wave_frequency * std::f32::consts::TAU).sin() * wave_amplitude;
-                let random_offset = rng.gen_range(-band_height * 0.5..band_height * 0.5);
+                let wave_offset = fast_sin(t * wave_frequency * TAU) * wave_amplitude;
+                let random_offset = random_range(rng, -band_height * 0.5, band_height * 0.5);
                 let y = center.y + wave_offset + random_offset;
                 
                 positions.push(Vec2::new(x, y));
@@ -78,24 +82,25 @@ pub fn generate_cloud_formation(
         CloudFormationType::Cirrus => {
             // Wispy diagonal streaks
             let streak_length = spread * 1.5;
-            let streak_angle = rng.gen_range(0.0..std::f32::consts::PI / 3.0);
+            let streak_angle = random_range(rng, 0.0, PI / 3.0);
+            let (cos_streak, sin_streak) = sin_cos(streak_angle);
             for i in 0..count {
                 let t = i as f32 / count as f32;
-                let base_x = center.x + (t - 0.5) * streak_length * streak_angle.cos();
-                let base_y = center.y + (t - 0.5) * streak_length * streak_angle.sin();
+                let base_x = center.x + (t - 0.5) * streak_length * cos_streak;
+                let base_y = center.y + (t - 0.5) * streak_length * sin_streak;
                 // Add some waviness
-                let wave = (t * std::f32::consts::PI * 2.0).sin() * spread * 0.1;
+                let wave = fast_sin(t * PI * 2.0) * spread * 0.1;
                 positions.push(Vec2::new(
-                    base_x + wave * streak_angle.sin(),
-                    base_y - wave * streak_angle.cos(),
+                    base_x + wave * sin_streak,
+                    base_y - wave * cos_streak,
                 ));
             }
         },
         CloudFormationType::Scattered => {
             // Random placement (original behavior)
             for _ in 0..count {
-                let x = center.x + rng.gen_range(-spread..spread);
-                let y = center.y + rng.gen_range(-spread..spread);
+                let x = center.x + random_range(rng, -spread, spread);
+                let y = center.y + random_range(rng, -spread, spread);
                 positions.push(Vec2::new(x, y));
             }
         },
@@ -129,12 +134,10 @@ impl Default for CloudTextureParams {
     }
 }
 
-/// Create a procedural cloud texture with enhanced variety
 pub fn create_cloud_texture(params: CloudTextureParams) -> Image {
     // Use our centralized noise generator - works out of the box!
     let noise = PerlinNoise::with_seed(params.seed);
 
-    // Calculate center and radius for edge falloff
     let center = params.size as f64 / 2.0;
     let radius = params.size as f64 / (2.2 - params.edge_hardness as f64 * 0.5); // Harder edges = larger radius
 
@@ -143,7 +146,6 @@ pub fn create_cloud_texture(params: CloudTextureParams) -> Image {
     let pixels: Vec<u8> = (0..params.size)
         .into_par_iter()  // Parallel iterator over rows
         .flat_map(|y| {
-            // Process each row's pixels
             let mut row_pixels = Vec::with_capacity((params.size * 4) as usize);
 
             for x in 0..params.size {
@@ -159,11 +161,11 @@ pub fn create_cloud_texture(params: CloudTextureParams) -> Image {
             // All the complexity of multi-octave noise is handled internally
             let noise_value = if params.turbulence > 0.0 {
                 // Sample clouds with billow effect for fluffy appearance
-                use crate::math::perlin::CloudPreset;
+                use crate::math::CloudPreset;
                 noise.sample_clouds(nx * 2.0, ny * 2.0, CloudPreset::Fluffy)
             } else {
                 // Regular FBM for smoother clouds
-                use crate::math::perlin::FbmSettings;
+                use crate::math::FbmSettings;
                 noise.sample_fbm(nx * 2.0, ny * 2.0, FbmSettings {
                     octaves: params.octaves as u32,
                     frequency: 0.02,  // Cloud frequency
@@ -280,10 +282,8 @@ pub fn update_weather_system(
     }
     let rng = rng.as_mut().unwrap();
     
-    // Update time since last change
     weather.time_since_change += time.delta_secs();
     
-    // Check if we should change weather
     if weather.time_since_change > weather.min_weather_duration {
         let change_roll = rng.gen::<f32>();
         if change_roll < weather.weather_change_chance {
@@ -295,7 +295,7 @@ pub fn update_weather_system(
                 WeatherState::Cloudy,
                 WeatherState::Overcast,
             ];
-            let new_state = states[rng.gen_range(0..states.len())];
+            let new_state = states[random_range(rng, 0, states.len())];
             
             if new_state != weather.current_state {
                 weather.target_state = new_state;
@@ -309,7 +309,6 @@ pub fn update_weather_system(
         }
     }
     
-    // Update transition
     if weather.transition_progress < 1.0 {
         weather.transition_progress = (weather.transition_progress + time.delta_secs() * 0.1).min(1.0);
         
@@ -328,7 +327,6 @@ pub fn update_weather_system(
         }
     }
     
-    // Update cloud visibility based on weather
     for (cloud_sprite, mut sprite, mut transform) in &mut clouds {
         // Fade clouds in/out based on weather
         let target_alpha = cloud_sprite.base_alpha * weather.cloud_coverage;
@@ -362,14 +360,12 @@ pub fn dynamic_cloud_spawn_system(
     mut images: ResMut<Assets<Image>>,
     mut last_coverage: Local<f32>,
 ) {
-    // Check if coverage changed significantly
     let coverage_change = (weather.cloud_coverage - *last_coverage).abs();
     if coverage_change < 0.1 {
         return; // No significant change
     }
     *last_coverage = weather.cloud_coverage;
     
-    // Calculate target cloud count based on weather
     let target_count = (36.0 * weather.cloud_coverage) as usize;
     let current_count = clouds.iter().count();
     
@@ -378,11 +374,9 @@ pub fn dynamic_cloud_spawn_system(
         let to_spawn = target_count - current_count;
         println!("🌤️ Spawning {} new clouds for {:?} weather", to_spawn, weather.current_state);
         
-        // Get camera bounds for spawning
         if let Ok((_, camera_transform)) = camera.single() {
             let camera_pos = camera_transform.translation().truncate();
             
-            // Spawn new clouds near camera
             for i in 0..to_spawn {
                 let seed = (weather.time_since_change * 1000.0) as u32 + i as u32;
                 let texture = create_cloud_texture(CloudTextureParams {
@@ -395,8 +389,8 @@ pub fn dynamic_cloud_spawn_system(
                 let handle = images.add(texture);
                 
                 let mut rng = StdRng::seed_from_u64(seed as u64);
-                let x = camera_pos.x + rng.gen_range(-2000.0..2000.0);
-                let y = camera_pos.y + rng.gen_range(-1500.0..1500.0);
+                let x = camera_pos.x + random_range(&mut rng, -2000.0, 2000.0);
+                let y = camera_pos.y + random_range(&mut rng, -1500.0, 1500.0);
                 
                 commands.spawn((
                     Sprite {
@@ -471,7 +465,6 @@ fn spawn_clouds_from_data(
             texture_pools.push(layer_textures);
         }
         
-        // Spawn cloud entities
         for cloud_data in &cloud_system.clouds {
             let layer_idx = cloud_data.layer as usize;
             let texture_handle = texture_pools[layer_idx][cloud_data.texture_index % textures_per_layer as usize].clone();
