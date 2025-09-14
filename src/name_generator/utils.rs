@@ -59,7 +59,7 @@ pub fn to_roman_numeral(n: u32) -> &'static str {
         48 => "XLVIII",
         49 => "XLIX",
         50 => "L",
-        _ => "",  // Return empty string for unsupported numbers
+        _ => "", // Return empty string for unsupported numbers
     }
 }
 
@@ -101,7 +101,7 @@ mod tests {
         assert_eq!(to_roman_numeral(40), "XL");
         assert_eq!(to_roman_numeral(49), "XLIX");
         assert_eq!(to_roman_numeral(50), "L");
-        assert_eq!(to_roman_numeral(100), "");  // Unsupported
+        assert_eq!(to_roman_numeral(100), ""); // Unsupported
     }
 
     #[test]
@@ -116,7 +116,10 @@ mod tests {
     fn test_join_name_parts() {
         assert_eq!(join_name_parts(&["New", "York"]), "New York");
         assert_eq!(join_name_parts(&["", "London", ""]), "London");
-        assert_eq!(join_name_parts(&["  San  ", "  Francisco  "]), "San Francisco");
+        assert_eq!(
+            join_name_parts(&["  San  ", "  Francisco  "]),
+            "San Francisco"
+        );
         assert_eq!(join_name_parts(&[]), "");
     }
 }

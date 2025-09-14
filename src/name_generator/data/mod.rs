@@ -8,12 +8,12 @@
 //! re-exported through this interface.
 
 // All submodules are PRIVATE - only accessible through this gateway
-mod world;
 mod geographical;
+mod world;
 
 // Re-export data through controlled interfaces
-pub use world::*;
 pub use geographical::*;
+pub use world::*;
 
 // Include and re-export cultures module
-pub mod cultures;  // This will load the cultures/mod.rs file
+pub mod cultures; // This will load the cultures/mod.rs file

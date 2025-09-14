@@ -2,7 +2,9 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::name_generator::{NameGenerator, NameType, Culture, Gender, PersonRole, Region, CitySize, NameRelation};
+    use crate::name_generator::{
+        CitySize, Culture, Gender, NameGenerator, NameRelation, NameType, PersonRole, Region,
+    };
     use std::collections::HashSet;
 
     #[test]
@@ -11,7 +13,10 @@ mod tests {
         for _ in 0..20 {
             let name = gen.generate(NameType::World);
             assert!(!name.is_empty(), "Generated world name should not be empty");
-            assert!(name.len() < 100, "Generated world name should be reasonable length");
+            assert!(
+                name.len() < 100,
+                "Generated world name should be reasonable length"
+            );
             println!("World: {}", name);
         }
     }
@@ -21,7 +26,11 @@ mod tests {
         let mut gen = NameGenerator::new();
         for culture in Culture::all() {
             let name = gen.generate(NameType::Nation { culture: *culture });
-            assert!(!name.is_empty(), "Nation name for {:?} should not be empty", culture);
+            assert!(
+                !name.is_empty(),
+                "Nation name for {:?} should not be empty",
+                culture
+            );
             println!("{:?} Nation: {}", culture, name);
         }
     }
@@ -30,16 +39,23 @@ mod tests {
     fn test_province_generation_all_regions() {
         let mut gen = NameGenerator::new();
         let regions = [
-            Region::Coastal, Region::Mountain, Region::Desert, Region::Forest,
-            Region::Plains, Region::River, Region::Arctic, Region::Tropical,
-            Region::Valley, Region::Island,
+            Region::Coastal,
+            Region::Mountain,
+            Region::Desert,
+            Region::Forest,
+            Region::Plains,
+            Region::River,
+            Region::Arctic,
+            Region::Tropical,
+            Region::Valley,
+            Region::Island,
         ];
 
         for region in regions {
             for culture in Culture::all() {
                 let name = gen.generate(NameType::Province {
                     region,
-                    culture: *culture
+                    culture: *culture,
                 });
                 assert!(!name.is_empty());
                 println!("{:?}/{:?} Province: {}", region, culture, name);
@@ -51,8 +67,11 @@ mod tests {
     fn test_city_generation_all_sizes() {
         let mut gen = NameGenerator::new();
         let sizes = [
-            CitySize::Hamlet, CitySize::Village, CitySize::Town,
-            CitySize::City, CitySize::Metropolis,
+            CitySize::Hamlet,
+            CitySize::Village,
+            CitySize::Town,
+            CitySize::City,
+            CitySize::Metropolis,
         ];
 
         for size in sizes {
@@ -70,9 +89,14 @@ mod tests {
         let mut gen = NameGenerator::new();
         let genders = [Gender::Male, Gender::Female, Gender::Neutral];
         let roles = [
-            PersonRole::Ruler, PersonRole::General, PersonRole::Diplomat,
-            PersonRole::Merchant, PersonRole::Scholar, PersonRole::Priest,
-            PersonRole::Explorer, PersonRole::Commoner,
+            PersonRole::Ruler,
+            PersonRole::General,
+            PersonRole::Diplomat,
+            PersonRole::Merchant,
+            PersonRole::Scholar,
+            PersonRole::Priest,
+            PersonRole::Explorer,
+            PersonRole::Commoner,
         ];
 
         for culture in Culture::all() {
@@ -126,7 +150,8 @@ mod tests {
             assert!(
                 !names.contains(&name),
                 "Duplicate name generated at iteration {}: {}",
-                i, name
+                i,
+                name
             );
             names.insert(name);
         }
@@ -143,7 +168,10 @@ mod tests {
         for _ in 0..20 {
             let name1 = gen1.generate(NameType::World);
             let name2 = gen2.generate(NameType::World);
-            assert_eq!(name1, name2, "Deterministic generation should produce same names");
+            assert_eq!(
+                name1, name2,
+                "Deterministic generation should produce same names"
+            );
         }
     }
 
@@ -202,7 +230,7 @@ mod tests {
         assert_eq!(to_roman_numeral(5), "V");
         assert_eq!(to_roman_numeral(10), "X");
         assert_eq!(to_roman_numeral(50), "L");
-        assert_eq!(to_roman_numeral(51), "");  // Beyond range
+        assert_eq!(to_roman_numeral(51), ""); // Beyond range
     }
 
     #[test]
@@ -214,7 +242,9 @@ mod tests {
             let world = gen.generate(NameType::World);
             assert!(world.len() < 50, "World name too long: {}", world);
 
-            let nation = gen.generate(NameType::Nation { culture: Culture::Western });
+            let nation = gen.generate(NameType::Nation {
+                culture: Culture::Western,
+            });
             assert!(nation.len() < 60, "Nation name too long: {}", nation);
 
             let person = gen.generate(NameType::Person {

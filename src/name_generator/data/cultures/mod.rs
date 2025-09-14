@@ -8,14 +8,14 @@
 //! re-exported through this interface.
 
 // All submodules are PRIVATE - only accessible through this gateway
-mod western;
+mod ancient;
+mod desert;
 mod eastern;
+mod island;
+mod mystical;
 mod northern;
 mod southern;
-mod desert;
-mod island;
-mod ancient;
-mod mystical;
+mod western;
 
 // Re-export culture data through a controlled interface
 pub mod western_data {

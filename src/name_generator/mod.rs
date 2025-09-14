@@ -44,20 +44,18 @@
 //! ```
 
 // Internal modules - ALL PRIVATE, only accessible through this gateway
-mod types;
+mod data;
 mod generator;
-mod utils;
-mod data;  // Internal data module - not exposed externally
+mod types;
+mod utils; // Internal data module - not exposed externally
 
 #[cfg(test)]
 mod tests;
 
 // CONTROLLED PUBLIC API - This is the ONLY way in/out of name_generator
 // Re-export only what external code needs
-pub use types::{
-    NameType, Culture, Gender, PersonRole, Region, CitySize, NameRelation
-};
 pub use generator::NameGenerator;
+pub use types::{CitySize, Culture, Gender, NameRelation, NameType, PersonRole, Region};
 
 // Selectively expose utility functions
 pub use utils::to_roman_numeral;

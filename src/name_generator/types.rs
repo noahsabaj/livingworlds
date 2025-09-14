@@ -7,10 +7,22 @@
 #[derive(Debug, Clone)]
 pub enum NameType {
     World,
-    Nation { culture: Culture },
-    Province { region: Region, culture: Culture },
-    City { size: CitySize, culture: Culture },
-    Person { gender: Gender, culture: Culture, role: PersonRole },
+    Nation {
+        culture: Culture,
+    },
+    Province {
+        region: Region,
+        culture: Culture,
+    },
+    City {
+        size: CitySize,
+        culture: Culture,
+    },
+    Person {
+        gender: Gender,
+        culture: Culture,
+        role: PersonRole,
+    },
     River,
     Mountain,
     Ocean,
