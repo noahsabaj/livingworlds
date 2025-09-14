@@ -104,3 +104,80 @@ debug = true
 
 [profile.test]
 opt-level = 2       # Optimize tests for speed
+
+# ============================================================================
+# LINTS - Code Quality and Bug Prevention
+# ============================================================================
+# Living Worlds uses comprehensive linting to catch bugs early and maintain
+# code quality. These are warnings (not errors) so they don't block compilation
+# but help identify issues during development.
+
+[lints.rust]
+# Warn on unused code
+unused_imports = "warn"
+unused_variables = "warn"
+unused_mut = "warn"
+dead_code = "warn"
+
+# Future compatibility
+rust_2018_idioms = "warn"
+rust_2024_compatibility = "warn"
+
+# Missing documentation (currently at 31% coverage)
+# missing_docs = "warn"  # Uncomment when ready to document everything
+
+[lints.clippy]
+# Core correctness lints - these often indicate bugs
+correctness = "warn"
+suspicious = "warn"
+complexity = "warn"
+perf = "warn"
+style = "warn"
+
+# Enable pedantic lints but as warnings, not errors
+pedantic = { level = "warn", priority = -1 }
+
+# Specific lints we really care about
+print_stdout = "warn"        # Catch those 221 println! statements
+print_stderr = "warn"        # Also catch eprintln!
+unwrap_used = "warn"         # Catch the 10 unwrap() calls that could panic
+expect_used = "warn"         # Expect can also panic
+panic = "warn"               # Direct panic! calls
+todo = "warn"                # TODOs should be tracked properly
+unimplemented = "warn"       # Unimplemented code shouldn't ship
+dbg_macro = "warn"           # dbg! shouldn't be in production
+
+# Performance issues
+inefficient_to_string = "warn"
+unnecessary_wraps = "warn"
+needless_pass_by_value = "warn"
+large_enum_variant = "warn"
+large_types_passed_by_value = "warn"
+
+# Maintainability
+cognitive_complexity = "warn"
+too_many_lines = "warn"
+
+# Documentation
+missing_errors_doc = "warn"
+missing_panics_doc = "warn"
+missing_safety_doc = "warn"
+
+# Common mistakes
+manual_string_new = "warn"
+redundant_clone = "warn"
+redundant_closure_for_method_calls = "warn"
+needless_borrow = "warn"
+
+# But allow these patterns that are common in game dev
+module_inception = "allow"         # Mod files with same name as parent
+type_complexity = "allow"           # Bevy queries can be complex
+too_many_arguments = "allow"       # Bevy systems need many parameters
+single_match = "allow"              # Sometimes clearer than if let
+match_wild_err_arm = "allow"        # Fine for prototype error handling
+missing_docs_in_private_items = "allow"  # Too pedantic
+return_self_not_must_use = "allow"  # Builder pattern
+missing_const_for_fn = "allow"      # Not always applicable
+
+# Test-specific allows (these only apply in #[cfg(test)] modules)
+# Note: Use `#[allow(clippy::unwrap_used)]` in test modules

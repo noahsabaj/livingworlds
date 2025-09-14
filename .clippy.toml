@@ -1,0 +1,26 @@
+# Clippy Configuration for Living Worlds
+#
+# This configuration focuses on catching real bugs and maintenance issues
+# while being pragmatic about game development patterns.
+#
+# Created: 2025-09-13
+# Purpose: Improve code quality without being overly pedantic
+
+# Maximum cognitive complexity allowed per function
+# (world generation and UI building can be complex)
+cognitive-complexity-threshold = 30
+
+# Allow longer functions for world generation and setup
+too-many-lines-threshold = 200
+
+# Allow more arguments for builder methods and complex systems
+too-many-arguments-threshold = 10
+
+# Bevy systems often need many parameters
+type-complexity-threshold = 500
+
+# Allow larger enums (TerrainType, etc.)
+enum-variant-size-threshold = 256
+
+# Don't warn on common game dev patterns in tests
+# (These are handled via Cargo.toml [lints] section now)

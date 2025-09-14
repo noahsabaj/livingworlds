@@ -16,12 +16,12 @@ Living Worlds is a fully procedural civilization OBSERVER - like Fantasy Map Sim
 
 ### Currently Implemented
 - **🗺️ Hexagonal World Map**: Configurable sizes with flat-top honeycomb layout
-  - Small: 300,000 provinces (600x500)
-  - Medium: 600,000 provinces (800x750)
-  - Large: 900,000 provinces (1000x900)
+  - Small: 1,000,000 provinces (1250x800)
+  - Medium: 2,000,000 provinces (1600x1250)
+  - Large: 3,000,000 provinces (2000x1500)
 - **⚡ Mega-Mesh Rendering**: Revolutionary performance breakthrough
-  - **60+ FPS** on large worlds (900,000 provinces!)
-  - Single mesh with 2.7M+ vertices handled efficiently
+  - **60+ FPS** on all world sizes up to 3,000,000 provinces
+  - Single mesh with millions of vertices handled efficiently
   - One GPU draw call for entire world
   - Dynamic vertex color updates for overlays
 - **🌊 Realistic Ocean Depths**: Three-tier water depth system with beautiful gradients
@@ -49,9 +49,8 @@ Living Worlds is a fully procedural civilization OBSERVER - like Fantasy Map Sim
 
 ## ⚡ Performance Achievements
 
-- **World Generation**: 900,000 provinces generate in ~7 seconds
-- **Rendering**: 60+ FPS with 2.7 million vertices (single draw call)
-- **Memory Usage**: ~200MB for entire world state
+- **Rendering**: 60+ FPS with millions of vertices (single draw call)
+- **Memory Usage**: Efficient for entire world state
 - **O(1) Province Lookups**: HashMap-based architecture throughout
 - **Zero O(n²) Patterns**: All quadratic algorithms eliminated
 - **Parallel Processing**: 75% CPU utilization with rayon
@@ -59,8 +58,8 @@ Living Worlds is a fully procedural civilization OBSERVER - like Fantasy Map Sim
 ### Optimization History
 - Fixed O(n²) spatial index bug: 1160s → 7s (162x speedup)
 - Fixed O(n²) ocean depth calculation: 30s → 0.1s (300x speedup)
-- Mega-mesh architecture: 900k entities → 1 entity
-- HashMap lookups: 900k comparisons → 1 lookup
+- Mega-mesh architecture: 9M entities → 1 entity
+- HashMap lookups: 9M comparisons → 1 lookup
 
 ## 🛠️ Technology Stack
 
@@ -76,70 +75,83 @@ The project uses a **modular plugin architecture** with Bevy's ECS (Entity Compo
 
 ```
 livingworlds/
-├── src/                    # Source code (~1 MB, ~25,000 lines)
-│   ├── generation/        # World generation builders (7 files)
+├── src/                    # Source code (~1 MB total)
+│   ├── generation/        # World generation builders (92KB, 8 files)
 │   │   ├── mod.rs         # WorldBuilder orchestrator
+│   │   ├── climate.rs     # Climate simulation system
+│   │   ├── erosion.rs     # Erosion and weathering simulation
 │   │   ├── provinces.rs   # ProvinceBuilder with parallel processing
 │   │   ├── rivers.rs      # RiverBuilder with flow accumulation
-│   │   ├── clouds.rs      # CloudBuilder for atmospheric effects
 │   │   ├── agriculture.rs # Agriculture and fertility calculations
+│   │   ├── clouds.rs      # CloudBuilder for atmospheric effects
 │   │   └── utils.rs       # Utility functions
-│   ├── world/             # World data and rendering (9 files)
-│   │   ├── mod.rs         # World module exports
-│   │   ├── data.rs        # Core data structures (World, RiverSystem, etc.)
+│   ├── world/             # World data and rendering (143KB, 9 files)
+│   │   ├── config.rs      # World configuration UI (66KB)
+│   │   ├── clouds.rs      # Cloud rendering and animation
 │   │   ├── terrain.rs     # Terrain types and climate zones
 │   │   ├── mesh.rs        # Mega-mesh building and vertex generation
 │   │   ├── borders.rs     # Selection border rendering
+│   │   ├── data.rs        # Core data structures
 │   │   ├── overlay.rs     # Map overlay with dynamic vertex colors
-│   │   ├── clouds.rs      # Cloud rendering and animation
-│   │   ├── config.rs      # World configuration UI
-│   │   └── components.rs  # World-specific components
-│   ├── ui/                # User interface system (10 files)
-│   │   ├── mod.rs         # UI plugin and coordination
-│   │   ├── styles.rs      # Centralized colors and dimensions
-│   │   ├── buttons.rs     # StyledButton builder system
-│   │   ├── dialogs.rs     # DialogBuilder for consistent dialogs
-│   │   ├── text_inputs.rs # TextInputBuilder with validation
-│   │   ├── sliders.rs     # SliderBuilder for value controls
-│   │   ├── components.rs  # Common UI components
-│   │   ├── form.rs        # Form handling
-│   │   ├── toolbar.rs     # Toolbar system
-│   │   └── builders.rs    # UI builder utilities
-│   ├── geometry/          # Hexagon calculations (2 files)
 │   │   ├── mod.rs         # Module exports
-│   │   └── hexagon.rs     # Single source of truth for hex math
+│   │   └── components.rs  # World-specific components
+│   ├── ui/                # User interface system (187KB, 10 files)
+│   │   ├── form.rs        # Form handling system (33KB)
+│   │   ├── sliders.rs     # SliderBuilder for value controls (28KB)
+│   │   ├── components.rs  # Common UI components (27KB)
+│   │   ├── text_inputs.rs # TextInputBuilder with validation (26KB)
+│   │   ├── dialogs.rs     # DialogBuilder for consistent dialogs
+│   │   ├── toolbar.rs     # Toolbar system
+│   │   ├── mod.rs         # UI plugin and coordination
+│   │   ├── buttons.rs     # StyledButton builder system
+│   │   ├── styles.rs      # Centralized colors and dimensions
+│   │   └── builders.rs    # UI builder utilities
+│   ├── math/              # Mathematics module (7 files)
+│   │   ├── perlin.rs      # Single source of truth for ALL noise
+│   │   ├── hexagon.rs     # Single source of truth for hex math
+│   │   ├── interpolation.rs # Interpolation and smoothing functions
+│   │   ├── distance.rs    # Distance calculations
+│   │   ├── angles.rs      # Angle and trigonometry utilities
+│   │   ├── random.rs      # Random number generation utilities
+│   │   └── mod.rs         # Module exports with gateway architecture
+│   ├── name_generator/    # Name generation system (directory)
+│   │   ├── generator.rs   # Core name generation logic (25KB)
+│   │   ├── tests.rs       # Unit tests
+│   │   ├── types.rs       # Type definitions
+│   │   ├── utils.rs       # Utility functions
+│   │   ├── mod.rs         # Module gateway
+│   │   └── data/          # Name data by culture
 │   ├── settings/          # Settings management (8 files)
-│   │   ├── mod.rs         # Settings plugin
-│   │   ├── settings_ui.rs # Settings menu UI
 │   │   ├── handlers.rs    # Event handlers
-│   │   ├── persistence.rs # Save/load settings
-│   │   ├── resolution.rs  # Resolution detection
+│   │   ├── settings_ui.rs # Settings menu UI
 │   │   ├── types.rs       # Settings data structures
+│   │   ├── resolution.rs  # Resolution detection
+│   │   ├── components.rs  # Settings components
+│   │   ├── mod.rs         # Settings plugin
 │   │   ├── navigation.rs  # Tab navigation
-│   │   └── components.rs  # Settings components
+│   │   └── persistence.rs # Save/load settings
 │   ├── modding/           # Modding system (5 files)
-│   │   ├── mod.rs         # Modding plugin
+│   │   ├── ui.rs          # Mod browser UI (40KB)
+│   │   ├── manager.rs     # Mod management
 │   │   ├── types.rs       # Mod data structures
 │   │   ├── loader.rs      # Mod loading system
-│   │   ├── manager.rs     # Mod management
-│   │   └── ui.rs          # Mod browser UI
-│   ├── lib.rs             # Library root, plugin orchestration
-│   ├── main.rs            # Binary entry point
-│   ├── setup.rs           # World initialization using builders
-│   ├── simulation.rs      # Time simulation and population
-│   ├── minerals.rs        # Mineral resources and extraction
-│   ├── camera.rs          # Camera controls and viewport
-│   ├── colors.rs          # Terrain and mineral color functions
-│   ├── components.rs      # Core ECS components
-│   ├── resources.rs       # Global game resources
-│   ├── constants.rs       # Game configuration constants
-│   ├── states.rs          # Game state management
-│   ├── menus.rs           # Main and pause menus
-│   ├── loading_screen.rs  # Loading screen system
-│   ├── save_load.rs       # Save/load game functionality
-│   ├── province_events.rs # Province event handling
-│   ├── name_generator.rs  # Procedural name generation
-│   └── steam.rs           # Steam integration
+│   │   └── mod.rs         # Modding plugin gateway
+│   ├── save_load.rs       # Save/load game functionality (57KB)
+│   ├── minerals.rs        # Mineral resources and extraction (27KB)
+│   ├── colors.rs          # Terrain and mineral color functions (24KB)
+│   ├── components.rs      # Core ECS components (22KB)
+│   ├── states.rs          # Game state management (22KB)
+│   ├── resources.rs       # Global game resources (21KB)
+│   ├── menus.rs           # Main and pause menus (20KB)
+│   ├── camera.rs          # Camera controls and viewport (16KB)
+│   ├── steam.rs           # Steam integration (14KB)
+│   ├── loading_screen.rs  # Loading screen system (14KB)
+│   ├── province_events.rs # Province event handling (12KB)
+│   ├── setup.rs           # World initialization (11KB)
+│   ├── constants.rs       # Game configuration constants (11KB)
+│   ├── simulation.rs      # Time simulation and population (11KB)
+│   ├── lib.rs             # Library root, plugin orchestration (10KB)
+│   └── main.rs            # Binary entry point (7KB)
 ├── images/                 # Screenshots and documentation
 ├── Cargo.toml             # Rust dependencies
 ├── CLAUDE.md              # Detailed technical documentation
@@ -149,12 +161,12 @@ NOTE: No assets/ directory - everything is procedurally generated!
 ```
 
 ### Key Systems
-- **Mega-Mesh Renderer**: Single mesh with 2.7M+ vertices for 60+ FPS on 900k provinces
+- **Mega-Mesh Renderer**: Single mesh with millions of vertices for 60+ FPS
 - **Builder Pattern Architecture**: All generation uses fluent builder APIs (WorldBuilder, ProvinceBuilder, etc.)
 - **ECS Architecture**: Leverages Bevy's parallel processing
 - **Plugin System**: Each module is a self-contained Bevy plugin
-- **Single Source of Truth**: Centralized data structures in world/data.rs
-- **Hexagon Geometry**: All hex calculations in geometry/hexagon.rs
+- **Gateway Architecture**: Module interfaces control all imports/exports
+- **Math Module**: All hex calculations in math/, single source of truth
 - **Deterministic Simulation**: Fixed-point math for consistency
 - **Spatial Indexing**: O(1) province lookups for performance
 - **Dynamic Vertex Colors**: Real-time overlay updates without recreating mesh
