@@ -3,9 +3,9 @@
 //! This module provides functions to modify colors based on game state,
 //! including time of day and weather effects.
 
-use bevy::prelude::Color;
-use crate::resources::{GameTime, WeatherSystem};
 use super::utils::SafeColor;
+use crate::resources::{GameTime, WeatherSystem};
+use bevy::prelude::Color;
 
 /// Apply time of day color adjustments
 ///

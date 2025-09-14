@@ -10,7 +10,4 @@ mod rendering;
 pub struct BorderEntity;
 
 // PUBLIC EXPORTS
-pub use rendering::{
-    SelectionBorder,
-    BorderPlugin,
-};
+pub use rendering::{BorderPlugin, SelectionBorder};

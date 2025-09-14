@@ -3,8 +3,8 @@
 //! This module provides helper functions and type-safe wrappers for
 //! color operations, including safe color construction and position hashing.
 
-use bevy::prelude::Color;
 use crate::math::hash_random;
+use bevy::prelude::Color;
 
 /// Type-safe wrapper for stone abundance with validation
 #[derive(Debug, Clone, Copy)]
@@ -17,7 +17,7 @@ impl StoneAbundance {
 
     pub fn normalized(&self) -> f32 {
         if self.0 == 0 {
-            0.0  // Ocean/no stone
+            0.0 // Ocean/no stone
         } else {
             ((self.0 as f32 - 20.0) / 60.0).clamp(0.0, 1.0)
         }
@@ -39,7 +39,12 @@ impl SafeColor {
 
     #[inline]
     pub fn srgba(r: f32, g: f32, b: f32, a: f32) -> Color {
-        Color::srgba(r.clamp(0.0, 1.0), g.clamp(0.0, 1.0), b.clamp(0.0, 1.0), a.clamp(0.0, 1.0))
+        Color::srgba(
+            r.clamp(0.0, 1.0),
+            g.clamp(0.0, 1.0),
+            b.clamp(0.0, 1.0),
+            a.clamp(0.0, 1.0),
+        )
     }
 }
 

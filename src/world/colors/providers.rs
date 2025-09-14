@@ -4,12 +4,14 @@
 //! game systems, allowing for different implementations with various
 //! optimization strategies.
 
-use bevy::prelude::{Color, Vec2};
-use crate::world::TerrainType;
-use crate::components::MineralType;
+use super::minerals::{
+    combined_richness_color, infrastructure_level_color, mineral_abundance_color,
+};
 use super::terrain::get_terrain_color;
-use super::minerals::{mineral_abundance_color, combined_richness_color, infrastructure_level_color};
-use super::utils::{SafeColor, position_hash};
+use super::utils::{position_hash, SafeColor};
+use crate::components::MineralType;
+use crate::world::TerrainType;
+use bevy::prelude::{Color, Vec2};
 
 /// Abstraction for providing colors to different game systems
 pub trait ColorProvider {
@@ -79,6 +81,6 @@ impl Colorable for MineralType {
     }
 
     fn color_with_elevation(&self, _elevation: f32) -> Color {
-        self.color()  // Minerals don't vary with elevation
+        self.color() // Minerals don't vary with elevation
     }
 }

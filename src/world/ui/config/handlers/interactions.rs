@@ -2,12 +2,15 @@
 //!
 //! This module handles hover effects, toggles, and other UI interactions.
 
-use bevy::prelude::*;
 use super::super::components::*;
 use super::super::types::WorldGenerationSettings;
+use bevy::prelude::*;
 
 pub fn handle_preset_hover(
-    interactions: Query<(&Interaction, &PresetDescription), (Changed<Interaction>, With<PresetButton>)>,
+    interactions: Query<
+        (&Interaction, &PresetDescription),
+        (Changed<Interaction>, With<PresetButton>),
+    >,
     mut description_text: Query<&mut Text, With<PresetDescriptionText>>,
 ) {
     for (interaction, preset_desc) in &interactions {
@@ -53,7 +56,10 @@ pub fn handle_advanced_toggle(
                     };
                 }
 
-                println!("Advanced settings toggled: {}", if is_showing { "hidden" } else { "shown" });
+                println!(
+                    "Advanced settings toggled: {}",
+                    if is_showing { "hidden" } else { "shown" }
+                );
             }
         }
     }
@@ -62,8 +68,19 @@ pub fn handle_advanced_toggle(
 pub fn handle_slider_interactions(
     _interactions: Query<(&Interaction, &Node, &Children), With<Button>>,
     _continent_sliders: Query<&mut Node, (With<ContinentSlider>, Without<Button>)>,
-    _ocean_sliders: Query<&mut Node, (With<OceanSlider>, Without<Button>, Without<ContinentSlider>)>,
-    _river_sliders: Query<&mut Node, (With<RiverSlider>, Without<Button>, Without<ContinentSlider>, Without<OceanSlider>)>,
+    _ocean_sliders: Query<
+        &mut Node,
+        (With<OceanSlider>, Without<Button>, Without<ContinentSlider>),
+    >,
+    _river_sliders: Query<
+        &mut Node,
+        (
+            With<RiverSlider>,
+            Without<Button>,
+            Without<ContinentSlider>,
+            Without<OceanSlider>,
+        ),
+    >,
     _settings: ResMut<WorldGenerationSettings>,
     _windows: Query<&Window>,
 ) {

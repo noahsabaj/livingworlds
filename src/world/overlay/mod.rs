@@ -1,14 +1,11 @@
 //! Overlay feature module gateway
 
 // PRIVATE MODULES
-mod types;
-mod rendering;
 mod cache;
+mod rendering;
+mod types;
 
 // PUBLIC EXPORTS
-pub use types::{OverlayMode, ResourceOverlay};
 pub use cache::CachedOverlayColors;
-pub use rendering::{
-    OverlayPlugin,
-    update_province_colors,
-};
+pub use rendering::{update_province_colors, OverlayPlugin};
+pub use types::{OverlayMode, ResourceOverlay};

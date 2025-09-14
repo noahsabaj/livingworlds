@@ -2,18 +2,25 @@
 //!
 //! This module handles text input changes and random button interactions.
 
+use super::super::components::*;
+use super::super::types::WorldGenerationSettings;
+use crate::name_generator::{NameGenerator, NameType};
 use bevy::prelude::*;
 use bevy_simple_text_input::{TextInputSubmitEvent, TextInputValue};
 use rand::Rng;
-use crate::name_generator::{NameGenerator, NameType};
-use super::super::components::*;
-use super::super::types::WorldGenerationSettings;
 
 pub fn handle_text_input_changes(
     mut name_events: EventReader<TextInputSubmitEvent>,
     mut settings: ResMut<WorldGenerationSettings>,
     name_inputs: Query<&TextInputValue, (With<WorldNameInput>, Changed<TextInputValue>)>,
-    seed_inputs: Query<&TextInputValue, (With<SeedInput>, Without<WorldNameInput>, Changed<TextInputValue>)>,
+    seed_inputs: Query<
+        &TextInputValue,
+        (
+            With<SeedInput>,
+            Without<WorldNameInput>,
+            Changed<TextInputValue>,
+        ),
+    >,
 ) {
     for value in &name_inputs {
         if !value.0.is_empty() {
@@ -48,7 +55,14 @@ pub fn handle_text_input_changes(
 
 pub fn handle_random_buttons(
     name_interactions: Query<&Interaction, (Changed<Interaction>, With<RandomNameButton>)>,
-    seed_interactions: Query<&Interaction, (Changed<Interaction>, With<RandomSeedButton>, Without<RandomNameButton>)>,
+    seed_interactions: Query<
+        &Interaction,
+        (
+            Changed<Interaction>,
+            With<RandomSeedButton>,
+            Without<RandomNameButton>,
+        ),
+    >,
     mut settings: ResMut<WorldGenerationSettings>,
     mut name_inputs: Query<&mut TextInputValue, With<WorldNameInput>>,
     mut seed_inputs: Query<&mut TextInputValue, (With<SeedInput>, Without<WorldNameInput>)>,

@@ -3,18 +3,18 @@
 //! This module contains weather states and the dynamic weather system
 //! that controls atmospheric conditions and cloud coverage.
 
-use bevy::prelude::*;
 use bevy::math::Vec2;
+use bevy::prelude::*;
 
 /// Weather states representing different atmospheric conditions
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum WeatherState {
-    Clear,      // 0-10% cloud coverage - bright sunny day
-    Fair,       // 10-30% cloud coverage - pleasant with some clouds
-    Partly,     // 30-60% cloud coverage - mix of sun and clouds
-    Cloudy,     // 60-80% cloud coverage - mostly cloudy
-    Overcast,   // 80-100% cloud coverage - completely grey sky
-    Storm,      // 90-100% coverage + dark clouds and rain
+    Clear,    // 0-10% cloud coverage - bright sunny day
+    Fair,     // 10-30% cloud coverage - pleasant with some clouds
+    Partly,   // 30-60% cloud coverage - mix of sun and clouds
+    Cloudy,   // 60-80% cloud coverage - mostly cloudy
+    Overcast, // 80-100% cloud coverage - completely grey sky
+    Storm,    // 90-100% coverage + dark clouds and rain
 }
 
 impl WeatherState {
@@ -66,10 +66,10 @@ pub struct WeatherSystem {
 impl Default for WeatherSystem {
     fn default() -> Self {
         Self {
-            current_state: WeatherState::Partly,  // More clouds initially
+            current_state: WeatherState::Partly, // More clouds initially
             target_state: WeatherState::Partly,
             transition_progress: 1.0,
-            cloud_coverage: 0.5,  // Start with 50% coverage instead of 20%
+            cloud_coverage: 0.5, // Start with 50% coverage instead of 20%
             wind_speed: Vec2::new(5.0, 1.0),
             time_since_change: 0.0,
             min_weather_duration: 60.0,  // At least 1 minute per weather

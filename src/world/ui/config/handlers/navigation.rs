@@ -2,10 +2,10 @@
 //!
 //! This module handles navigation buttons (Generate World, Back).
 
-use bevy::prelude::*;
-use crate::states::{GameState, RequestStateTransition};
-use super::super::components::{GenerateButton, BackButton};
+use super::super::components::{BackButton, GenerateButton};
 use super::super::types::WorldGenerationSettings;
+use crate::states::{GameState, RequestStateTransition};
+use bevy::prelude::*;
 
 pub fn init_default_settings(mut commands: Commands) {
     commands.insert_resource(WorldGenerationSettings::default());

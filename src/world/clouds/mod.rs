@@ -9,15 +9,15 @@
 //! carefully selected APIs are exposed.
 
 // PRIVATE MODULES - No direct access allowed
-mod types;
 mod generation;
 mod rendering;
+mod types;
 mod weather;
 
 // PUBLIC EXPORTS - The only way to access cloud functionality
 
 // Core types
-pub use types::{CloudSystem, CloudData, CloudLayer, CloudEntity};
+pub use types::{CloudData, CloudEntity, CloudLayer, CloudSystem};
 
 // Weather system
 pub use weather::{WeatherState, WeatherSystem};
@@ -27,13 +27,6 @@ pub use generation::CloudBuilder;
 
 // Rendering components and systems
 pub use rendering::{
-    CloudPlugin,
-    CloudSprite,
-    CloudFormationType,
-    generate_cloud_formation,
-    create_cloud_texture,
-    CloudTextureParams,
-    animate_clouds,
-    update_weather_system,
-    dynamic_cloud_spawn_system,
+    animate_clouds, create_cloud_texture, dynamic_cloud_spawn_system, generate_cloud_formation,
+    update_weather_system, CloudFormationType, CloudPlugin, CloudSprite, CloudTextureParams,
 };

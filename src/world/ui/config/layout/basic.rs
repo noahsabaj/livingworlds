@@ -2,76 +2,78 @@
 //!
 //! This module creates the UI for basic world configuration settings.
 
-use bevy::prelude::*;
-use crate::ui::{ButtonBuilder, ButtonStyle, ButtonSize};
-use crate::ui::{text_input, FocusGroupId};
-use crate::ui::{colors, dimensions};
-use crate::resources::WorldSize;
 use super::super::components::*;
+use crate::resources::WorldSize;
+use crate::ui::{colors, dimensions};
+use crate::ui::{text_input, FocusGroupId};
+use crate::ui::{ButtonBuilder, ButtonSize, ButtonStyle};
+use bevy::prelude::*;
 
 pub fn spawn_world_name_section(parent: &mut ChildSpawnerCommands) {
-    parent.spawn((
-        Node {
+    parent
+        .spawn((Node {
             width: Val::Percent(100.0),
             flex_direction: FlexDirection::Column,
             row_gap: Val::Px(5.0),
             ..default()
-        },
-    )).with_children(|section| {
-        // Label
-        section.spawn((
-            Text::new("World Name"),
-            TextFont {
-                font_size: 18.0,
-                ..default()
-            },
-            TextColor(colors::TEXT_SECONDARY),
-        ));
+        },))
+        .with_children(|section| {
+            // Label
+            section.spawn((
+                Text::new("World Name"),
+                TextFont {
+                    font_size: 18.0,
+                    ..default()
+                },
+                TextColor(colors::TEXT_SECONDARY),
+            ));
 
-        section.spawn((
-            Node {
-                width: Val::Percent(100.0),
-                flex_direction: FlexDirection::Row,
-                justify_content: JustifyContent::SpaceBetween,
-                column_gap: Val::Px(10.0),
-                ..default()
-            },
-        )).with_children(|row| {
-            // Use our text input builder
-            text_input()
-                .with_value("Aetheria Prime")
-                .with_font_size(18.0)
-                .with_width(Val::Px(300.0))
-                .with_padding(UiRect::horizontal(Val::Px(15.0)))
-                .with_max_length(30)
-                .with_focus_group(FocusGroupId::WorldConfig)
-                .inactive()
-                .with_marker(WorldNameInput)
-                .and_marker(WorldNameText)
-                .build(row);
+            section
+                .spawn((Node {
+                    width: Val::Percent(100.0),
+                    flex_direction: FlexDirection::Row,
+                    justify_content: JustifyContent::SpaceBetween,
+                    column_gap: Val::Px(10.0),
+                    ..default()
+                },))
+                .with_children(|row| {
+                    // Use our text input builder
+                    text_input()
+                        .with_value("Aetheria Prime")
+                        .with_font_size(18.0)
+                        .with_width(Val::Px(300.0))
+                        .with_padding(UiRect::horizontal(Val::Px(15.0)))
+                        .with_max_length(30)
+                        .with_focus_group(FocusGroupId::WorldConfig)
+                        .inactive()
+                        .with_marker(WorldNameInput)
+                        .and_marker(WorldNameText)
+                        .build(row);
 
-            // Random button using ButtonBuilder
-            ButtonBuilder::new("Random")
-                .style(ButtonStyle::Secondary)
-                .size(ButtonSize::Small)
-                .with_marker(RandomNameButton)
-                .build(row);
+                    // Random button using ButtonBuilder
+                    ButtonBuilder::new("Random")
+                        .style(ButtonStyle::Secondary)
+                        .size(ButtonSize::Small)
+                        .with_marker(RandomNameButton)
+                        .build(row);
+                });
+
+            // Help text
+            section.spawn((
+                Text::new(
+                    "Give your world a unique identity. The name will appear in game history.",
+                ),
+                TextFont {
+                    font_size: 14.0,
+                    ..default()
+                },
+                TextColor(colors::TEXT_MUTED),
+                Node {
+                    margin: UiRect::left(Val::Px(5.0)),
+                    ..default()
+                },
+            ));
         });
-
-        // Help text
-        section.spawn((
-            Text::new("Give your world a unique identity. The name will appear in game history."),
-            TextFont {
-                font_size: 14.0,
-                ..default()
-            },
-            TextColor(colors::TEXT_MUTED),
-            Node {
-                margin: UiRect::left(Val::Px(5.0)),
-                ..default()
-            },
-        ));
-    });
 }
 
 pub fn spawn_world_size_section(parent: &mut ChildSpawnerCommands) {

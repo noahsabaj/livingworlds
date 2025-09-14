@@ -1,25 +1,25 @@
 //! River system generation with flow accumulation
 
-use std::collections::{HashMap, HashSet};
-use bevy::prelude::Vec2;
 use bevy::log::info;
-use rand::{rngs::StdRng, Rng, seq::SliceRandom};
+use bevy::prelude::Vec2;
+use rand::{rngs::StdRng, seq::SliceRandom, Rng};
 use rayon::prelude::*;
+use std::collections::{HashMap, HashSet};
 
-use crate::world::{Province, ProvinceId};
-use crate::world::TerrainType;
 use crate::constants::*;
+use crate::math::get_neighbor_positions;
 use crate::resources::MapDimensions;
 use crate::world::RiverSystem;
-use crate::math::get_neighbor_positions;
+use crate::world::TerrainType;
+use crate::world::{Province, ProvinceId};
 
 // River generation constants
 const DEFAULT_RIVER_DENSITY: f32 = 1.0;
-const RIVER_SOURCE_DIVISOR: usize = 4;  // Use 1/4 of potential sources
-const MAX_RIVER_LENGTH: usize = 1000;   // Maximum tiles a river can traverse
-const FLOW_INCREMENT: f32 = 0.1;        // Flow increase per tile downstream
-const MIN_VISIBLE_FLOW: f32 = 0.5;      // Minimum flow to show as river terrain
-const MEANDER_CHANCE: f32 = 0.3;        // Chance to pick non-optimal path for natural meandering
+const RIVER_SOURCE_DIVISOR: usize = 4; // Use 1/4 of potential sources
+const MAX_RIVER_LENGTH: usize = 1000; // Maximum tiles a river can traverse
+const FLOW_INCREMENT: f32 = 0.1; // Flow increase per tile downstream
+const MIN_VISIBLE_FLOW: f32 = 0.5; // Minimum flow to show as river terrain
+const MEANDER_CHANCE: f32 = 0.3; // Chance to pick non-optimal path for natural meandering
 
 /// Error types for river generation
 #[derive(Debug, Clone)]
@@ -27,7 +27,7 @@ pub enum RiverGenerationError {
     EmptyProvinces,
     InvalidDimensions(String),
     NoValidSources,
-    NaNElevation(u32),  // Province ID with NaN elevation
+    NaNElevation(u32), // Province ID with NaN elevation
 }
 
 impl std::fmt::Display for RiverGenerationError {
@@ -44,7 +44,7 @@ impl std::fmt::Display for RiverGenerationError {
 impl std::error::Error for RiverGenerationError {}
 
 /// Builder for generating river systems following the builder pattern
-/// 
+///
 /// This builder encapsulates river generation logic with configurable density.
 pub struct RiverBuilder<'a> {
     provinces: &'a mut [Province],
@@ -68,18 +68,18 @@ impl<'a> RiverBuilder<'a> {
             min_elevation: RIVER_MIN_ELEVATION,
         }
     }
-    
+
     pub fn with_density(mut self, density: f32) -> Self {
         self.river_density = density.max(0.0);
         self
     }
-    
+
     /// Set minimum elevation for river sources
     pub fn with_min_elevation(mut self, elevation: f32) -> Self {
         self.min_elevation = elevation;
         self
     }
-    
+
     pub fn build(self) -> Result<RiverSystem, RiverGenerationError> {
         generate_rivers_internal(
             self.provinces,
@@ -108,7 +108,10 @@ fn apply_terrain_if_not_ocean(province: &mut Province, terrain: TerrainType) {
 }
 
 /// Build spatial index for O(1) province lookups by grid position
-fn build_spatial_index<'a>(provinces: &'a [Province], dimensions: &MapDimensions) -> HashMap<(i32, i32), &'a Province> {
+fn build_spatial_index<'a>(
+    provinces: &'a [Province],
+    dimensions: &MapDimensions,
+) -> HashMap<(i32, i32), &'a Province> {
     let mut position_to_province = HashMap::new();
     for province in provinces.iter() {
         let (col, row) = id_to_grid_coords(province.id, dimensions.provinces_per_row);
@@ -123,29 +126,31 @@ fn find_river_sources(
     min_elevation: f32,
 ) -> Result<Vec<(ProvinceId, Vec2, f32)>, RiverGenerationError> {
     let mut potential_sources = Vec::new();
-    
+
     for province in provinces.iter() {
         if province.elevation.value().is_nan() {
             return Err(RiverGenerationError::NaNElevation(province.id.value()));
         }
-        
+
         // Alpine terrain and other high-elevation areas can be river sources
-        if province.terrain == TerrainType::Alpine ||
-            (province.elevation.value() >= min_elevation &&
-             matches!(province.terrain, TerrainType::Chaparral | TerrainType::TemperateGrassland)) {
+        if province.terrain == TerrainType::Alpine
+            || (province.elevation.value() >= min_elevation
+                && matches!(
+                    province.terrain,
+                    TerrainType::Chaparral | TerrainType::TemperateGrassland
+                ))
+        {
             potential_sources.push((province.id, province.position, province.elevation.value()));
         }
     }
-    
+
     if potential_sources.is_empty() {
         return Err(RiverGenerationError::NoValidSources);
     }
-    
+
     // Sort by elevation (highest first) for better river flow
-    potential_sources.sort_by(|a, b| {
-        b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal)
-    });
-    
+    potential_sources.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
+
     Ok(potential_sources)
 }
 
@@ -163,25 +168,26 @@ fn trace_river_path(
     let mut river_path = vec![source_id];
     let mut delta_tiles = Vec::new();
     let mut visited = HashSet::new();
-    
+
     let (start_col, start_row) = id_to_grid_coords(source_id, dimensions.provinces_per_row);
     visited.insert((start_col, start_row));
-    
+
     let mut flow = 1.0;
-    
+
     for _ in 0..MAX_RIVER_LENGTH {
-        let (current_col, current_row) = id_to_grid_coords(current_id, dimensions.provinces_per_row);
+        let (current_col, current_row) =
+            id_to_grid_coords(current_id, dimensions.provinces_per_row);
         let neighbors = get_neighbor_positions(current_col, current_row, dimensions.hex_size);
-        
+
         // Collect valid unvisited neighbors
         let mut valid_neighbors: Vec<(&Province, (i32, i32))> = Vec::new();
-        
+
         for (neighbor_col, neighbor_row) in neighbors {
             if let Some(province) = position_to_province.get(&(neighbor_col, neighbor_row)) {
                 if visited.contains(&(neighbor_col, neighbor_row)) {
                     continue;
                 }
-                
+
                 if province.terrain == TerrainType::Ocean {
                     delta_tiles.push(province.id);
                     if !river_path.is_empty() {
@@ -189,24 +195,28 @@ fn trace_river_path(
                     }
                     return (river_path, delta_tiles, flow);
                 }
-                
+
                 valid_neighbors.push((province, (neighbor_col, neighbor_row)));
             }
         }
-        
+
         if valid_neighbors.is_empty() {
-            break;  // No valid path forward
+            break; // No valid path forward
         }
-        
+
         // Sort neighbors by elevation (lowest first)
         valid_neighbors.sort_by(|a, b| {
-            a.0.elevation.value()
+            a.0.elevation
+                .value()
                 .partial_cmp(&b.0.elevation.value())
                 .unwrap_or(std::cmp::Ordering::Equal)
         });
-        
+
         // Add randomization for natural meandering
-        let next = if !valid_neighbors.is_empty() && rng.gen::<f32>() < MEANDER_CHANCE && valid_neighbors.len() > 1 {
+        let next = if !valid_neighbors.is_empty()
+            && rng.gen::<f32>() < MEANDER_CHANCE
+            && valid_neighbors.len() > 1
+        {
             // Sometimes pick a suboptimal path for more natural rivers
             let idx = rng.gen_range(0..valid_neighbors.len().min(2));
             &valid_neighbors[idx]
@@ -214,13 +224,13 @@ fn trace_river_path(
             // Usually pick the lowest neighbor
             &valid_neighbors[0]
         };
-        
+
         river_path.push(next.0.id);
         current_id = next.0.id;
         visited.insert(next.1);
         flow += FLOW_INCREMENT;
     }
-    
+
     (river_path, delta_tiles, flow)
 }
 
@@ -235,7 +245,7 @@ fn apply_terrain_changes(
     for (idx, province) in provinces.iter().enumerate() {
         province_id_to_idx.insert(province.id.value(), idx);
     }
-    
+
     // Convert high-flow tiles to river terrain
     for (province_id, flow) in flow_accumulation {
         if *flow > MIN_VISIBLE_FLOW {
@@ -244,7 +254,7 @@ fn apply_terrain_changes(
             }
         }
     }
-    
+
     // Convert delta tiles to delta terrain
     for &delta_id in delta_tiles {
         if let Some(&idx) = province_id_to_idx.get(&delta_id.value()) {
@@ -262,81 +272,84 @@ fn generate_rivers_internal(
     min_elevation: f32,
 ) -> Result<RiverSystem, RiverGenerationError> {
     let start = std::time::Instant::now();
-    
+
     if provinces.is_empty() {
         return Err(RiverGenerationError::EmptyProvinces);
     }
-    
+
     if dimensions.provinces_per_row == 0 {
         return Err(RiverGenerationError::InvalidDimensions(
-            "provinces_per_row cannot be zero".to_string()
+            "provinces_per_row cannot be zero".to_string(),
         ));
     }
-    
+
     let position_to_province = build_spatial_index(provinces, &dimensions);
-    
+
     let potential_sources = find_river_sources(provinces, min_elevation)?;
-    
+
     info!("Found {} potential river sources", potential_sources.len());
-    
+
     // Select river sources based on density with randomization
     let base_num_rivers = (RIVER_COUNT / RIVER_SOURCE_DIVISOR).min(potential_sources.len());
-    let num_rivers = ((base_num_rivers as f32 * river_density) as usize).min(potential_sources.len());
-    
+    let num_rivers =
+        ((base_num_rivers as f32 * river_density) as usize).min(potential_sources.len());
+
     // Randomly select sources for variety
     let mut shuffled_sources = potential_sources;
     shuffled_sources.shuffle(rng);
     let selected_sources: Vec<_> = shuffled_sources.into_iter().take(num_rivers).collect();
-    
+
     info!("Selected {} river sources to trace", selected_sources.len());
-    
+
     let base_seed = rng.gen::<u64>();
-    
+
     // Trace rivers in parallel for better performance
-    let river_results: Vec<(Vec<ProvinceId>, Vec<ProvinceId>, HashMap<u32, f32>)> = selected_sources
-        .par_iter()
-        .map(|(source_id, _source_pos, _elevation)| {
-            let (river_path, delta_tiles, flow) = trace_river_path(
-                *source_id,
-                &position_to_province,
-                &dimensions,
-                base_seed,
-            );
-            
-            let mut river_flow_map = HashMap::new();
-            for &tile_id in &river_path {
-                *river_flow_map.entry(tile_id.value()).or_insert(0.0) += flow;
-            }
-            
-            (river_path, delta_tiles, river_flow_map)
-        })
-        .collect();
-    
+    let river_results: Vec<(Vec<ProvinceId>, Vec<ProvinceId>, HashMap<u32, f32>)> =
+        selected_sources
+            .par_iter()
+            .map(|(source_id, _source_pos, _elevation)| {
+                let (river_path, delta_tiles, flow) =
+                    trace_river_path(*source_id, &position_to_province, &dimensions, base_seed);
+
+                let mut river_flow_map = HashMap::new();
+                for &tile_id in &river_path {
+                    *river_flow_map.entry(tile_id.value()).or_insert(0.0) += flow;
+                }
+
+                (river_path, delta_tiles, river_flow_map)
+            })
+            .collect();
+
     // Merge results from parallel execution
     let mut all_river_tiles = Vec::new();
     let mut all_delta_tiles = Vec::new();
     let mut flow_accumulation: HashMap<u32, f32> = HashMap::new();
-    
+
     for (river_path, delta_tiles, river_flow) in river_results {
         all_river_tiles.extend(river_path);
         all_delta_tiles.extend(delta_tiles);
-        
+
         // Merge flow accumulation maps
         for (tile_id, flow) in river_flow {
             *flow_accumulation.entry(tile_id).or_insert(0.0) += flow;
         }
     }
-    
+
     // Apply terrain changes based on flow
-    apply_terrain_changes(provinces, &all_river_tiles, &all_delta_tiles, &flow_accumulation);
-    
+    apply_terrain_changes(
+        provinces,
+        &all_river_tiles,
+        &all_delta_tiles,
+        &flow_accumulation,
+    );
+
     info!(
         "River generation completed in {:.2}s: {} river tiles, {} delta tiles",
         start.elapsed().as_secs_f32(),
         all_river_tiles.len(),
         all_delta_tiles.len()
     );
-    
+
     // Convert HashMap to Vec indexed by province ID
     let mut flow_accumulation_vec = vec![0.0; provinces.len()];
     for (province_id, flow) in flow_accumulation {

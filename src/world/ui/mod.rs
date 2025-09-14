@@ -39,22 +39,22 @@
 
 // PRIVATE MODULES - UI implementation details
 
-mod config;  // World configuration screen (1800+ lines of UI code)
+mod config; // World configuration screen (1800+ lines of UI code)
 
 // SELECTIVE PUBLIC EXPORTS - Controlled UI API
 
 // Re-export configuration types and plugin
 pub use config::{
-    WorldGenerationSettings,
-    WorldConfigPlugin,
-
-    // Enums for world configuration
-    WorldPreset,
+    AggressionLevel,
     ClimateType,
     IslandFrequency,
-    MountainDensity,
-    AggressionLevel,
-    TradePropensity,
-    ResourceAbundance,
     MineralDistribution,
+    MountainDensity,
+    ResourceAbundance,
+    TradePropensity,
+    WorldConfigPlugin,
+
+    WorldGenerationSettings,
+    // Enums for world configuration
+    WorldPreset,
 };

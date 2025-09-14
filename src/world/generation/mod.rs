@@ -9,9 +9,9 @@ use bevy::prelude::*;
 
 // PRIVATE MODULES - Only orchestration logic
 
-mod builder;     // Main world builder orchestrator
-mod errors;      // Error types for generation failures
-mod utils;       // Shared utilities
+mod builder; // Main world builder orchestrator
+mod errors; // Error types for generation failures
+mod utils; // Shared utilities
 
 // PUBLIC INTERFACE - The only way to generate worlds
 
@@ -20,7 +20,6 @@ pub use builder::WorldBuilder;
 
 // Re-export error types for generation failures
 pub use errors::{WorldGenerationError, WorldGenerationErrorType};
-
 
 /// Plugin that registers world generation systems
 pub struct GenerationPlugin;
@@ -36,5 +35,3 @@ impl Plugin for GenerationPlugin {
 fn log_generation_ready() {
     info!("World generation module ready");
 }
-
-

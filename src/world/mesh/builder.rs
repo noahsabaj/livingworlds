@@ -24,23 +24,19 @@ use bevy::render::render_asset::RenderAssetUsages;
 use rayon::prelude::*;
 use std::collections::HashMap;
 
-use crate::world::{Province, ProvinceId};
-use crate::world::colors::WorldColors;
 use crate::math::{
-    Hexagon, VERTICES_PER_HEX as VERTICES_PER_HEXAGON,
-    TRIANGLES_PER_HEX as TRIANGLES_PER_HEXAGON,
-    INDICES_PER_HEX as INDICES_PER_HEXAGON,
-    HEX_SIZE as HEX_SIZE_PIXELS,
-    CORNERS as HEXAGON_CORNERS,
+    Hexagon, CORNERS as HEXAGON_CORNERS, HEX_SIZE as HEX_SIZE_PIXELS,
+    INDICES_PER_HEX as INDICES_PER_HEXAGON, TRIANGLES_PER_HEX as TRIANGLES_PER_HEXAGON,
+    VERTICES_PER_HEX as VERTICES_PER_HEXAGON,
 };
-
+use crate::world::colors::WorldColors;
+use crate::world::{Province, ProvinceId};
 
 /// Minimum number of provinces to trigger parallel processing
 const PARALLEL_CHUNK_SIZE: usize = 10_000;
 
 /// Chunk size for parallel processing batches
 const PARALLEL_BATCH_SIZE: usize = 5_000;
-
 
 /// Errors that can occur during mesh building
 #[derive(Debug, thiserror::Error)]
@@ -55,7 +51,6 @@ pub enum MeshBuildError {
     InvalidPosition { index: usize, x: f32, y: f32 },
 }
 
-
 /// Statistics about the mesh build process
 #[derive(Debug, Clone)]
 pub struct MeshBuildStats {
@@ -68,7 +63,9 @@ pub struct MeshBuildStats {
 
 impl std::fmt::Display for MeshBuildStats {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Built {} provinces with {} vertices and {} indices ({:.1}MB in {:.1}ms)",
+        write!(
+            f,
+            "Built {} provinces with {} vertices and {} indices ({:.1}MB in {:.1}ms)",
             self.total_provinces,
             self.total_vertices,
             self.total_indices,
@@ -77,7 +74,6 @@ impl std::fmt::Display for MeshBuildStats {
         )
     }
 }
-
 
 /// Helper for hexagon vertex generation
 struct HexagonGeometry {
@@ -120,7 +116,6 @@ impl HexagonGeometry {
     }
 }
 
-
 /// Handle to the world mega-mesh
 #[derive(Resource)]
 pub struct WorldMeshHandle(pub Handle<Mesh>);
@@ -149,10 +144,11 @@ impl ProvinceStorage {
 
     /// Get a province by its ID
     pub fn get_by_id(&self, id: ProvinceId) -> Option<&Province> {
-        self.province_by_id.get(&id).map(|&idx| &self.provinces[idx])
+        self.province_by_id
+            .get(&id)
+            .map(|&idx| &self.provinces[idx])
     }
 }
-
 
 /// Mesh builder with configuration options
 pub struct MeshBuilder {
@@ -275,7 +271,11 @@ impl MeshBuilder {
 
                     // Generate colors
                     let world_colors = WorldColors::new(0);
-                    let color = world_colors.terrain(province.terrain, province.elevation.value(), Vec2::ZERO);
+                    let color = world_colors.terrain(
+                        province.terrain,
+                        province.elevation.value(),
+                        Vec2::ZERO,
+                    );
                     let rgba = color.to_linear().to_f32_array();
                     for _ in 0..VERTICES_PER_HEXAGON {
                         chunk_colors.push(rgba);
@@ -326,7 +326,8 @@ impl MeshBuilder {
 
             // Generate colors
             let world_colors = WorldColors::new(0);
-            let color = world_colors.terrain(province.terrain, province.elevation.value(), Vec2::ZERO);
+            let color =
+                world_colors.terrain(province.terrain, province.elevation.value(), Vec2::ZERO);
             let rgba = color.to_linear().to_f32_array();
             for _ in 0..VERTICES_PER_HEXAGON {
                 colors.push(rgba);
@@ -342,16 +343,13 @@ impl MeshBuilder {
         indices: &[u32],
         colors: &[[f32; 4]],
     ) -> usize {
-        vertices.len() * std::mem::size_of::<[f32; 3]>() +
-        indices.len() * std::mem::size_of::<u32>() +
-        colors.len() * std::mem::size_of::<[f32; 4]>()
+        vertices.len() * std::mem::size_of::<[f32; 3]>()
+            + indices.len() * std::mem::size_of::<u32>()
+            + colors.len() * std::mem::size_of::<[f32; 4]>()
     }
 }
 
-pub fn build_world_mesh(
-    provinces: &[Province],
-    meshes: &mut Assets<Mesh>,
-) -> Handle<Mesh> {
+pub fn build_world_mesh(provinces: &[Province], meshes: &mut Assets<Mesh>) -> Handle<Mesh> {
     match MeshBuilder::default().build(provinces, meshes) {
         Ok((handle, _stats)) => handle,
         Err(e) => {

@@ -20,156 +20,85 @@
 
 // PRIVATE FEATURE MODULES - Implementation details are hidden
 
-mod clouds;     // Cloud system (data, generation, rendering)
-mod colors;     // Color system (themes, providers, calculations)
-mod terrain;    // Terrain types, climate, erosion
-mod provinces;  // Province data, spatial indexing, agriculture
-mod rivers;     // River systems and flow
-mod minerals;   // Mineral resources
-mod mesh;       // World mesh rendering
-mod borders;    // Border rendering
-mod overlay;    // Overlay rendering modes
+mod borders; // Border rendering
+mod clouds; // Cloud system (data, generation, rendering)
+mod colors; // Color system (themes, providers, calculations)
+mod mesh; // World mesh rendering
+mod minerals; // Mineral resources
+mod overlay;
+mod provinces; // Province data, spatial indexing, agriculture
+mod rivers; // River systems and flow
+mod terrain; // Terrain types, climate, erosion // Overlay rendering modes
 
 // Non-feature modules
-mod core;        // Core world data structures (World)
-mod generation;  // World generation orchestrator
-mod simulation;  // Simulation events
-mod ui;          // World configuration UI
-mod setup;       // Bevy integration layer (Plugin, systems, resources)
+mod core; // Core world data structures (World)
+mod generation; // World generation orchestrator
+mod setup;
+mod simulation; // Simulation events
+mod ui; // World configuration UI // Bevy integration layer (Plugin, systems, resources)
 
 // SELECTIVE PUBLIC EXPORTS - The controlled API surface
 
 // === Core Data Structure ===
-pub use core::{
-    World,
-    WorldSeed,
-    WorldName,
-    WorldSize,
-    MapDimensions,
-    MapBounds,
-};
+pub use core::{MapBounds, MapDimensions, World, WorldName, WorldSeed, WorldSize};
 
 // === Clouds Feature ===
 pub use clouds::{
-    CloudSystem,
-    CloudData,
-    CloudLayer,
-    CloudEntity,
-    CloudBuilder,
-    CloudPlugin,
-    CloudSprite,
-    CloudFormationType,
-    generate_cloud_formation,
-    create_cloud_texture,
-    CloudTextureParams,
-    animate_clouds,
-    update_weather_system,
-    dynamic_cloud_spawn_system,
-    WeatherState,
-    WeatherSystem,
+    animate_clouds, create_cloud_texture, dynamic_cloud_spawn_system, generate_cloud_formation,
+    update_weather_system, CloudBuilder, CloudData, CloudEntity, CloudFormationType, CloudLayer,
+    CloudPlugin, CloudSprite, CloudSystem, CloudTextureParams, WeatherState, WeatherSystem,
 };
 
 // === Terrain Feature ===
 pub use terrain::{
-    TerrainEntity,
-    TerrainType,
-    ClimateZone,
-    Biome,
-    classify_terrain_with_climate,
-    TerrainPlugin,
-    apply_erosion_to_provinces,
-    apply_climate_to_provinces,
+    apply_climate_to_provinces, apply_erosion_to_provinces, classify_terrain_with_climate, Biome,
+    ClimateZone, TerrainEntity, TerrainPlugin, TerrainType,
 };
 
 // === Provinces Feature ===
 pub use provinces::{
-    Province,
-    ProvinceId,
-    Elevation,
-    Agriculture,
-    Distance,
-    Abundance,
-    HexDirection,
-    ProvincesSpatialIndex,
+    calculate_agriculture_values, calculate_ocean_depths, Abundance, Agriculture, Distance,
+    Elevation, HexDirection, Province, ProvinceBuilder, ProvinceId, ProvincesSpatialIndex,
     WorldBounds,
-    ProvinceBuilder,
-    calculate_agriculture_values,
-    calculate_ocean_depths,
 };
 
 // === Rivers Feature ===
-pub use rivers::{
-    RiverSystem,
-    RiverBuilder,
-};
+pub use rivers::{RiverBuilder, RiverSystem};
 
 // === Minerals Feature ===
-pub use minerals::*;  // Re-export all mineral types
+pub use minerals::*; // Re-export all mineral types
 
 // === Borders Feature ===
-pub use borders::{
-    BorderEntity,
-    SelectionBorder,
-    BorderPlugin,
-};
+pub use borders::{BorderEntity, BorderPlugin, SelectionBorder};
 
 // === Mesh Rendering ===
-pub use mesh::{
-    build_world_mesh,
-    ProvinceStorage,
-    WorldMeshHandle,
-    MeshBuilder,
-    MeshBuildStats,
-};
+pub use mesh::{build_world_mesh, MeshBuildStats, MeshBuilder, ProvinceStorage, WorldMeshHandle};
 
 // === Overlay System ===
 pub use overlay::{
-    update_province_colors,
-    OverlayMode,
-    ResourceOverlay,
-    CachedOverlayColors,
-    OverlayPlugin,
+    update_province_colors, CachedOverlayColors, OverlayMode, OverlayPlugin, ResourceOverlay,
 };
 
 // === Color System ===
-pub use colors::{
-    WorldColors,
-    StoneAbundance,
-    SafeColor,
-    ColorProvider,
-    Colorable,
-    theme_colors,
-};
+pub use colors::{theme_colors, ColorProvider, Colorable, SafeColor, StoneAbundance, WorldColors};
 
 // === World UI ===
 pub use ui::{
-    WorldGenerationSettings,
-    WorldConfigPlugin,
-    ClimateType,
-    WorldPreset,
-    IslandFrequency,
-    MountainDensity,
-    AggressionLevel,
-    TradePropensity,
-    ResourceAbundance,
-    MineralDistribution,
+    AggressionLevel, ClimateType, IslandFrequency, MineralDistribution, MountainDensity,
+    ResourceAbundance, TradePropensity, WorldConfigPlugin, WorldGenerationSettings, WorldPreset,
 };
 
 // === World Generation ===
-pub use generation::{
-    WorldBuilder,
-    WorldGenerationError,
-    WorldGenerationErrorType,
-};
+pub use generation::{WorldBuilder, WorldGenerationError, WorldGenerationErrorType};
 
 // === World Simulation ===
-pub use simulation::*;  // Events and simulation systems
+pub use simulation::*; // Events and simulation systems
 
 // === Bevy Integration (from setup.rs) ===
 pub use setup::{
     setup_world,
-    WorldPlugin,        // Main plugin that registers everything
-    WorldGeneratedEvent,
     ProvinceSelectedEvent,
+    WorldGeneratedEvent,
+    WorldPlugin, // Main plugin that registers everything
     WorldSetupError,
 };

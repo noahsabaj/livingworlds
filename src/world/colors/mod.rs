@@ -21,12 +21,12 @@
 //! - `world_colors` - Main API implementation
 
 // PRIVATE MODULES - No direct access allowed
-mod theme;
-mod terrain;
 mod biomes;
-mod minerals;
 mod dynamic;
+mod minerals;
 mod providers;
+mod terrain;
+mod theme;
 mod utils;
 mod world_colors;
 
@@ -37,8 +37,8 @@ mod world_colors;
 pub use world_colors::WorldColors;
 
 // Types
-pub use utils::{StoneAbundance, SafeColor};
 pub use providers::{ColorProvider, Colorable};
+pub use utils::{SafeColor, StoneAbundance};
 
 // Theme constants (read-only access)
 pub mod theme_colors {

@@ -3,9 +3,9 @@
 //! This module contains all the marker components used to identify
 //! UI elements in the world configuration screen.
 
-use bevy::prelude::*;
 use super::types::*;
 use crate::resources::WorldSize;
+use bevy::prelude::*;
 
 // Root markers
 #[derive(Component)]
@@ -120,30 +120,42 @@ pub trait SelectionComponent {
 
 impl SelectionComponent for ClimateButton {
     type Value = ClimateType;
-    fn value(&self) -> Self::Value { self.0 }
+    fn value(&self) -> Self::Value {
+        self.0
+    }
 }
 
 impl SelectionComponent for IslandButton {
     type Value = IslandFrequency;
-    fn value(&self) -> Self::Value { self.0 }
+    fn value(&self) -> Self::Value {
+        self.0
+    }
 }
 
 impl SelectionComponent for AggressionButton {
     type Value = AggressionLevel;
-    fn value(&self) -> Self::Value { self.0 }
+    fn value(&self) -> Self::Value {
+        self.0
+    }
 }
 
 impl SelectionComponent for ResourceButton {
     type Value = ResourceAbundance;
-    fn value(&self) -> Self::Value { self.0 }
+    fn value(&self) -> Self::Value {
+        self.0
+    }
 }
 
 impl SelectionComponent for PresetButton {
     type Value = WorldPreset;
-    fn value(&self) -> Self::Value { self.0 }
+    fn value(&self) -> Self::Value {
+        self.0
+    }
 }
 
 impl SelectionComponent for SizeButton {
     type Value = WorldSize;
-    fn value(&self) -> Self::Value { self.0 }
+    fn value(&self) -> Self::Value {
+        self.0
+    }
 }

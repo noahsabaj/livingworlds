@@ -2,11 +2,11 @@
 //!
 //! This module handles updating display text for various UI elements.
 
-use bevy::prelude::*;
-use bevy_simple_text_input::TextInputValue;
-use crate::resources::WorldSize;
 use super::super::components::*;
 use super::super::types::WorldGenerationSettings;
+use crate::resources::WorldSize;
+use bevy::prelude::*;
+use bevy_simple_text_input::TextInputValue;
 
 pub fn update_seed_display(
     settings: Res<WorldGenerationSettings>,
@@ -34,9 +34,33 @@ pub fn update_slider_displays(
     settings: Res<WorldGenerationSettings>,
     mut continent_text: Query<&mut Text, With<ContinentValueText>>,
     mut ocean_text: Query<&mut Text, (With<OceanValueText>, Without<ContinentValueText>)>,
-    mut river_text: Query<&mut Text, (With<RiverValueText>, Without<OceanValueText>, Without<ContinentValueText>)>,
-    mut nations_text: Query<&mut Text, (With<StartingNationsValueText>, Without<RiverValueText>, Without<OceanValueText>, Without<ContinentValueText>)>,
-    mut tech_text: Query<&mut Text, (With<TechSpeedValueText>, Without<StartingNationsValueText>, Without<RiverValueText>, Without<OceanValueText>, Without<ContinentValueText>)>,
+    mut river_text: Query<
+        &mut Text,
+        (
+            With<RiverValueText>,
+            Without<OceanValueText>,
+            Without<ContinentValueText>,
+        ),
+    >,
+    mut nations_text: Query<
+        &mut Text,
+        (
+            With<StartingNationsValueText>,
+            Without<RiverValueText>,
+            Without<OceanValueText>,
+            Without<ContinentValueText>,
+        ),
+    >,
+    mut tech_text: Query<
+        &mut Text,
+        (
+            With<TechSpeedValueText>,
+            Without<StartingNationsValueText>,
+            Without<RiverValueText>,
+            Without<OceanValueText>,
+            Without<ContinentValueText>,
+        ),
+    >,
 ) {
     for mut text in &mut continent_text {
         text.0 = settings.continent_count.to_string();

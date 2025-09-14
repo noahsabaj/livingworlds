@@ -2,11 +2,11 @@
 //!
 //! This module creates the UI for world preset selection.
 
-use bevy::prelude::*;
-use crate::ui::{PanelBuilder, PanelStyle};
-use crate::ui::{colors, dimensions, helpers};
 use super::super::components::{PresetButton, PresetDescription, PresetDescriptionText};
 use super::super::types::WorldPreset;
+use crate::ui::{colors, dimensions, helpers};
+use crate::ui::{PanelBuilder, PanelStyle};
+use bevy::prelude::*;
 
 pub fn spawn_preset_section(parent: &mut ChildSpawnerCommands) {
     parent.spawn((

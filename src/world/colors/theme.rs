@@ -17,39 +17,39 @@ pub const DELTA: Color = Color::srgb(0.35, 0.5, 0.25);
 
 // POLAR BIOME COLORS
 
-pub const POLAR_DESERT: Color = Color::srgb(0.88, 0.88, 0.92);  // Icy grey-white
-pub const TUNDRA: Color = Color::srgb(0.65, 0.6, 0.55);         // Grey-brown
+pub const POLAR_DESERT: Color = Color::srgb(0.88, 0.88, 0.92); // Icy grey-white
+pub const TUNDRA: Color = Color::srgb(0.65, 0.6, 0.55); // Grey-brown
 
 // COLD BIOME COLORS
 
-pub const TAIGA: Color = Color::srgb(0.1, 0.25, 0.15);          // Dark evergreen
-pub const BOREAL_FOREST: Color = Color::srgb(0.12, 0.3, 0.18);  // Slightly lighter evergreen
+pub const TAIGA: Color = Color::srgb(0.1, 0.25, 0.15); // Dark evergreen
+pub const BOREAL_FOREST: Color = Color::srgb(0.12, 0.3, 0.18); // Slightly lighter evergreen
 
 // TEMPERATE BIOME COLORS
 
-pub const TEMPERATE_RAINFOREST: Color = Color::srgb(0.05, 0.35, 0.15);      // Deep lush green
+pub const TEMPERATE_RAINFOREST: Color = Color::srgb(0.05, 0.35, 0.15); // Deep lush green
 pub const TEMPERATE_DECIDUOUS_FOREST: Color = Color::srgb(0.15, 0.4, 0.12); // Mixed forest green
-pub const TEMPERATE_GRASSLAND: Color = Color::srgb(0.4, 0.65, 0.3);         // Prairie green
-pub const COLD_DESERT: Color = Color::srgb(0.7, 0.65, 0.55);                // Grey-tan
+pub const TEMPERATE_GRASSLAND: Color = Color::srgb(0.4, 0.65, 0.3); // Prairie green
+pub const COLD_DESERT: Color = Color::srgb(0.7, 0.65, 0.55); // Grey-tan
 
 // SUBTROPICAL BIOME COLORS
 
-pub const MEDITERRANEAN_FOREST: Color = Color::srgb(0.3, 0.45, 0.25);  // Olive green
-pub const CHAPARRAL: Color = Color::srgb(0.55, 0.5, 0.35);            // Dry shrubland brown
-pub const SUBTROPICAL_DESERT: Color = Color::srgb(0.92, 0.82, 0.6);    // Sandy yellow
+pub const MEDITERRANEAN_FOREST: Color = Color::srgb(0.3, 0.45, 0.25); // Olive green
+pub const CHAPARRAL: Color = Color::srgb(0.55, 0.5, 0.35); // Dry shrubland brown
+pub const SUBTROPICAL_DESERT: Color = Color::srgb(0.92, 0.82, 0.6); // Sandy yellow
 
 // TROPICAL BIOME COLORS
 
-pub const TROPICAL_RAINFOREST: Color = Color::srgb(0.02, 0.28, 0.05);       // Deep jungle green
-pub const TROPICAL_SEASONAL_FOREST: Color = Color::srgb(0.15, 0.38, 0.08);  // Monsoon forest
-pub const SAVANNA: Color = Color::srgb(0.75, 0.7, 0.4);                     // Dry grass yellow
-pub const TROPICAL_DESERT: Color = Color::srgb(0.95, 0.85, 0.55);           // Bright sand
+pub const TROPICAL_RAINFOREST: Color = Color::srgb(0.02, 0.28, 0.05); // Deep jungle green
+pub const TROPICAL_SEASONAL_FOREST: Color = Color::srgb(0.15, 0.38, 0.08); // Monsoon forest
+pub const SAVANNA: Color = Color::srgb(0.75, 0.7, 0.4); // Dry grass yellow
+pub const TROPICAL_DESERT: Color = Color::srgb(0.95, 0.85, 0.55); // Bright sand
 
 // SPECIAL BIOME COLORS
 
-pub const ALPINE: Color = Color::srgb(0.75, 0.75, 0.8);        // Mountain meadow grey-green
-pub const WETLANDS: Color = Color::srgb(0.25, 0.35, 0.2);      // Swamp dark green
-pub const MANGROVE: Color = Color::srgb(0.18, 0.32, 0.22);     // Coastal marsh green
+pub const ALPINE: Color = Color::srgb(0.75, 0.75, 0.8); // Mountain meadow grey-green
+pub const WETLANDS: Color = Color::srgb(0.25, 0.35, 0.2); // Swamp dark green
+pub const MANGROVE: Color = Color::srgb(0.18, 0.32, 0.22); // Coastal marsh green
 
 // MINERAL COLORS
 

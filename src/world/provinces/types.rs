@@ -3,13 +3,13 @@
 //! This module contains the core Province struct and its type-safe wrappers.
 //! Provinces represent individual hexagonal tiles in the game world.
 
-use bevy::prelude::*;
-use bevy::reflect::Reflect;
-use serde::{Serialize, Deserialize};
-use std::fmt;
+use crate::components::MineralType;
 use crate::constants::PROVINCE_MIN_POPULATION;
 use crate::world::TerrainType;
-use crate::components::MineralType;
+use bevy::prelude::*;
+use bevy::reflect::Reflect;
+use serde::{Deserialize, Serialize};
+use std::fmt;
 
 // TYPE-SAFE WRAPPERS - Zero-cost abstractions for compile-time validation
 
@@ -227,7 +227,6 @@ impl From<u8> for Abundance {
     }
 }
 
-
 /// The 6 directions for hexagonal neighbors
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u8)]
@@ -239,7 +238,6 @@ pub enum HexDirection {
     West = 4,
     NorthWest = 5,
 }
-
 
 /// Province represents a single hexagonal tile in the world
 ///
@@ -374,9 +372,9 @@ impl Province {
 
     /// Check if this province has fresh water access
     pub fn has_fresh_water(&self) -> bool {
-        self.terrain == TerrainType::River ||
-        self.terrain == TerrainType::Delta ||
-        self.fresh_water_distance.within(2.0)
+        self.terrain == TerrainType::River
+            || self.terrain == TerrainType::Delta
+            || self.fresh_water_distance.within(2.0)
     }
 
     /// Calculate population growth multiplier based on terrain and resources
@@ -408,10 +406,13 @@ impl Province {
             _ => 0,
         };
 
-        if abundance > 0 { Some(abundance) } else { None }
+        if abundance > 0 {
+            Some(abundance)
+        } else {
+            None
+        }
     }
 }
-
 
 /// Builder for creating provinces with a fluent API
 pub struct ProvinceBuilder {
@@ -424,7 +425,7 @@ impl ProvinceBuilder {
             province: Province {
                 id,
                 ..Default::default()
-            }
+            },
         }
     }
 

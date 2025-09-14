@@ -5,9 +5,5 @@ mod builder;
 
 // PUBLIC EXPORTS
 pub use builder::{
-    build_world_mesh,
-    ProvinceStorage,
-    WorldMeshHandle,
-    MeshBuilder,
-    MeshBuildStats,
+    build_world_mesh, MeshBuildStats, MeshBuilder, ProvinceStorage, WorldMeshHandle,
 };

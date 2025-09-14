@@ -30,9 +30,7 @@ impl CloudSystem {
 
     /// Get clouds by layer
     pub fn get_layer(&self, layer: CloudLayer) -> Vec<&CloudData> {
-        self.clouds.iter()
-            .filter(|c| c.layer == layer)
-            .collect()
+        self.clouds.iter().filter(|c| c.layer == layer).collect()
     }
 
     /// Get total number of clouds

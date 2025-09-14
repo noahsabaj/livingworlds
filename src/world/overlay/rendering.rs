@@ -1,18 +1,17 @@
 //! Map overlay rendering system for Living Worlds
-//! 
+//!
 //! This module handles all visual overlay modes for the map including
 //! political boundaries, terrain, mineral resources, and infrastructure.
 //! It acts as the central coordinator for how provinces are visually
 //! represented based on the current viewing mode.
 
-use bevy::prelude::*;
-use bevy::render::mesh::Mesh;
 use crate::constants::MS_PER_SECOND;
 use crate::resources::ResourceOverlay;
+use bevy::prelude::*;
+use bevy::render::mesh::Mesh;
 // TerrainType import moved to CachedOverlayColors
 // Color calculations moved to CachedOverlayColors::get_or_calculate
 use crate::world::mesh::ProvinceStorage;
-
 
 /// Bytes per megabyte for memory calculations
 const BYTES_PER_MB: f32 = 1024.0 * 1024.0;
@@ -28,9 +27,11 @@ pub fn update_province_colors(
     time: Res<Time>,
 ) {
     let start = std::time::Instant::now();
-    trace!("Starting color update for overlay: {} at {:.3}s",
-           overlay.display_name(),
-           time.elapsed_secs());
+    trace!(
+        "Starting color update for overlay: {} at {:.3}s",
+        overlay.display_name(),
+        time.elapsed_secs()
+    );
 
     // System already only runs when overlay changes due to run_if condition
 
@@ -76,15 +77,18 @@ impl Plugin for OverlayPlugin {
     fn build(&self, app: &mut App) {
         use crate::states::GameState;
 
-        app
-            .init_resource::<ResourceOverlay>()
+        app.init_resource::<ResourceOverlay>()
             .init_resource::<crate::resources::CachedOverlayColors>()
             // Initialize with default overlay only - others loaded on-demand
             .add_systems(OnExit(GameState::LoadingWorld), initialize_overlay_colors)
-            .add_systems(Update, (
-                handle_overlay_input,
-                update_province_colors.run_if(resource_changed::<ResourceOverlay>),
-            ).run_if(in_state(GameState::InGame)));
+            .add_systems(
+                Update,
+                (
+                    handle_overlay_input,
+                    update_province_colors.run_if(resource_changed::<ResourceOverlay>),
+                )
+                    .run_if(in_state(GameState::InGame)),
+            );
     }
 }
 
@@ -98,9 +102,11 @@ pub fn handle_overlay_input(
     if keyboard.just_pressed(KeyCode::KeyM) {
         let start = std::time::Instant::now();
         overlay_res.cycle();
-        debug!("Overlay switched to: {} (input lag: {:.1}ms)", 
-               overlay_res.display_name(),
-               start.elapsed().as_secs_f32() * MS_PER_SECOND);
+        debug!(
+            "Overlay switched to: {} (input lag: {:.1}ms)",
+            overlay_res.display_name(),
+            start.elapsed().as_secs_f32() * MS_PER_SECOND
+        );
     }
 }
 
@@ -112,7 +118,10 @@ pub fn initialize_overlay_colors(
     province_storage: Res<ProvinceStorage>,
     mut cached_colors: ResMut<crate::resources::CachedOverlayColors>,
 ) {
-    info!("Initializing overlay system for {} provinces", province_storage.provinces.len());
+    info!(
+        "Initializing overlay system for {} provinces",
+        province_storage.provinces.len()
+    );
     let start = std::time::Instant::now();
 
     // Only pre-calculate the default terrain overlay
@@ -123,7 +132,9 @@ pub fn initialize_overlay_colors(
     let elapsed = start.elapsed();
     let memory_mb = cached_colors.memory_usage_mb();
 
-    info!("Overlay system initialized in {:.2}s (using {:.1}MB)",
-          elapsed.as_secs_f32(),
-          memory_mb);
+    info!(
+        "Overlay system initialized in {:.2}s (using {:.1}MB)",
+        elapsed.as_secs_f32(),
+        memory_mb
+    );
 }

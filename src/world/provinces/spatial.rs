@@ -3,10 +3,9 @@
 //! This module provides O(1) spatial lookups for provinces using grid-based indexing.
 //! Essential for mouse picking, neighbor queries, and other spatial operations.
 
+use super::types::ProvinceId;
 use bevy::prelude::*;
 use std::collections::HashMap;
-use super::types::ProvinceId;
-
 
 /// Grid-based spatial index for O(1) province lookups
 ///
@@ -29,7 +28,10 @@ impl ProvincesSpatialIndex {
         Self::default()
     }
 
-    pub fn build(provinces: &[super::types::Province], dimensions: &crate::resources::MapDimensions) -> Self {
+    pub fn build(
+        provinces: &[super::types::Province],
+        dimensions: &crate::resources::MapDimensions,
+    ) -> Self {
         let mut index = Self::new();
 
         let half_width = (dimensions.provinces_per_row as f32 * dimensions.hex_size * 1.732) / 2.0;
@@ -73,10 +75,10 @@ impl ProvincesSpatialIndex {
 
     /// Check if a position is within world bounds
     pub fn in_bounds(&self, position: Vec2) -> bool {
-        position.x >= self.bounds.min.x &&
-        position.x <= self.bounds.max.x &&
-        position.y >= self.bounds.min.y &&
-        position.y <= self.bounds.max.y
+        position.x >= self.bounds.min.x
+            && position.x <= self.bounds.max.x
+            && position.y >= self.bounds.min.y
+            && position.y <= self.bounds.max.y
     }
 
     pub fn bounds(&self) -> &WorldBounds {
@@ -161,13 +163,12 @@ impl WorldBounds {
 
     /// Check if a position is within bounds
     pub fn contains(&self, position: Vec2) -> bool {
-        position.x >= self.min.x &&
-        position.x <= self.max.x &&
-        position.y >= self.min.y &&
-        position.y <= self.max.y
+        position.x >= self.min.x
+            && position.x <= self.max.x
+            && position.y >= self.min.y
+            && position.y <= self.max.y
     }
 }
-
 
 /// Calculate hexagonal neighbors for a province at the given grid coordinates
 ///
@@ -188,12 +189,12 @@ pub fn calculate_hex_neighbors(
     let offsets = if is_odd_col {
         // Odd columns are shifted down
         [
-            (1, 0),   // NE
-            (1, 1),   // E
-            (0, 1),   // SE
-            (-1, 1),  // SW
-            (-1, 0),  // W
-            (0, -1),  // NW
+            (1, 0),  // NE
+            (1, 1),  // E
+            (0, 1),  // SE
+            (-1, 1), // SW
+            (-1, 0), // W
+            (0, -1), // NW
         ]
     } else {
         // Even columns
@@ -211,10 +212,10 @@ pub fn calculate_hex_neighbors(
         let new_col = col as i32 + dc;
         let new_row = row as i32 + dr;
 
-        if new_col >= 0 &&
-           new_col < provinces_per_row as i32 &&
-           new_row >= 0 &&
-           new_row < provinces_per_col as i32
+        if new_col >= 0
+            && new_col < provinces_per_row as i32
+            && new_row >= 0
+            && new_row < provinces_per_col as i32
         {
             let neighbor_id = (new_row as u32) * provinces_per_row + (new_col as u32);
             neighbors[i] = Some(ProvinceId::new(neighbor_id));

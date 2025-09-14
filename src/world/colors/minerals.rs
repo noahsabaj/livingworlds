@@ -3,11 +3,11 @@
 //! This module provides color functions for mineral resources, including
 //! type-specific colors and abundance heat maps.
 
-use bevy::prelude::Color;
-use crate::components::MineralType;
-use crate::math::lerp_color;
 use super::theme;
 use super::utils::StoneAbundance;
+use crate::components::MineralType;
+use crate::math::lerp_color;
+use bevy::prelude::Color;
 
 /// Get color for a specific mineral type
 pub fn get_mineral_color(mineral_type: MineralType) -> Color {
@@ -66,7 +66,7 @@ pub fn mineral_abundance_color(abundance: u8) -> Color {
 /// Earth tone colors for stone deposits, or ocean blue for no stone
 pub fn stone_abundance_color(abundance: StoneAbundance) -> Color {
     if abundance.value() == 0 {
-        Color::srgb(0.0, 0.1, 0.2)  // Ocean blue
+        Color::srgb(0.0, 0.1, 0.2) // Ocean blue
     } else {
         let normalized = abundance.normalized();
         if normalized < 0.5 {

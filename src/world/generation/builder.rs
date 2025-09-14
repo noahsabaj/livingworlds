@@ -3,11 +3,11 @@
 //! This module contains the main WorldBuilder that orchestrates all generation steps
 //! to create a complete World data structure.
 
-use rand::{SeedableRng, rngs::StdRng};
+use rand::{rngs::StdRng, SeedableRng};
 use std::collections::HashMap;
 
-use crate::resources::{WorldSize, MapDimensions};
 use crate::constants::*;
+use crate::resources::{MapDimensions, WorldSize};
 use crate::world::World;
 
 // Import utilities
@@ -53,21 +53,19 @@ impl WorldBuilder {
         let start = std::time::Instant::now();
 
         // Step 1: Generate provinces with Perlin noise elevation
-        let mut provinces = crate::world::ProvinceBuilder::new(
-            self.dimensions,
-            &mut self.rng,
-            self.seed,
-        )
-        .with_ocean_coverage(self.ocean_coverage)
-        .with_continent_count(self.continent_count)
-        .build();
+        let mut provinces =
+            crate::world::ProvinceBuilder::new(self.dimensions, &mut self.rng, self.seed)
+                .with_ocean_coverage(self.ocean_coverage)
+                .with_continent_count(self.continent_count)
+                .build();
 
         // Step 2: Apply erosion simulation for realistic terrain
-        let erosion_iterations = match self.dimensions.provinces_per_row * self.dimensions.provinces_per_col {
-            n if n < 400_000 => 3_000,
-            n if n < 700_000 => 5_000,
-            _ => 8_000,
-        };
+        let erosion_iterations =
+            match self.dimensions.provinces_per_row * self.dimensions.provinces_per_col {
+                n if n < 400_000 => 3_000,
+                n if n < 700_000 => 5_000,
+                _ => 8_000,
+            };
         crate::world::apply_erosion_to_provinces(
             &mut provinces,
             self.dimensions,
@@ -82,24 +80,18 @@ impl WorldBuilder {
         crate::world::apply_climate_to_provinces(&mut provinces, self.dimensions);
 
         // Step 5: Generate river systems
-        let river_system = crate::world::RiverBuilder::new(
-            &mut provinces,
-            self.dimensions,
-            &mut self.rng,
-        )
-        .with_density(self.river_density)
-        .build()
-        .expect("Failed to generate rivers");
+        let river_system =
+            crate::world::RiverBuilder::new(&mut provinces, self.dimensions, &mut self.rng)
+                .with_density(self.river_density)
+                .build()
+                .expect("Failed to generate rivers");
 
         // Step 6: Calculate agriculture values
         crate::world::calculate_agriculture_values(&mut provinces, &river_system, self.dimensions)
             .expect("Failed to calculate agriculture");
 
         // Step 7: Generate cloud system
-        let cloud_system = crate::world::CloudBuilder::new(
-            &mut self.rng,
-            &self.dimensions,
-        ).build();
+        let cloud_system = crate::world::CloudBuilder::new(&mut self.rng, &self.dimensions).build();
 
         World {
             provinces,

@@ -4,13 +4,13 @@
 //! that transform tectonic heightmaps into realistic terrain with
 //! river valleys, sediment deposits, and natural drainage patterns.
 
+use crate::math::{euclidean_vec2, linear_falloff};
+use crate::world::{Elevation, Province};
 use bevy::prelude::Vec2;
-use rand::{Rng, rngs::StdRng, SeedableRng};
+use rand::{rngs::StdRng, Rng, SeedableRng};
 use rayon::prelude::*;
 use std::collections::HashMap;
 use std::sync::Mutex;
-use crate::math::{euclidean_vec2, linear_falloff};
-use crate::world::{Province, Elevation};
 
 // CONSTANTS - Erosion parameters tuned for realism
 
@@ -42,7 +42,7 @@ const GRAVITY: f32 = 4.0;
 const MAX_DROPLET_LIFETIME: usize = 100;
 
 /// Thermal erosion threshold angle (radians)
-const THERMAL_ANGLE_THRESHOLD: f32 = 0.6;  // ~34 degrees
+const THERMAL_ANGLE_THRESHOLD: f32 = 0.6; // ~34 degrees
 
 /// Thermal erosion rate
 const THERMAL_EROSION_RATE: f32 = 0.1;
@@ -55,7 +55,6 @@ const SMOOTHING_RADIUS: usize = 2;
 
 /// Inertia - how much previous direction affects new direction
 const INERTIA: f32 = 0.3;
-
 
 /// A water droplet for hydraulic erosion simulation
 #[derive(Debug, Clone)]
@@ -168,10 +167,7 @@ impl HeightMap {
                 let nx = (x + dx).min(self.width - 1);
                 let ny = (y + dy).min(self.height - 1);
 
-                let cell_pos = Vec2::new(
-                    nx as f32 * self.cell_size,
-                    ny as f32 * self.cell_size,
-                );
+                let cell_pos = Vec2::new(nx as f32 * self.cell_size, ny as f32 * self.cell_size);
 
                 let distance = euclidean_vec2(pos, cell_pos);
                 let weight = linear_falloff(distance, self.cell_size);
@@ -182,7 +178,6 @@ impl HeightMap {
         }
     }
 }
-
 
 /// Main erosion system that combines all erosion types
 pub struct ErosionSystem {
@@ -197,15 +192,23 @@ impl ErosionSystem {
 
     /// Run full erosion simulation
     pub fn erode(&mut self, iterations: usize) {
-        println!("  Starting erosion simulation ({} iterations)...", iterations);
-        println!("  Heightmap dimensions: {}x{} ({} total cells)",
+        println!(
+            "  Starting erosion simulation ({} iterations)...",
+            iterations
+        );
+        println!(
+            "  Heightmap dimensions: {}x{} ({} total cells)",
             self.heightmap.width,
             self.heightmap.height,
             self.heightmap.width * self.heightmap.height
         );
 
         // Reduced passes for better performance (was 3)
-        let num_passes = if self.heightmap.width * self.heightmap.height > 100_000 { 1 } else { 2 };
+        let num_passes = if self.heightmap.width * self.heightmap.height > 100_000 {
+            1
+        } else {
+            2
+        };
 
         for pass in 0..num_passes {
             println!("    Erosion pass {}/{}", pass + 1, num_passes);
@@ -214,7 +217,10 @@ impl ErosionSystem {
             self.hydraulic_erosion(iterations / num_passes);
 
             // Thermal erosion - material sliding down slopes
-            println!("      Starting thermal erosion ({} iterations)...", THERMAL_ITERATIONS);
+            println!(
+                "      Starting thermal erosion ({} iterations)...",
+                THERMAL_ITERATIONS
+            );
             self.thermal_erosion(THERMAL_ITERATIONS);
             println!("      Thermal erosion complete");
 
@@ -229,7 +235,7 @@ impl ErosionSystem {
 
     /// Hydraulic erosion - water flowing and carving terrain (PARALLELIZED)
     fn hydraulic_erosion(&mut self, droplets: usize) {
-        let batch_size = 500;  // Process 500 droplets at a time
+        let batch_size = 500; // Process 500 droplets at a time
         let num_batches = (droplets + batch_size - 1) / batch_size;
 
         let base_seed = self.rng.gen::<u64>();
@@ -253,11 +259,14 @@ impl ErosionSystem {
                 .into_par_iter()
                 .flat_map(|i| {
                     // Each thread gets its own RNG with unique seed
-                    let mut thread_rng = StdRng::seed_from_u64(base_seed + (batch_start + i) as u64);
+                    let mut thread_rng =
+                        StdRng::seed_from_u64(base_seed + (batch_start + i) as u64);
 
                     // Random starting position
-                    let start_x = thread_rng.gen_range(0.0..heightmap_width as f32) * heightmap_cell_size;
-                    let start_y = thread_rng.gen_range(0.0..heightmap_height as f32) * heightmap_cell_size;
+                    let start_x =
+                        thread_rng.gen_range(0.0..heightmap_width as f32) * heightmap_cell_size;
+                    let start_y =
+                        thread_rng.gen_range(0.0..heightmap_height as f32) * heightmap_cell_size;
                     let mut droplet = WaterDroplet::new(Vec2::new(start_x, start_y));
 
                     // Track changes this droplet wants to make
@@ -270,42 +279,48 @@ impl ErosionSystem {
                             heightmap_data,
                             heightmap_width,
                             heightmap_height,
-                            heightmap_cell_size
+                            heightmap_cell_size,
                         );
 
                         let flow_dir = -gradient.normalize_or_zero();
 
                         droplet.velocity = droplet.velocity * INERTIA + flow_dir * (1.0 - INERTIA);
-                        droplet.velocity = droplet.velocity.normalize_or_zero() * droplet.velocity.length().min(1.0);
+                        droplet.velocity = droplet.velocity.normalize_or_zero()
+                            * droplet.velocity.length().min(1.0);
 
                         // Move droplet
                         let old_pos = droplet.position;
                         droplet.position += droplet.velocity * heightmap_cell_size;
 
                         // Keep within bounds
-                        droplet.position.x = droplet.position.x.clamp(0.0,
-                            (heightmap_width - 1) as f32 * heightmap_cell_size);
-                        droplet.position.y = droplet.position.y.clamp(0.0,
-                            (heightmap_height - 1) as f32 * heightmap_cell_size);
+                        droplet.position.x = droplet
+                            .position
+                            .x
+                            .clamp(0.0, (heightmap_width - 1) as f32 * heightmap_cell_size);
+                        droplet.position.y = droplet
+                            .position
+                            .y
+                            .clamp(0.0, (heightmap_height - 1) as f32 * heightmap_cell_size);
 
                         let old_height = Self::get_interpolated_static(
                             old_pos,
                             heightmap_data,
                             heightmap_width,
                             heightmap_height,
-                            heightmap_cell_size
+                            heightmap_cell_size,
                         );
                         let new_height = Self::get_interpolated_static(
                             droplet.position,
                             heightmap_data,
                             heightmap_width,
                             heightmap_height,
-                            heightmap_cell_size
+                            heightmap_cell_size,
                         );
                         let height_diff = new_height - old_height;
 
                         let slope = gradient.length().max(MIN_SLOPE);
-                        let capacity = slope * droplet.water * droplet.velocity.length() * SEDIMENT_CAPACITY;
+                        let capacity =
+                            slope * droplet.water * droplet.velocity.length() * SEDIMENT_CAPACITY;
 
                         if height_diff > 0.0 || droplet.sediment > capacity {
                             // Deposit sediment
@@ -319,8 +334,8 @@ impl ErosionSystem {
                             droplet_changes.push((old_pos, amount_to_deposit));
                         } else {
                             // Erode terrain
-                            let amount_to_erode = ((capacity - droplet.sediment) * EROSION_RATE)
-                                .min(-height_diff);
+                            let amount_to_erode =
+                                ((capacity - droplet.sediment) * EROSION_RATE).min(-height_diff);
 
                             droplet.sediment += amount_to_erode;
                             droplet_changes.push((old_pos, -amount_to_erode));
@@ -403,28 +418,28 @@ impl ErosionSystem {
             data,
             width,
             height,
-            cell_size
+            cell_size,
         );
         let h_right = Self::get_interpolated_static(
             pos + Vec2::new(epsilon, 0.0),
             data,
             width,
             height,
-            cell_size
+            cell_size,
         );
         let h_down = Self::get_interpolated_static(
             pos - Vec2::new(0.0, epsilon),
             data,
             width,
             height,
-            cell_size
+            cell_size,
         );
         let h_up = Self::get_interpolated_static(
             pos + Vec2::new(0.0, epsilon),
             data,
             width,
             height,
-            cell_size
+            cell_size,
         );
 
         Vec2::new(
@@ -456,7 +471,9 @@ impl ErosionSystem {
 
                         for dy in -1i32..=1 {
                             for dx in -1i32..=1 {
-                                if dx == 0 && dy == 0 { continue; }
+                                if dx == 0 && dy == 0 {
+                                    continue;
+                                }
 
                                 let nx = (x as i32 + dx) as usize;
                                 let ny = (y as i32 + dy) as usize;
@@ -468,9 +485,9 @@ impl ErosionSystem {
 
                                     // Account for diagonal distance (Manhattan distance of 2 = diagonal)
                                     let distance = if dx.abs() + dy.abs() == 2 {
-                                        std::f32::consts::SQRT_2  // Diagonal distance
+                                        std::f32::consts::SQRT_2 // Diagonal distance
                                     } else {
-                                        1.0  // Cardinal direction distance
+                                        1.0 // Cardinal direction distance
                                     };
 
                                     let slope = height_diff / (distance * cell_size);
@@ -503,7 +520,10 @@ impl ErosionSystem {
 
             // Progress reporting for longer runs
             if iterations > 5 && (iter + 1) % 5 == 0 {
-                print!("\r        Thermal erosion: {}%", ((iter + 1) * 100 / iterations));
+                print!(
+                    "\r        Thermal erosion: {}%",
+                    ((iter + 1) * 100 / iterations)
+                );
             }
         }
 
@@ -532,8 +552,7 @@ impl ErosionSystem {
                             let nx = x as i32 + dx;
                             let ny = y as i32 + dy;
 
-                            if nx >= 0 && nx < width as i32 &&
-                               ny >= 0 && ny < height as i32 {
+                            if nx >= 0 && nx < width as i32 && ny >= 0 && ny < height as i32 {
                                 let idx = ny as usize * width + nx as usize;
                                 sum += old_data[idx];
                                 count += 1;
@@ -556,7 +575,6 @@ impl ErosionSystem {
     }
 }
 
-
 /// Apply erosion to province elevations
 pub fn apply_erosion_to_provinces(
     provinces: &mut [Province],
@@ -569,16 +587,18 @@ pub fn apply_erosion_to_provinces(
     // Create heightmap from provinces - use much coarser grid for performance
     // Instead of dividing by 20, use a larger cell size based on world size
     let cell_size = match provinces.len() {
-        n if n < 400_000 => 100.0,  // Small worlds: 100 pixel cells
-        n if n < 700_000 => 150.0,  // Medium worlds: 150 pixel cells
-        _ => 200.0,                 // Large worlds: 200 pixel cells
+        n if n < 400_000 => 100.0, // Small worlds: 100 pixel cells
+        n if n < 700_000 => 150.0, // Medium worlds: 150 pixel cells
+        _ => 200.0,                // Large worlds: 200 pixel cells
     };
 
     let grid_width = (dimensions.width_pixels / cell_size).max(50.0) as usize;
     let grid_height = (dimensions.height_pixels / cell_size).max(50.0) as usize;
 
-    println!("  Creating erosion heightmap: {}x{} grid (cell size: {})",
-        grid_width, grid_height, cell_size);
+    println!(
+        "  Creating erosion heightmap: {}x{} grid (cell size: {})",
+        grid_width, grid_height, cell_size
+    );
 
     let mut heightmap = HeightMap::new(grid_width, grid_height, cell_size);
 

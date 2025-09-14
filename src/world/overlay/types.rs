@@ -1,13 +1,13 @@
 //! Overlay system types and data structures
 
 use bevy::prelude::*;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// Map overlay modes for different visualizations
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Resource, Default)]
 pub enum OverlayMode {
     #[default]
-    Political,      // Nation territories and borders
+    Political, // Nation territories and borders
     Terrain,        // Terrain types and biomes
     Climate,        // Climate zones and temperature
     Mineral,        // Mineral and resource distribution
@@ -84,12 +84,24 @@ impl ResourceOverlay {
         use crate::components::MineralType;
         *self = match self {
             ResourceOverlay::None => ResourceOverlay::Mineral(MineralType::Iron),
-            ResourceOverlay::Mineral(MineralType::Iron) => ResourceOverlay::Mineral(MineralType::Copper),
-            ResourceOverlay::Mineral(MineralType::Copper) => ResourceOverlay::Mineral(MineralType::Tin),
-            ResourceOverlay::Mineral(MineralType::Tin) => ResourceOverlay::Mineral(MineralType::Gold),
-            ResourceOverlay::Mineral(MineralType::Gold) => ResourceOverlay::Mineral(MineralType::Coal),
-            ResourceOverlay::Mineral(MineralType::Coal) => ResourceOverlay::Mineral(MineralType::Stone),
-            ResourceOverlay::Mineral(MineralType::Stone) => ResourceOverlay::Mineral(MineralType::Gems),
+            ResourceOverlay::Mineral(MineralType::Iron) => {
+                ResourceOverlay::Mineral(MineralType::Copper)
+            }
+            ResourceOverlay::Mineral(MineralType::Copper) => {
+                ResourceOverlay::Mineral(MineralType::Tin)
+            }
+            ResourceOverlay::Mineral(MineralType::Tin) => {
+                ResourceOverlay::Mineral(MineralType::Gold)
+            }
+            ResourceOverlay::Mineral(MineralType::Gold) => {
+                ResourceOverlay::Mineral(MineralType::Coal)
+            }
+            ResourceOverlay::Mineral(MineralType::Coal) => {
+                ResourceOverlay::Mineral(MineralType::Stone)
+            }
+            ResourceOverlay::Mineral(MineralType::Stone) => {
+                ResourceOverlay::Mineral(MineralType::Gems)
+            }
             ResourceOverlay::Mineral(MineralType::Gems) => ResourceOverlay::AllMinerals,
             ResourceOverlay::AllMinerals => ResourceOverlay::None,
         }

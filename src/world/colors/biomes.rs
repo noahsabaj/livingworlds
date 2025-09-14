@@ -4,8 +4,8 @@
 //! layer to maintain proper separation of concerns between data generation
 //! and visual rendering.
 
-use bevy::prelude::Color;
 use crate::world::terrain::Biome;
+use bevy::prelude::Color;
 
 /// Get base color for a biome type
 ///

@@ -3,8 +3,8 @@
 //! This module contains all the types related to world generation settings,
 //! including the main settings struct and all configuration enums.
 
-use crate::resources::WorldSize;
 use crate::name_generator::{NameGenerator, NameType};
+use crate::resources::WorldSize;
 use rand::Rng;
 
 /// Complete world generation settings
@@ -140,34 +140,34 @@ impl WorldGenerationSettings {
                 self.island_frequency = IslandFrequency::Moderate;
                 self.ocean_coverage = 0.6;
                 self.climate_type = ClimateType::Mixed;
-            },
+            }
             WorldPreset::Pangaea => {
                 self.continent_count = 1;
                 self.island_frequency = IslandFrequency::Sparse;
                 self.ocean_coverage = 0.7;
                 self.climate_type = ClimateType::Mixed;
-            },
+            }
             WorldPreset::Archipelago => {
                 self.continent_count = 3;
                 self.island_frequency = IslandFrequency::Abundant;
                 self.ocean_coverage = 0.75;
                 self.climate_type = ClimateType::Tropical;
-            },
+            }
             WorldPreset::IceAge => {
                 self.continent_count = 5;
                 self.island_frequency = IslandFrequency::Sparse;
                 self.ocean_coverage = 0.5;
                 self.climate_type = ClimateType::Arctic;
-            },
+            }
             WorldPreset::DesertWorld => {
                 self.continent_count = 4;
                 self.island_frequency = IslandFrequency::None;
                 self.ocean_coverage = 0.3;
                 self.climate_type = ClimateType::Desert;
-            },
+            }
             WorldPreset::Custom => {
                 // Don't change settings for custom
-            },
+            }
         }
     }
 }

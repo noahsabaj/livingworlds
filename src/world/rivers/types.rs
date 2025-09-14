@@ -33,14 +33,16 @@ impl RiverSystem {
 
     /// Get flow accumulation for a province
     pub fn get_flow(&self, province_id: u32) -> f32 {
-        self.flow_accumulation.get(province_id as usize)
+        self.flow_accumulation
+            .get(province_id as usize)
             .copied()
             .unwrap_or(0.0)
     }
 
     /// Get the downstream province for water flow
     pub fn get_downstream(&self, province_id: u32) -> Option<u32> {
-        self.flow_direction.get(province_id as usize)
+        self.flow_direction
+            .get(province_id as usize)
             .and_then(|&dir| dir)
     }
 

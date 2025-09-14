@@ -3,8 +3,8 @@
 //! This module defines terrain types and classification logic.
 //! Elevation generation has been moved to generation/elevation.rs
 
-use bevy::prelude::*;
 use crate::constants::*;
+use bevy::prelude::*;
 
 /// Marker component for the main terrain/world mesh entity
 ///
@@ -13,33 +13,44 @@ use crate::constants::*;
 #[derive(Component, Default)]
 pub struct TerrainEntity;
 
-
-#[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Reflect, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Component,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    Default,
+    Reflect,
+    serde::Serialize,
+    serde::Deserialize,
+)]
 pub enum TerrainType {
     #[default]
-    Ocean,              // Deep water
-    Beach,              // Coastal areas
-    River,              // River tiles
-    Delta,              // River deltas (very fertile)
+    Ocean, // Deep water
+    Beach, // Coastal areas
+    River, // River tiles
+    Delta, // River deltas (very fertile)
 
     // Polar biomes
-    PolarDesert,        // Extremely cold and dry
-    Tundra,             // Arctic tundra
+    PolarDesert, // Extremely cold and dry
+    Tundra,      // Arctic tundra
 
     // Cold biomes
-    Taiga,              // Coniferous forest
-    BorealForest,       // Northern forest
+    Taiga,        // Coniferous forest
+    BorealForest, // Northern forest
 
     // Temperate biomes
-    TemperateRainforest,    // Lush temperate rainforest
+    TemperateRainforest,      // Lush temperate rainforest
     TemperateDeciduousForest, // Seasonal forest
-    TemperateGrassland,     // Prairie/steppe
-    ColdDesert,             // High altitude or cold desert
+    TemperateGrassland,       // Prairie/steppe
+    ColdDesert,               // High altitude or cold desert
 
     // Subtropical biomes
-    MediterraneanForest,    // Mediterranean woodland
-    Chaparral,              // Dry shrubland
-    SubtropicalDesert,      // Hot dry desert
+    MediterraneanForest, // Mediterranean woodland
+    Chaparral,           // Dry shrubland
+    SubtropicalDesert,   // Hot dry desert
 
     // Tropical biomes
     TropicalRainforest,     // Dense jungle
@@ -48,11 +59,10 @@ pub enum TerrainType {
     TropicalDesert,         // Hot barren desert
 
     // Special biomes
-    Alpine,                 // High mountain meadows
-    Wetlands,              // Marshes and swamps
-    Mangrove,              // Coastal mangrove swamps
+    Alpine,   // High mountain meadows
+    Wetlands, // Marshes and swamps
+    Mangrove, // Coastal mangrove swamps
 }
-
 
 pub enum ClimateZone {
     Arctic,
@@ -81,13 +91,23 @@ fn get_climate_zone(y: f32, map_height: f32) -> ClimateZone {
     }
 }
 
-
-pub fn classify_terrain_with_climate(elevation: f32, x: f32, y: f32, map_height: f32) -> TerrainType {
+pub fn classify_terrain_with_climate(
+    elevation: f32,
+    x: f32,
+    y: f32,
+    map_height: f32,
+) -> TerrainType {
     const DEFAULT_SEA_LEVEL: f32 = 0.2;
     classify_terrain_with_sea_level(elevation, x, y, map_height, DEFAULT_SEA_LEVEL)
 }
 
-pub fn classify_terrain_with_sea_level(elevation: f32, x: f32, y: f32, map_height: f32, sea_level: f32) -> TerrainType {
+pub fn classify_terrain_with_sea_level(
+    elevation: f32,
+    x: f32,
+    y: f32,
+    map_height: f32,
+    sea_level: f32,
+) -> TerrainType {
     // Ocean classification based on depth
     if elevation < sea_level {
         // Use the sea level as the threshold for ocean
@@ -175,12 +195,10 @@ fn classify_terrain_with_sea_level_simple(elevation: f32, sea_level: f32) -> Ter
     }
 }
 
-
 /// Get terrain population multiplier - uses centralized properties
 pub fn get_terrain_population_multiplier(terrain: TerrainType) -> f32 {
     terrain.properties().population_multiplier
 }
-
 
 /// Convert a climate biome to a terrain type - 1:1 mapping for maximum variety!
 pub fn biome_to_terrain(biome: super::climate::Biome, elevation: f32) -> TerrainType {
@@ -245,7 +263,7 @@ impl TerrainType {
     /// Get ALL properties for this terrain type in one place!
     /// This is the SINGLE SOURCE OF TRUTH for terrain properties.
     pub fn properties(&self) -> TerrainProperties {
-        use crate::constants::*;  // For agriculture constants
+        use crate::constants::*; // For agriculture constants
 
         match self {
             // Water features
@@ -253,7 +271,7 @@ impl TerrainType {
                 population_multiplier: 0.0,
                 max_population_capacity: 0,
                 stone_abundance: 0,
-                extraction_difficulty: 0.0,  // Can't extract from ocean
+                extraction_difficulty: 0.0, // Can't extract from ocean
                 agriculture_base: 0.0,
                 is_water: true,
                 is_desert: false,
@@ -263,7 +281,7 @@ impl TerrainType {
             TerrainType::Beach => TerrainProperties {
                 population_multiplier: 1.5,
                 max_population_capacity: 10_000,
-                stone_abundance: 20,  // STONE_ABUNDANCE_BEACH
+                stone_abundance: 20, // STONE_ABUNDANCE_BEACH
                 extraction_difficulty: 1.1,
                 agriculture_base: 0.2,
                 is_water: false,
@@ -276,7 +294,7 @@ impl TerrainType {
                 max_population_capacity: 50_000,
                 stone_abundance: 30,
                 extraction_difficulty: 1.0,
-                agriculture_base: 2.0,  // RIVER_BASE_AGRICULTURE
+                agriculture_base: 2.0, // RIVER_BASE_AGRICULTURE
                 is_water: true,
                 is_desert: false,
                 is_forest: false,
@@ -287,7 +305,7 @@ impl TerrainType {
                 max_population_capacity: 50_000,
                 stone_abundance: 25,
                 extraction_difficulty: 1.0,
-                agriculture_base: 3.0,  // DELTA_BASE_AGRICULTURE
+                agriculture_base: 3.0, // DELTA_BASE_AGRICULTURE
                 is_water: false,
                 is_desert: false,
                 is_forest: false,
@@ -302,16 +320,16 @@ impl TerrainType {
                 extraction_difficulty: 0.3,
                 agriculture_base: 0.0,
                 is_water: false,
-                is_desert: true,  // It's a type of desert
+                is_desert: true, // It's a type of desert
                 is_forest: false,
                 allows_rivers: false,
             },
             TerrainType::Tundra => TerrainProperties {
                 population_multiplier: 0.1,
                 max_population_capacity: 2_000,
-                stone_abundance: 50,  // STONE_ABUNDANCE_TUNDRA
+                stone_abundance: 50, // STONE_ABUNDANCE_TUNDRA
                 extraction_difficulty: 0.6,
-                agriculture_base: 0.1,  // TUNDRA_BASE_AGRICULTURE
+                agriculture_base: 0.1, // TUNDRA_BASE_AGRICULTURE
                 is_water: false,
                 is_desert: false,
                 is_forest: false,
@@ -359,7 +377,7 @@ impl TerrainType {
                 max_population_capacity: 20_000,
                 stone_abundance: 30,
                 extraction_difficulty: 0.95,
-                agriculture_base: 0.8,  // FOREST_BASE_AGRICULTURE
+                agriculture_base: 0.8, // FOREST_BASE_AGRICULTURE
                 is_water: false,
                 is_desert: false,
                 is_forest: true,
@@ -370,7 +388,7 @@ impl TerrainType {
                 max_population_capacity: 30_000,
                 stone_abundance: 40,
                 extraction_difficulty: 1.2,
-                agriculture_base: 1.2,  // PLAINS_BASE_AGRICULTURE
+                agriculture_base: 1.2, // PLAINS_BASE_AGRICULTURE
                 is_water: false,
                 is_desert: false,
                 is_forest: false,
@@ -379,7 +397,7 @@ impl TerrainType {
             TerrainType::ColdDesert => TerrainProperties {
                 population_multiplier: 0.2,
                 max_population_capacity: 2_500,
-                stone_abundance: 60,  // STONE_ABUNDANCE_DESERT
+                stone_abundance: 60, // STONE_ABUNDANCE_DESERT
                 extraction_difficulty: 0.9,
                 agriculture_base: 0.2,
                 is_water: false,
@@ -392,7 +410,7 @@ impl TerrainType {
             TerrainType::MediterraneanForest => TerrainProperties {
                 population_multiplier: 1.5,
                 max_population_capacity: 18_000,
-                stone_abundance: 45,  // STONE_ABUNDANCE_HILLS equivalent
+                stone_abundance: 45, // STONE_ABUNDANCE_HILLS equivalent
                 extraction_difficulty: 1.0,
                 agriculture_base: 1.0,
                 is_water: false,
@@ -403,7 +421,7 @@ impl TerrainType {
             TerrainType::Chaparral => TerrainProperties {
                 population_multiplier: 0.7,
                 max_population_capacity: 12_000,
-                stone_abundance: 45,  // STONE_ABUNDANCE_HILLS equivalent
+                stone_abundance: 45, // STONE_ABUNDANCE_HILLS equivalent
                 extraction_difficulty: 1.0,
                 agriculture_base: 0.6,
                 is_water: false,
@@ -414,9 +432,9 @@ impl TerrainType {
             TerrainType::SubtropicalDesert => TerrainProperties {
                 population_multiplier: 0.15,
                 max_population_capacity: 3_000,
-                stone_abundance: 60,  // STONE_ABUNDANCE_DESERT
+                stone_abundance: 60, // STONE_ABUNDANCE_DESERT
                 extraction_difficulty: 0.9,
-                agriculture_base: 0.1,  // DESERT_BASE_AGRICULTURE
+                agriculture_base: 0.1, // DESERT_BASE_AGRICULTURE
                 is_water: false,
                 is_desert: true,
                 is_forest: false,
@@ -460,7 +478,7 @@ impl TerrainType {
             TerrainType::TropicalDesert => TerrainProperties {
                 population_multiplier: 0.1,
                 max_population_capacity: 2_000,
-                stone_abundance: 60,  // STONE_ABUNDANCE_DESERT
+                stone_abundance: 60, // STONE_ABUNDANCE_DESERT
                 extraction_difficulty: 0.9,
                 agriculture_base: 0.05,
                 is_water: false,
@@ -473,9 +491,9 @@ impl TerrainType {
             TerrainType::Alpine => TerrainProperties {
                 population_multiplier: 0.25,
                 max_population_capacity: 5_000,
-                stone_abundance: 80,  // STONE_ABUNDANCE_MOUNTAINS
+                stone_abundance: 80, // STONE_ABUNDANCE_MOUNTAINS
                 extraction_difficulty: 0.8,
-                agriculture_base: 0.3,  // MOUNTAINS_BASE_AGRICULTURE
+                agriculture_base: 0.3, // MOUNTAINS_BASE_AGRICULTURE
                 is_water: false,
                 is_desert: false,
                 is_forest: false,
@@ -506,7 +524,6 @@ impl TerrainType {
         }
     }
 }
-
 
 pub struct TerrainPlugin;
 

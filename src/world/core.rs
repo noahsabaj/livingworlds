@@ -2,12 +2,12 @@
 //!
 //! These types don't belong to any single feature but coordinate between them.
 
+use crate::world::clouds::CloudSystem;
+use crate::world::provinces::Province;
+use crate::world::rivers::RiverSystem;
 use bevy::prelude::*;
 use bevy::reflect::Reflect;
-use serde::{Serialize, Deserialize};
-use crate::world::provinces::Province;
-use crate::world::clouds::CloudSystem;
-use crate::world::rivers::RiverSystem;
+use serde::{Deserialize, Serialize};
 
 /// Main world data structure containing all world state
 #[derive(Debug, Clone)]
@@ -72,9 +72,9 @@ impl Default for WorldName {
 /// World size configuration controlling map dimensions
 #[derive(Resource, Clone, Copy, Debug, PartialEq, Reflect, Serialize, Deserialize)]
 pub enum WorldSize {
-    Small,   // 1250x800 provinces (1,000,000 hexagons)
-    Medium,  // 1600x1250 provinces (2,000,000 hexagons)
-    Large,   // 2000x1500 provinces (3,000,000 hexagons)
+    Small,  // 1250x800 provinces (1,000,000 hexagons)
+    Medium, // 1600x1250 provinces (2,000,000 hexagons)
+    Large,  // 2000x1500 provinces (3,000,000 hexagons)
 }
 
 impl WorldSize {
@@ -88,9 +88,9 @@ impl WorldSize {
 
     pub fn dimensions(&self) -> (usize, usize) {
         match self {
-            WorldSize::Small => (1250, 800),    // 1,000,000 hexagons
-            WorldSize::Medium => (1600, 1250),  // 2,000,000 hexagons
-            WorldSize::Large => (2000, 1500),   // 3,000,000 hexagons
+            WorldSize::Small => (1250, 800),   // 1,000,000 hexagons
+            WorldSize::Medium => (1600, 1250), // 2,000,000 hexagons
+            WorldSize::Large => (2000, 1500),  // 3,000,000 hexagons
         }
     }
 }

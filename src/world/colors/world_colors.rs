@@ -3,15 +3,15 @@
 //! This module contains the WorldColors struct which provides
 //! the primary interface for obtaining colors throughout the game.
 
-use bevy::prelude::*;
-use crate::resources::{GameTime, WeatherSystem};
 use crate::components::MineralType;
-use crate::world::TerrainType;
 use crate::math::{lerp_color, weighted_blend_colors};
+use crate::resources::{GameTime, WeatherSystem};
+use crate::world::TerrainType;
+use bevy::prelude::*;
 
-use super::utils::StoneAbundance;
 use super::providers::{ColorProvider, StandardColorProvider};
-use super::{theme, terrain, minerals, dynamic};
+use super::utils::StoneAbundance;
+use super::{dynamic, minerals, terrain, theme};
 
 /// Main API for getting colors throughout the game
 pub struct WorldColors {

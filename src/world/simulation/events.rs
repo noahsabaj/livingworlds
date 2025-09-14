@@ -1,14 +1,13 @@
 //! Province change event system
-//! 
+//!
 //! This module provides an event-driven architecture for tracking changes to provinces.
 //! Instead of polling dirty flags, systems can react to specific change events,
 //! improving performance and enabling better debugging and replay capabilities.
 
-use bevy::prelude::*;
-use crate::world::{ProvinceId, Abundance, Agriculture, Distance};
 use crate::components::MineralType;
 use crate::world::TerrainType;
-
+use crate::world::{Abundance, Agriculture, Distance, ProvinceId};
+use bevy::prelude::*;
 
 /// Event fired when a province's population changes
 #[derive(Event, Debug, Clone)]
@@ -25,15 +24,16 @@ impl ProvincePopulationChanged {
         if self.old_population == 0 {
             100.0
         } else {
-            ((self.new_population as f32 - self.old_population as f32) / self.old_population as f32) * 100.0
+            ((self.new_population as f32 - self.old_population as f32) / self.old_population as f32)
+                * 100.0
         }
     }
-    
+
     /// Check if this was a growth event
     pub fn is_growth(&self) -> bool {
         self.new_population > self.old_population
     }
-    
+
     /// Check if population is near capacity
     pub fn is_near_capacity(&self) -> bool {
         self.new_population as f32 >= self.max_population as f32 * 0.9
@@ -51,39 +51,41 @@ pub struct ProvinceTerrainChanged {
 impl ProvinceTerrainChanged {
     /// Check if this represents desertification
     pub fn is_desertification(&self) -> bool {
-        matches!(self.new_terrain,
-            TerrainType::ColdDesert |
-            TerrainType::SubtropicalDesert |
-            TerrainType::TropicalDesert |
-            TerrainType::PolarDesert
-        ) &&
-        !matches!(self.old_terrain,
-            TerrainType::ColdDesert |
-            TerrainType::SubtropicalDesert |
-            TerrainType::TropicalDesert |
-            TerrainType::PolarDesert
+        matches!(
+            self.new_terrain,
+            TerrainType::ColdDesert
+                | TerrainType::SubtropicalDesert
+                | TerrainType::TropicalDesert
+                | TerrainType::PolarDesert
+        ) && !matches!(
+            self.old_terrain,
+            TerrainType::ColdDesert
+                | TerrainType::SubtropicalDesert
+                | TerrainType::TropicalDesert
+                | TerrainType::PolarDesert
         )
     }
 
     /// Check if this represents deforestation
     pub fn is_deforestation(&self) -> bool {
-        matches!(self.old_terrain,
-            TerrainType::TropicalRainforest |
-            TerrainType::TropicalSeasonalForest |
-            TerrainType::TemperateRainforest |
-            TerrainType::TemperateDeciduousForest |
-            TerrainType::MediterraneanForest |
-            TerrainType::BorealForest |
-            TerrainType::Taiga
-        ) &&
-        !matches!(self.new_terrain,
-            TerrainType::TropicalRainforest |
-            TerrainType::TropicalSeasonalForest |
-            TerrainType::TemperateRainforest |
-            TerrainType::TemperateDeciduousForest |
-            TerrainType::MediterraneanForest |
-            TerrainType::BorealForest |
-            TerrainType::Taiga
+        matches!(
+            self.old_terrain,
+            TerrainType::TropicalRainforest
+                | TerrainType::TropicalSeasonalForest
+                | TerrainType::TemperateRainforest
+                | TerrainType::TemperateDeciduousForest
+                | TerrainType::MediterraneanForest
+                | TerrainType::BorealForest
+                | TerrainType::Taiga
+        ) && !matches!(
+            self.new_terrain,
+            TerrainType::TropicalRainforest
+                | TerrainType::TropicalSeasonalForest
+                | TerrainType::TemperateRainforest
+                | TerrainType::TemperateDeciduousForest
+                | TerrainType::MediterraneanForest
+                | TerrainType::BorealForest
+                | TerrainType::Taiga
         )
     }
 }
@@ -102,12 +104,12 @@ impl ProvinceMineralsChanged {
     pub fn is_discovery(&self) -> bool {
         self.old_abundance.value() == 0 && self.new_abundance.value() > 0
     }
-    
+
     /// Check if this is a depletion
     pub fn is_depletion(&self) -> bool {
         self.old_abundance.value() > 0 && self.new_abundance.value() == 0
     }
-    
+
     /// Check if this is a significant change (>25% difference)
     pub fn is_significant(&self) -> bool {
         let old = self.old_abundance.value() as f32;
@@ -133,7 +135,7 @@ impl ProvinceAgricultureChanged {
     pub fn became_fertile(&self) -> bool {
         self.old_agriculture.is_barren() && self.new_agriculture.is_fertile()
     }
-    
+
     /// Check if land became barren
     pub fn became_barren(&self) -> bool {
         self.old_agriculture.is_fertile() && self.new_agriculture.is_barren()
@@ -153,12 +155,12 @@ impl ProvinceFreshWaterChanged {
     pub fn gained_water_access(&self) -> bool {
         self.old_distance.is_infinite() && !self.new_distance.is_infinite()
     }
-    
+
     /// Check if province lost fresh water access
     pub fn lost_water_access(&self) -> bool {
         !self.old_distance.is_infinite() && self.new_distance.is_infinite()
     }
-    
+
     /// Check if water got closer
     pub fn water_got_closer(&self) -> bool {
         self.new_distance.value() < self.old_distance.value()
@@ -200,7 +202,6 @@ pub struct BatchMineralDiscovery {
     pub discoveries: Vec<ProvinceMineralsChanged>,
 }
 
-
 /// Plugin that registers all province event types
 pub struct ProvinceEventsPlugin;
 
@@ -214,18 +215,16 @@ impl Plugin for ProvinceEventsPlugin {
             .add_event::<ProvinceAgricultureChanged>()
             .add_event::<ProvinceFreshWaterChanged>()
             .add_event::<ProvinceChanged>()
-            
             // Batch events
             .add_event::<BatchPopulationUpdate>()
             .add_event::<BatchMineralDiscovery>()
-            
             // Debug logging system (only in debug builds)
-            .add_systems(Update, log_province_changes.run_if(
-                resource_exists::<DebugProvinceEvents>
-            ));
+            .add_systems(
+                Update,
+                log_province_changes.run_if(resource_exists::<DebugProvinceEvents>),
+            );
     }
 }
-
 
 /// Resource to enable debug logging of province events
 #[derive(Resource, Default)]
@@ -269,55 +268,47 @@ fn log_province_changes(
             );
         }
     }
-    
+
     if debug.log_terrain {
         for event in terrain_events.read() {
             info!(
                 "Province {} terrain: {:?} → {:?}",
-                event.province_id,
-                event.old_terrain,
-                event.new_terrain
+                event.province_id, event.old_terrain, event.new_terrain
             );
         }
     }
-    
+
     if debug.log_minerals {
         for event in mineral_events.read() {
             if event.is_discovery() {
                 info!(
                     "Province {} discovered {:?} ({})",
-                    event.province_id,
-                    event.mineral_type,
-                    event.new_abundance
+                    event.province_id, event.mineral_type, event.new_abundance
                 );
             } else if event.is_depletion() {
                 info!(
                     "Province {} depleted {:?}",
-                    event.province_id,
-                    event.mineral_type
+                    event.province_id, event.mineral_type
                 );
             }
         }
     }
-    
+
     if debug.log_agriculture {
         for event in agriculture_events.read() {
             info!(
                 "Province {} agriculture: {} → {}",
-                event.province_id,
-                event.old_agriculture,
-                event.new_agriculture
+                event.province_id, event.old_agriculture, event.new_agriculture
             );
         }
     }
-    
+
     if debug.log_water {
         for event in water_events.read() {
             if event.gained_water_access() {
                 info!(
                     "Province {} gained water access (distance: {})",
-                    event.province_id,
-                    event.new_distance
+                    event.province_id, event.new_distance
                 );
             } else if event.lost_water_access() {
                 info!("Province {} lost water access", event.province_id);
@@ -325,7 +316,6 @@ fn log_province_changes(
         }
     }
 }
-
 
 /// Trait for types that can emit province events
 pub trait ProvinceEventEmitter {
@@ -341,23 +331,23 @@ impl<'w> ProvinceEventEmitter for EventWriter<'w, ProvincePopulationChanged> {
     fn emit_population_changed(&self, event: ProvincePopulationChanged) {
         // Note: In newer Bevy versions, use .write() instead of .send()
         // For now, keeping .send() to match the codebase's current usage
-        unsafe { 
+        unsafe {
             (*(self as *const _ as *mut EventWriter<ProvincePopulationChanged>)).write(event);
         }
     }
-    
+
     fn emit_terrain_changed(&self, _event: ProvinceTerrainChanged) {
         // Can't emit different event type from this writer
     }
-    
+
     fn emit_minerals_changed(&self, _event: ProvinceMineralsChanged) {
         // Can't emit different event type from this writer
     }
-    
+
     fn emit_agriculture_changed(&self, _event: ProvinceAgricultureChanged) {
         // Can't emit different event type from this writer
     }
-    
+
     fn emit_fresh_water_changed(&self, _event: ProvinceFreshWaterChanged) {
         // Can't emit different event type from this writer
     }

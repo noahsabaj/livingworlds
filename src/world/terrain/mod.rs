@@ -8,24 +8,20 @@
 //! Following gateway architecture - all submodules are private.
 
 // PRIVATE MODULES
-mod types;
 mod climate;
 mod erosion;
+mod types;
 
 // PUBLIC EXPORTS - The only way to access terrain functionality
 
 // Core types and plugin
 pub use types::{
-    TerrainEntity,
-    TerrainType,
-    ClimateZone,
-    classify_terrain_with_climate,
-    TerrainPlugin,
+    classify_terrain_with_climate, ClimateZone, TerrainEntity, TerrainPlugin, TerrainType,
 };
 
 // Climate types
 pub use climate::Biome;
 
 // Generation functions (these modules use direct functions, not builders)
-pub use erosion::apply_erosion_to_provinces;
 pub use climate::apply_climate_to_provinces;
+pub use erosion::apply_erosion_to_provinces;

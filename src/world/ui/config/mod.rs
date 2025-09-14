@@ -18,11 +18,11 @@
 //! External code can only access what we explicitly export here.
 
 // PRIVATE MODULES - Implementation details
-mod types;
 mod components;
-mod plugin;
-mod layout;
 mod handlers;
+mod layout;
+mod plugin;
+mod types;
 
 // CONTROLLED PUBLIC EXPORTS
 
@@ -31,15 +31,8 @@ pub use plugin::WorldConfigPlugin;
 
 // Types - configuration data structures
 pub use types::{
-    WorldGenerationSettings,
-    WorldPreset,
-    ClimateType,
-    IslandFrequency,
-    MountainDensity,
-    AggressionLevel,
-    TradePropensity,
-    ResourceAbundance,
-    MineralDistribution,
+    AggressionLevel, ClimateType, IslandFrequency, MineralDistribution, MountainDensity,
+    ResourceAbundance, TradePropensity, WorldGenerationSettings, WorldPreset,
 };
 
 // Note: We do NOT export:

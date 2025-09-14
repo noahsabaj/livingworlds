@@ -3,22 +3,20 @@
 //! This module generates individual hexagonal provinces with detailed
 //! terrain features using our centralized Perlin noise module.
 
-use rayon::prelude::*;
-use std::collections::HashMap;
 use bevy::prelude::Vec2;
 use rand::rngs::StdRng;
 use rand::Rng;
+use rayon::prelude::*;
+use std::collections::HashMap;
 
-use crate::world::{Province, ProvinceId, Elevation, Agriculture, Distance, Abundance};
-use crate::world::TerrainType;
 use crate::constants::*;
-use crate::resources::MapDimensions;
 use crate::math::{
-    calculate_grid_position, get_neighbor_positions,
+    calculate_grid_position, get_neighbor_positions, normalized_edge_distance, smooth_falloff,
     PerlinNoise, TerrainPreset,
-    normalized_edge_distance, smooth_falloff
 };
-
+use crate::resources::MapDimensions;
+use crate::world::TerrainType;
+use crate::world::{Abundance, Agriculture, Distance, Elevation, Province, ProvinceId};
 
 /// Default ocean coverage percentage (0.0 to 1.0)
 const DEFAULT_OCEAN_COVERAGE: f32 = 0.6;
@@ -37,11 +35,7 @@ pub struct ProvinceBuilder<'a> {
 }
 
 impl<'a> ProvinceBuilder<'a> {
-    pub fn new(
-        dimensions: MapDimensions,
-        rng: &'a mut StdRng,
-        seed: u32,
-    ) -> Self {
+    pub fn new(dimensions: MapDimensions, rng: &'a mut StdRng, seed: u32) -> Self {
         // Create our centralized noise generator - works out of the box!
         let noise = PerlinNoise::with_seed(seed);
 
@@ -70,7 +64,11 @@ impl<'a> ProvinceBuilder<'a> {
         println!("  Generating {} hexagonal provinces", total_provinces);
 
         let sea_level = self.calculate_sea_level();
-        println!("  Sea level set to {:.3} for {:.0}% ocean coverage", sea_level, self.ocean_coverage * 100.0);
+        println!(
+            "  Sea level set to {:.3} for {:.0}% ocean coverage",
+            sea_level,
+            self.ocean_coverage * 100.0
+        );
 
         // Generate provinces in parallel for performance
         let provinces: Vec<Province> = (0..total_provinces)
@@ -78,9 +76,15 @@ impl<'a> ProvinceBuilder<'a> {
             .map(|index| self.generate_province(index, sea_level))
             .collect();
 
-        let ocean_count = provinces.iter().filter(|p| p.terrain == TerrainType::Ocean).count();
+        let ocean_count = provinces
+            .iter()
+            .filter(|p| p.terrain == TerrainType::Ocean)
+            .count();
         let land_count = provinces.len() - ocean_count;
-        println!("  Generated {} land provinces, {} ocean provinces", land_count, ocean_count);
+        println!(
+            "  Generated {} land provinces, {} ocean provinces",
+            land_count, ocean_count
+        );
 
         provinces
     }
@@ -169,7 +173,8 @@ impl<'a> ProvinceBuilder<'a> {
 
         // Use centralized smooth falloff function
         // Returns 1.0 inside FALLOFF_START, smoothly transitions to 0.0 at edge (1.0)
-        smooth_falloff(distance, 0.0, FALLOFF_START).max(1.0 - smooth_falloff(distance, FALLOFF_START, 1.0))
+        smooth_falloff(distance, 0.0, FALLOFF_START)
+            .max(1.0 - smooth_falloff(distance, FALLOFF_START, 1.0))
     }
 
     /// Calculate sea level for desired ocean coverage
@@ -179,8 +184,12 @@ impl<'a> ProvinceBuilder<'a> {
         let mut elevations = Vec::with_capacity(SAMPLE_COUNT);
 
         for _ in 0..SAMPLE_COUNT {
-            let x = self.rng.gen_range(self.dimensions.bounds.x_min..self.dimensions.bounds.x_max);
-            let y = self.rng.gen_range(self.dimensions.bounds.y_min..self.dimensions.bounds.y_max);
+            let x = self
+                .rng
+                .gen_range(self.dimensions.bounds.x_min..self.dimensions.bounds.x_max);
+            let y = self
+                .rng
+                .gen_range(self.dimensions.bounds.y_min..self.dimensions.bounds.y_max);
             let elevation = self.generate_elevation(Vec2::new(x, y));
             elevations.push(elevation);
         }
@@ -214,16 +223,17 @@ impl<'a> ProvinceBuilder<'a> {
     fn calculate_hex_neighbors(&self, col: u32, row: u32) -> [Option<ProvinceId>; 6] {
         let mut neighbors = [None; 6];
 
-        let neighbor_positions = get_neighbor_positions(
-            col as i32,
-            row as i32,
-            self.dimensions.hex_size,
-        );
+        let neighbor_positions =
+            get_neighbor_positions(col as i32, row as i32, self.dimensions.hex_size);
 
         for (i, &(neighbor_col, neighbor_row)) in neighbor_positions.iter().enumerate() {
-            if neighbor_col >= 0 && neighbor_col < self.dimensions.provinces_per_row as i32 &&
-               neighbor_row >= 0 && neighbor_row < self.dimensions.provinces_per_col as i32 {
-                let neighbor_id = neighbor_row as u32 * self.dimensions.provinces_per_row + neighbor_col as u32;
+            if neighbor_col >= 0
+                && neighbor_col < self.dimensions.provinces_per_row as i32
+                && neighbor_row >= 0
+                && neighbor_row < self.dimensions.provinces_per_col as i32
+            {
+                let neighbor_id =
+                    neighbor_row as u32 * self.dimensions.provinces_per_row + neighbor_col as u32;
                 neighbors[i] = Some(ProvinceId::new(neighbor_id));
             }
         }
@@ -268,8 +278,9 @@ pub fn calculate_ocean_depths(provinces: &mut [Province], dimensions: MapDimensi
             for neighbor_opt in &provinces[current_idx].neighbors {
                 if let Some(neighbor_id) = neighbor_opt {
                     if let Some(&neighbor_idx) = province_by_id.get(&neighbor_id.value()) {
-                        if provinces[neighbor_idx].terrain == TerrainType::Ocean &&
-                           !ocean_distances.contains_key(&neighbor_id.value()) {
+                        if provinces[neighbor_idx].terrain == TerrainType::Ocean
+                            && !ocean_distances.contains_key(&neighbor_id.value())
+                        {
                             ocean_distances.insert(neighbor_id.value(), distance + 1);
                             queue.push_back((neighbor_id.value(), distance + 1));
                         }
@@ -282,7 +293,10 @@ pub fn calculate_ocean_depths(provinces: &mut [Province], dimensions: MapDimensi
     // Apply depth based on distance
     for province in provinces.iter_mut() {
         if province.terrain == TerrainType::Ocean {
-            let distance = ocean_distances.get(&province.id.value()).copied().unwrap_or(100);
+            let distance = ocean_distances
+                .get(&province.id.value())
+                .copied()
+                .unwrap_or(100);
 
             // Adjust elevation based on distance from land
             if distance <= 2 {

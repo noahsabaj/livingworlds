@@ -23,4 +23,3 @@ pub fn hex_neighbors(col: i32, row: i32) -> Vec<(i32, i32)> {
         ]
     }
 }
-

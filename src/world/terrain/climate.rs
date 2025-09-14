@@ -4,12 +4,12 @@
 //! rain shadows, and other climate phenomena to create realistic
 //! biome distributions based on physical principles.
 
-use bevy::prelude::Vec2;
-use std::collections::{HashMap, VecDeque};
-use rayon::prelude::*;
-use crate::world::{Province, Elevation};
+use crate::math::{euclidean_vec2, exponential_smooth, sin_cos, PI};
 use crate::world::TerrainType;
-use crate::math::{exponential_smooth, euclidean_vec2, PI, sin_cos};
+use crate::world::{Elevation, Province};
+use bevy::prelude::Vec2;
+use rayon::prelude::*;
+use std::collections::{HashMap, VecDeque};
 
 // CONSTANTS - Climate parameters based on Earth
 
@@ -47,10 +47,9 @@ const ALPINE_ELEVATION: f32 = 3000.0;
 const TREELINE_ELEVATION: f32 = 2500.0;
 
 /// Prevailing wind directions by latitude
-const TRADE_WIND_ZONE: f32 = 0.3;     // 0-30° latitude
-const WESTERLIES_ZONE: f32 = 0.6;     // 30-60° latitude
+const TRADE_WIND_ZONE: f32 = 0.3; // 0-30° latitude
+const WESTERLIES_ZONE: f32 = 0.6; // 30-60° latitude
 const POLAR_EASTERLIES_ZONE: f32 = 1.0; // 60-90° latitude
-
 
 /// Climate data for a province
 #[derive(Debug, Clone)]
@@ -119,7 +118,6 @@ pub enum Biome {
     Mangrove,
 }
 
-
 /// Main climate simulation system
 pub struct ClimateSystem {
     /// Climate data for each province
@@ -169,7 +167,8 @@ impl ClimateSystem {
         let mut queue = VecDeque::new();
         let mut distances = HashMap::new();
 
-        let province_lookup: HashMap<u32, usize> = provinces.iter()
+        let province_lookup: HashMap<u32, usize> = provinces
+            .iter()
             .enumerate()
             .map(|(idx, p)| (p.id.value(), idx))
             .collect();
@@ -192,8 +191,11 @@ impl ClimateSystem {
 
             // Report progress periodically
             if processed % 10000 == 0 {
-                print!("\r      Processing province {} of approximately {}...",
-                    processed, provinces.len());
+                print!(
+                    "\r      Processing province {} of approximately {}...",
+                    processed,
+                    provinces.len()
+                );
             }
 
             if let Some(&province_idx) = province_lookup.get(&province_id) {
@@ -218,13 +220,19 @@ impl ClimateSystem {
             }
         }
 
-        println!("\r      Processed {} provinces for ocean distances", processed);
+        println!(
+            "\r      Processed {} provinces for ocean distances",
+            processed
+        );
 
         // Store distances in climate data
         for province in provinces {
-            let climate = self.climates.entry(province.id.value())
+            let climate = self
+                .climates
+                .entry(province.id.value())
                 .or_insert_with(Climate::default);
-            climate.ocean_distance = *distances.get(&province.id.value())
+            climate.ocean_distance = *distances
+                .get(&province.id.value())
                 .unwrap_or(&f32::INFINITY);
         }
     }
@@ -236,16 +244,18 @@ impl ClimateSystem {
         let temps: Vec<(u32, f32)> = provinces
             .par_iter()
             .map(|province| {
-                let ocean_distance = self.climates.get(&province.id.value())
+                let ocean_distance = self
+                    .climates
+                    .get(&province.id.value())
                     .map(|c| c.ocean_distance)
                     .unwrap_or(f32::INFINITY);
 
-                let latitude = (province.position.y - self.dimensions.bounds.y_min) /
-                              (self.dimensions.bounds.y_max - self.dimensions.bounds.y_min);
+                let latitude = (province.position.y - self.dimensions.bounds.y_min)
+                    / (self.dimensions.bounds.y_max - self.dimensions.bounds.y_min);
 
                 let lat_from_equator = (latitude - 0.5).abs() * 2.0;
-                let base_temp = EQUATOR_TEMP * (1.0 - lat_from_equator) +
-                               POLE_TEMP * lat_from_equator;
+                let base_temp =
+                    EQUATOR_TEMP * (1.0 - lat_from_equator) + POLE_TEMP * lat_from_equator;
 
                 // Apply elevation cooling
                 let elevation_m = province.elevation.value() * 5000.0;
@@ -265,7 +275,8 @@ impl ClimateSystem {
             .collect();
 
         for (id, temp) in temps {
-            self.climates.entry(id)
+            self.climates
+                .entry(id)
                 .or_insert_with(Climate::default)
                 .temperature = temp;
         }
@@ -276,11 +287,13 @@ impl ClimateSystem {
         println!("    Calculating wind patterns...");
 
         for province in provinces {
-            let climate = self.climates.entry(province.id.value())
+            let climate = self
+                .climates
+                .entry(province.id.value())
                 .or_insert_with(Climate::default);
 
-            let latitude = (province.position.y - self.dimensions.bounds.y_min) /
-                          (self.dimensions.bounds.y_max - self.dimensions.bounds.y_min);
+            let latitude = (province.position.y - self.dimensions.bounds.y_min)
+                / (self.dimensions.bounds.y_max - self.dimensions.bounds.y_min);
 
             // Determine wind zone and direction
             let lat_from_equator = (latitude - 0.5).abs();
@@ -325,7 +338,11 @@ impl ClimateSystem {
         const MOISTURE_ITERATIONS: usize = 3; // Reduced from 10
 
         for iteration in 0..MOISTURE_ITERATIONS {
-            println!("      Moisture propagation iteration {}/{}", iteration + 1, MOISTURE_ITERATIONS);
+            println!(
+                "      Moisture propagation iteration {}/{}",
+                iteration + 1,
+                MOISTURE_ITERATIONS
+            );
 
             // Clone current climate data for parallel read access
             let current_climates = self.climates.clone();
@@ -341,7 +358,8 @@ impl ClimateSystem {
                     .into_par_iter()
                     .map(|idx| {
                         let province = &provinces[idx];
-                        let climate = current_climates.get(&province.id.value())
+                        let climate = current_climates
+                            .get(&province.id.value())
                             .cloned()
                             .unwrap_or_default();
 
@@ -350,15 +368,19 @@ impl ClimateSystem {
                             OCEAN_RAINFALL
                         } else {
                             // Decay based on distance from ocean
-                            let decay = RAINFALL_DECAY_INLAND.powf(climate.ocean_distance.min(500.0));
+                            let decay =
+                                RAINFALL_DECAY_INLAND.powf(climate.ocean_distance.min(500.0));
                             OCEAN_RAINFALL * decay
                         };
 
                         // Only check immediate neighbors using the pre-computed neighbor array
                         for neighbor_opt in &province.neighbors {
                             if let Some(neighbor_id) = neighbor_opt {
-                                if let Some(neighbor_climate) = current_climates.get(&neighbor_id.value()) {
-                                    let transfer = neighbor_climate.rainfall * 0.05 * climate.wind_strength;
+                                if let Some(neighbor_climate) =
+                                    current_climates.get(&neighbor_id.value())
+                                {
+                                    let transfer =
+                                        neighbor_climate.rainfall * 0.05 * climate.wind_strength;
                                     rainfall += transfer;
                                 }
                             }
@@ -380,7 +402,11 @@ impl ClimateSystem {
 
                 // Progress report
                 if batch_idx % 10 == 0 {
-                    print!("\r        Processing batch {}/{}", batch_idx + 1, num_batches);
+                    print!(
+                        "\r        Processing batch {}/{}",
+                        batch_idx + 1,
+                        num_batches
+                    );
                 }
             }
             println!(); // New line after progress
@@ -399,7 +425,8 @@ impl ClimateSystem {
         for (idx, province) in provinces.iter().enumerate() {
             let grid_x = (province.position.x / grid_size).floor() as i32;
             let grid_y = (province.position.y / grid_size).floor() as i32;
-            spatial_grid.entry((grid_x, grid_y))
+            spatial_grid
+                .entry((grid_x, grid_y))
                 .or_insert_with(Vec::new)
                 .push(idx);
         }
@@ -487,9 +514,7 @@ impl ClimateSystem {
 
     /// Determine biome from climate data
     pub fn get_biome(&self, province_id: u32, elevation: f32) -> Biome {
-        let climate = self.climates.get(&province_id)
-            .cloned()
-            .unwrap_or_default();
+        let climate = self.climates.get(&province_id).cloned().unwrap_or_default();
 
         let temp = climate.temperature;
         let rainfall = climate.rainfall;
@@ -572,7 +597,10 @@ impl ClimateSystem {
 }
 
 /// Apply climate data to provinces during world generation
-pub fn apply_climate_to_provinces(provinces: &mut [crate::world::Province], dimensions: crate::resources::MapDimensions) {
+pub fn apply_climate_to_provinces(
+    provinces: &mut [crate::world::Province],
+    dimensions: crate::resources::MapDimensions,
+) {
     let mut climate_system = ClimateSystem::new(dimensions);
     climate_system.simulate(provinces);
 
@@ -612,7 +640,13 @@ fn biome_to_terrain(biome: Biome, elevation: f32) -> crate::world::TerrainType {
         Biome::TropicalRainforest => TerrainType::TropicalRainforest,
         Biome::TropicalSeasonalForest => TerrainType::TropicalSeasonalForest,
         Biome::Savanna => TerrainType::Savanna,
-        Biome::TropicalDesert => if elevation > 0.6 { TerrainType::PolarDesert } else { TerrainType::TropicalDesert },
+        Biome::TropicalDesert => {
+            if elevation > 0.6 {
+                TerrainType::PolarDesert
+            } else {
+                TerrainType::TropicalDesert
+            }
+        }
 
         // Special biomes
         Biome::Alpine => TerrainType::Alpine,
@@ -620,4 +654,3 @@ fn biome_to_terrain(biome: Biome, elevation: f32) -> crate::world::TerrainType {
         Biome::Mangrove => TerrainType::Mangrove,
     }
 }
-

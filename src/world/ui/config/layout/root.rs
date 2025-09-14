@@ -2,18 +2,20 @@
 //!
 //! This module creates the main configuration panel using UI builders.
 
-use bevy::prelude::*;
-use crate::ui::{PanelBuilder, PanelStyle, ButtonBuilder, ButtonStyle, ButtonSize};
-use crate::ui::{colors, dimensions};
-use crate::states::GameState;
-use super::super::components::{WorldConfigRoot, GenerateButton, BackButton, AdvancedToggle, AdvancedToggleText};
+use super::super::components::{
+    AdvancedToggle, AdvancedToggleText, BackButton, GenerateButton, WorldConfigRoot,
+};
 use super::super::types::WorldGenerationSettings;
+use crate::states::GameState;
+use crate::ui::{colors, dimensions};
+use crate::ui::{ButtonBuilder, ButtonSize, ButtonStyle, PanelBuilder, PanelStyle};
+use bevy::prelude::*;
 
-pub fn spawn_world_config_ui(
-    mut commands: Commands,
-    settings: Res<WorldGenerationSettings>,
-) {
-    println!("Spawning world configuration UI with seed: {}", settings.seed);
+pub fn spawn_world_config_ui(mut commands: Commands, settings: Res<WorldGenerationSettings>) {
+    println!(
+        "Spawning world configuration UI with seed: {}",
+        settings.seed
+    );
 
     // Root container with dark overlay
     commands.spawn((
