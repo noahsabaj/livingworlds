@@ -3,9 +3,8 @@
 //! This module provides centralized random number generation utilities
 //! for Living Worlds. It ensures consistent seeding and provides
 
-use rand::{Rng, SeedableRng, rngs::StdRng};
 use bevy::prelude::Vec2;
-
+use rand::{rngs::StdRng, Rng, SeedableRng};
 
 ///
 /// This is the standard way to create an RNG in Living Worlds.
@@ -35,7 +34,6 @@ pub fn create_rng_multi(seeds: &[u32]) -> StdRng {
     });
     StdRng::seed_from_u64(combined)
 }
-
 
 ///
 /// # Example
@@ -72,20 +70,13 @@ pub fn random_11(rng: &mut StdRng) -> f32 {
     rng.gen::<f32>() * 2.0 - 1.0
 }
 
-
 ///
 /// # Example
 /// ```
 /// let pos = random_point_in_rect(&mut rng, 0.0, 0.0, 100.0, 100.0);
 /// ```
 #[inline]
-pub fn random_point_in_rect(
-    rng: &mut StdRng,
-    x: f32,
-    y: f32,
-    width: f32,
-    height: f32,
-) -> Vec2 {
+pub fn random_point_in_rect(rng: &mut StdRng, x: f32, y: f32, width: f32, height: f32) -> Vec2 {
     Vec2::new(
         x + random_range(rng, 0.0, width),
         y + random_range(rng, 0.0, height),
@@ -99,19 +90,11 @@ pub fn random_point_in_rect(
 /// ```
 /// let pos = random_point_in_circle(&mut rng, 50.0, 50.0, 25.0);
 /// ```
-pub fn random_point_in_circle(
-    rng: &mut StdRng,
-    center_x: f32,
-    center_y: f32,
-    radius: f32,
-) -> Vec2 {
+pub fn random_point_in_circle(rng: &mut StdRng, center_x: f32, center_y: f32, radius: f32) -> Vec2 {
     let angle = random_range(rng, 0.0, std::f32::consts::TAU);
     let r = radius * random_01(rng).sqrt(); // sqrt for uniform distribution
 
-    Vec2::new(
-        center_x + angle.cos() * r,
-        center_y + angle.sin() * r,
-    )
+    Vec2::new(center_x + angle.cos() * r, center_y + angle.sin() * r)
 }
 
 ///
@@ -120,12 +103,7 @@ pub fn random_point_in_circle(
 /// let pos = random_point_on_circle(&mut rng, 50.0, 50.0, 25.0);
 /// ```
 #[inline]
-pub fn random_point_on_circle(
-    rng: &mut StdRng,
-    center_x: f32,
-    center_y: f32,
-    radius: f32,
-) -> Vec2 {
+pub fn random_point_on_circle(rng: &mut StdRng, center_x: f32, center_y: f32, radius: f32) -> Vec2 {
     let angle = random_range(rng, 0.0, std::f32::consts::TAU);
     Vec2::new(
         center_x + angle.cos() * radius,
@@ -164,7 +142,6 @@ pub fn random_unit_vector(rng: &mut StdRng) -> Vec2 {
 pub fn random_vector(rng: &mut StdRng, magnitude: f32) -> Vec2 {
     random_unit_vector(rng) * magnitude
 }
-
 
 ///
 /// # Example
@@ -261,9 +238,9 @@ pub fn random_spaced_positions(
         attempts += 1;
         let candidate = random_point_in_rect(rng, x, y, width, height);
 
-        let valid = positions.iter().all(|pos: &Vec2| {
-            pos.distance(candidate) >= min_spacing
-        });
+        let valid = positions
+            .iter()
+            .all(|pos: &Vec2| pos.distance(candidate) >= min_spacing);
 
         if valid {
             positions.push(candidate);
@@ -280,7 +257,7 @@ pub fn random_spaced_positions(
 #[inline]
 pub fn random_color_variation(rng: &mut StdRng, amount: f32) -> (f32, f32, f32) {
     (
-        random_11(rng) * amount * 0.1,  // Hue shift (small)
+        random_11(rng) * amount * 0.1,       // Hue shift (small)
         random_variation(rng, amount * 0.2), // Saturation multiplier
         random_variation(rng, amount * 0.1), // Value multiplier
     )
@@ -319,11 +296,7 @@ pub fn choose<'a, T>(rng: &mut StdRng, slice: &'a [T]) -> Option<&'a T> {
 /// let items = vec![1, 2, 3, 4, 5];
 /// let chosen = choose_multiple(&mut rng, &items, 3);
 /// ```
-pub fn choose_multiple<'a, T>(
-    rng: &mut StdRng,
-    slice: &'a [T],
-    amount: usize,
-) -> Vec<&'a T> {
+pub fn choose_multiple<'a, T>(rng: &mut StdRng, slice: &'a [T], amount: usize) -> Vec<&'a T> {
     use rand::seq::SliceRandom;
     slice.choose_multiple(rng, amount).collect()
 }
@@ -348,7 +321,6 @@ pub fn hash_random(x: f32, y: f32, seed: u32) -> f32 {
 pub fn hash_random_int(x: i32, y: i32, seed: u32) -> f32 {
     hash_random(x as f32, y as f32, seed)
 }
-
 
 #[cfg(test)]
 mod tests {

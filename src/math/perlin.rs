@@ -40,8 +40,8 @@
 //!     .build();
 //! ```
 
-use noise::{Perlin, NoiseFn};
 use bevy::prelude::*;
+use noise::{NoiseFn, Perlin};
 
 // NOISE CONSTANTS - Centralized parameters for all noise generation
 
@@ -71,7 +71,6 @@ const NORMALIZATION_MAX: f64 = 1.0;
 
 /// Minimum value for normalization calculations
 const NORMALIZATION_MIN: f64 = -1.0;
-
 
 /// Main Perlin noise generator - your one-stop shop for all noise needs
 ///
@@ -310,9 +309,7 @@ impl PerlinNoise {
                     0.0
                 }
             }
-            CloudPreset::Fluffy => {
-                self.sample_billow(x, y, CLOUD_FREQUENCY)
-            }
+            CloudPreset::Fluffy => self.sample_billow(x, y, CLOUD_FREQUENCY),
             CloudPreset::Storm => {
                 // Dense storm clouds
                 let base = self.sample_fbm(
@@ -386,7 +383,6 @@ impl PerlinNoise {
     }
 }
 
-
 /// Builder for creating customized PerlinNoise instances
 #[derive(Default)]
 pub struct PerlinBuilder {
@@ -448,7 +444,6 @@ impl PerlinBuilder {
     }
 }
 
-
 /// Settings for Fractal Brownian Motion
 #[derive(Debug, Clone, Copy)]
 pub struct FbmSettings {
@@ -473,7 +468,6 @@ impl Default for FbmSettings {
     }
 }
 
-
 /// Preset terrain generation patterns
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TerrainPreset {
@@ -495,7 +489,6 @@ pub enum CloudPreset {
     /// Dense storm clouds
     Storm,
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -520,7 +513,11 @@ mod tests {
         for x in 0..10 {
             for y in 0..10 {
                 let value = noise.sample(x as f64, y as f64);
-                assert!(value >= 0.0 && value <= 1.0, "Sample out of range: {}", value);
+                assert!(
+                    value >= 0.0 && value <= 1.0,
+                    "Sample out of range: {}",
+                    value
+                );
             }
         }
     }
@@ -531,7 +528,11 @@ mod tests {
         for x in 0..10 {
             for y in 0..10 {
                 let value = noise.sample_terrain(x as f64 * 10.0, y as f64 * 10.0);
-                assert!(value >= 0.0 && value <= 1.0, "Terrain out of range: {}", value);
+                assert!(
+                    value >= 0.0 && value <= 1.0,
+                    "Terrain out of range: {}",
+                    value
+                );
             }
         }
     }
@@ -556,9 +557,7 @@ mod tests {
         let noise = PerlinNoise::new(123);
         let noise_clone = noise.clone();
 
-        let handle = thread::spawn(move || {
-            noise_clone.sample(10.0, 20.0)
-        });
+        let handle = thread::spawn(move || noise_clone.sample(10.0, 20.0));
 
         let result1 = noise.sample(10.0, 20.0);
         let result2 = handle.join().unwrap();

@@ -6,7 +6,6 @@
 
 use std::f32::consts;
 
-
 /// π (pi) - Re-exported for convenience
 pub const PI: f32 = consts::PI;
 
@@ -24,7 +23,6 @@ pub const DEG_TO_RAD: f32 = PI / 180.0;
 
 /// Conversion factor from radians to degrees
 pub const RAD_TO_DEG: f32 = 180.0 / PI;
-
 
 /// Convert degrees to radians
 ///
@@ -47,7 +45,6 @@ pub fn degrees_to_radians(degrees: f32) -> f32 {
 pub fn radians_to_degrees(radians: f32) -> f32 {
     radians * RAD_TO_DEG
 }
-
 
 /// Normalize an angle to [0, 2π] range
 ///
@@ -105,7 +102,6 @@ pub fn wrap_degrees_signed(degrees: f32) -> f32 {
     wrapped
 }
 
-
 /// Linearly interpolate between two angles (takes shortest path)
 ///
 /// Handles angle wrapping correctly, always taking the shortest path.
@@ -139,7 +135,6 @@ pub fn smoothstep_angle(from: f32, to: f32, t: f32) -> f32 {
     let t = t * t * (3.0 - 2.0 * t); // smoothstep
     lerp_angle(from, to, t)
 }
-
 
 /// Calculate the angle between two 2D points
 ///
@@ -193,7 +188,6 @@ pub fn angle_in_range(angle: f32, start: f32, end: f32) -> bool {
     }
 }
 
-
 /// Get a unit vector from an angle
 ///
 /// Returns (x, y) components of a unit vector pointing in the given direction
@@ -218,7 +212,6 @@ pub fn vector_from_angle(angle: f32, magnitude: f32) -> (f32, f32) {
     (angle.cos() * magnitude, angle.sin() * magnitude)
 }
 
-
 /// Calculate position on a circle
 ///
 /// Used for circular formations, orbits, etc.
@@ -229,12 +222,7 @@ pub fn vector_from_angle(angle: f32, magnitude: f32) -> (f32, f32) {
 /// // Returns position at top of circle: (100.0, 150.0)
 /// ```
 #[inline]
-pub fn position_on_circle(
-    center_x: f32,
-    center_y: f32,
-    radius: f32,
-    angle: f32,
-) -> (f32, f32) {
+pub fn position_on_circle(center_x: f32, center_y: f32, radius: f32, angle: f32) -> (f32, f32) {
     (
         center_x + angle.cos() * radius,
         center_y + angle.sin() * radius,
@@ -287,7 +275,6 @@ pub fn angle_variation(x: f32, y: f32, seed: u32, amplitude: f32) -> f32 {
     variation * amplitude * PI
 }
 
-
 /// Fast approximation of sine (less accurate but faster)
 ///
 /// Uses a polynomial approximation, accurate to ~0.001
@@ -309,7 +296,6 @@ pub fn fast_cos(x: f32) -> f32 {
 pub fn sin_cos(angle: f32) -> (f32, f32) {
     (angle.sin(), angle.cos())
 }
-
 
 #[cfg(test)]
 mod tests {

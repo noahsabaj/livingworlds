@@ -22,9 +22,8 @@
 //! let result = weighted_blend(&[(value1, 0.3), (value2, 0.7)]);
 //! ```
 
+use super::angles::{fast_sin, PI};
 use bevy::prelude::*;
-use super::angles::{PI, fast_sin};
-
 
 /// Linear interpolation between two values
 ///
@@ -59,7 +58,6 @@ pub fn lerp_unclamped(a: f32, b: f32, t: f32) -> f32 {
     a + (b - a) * t
 }
 
-
 /// Inverse linear interpolation (unlerp)
 ///
 /// Returns where `value` falls between `a` and `b` as a 0-1 parameter.
@@ -93,7 +91,6 @@ pub fn remap(value: f32, from_min: f32, from_max: f32, to_min: f32, to_max: f32)
     lerp(to_min, to_max, t)
 }
 
-
 /// Smoothstep interpolation
 ///
 /// Provides smooth interpolation with zero derivatives at edges.
@@ -125,7 +122,6 @@ pub fn smootherstep(edge0: f32, edge1: f32, x: f32) -> f32 {
     let t = inverse_lerp(edge0, edge1, x);
     t * t * t * (t * (t * 6.0 - 15.0) + 10.0)
 }
-
 
 /// Exponential interpolation (frame-rate independent smoothing)
 ///
@@ -171,7 +167,6 @@ pub fn exponential_smooth(current: f32, new_value: f32, alpha: f32) -> f32 {
     current * (1.0 - alpha) + new_value * alpha
 }
 
-
 /// Asymmetric smoothing with different rates for increase/decrease
 ///
 /// Perfect for systems like WorldTension where values rise quickly but fall slowly.
@@ -187,13 +182,16 @@ pub fn asymmetric_smooth(
     target: f32,
     increase_rate: f32,
     decrease_rate: f32,
-    delta_time: f32
+    delta_time: f32,
 ) -> f32 {
-    let rate = if target > current { increase_rate } else { decrease_rate };
+    let rate = if target > current {
+        increase_rate
+    } else {
+        decrease_rate
+    };
     let t = 1.0 - (-rate * delta_time).exp();
     lerp(current, target, t)
 }
-
 
 /// Weighted blend of multiple values
 ///
@@ -210,7 +208,8 @@ pub fn weighted_blend(values: &[(f32, f32)]) -> f32 {
         return 0.0;
     }
 
-    values.iter()
+    values
+        .iter()
         .map(|(value, weight)| value * weight / total_weight)
         .sum()
 }
@@ -222,7 +221,8 @@ pub fn weighted_blend_vec2(values: &[(Vec2, f32)]) -> Vec2 {
         return Vec2::ZERO;
     }
 
-    values.iter()
+    values
+        .iter()
         .map(|(value, weight)| *value * (weight / total_weight))
         .sum()
 }
@@ -234,11 +234,11 @@ pub fn weighted_blend_vec3(values: &[(Vec3, f32)]) -> Vec3 {
         return Vec3::ZERO;
     }
 
-    values.iter()
+    values
+        .iter()
         .map(|(value, weight)| *value * (weight / total_weight))
         .sum()
 }
-
 
 /// Interpolate between two colors
 ///
@@ -282,7 +282,6 @@ pub fn weighted_blend_colors(colors: &[(Color, f32)]) -> Color {
 
     Color::LinearRgba(LinearRgba::new(r, g, b, a))
 }
-
 
 /// Quadratic ease-in (accelerating from zero velocity)
 #[inline]
@@ -399,7 +398,6 @@ where
     lerp(v0, v1, fy)
 }
 
-
 /// Clamp a value between min and max
 #[inline]
 pub fn clamp(value: f32, min: f32, max: f32) -> f32 {
@@ -434,7 +432,6 @@ pub fn ping_pong(value: f32, max: f32) -> f32 {
         max * 2.0 - t
     }
 }
-
 
 #[cfg(test)]
 mod tests {

@@ -46,7 +46,7 @@ pub fn euclidean_2d(x1: f32, y1: f32, x2: f32, y2: f32) -> f32 {
 /// Convenience wrapper for Vec2 types.
 #[inline]
 pub fn euclidean_vec2(a: Vec2, b: Vec2) -> f32 {
-    a.distance(b)  // Use Bevy's optimized implementation
+    a.distance(b) // Use Bevy's optimized implementation
 }
 
 /// Squared Euclidean distance between two 2D points
@@ -72,7 +72,7 @@ pub fn euclidean_squared_2d(x1: f32, y1: f32, x2: f32, y2: f32) -> f32 {
 /// Squared Euclidean distance between two Vec2 points
 #[inline]
 pub fn euclidean_squared_vec2(a: Vec2, b: Vec2) -> f32 {
-    a.distance_squared(b)  // Use Bevy's optimized implementation
+    a.distance_squared(b) // Use Bevy's optimized implementation
 }
 
 /// Euclidean distance between two 3D points
@@ -87,7 +87,7 @@ pub fn euclidean_3d(x1: f32, y1: f32, z1: f32, x2: f32, y2: f32, z2: f32) -> f32
 /// Euclidean distance between two Vec3 points
 #[inline]
 pub fn euclidean_vec3(a: Vec3, b: Vec3) -> f32 {
-    a.distance(b)  // Use Bevy's optimized implementation
+    a.distance(b) // Use Bevy's optimized implementation
 }
 
 // MANHATTAN DISTANCE - Grid-based "taxicab" distance
@@ -236,11 +236,7 @@ pub fn normalized_edge_distance(
 ///
 /// Useful for cylindrical world maps where the left and right edges connect.
 #[inline]
-pub fn wrapping_distance_2d(
-    x1: f32, y1: f32,
-    x2: f32, y2: f32,
-    map_width: f32,
-) -> f32 {
+pub fn wrapping_distance_2d(x1: f32, y1: f32, x2: f32, y2: f32, map_width: f32) -> f32 {
     let dx_direct = (x2 - x1).abs();
     let dx_wrapped = map_width - dx_direct;
     let dx = dx_direct.min(dx_wrapped);
@@ -251,8 +247,10 @@ pub fn wrapping_distance_2d(
 /// Calculate distance on a toroidal map (wraps both horizontally and vertically)
 #[inline]
 pub fn toroidal_distance_2d(
-    x1: f32, y1: f32,
-    x2: f32, y2: f32,
+    x1: f32,
+    y1: f32,
+    x2: f32,
+    y2: f32,
     map_width: f32,
     map_height: f32,
 ) -> f32 {
@@ -331,7 +329,6 @@ pub fn smooth_falloff(distance: f32, inner_radius: f32, outer_radius: f32) -> f3
     }
 }
 
-
 /// Calculate influence based on distance with custom falloff
 ///
 /// Combines distance calculation with falloff for game mechanics.
@@ -358,19 +355,16 @@ pub fn calculate_influence(
 pub enum FalloffType {
     Linear,
     Quadratic,
-    Gaussian(f32),         // sigma parameter
-    InverseSquare(f32),    // scale parameter
-    Smooth(f32),           // inner radius
+    Gaussian(f32),      // sigma parameter
+    InverseSquare(f32), // scale parameter
+    Smooth(f32),        // inner radius
 }
 
 /// Find the closest point from a list, returning index and distance
 ///
 /// Returns None if the list is empty.
 #[inline]
-pub fn find_closest(
-    target: Vec2,
-    points: &[Vec2],
-) -> Option<(usize, f32)> {
+pub fn find_closest(target: Vec2, points: &[Vec2]) -> Option<(usize, f32)> {
     points
         .iter()
         .enumerate()
@@ -380,11 +374,7 @@ pub fn find_closest(
 
 /// Find all points within a radius, returning indices and distances
 #[inline]
-pub fn find_within_radius(
-    center: Vec2,
-    points: &[Vec2],
-    radius: f32,
-) -> Vec<(usize, f32)> {
+pub fn find_within_radius(center: Vec2, points: &[Vec2], radius: f32) -> Vec<(usize, f32)> {
     let radius_sq = radius * radius;
     points
         .iter()
@@ -400,17 +390,13 @@ pub fn find_within_radius(
         .collect()
 }
 
-
 /// Batch calculate distances from one point to many
 ///
 /// More efficient than calling euclidean_vec2 in a loop due to
 /// better cache locality and potential SIMD optimization.
 #[inline]
 pub fn batch_distances(from: Vec2, to_points: &[Vec2]) -> Vec<f32> {
-    to_points
-        .iter()
-        .map(|&p| euclidean_vec2(from, p))
-        .collect()
+    to_points.iter().map(|&p| euclidean_vec2(from, p)).collect()
 }
 
 /// Batch calculate squared distances (avoids sqrt)
@@ -421,7 +407,6 @@ pub fn batch_distances_squared(from: Vec2, to_points: &[Vec2]) -> Vec<f32> {
         .map(|&p| euclidean_squared_vec2(from, p))
         .collect()
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -537,9 +522,15 @@ mod tests {
         assert_eq!(normalized_edge_distance(center, center, 50.0, 50.0), 0.0);
 
         // At edge
-        assert_eq!(normalized_edge_distance(Vec2::new(100.0, 50.0), center, 50.0, 50.0), 1.0);
+        assert_eq!(
+            normalized_edge_distance(Vec2::new(100.0, 50.0), center, 50.0, 50.0),
+            1.0
+        );
 
         // Halfway
-        assert_eq!(normalized_edge_distance(Vec2::new(75.0, 50.0), center, 50.0, 50.0), 0.5);
+        assert_eq!(
+            normalized_edge_distance(Vec2::new(75.0, 50.0), center, 50.0, 50.0),
+            0.5
+        );
     }
 }

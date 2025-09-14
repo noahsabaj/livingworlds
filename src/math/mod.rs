@@ -316,11 +316,11 @@
 // Gateway Architecture: All submodules are private. External code must use
 // the controlled re-exports below. This ensures all math operations go through
 // this single gateway, maintaining our "single source of truth" principle.
-mod hexagon;
-mod perlin;
-mod interpolation;
-mod distance;
 mod angles;
+mod distance;
+mod hexagon;
+mod interpolation;
+mod perlin;
 mod random;
 
 // Only these carefully selected exports are available to external code.
@@ -329,96 +329,120 @@ mod random;
 
 // Hexagon geometry exports
 pub use hexagon::{
-    Hexagon,
-    calculate_grid_position,
-    world_to_grid,
-    get_neighbor_positions,
-    validate_position,
-    quantize_position,
-    HEX_SIZE,
-    CORNERS,
+    calculate_grid_position, get_neighbor_positions, quantize_position, validate_position,
+    world_to_grid, Hexagon, CORNERS, HALF, HEX_SIZE, INDICES_PER_HEX, SQRT_3, TRIANGLES_PER_HEX,
     VERTICES_PER_HEX,
-    TRIANGLES_PER_HEX,
-    INDICES_PER_HEX,
-    SQRT_3,
-    HALF,
 };
 
 // Perlin noise generation exports
-pub use perlin::{
-    PerlinNoise,
-    PerlinBuilder,
-    TerrainPreset,
-    CloudPreset,
-    FbmSettings,
-};
+pub use perlin::{CloudPreset, FbmSettings, PerlinBuilder, PerlinNoise, TerrainPreset};
 
 // Interpolation and smoothing exports
 pub use interpolation::{
-    lerp, lerp_vec2, lerp_vec3,
-    inverse_lerp, remap,
-    smoothstep, smootherstep,
-    lerp_exp, lerp_exp_vec2, lerp_exp_vec3,
-    exponential_smooth, asymmetric_smooth,
-    weighted_blend, weighted_blend_colors,
-    lerp_color,
+    asymmetric_smooth, exponential_smooth, inverse_lerp, lerp, lerp_color, lerp_exp, lerp_exp_vec2,
+    lerp_exp_vec3, lerp_vec2, lerp_vec3, remap, smootherstep, smoothstep, weighted_blend,
+    weighted_blend_colors,
 };
 
 // Distance calculation exports
 pub use distance::{
-    euclidean_2d, euclidean_vec2, euclidean_vec3,
-    euclidean_squared_2d, euclidean_squared_vec2,
-    manhattan_2d, manhattan_vec2, manhattan_3d,
-    chebyshev_2d, chebyshev_vec2,
-    // Hexagon distances
-    hex_distance, hex_distance_world,
-    // Edge and wrapping distances
-    distance_from_rect_edge, normalized_edge_distance,
-    wrapping_distance_2d, toroidal_distance_2d,
-    // Falloff functions
-    linear_falloff, quadratic_falloff, gaussian_falloff,
-    inverse_square_falloff, smooth_falloff,
+    batch_distances,
+    batch_distances_squared,
     // Game utilities
-    calculate_influence, FalloffType,
-    find_closest, find_within_radius,
-    batch_distances, batch_distances_squared,
+    calculate_influence,
+    chebyshev_2d,
+    chebyshev_vec2,
+    // Edge and wrapping distances
+    distance_from_rect_edge,
+    euclidean_2d,
+    euclidean_squared_2d,
+    euclidean_squared_vec2,
+    euclidean_vec2,
+    euclidean_vec3,
+    find_closest,
+    find_within_radius,
+    gaussian_falloff,
+    // Hexagon distances
+    hex_distance,
+    hex_distance_world,
+    inverse_square_falloff,
+    // Falloff functions
+    linear_falloff,
+    manhattan_2d,
+    manhattan_3d,
+    manhattan_vec2,
+    normalized_edge_distance,
+    quadratic_falloff,
+    smooth_falloff,
+    toroidal_distance_2d,
+    wrapping_distance_2d,
+    FalloffType,
 };
 
 // Angle and trigonometry exports
 pub use angles::{
-    PI, TAU, HALF_PI, QUARTER_PI,
-    DEG_TO_RAD, RAD_TO_DEG,
-    // Conversions
-    degrees_to_radians, radians_to_degrees,
-    // Normalization
-    normalize_angle, normalize_angle_signed,
-    wrap_degrees, wrap_degrees_signed,
-    // Interpolation
-    lerp_angle, smoothstep_angle,
     // Calculations
-    angle_between, angular_distance, angle_in_range,
-    // Vector operations
-    unit_vector_from_angle, vector_from_angle,
-    position_on_circle, positions_around_circle,
-    movement_vector, angle_variation,
+    angle_between,
+    angle_in_range,
+    angle_variation,
+    angular_distance,
+    // Conversions
+    degrees_to_radians,
+    fast_cos,
     // Trigonometric helpers
-    fast_sin, fast_cos, sin_cos,
+    fast_sin,
+    // Interpolation
+    lerp_angle,
+    movement_vector,
+    // Normalization
+    normalize_angle,
+    normalize_angle_signed,
+    position_on_circle,
+    positions_around_circle,
+    radians_to_degrees,
+    sin_cos,
+    smoothstep_angle,
+    // Vector operations
+    unit_vector_from_angle,
+    vector_from_angle,
+    wrap_degrees,
+    wrap_degrees_signed,
+    DEG_TO_RAD,
+    HALF_PI,
+    PI,
+    QUARTER_PI,
+    RAD_TO_DEG,
+    TAU,
 };
 
 // Random generation exports
 pub use random::{
+    choose,
+    choose_multiple,
     // RNG creation
-    create_rng, create_rng_multi,
-    random_range, random_bool, random_01, random_11,
-    // Geometric
-    random_point_in_rect, random_point_in_circle,
-    random_point_on_circle, random_hex_offset,
-    random_unit_vector, random_vector,
-    // Distributions
-    random_normal, random_exponential, random_weighted_index,
-    // Game utilities
-    random_variation, random_spaced_positions, random_color_variation,
-    shuffle, choose, choose_multiple,
+    create_rng,
+    create_rng_multi,
     // Deterministic
-    hash_random, hash_random_int,
+    hash_random,
+    hash_random_int,
+    random_01,
+    random_11,
+    random_bool,
+    random_color_variation,
+    random_exponential,
+    random_hex_offset,
+    // Distributions
+    random_normal,
+    random_point_in_circle,
+    // Geometric
+    random_point_in_rect,
+    random_point_on_circle,
+    random_range,
+    random_spaced_positions,
+    random_unit_vector,
+    // Game utilities
+    random_variation,
+    random_vector,
+    random_weighted_index,
+    shuffle,
 };
