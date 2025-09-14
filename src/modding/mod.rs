@@ -12,17 +12,17 @@
 //! exposed through this file.
 
 // INTERNAL MODULES - ALL PRIVATE
-mod types;
-mod manager;
 mod loader;
+mod manager;
+mod types;
 mod ui;
 
 // #[cfg(test)]
 // mod test; // TODO: Add test module when needed
 
-use bevy::prelude::*;
-use self::manager::ModManager;
 use self::loader::ConfigReloadEvent;
+use self::manager::ModManager;
+use bevy::prelude::*;
 
 /// The main modding plugin
 pub struct ModdingPlugin;
@@ -32,35 +32,35 @@ impl Plugin for ModdingPlugin {
         // Create and initialize mod manager
         let mut mod_manager = ModManager::new();
         mod_manager.initialize();
-        
+
         // Log loaded mods
         info!("=== Modding System Initialized ===");
         info!("Available mods: {}", mod_manager.available_mods.len());
         for loaded_mod in &mod_manager.available_mods {
-            info!("  - {} v{} by {}", 
-                loaded_mod.manifest.name, 
-                loaded_mod.manifest.version,
-                loaded_mod.manifest.author
+            info!(
+                "  - {} v{} by {}",
+                loaded_mod.manifest.name, loaded_mod.manifest.version, loaded_mod.manifest.author
             );
         }
-        
+
         app
             // Resources
             .insert_resource(mod_manager)
-            
             // Events
             .add_event::<ConfigReloadEvent>()
             .add_event::<ModEnabledEvent>()
             .add_event::<ModDisabledEvent>()
-            
             .add_plugins(self::ui::ModBrowserUIPlugin)
-
             .add_systems(Startup, self::loader::setup_config_watching)
-            .add_systems(Update, (
-                self::loader::check_config_changes,
-                self::loader::handle_config_reload,
-                handle_mod_toggle_events,
-            ).chain());
+            .add_systems(
+                Update,
+                (
+                    self::loader::check_config_changes,
+                    self::loader::handle_config_reload,
+                    handle_mod_toggle_events,
+                )
+                    .chain(),
+            );
     }
 }
 
@@ -86,7 +86,7 @@ fn handle_mod_toggle_events(
         mod_manager.enable_mod(&event.mod_id);
         info!("Mod enabled: {}", event.mod_id);
     }
-    
+
     for event in disable_events.read() {
         mod_manager.disable_mod(&event.mod_id);
         info!("Mod disabled: {}", event.mod_id);
@@ -110,12 +110,12 @@ pub fn get_game_config(mod_manager: &ModManager) -> &self::types::GameConfig {
 pub fn create_example_mod() {
     use std::fs;
     use std::path::Path;
-    
+
     let example_mod_path = Path::new("mods/example_balance");
-    
+
     // Create directory structure
     fs::create_dir_all(example_mod_path.join("config")).ok();
-    
+
     // Create manifest
     let manifest = r#"ModManifest(
     id: "example_balance",
@@ -127,9 +127,9 @@ pub fn create_example_mod() {
     compatible_game_version: "*",
     load_order: 100,
 )"#;
-    
+
     fs::write(example_mod_path.join("manifest.ron"), manifest).ok();
-    
+
     // Create balance override
     let balance = r#"BalanceConfig(
     world: WorldConfig(
@@ -201,8 +201,8 @@ pub fn create_example_mod() {
         texture_alpha_transparent: 0,
     ),
 )"#;
-    
+
     fs::write(example_mod_path.join("config/balance.ron"), balance).ok();
-    
+
     info!("Created example mod at: {:?}", example_mod_path);
 }

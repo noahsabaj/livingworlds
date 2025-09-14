@@ -1,13 +1,12 @@
 //! Type definitions for the modding system
-//! 
+//!
 //! This module contains all the data structures used for configuration
 //! and mod management. These types mirror the RON configuration files.
 
 use bevy::prelude::*;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
-
 
 /// Metadata for a mod
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -48,7 +47,6 @@ pub enum ModSource {
     Workshop(u64), // Steam Workshop ID
 }
 
-
 /// The complete game configuration, merging base + all active mods
 #[derive(Resource, Debug, Clone, Serialize, Deserialize)]
 pub struct GameConfig {
@@ -80,7 +78,6 @@ pub struct ModConfigOverrides {
     pub simulation: Option<SimulationConfig>,
     pub audio: Option<AudioConfig>,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BalanceConfig {
