@@ -1,5 +1,5 @@
 //! Living Worlds - Main entry point
-//! 
+//!
 //! This is the entry point for the Living Worlds game, a menu-driven
 //! civilization observer simulator. The game starts with a main menu
 //! where players configure world generation parameters through the UI.
@@ -10,18 +10,19 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 // Import from our library - using explicit module paths
 use living_worlds::{
-    build_app_with_config, AppConfig, DiagnosticsConfig,
-    resources::{WorldSeed, WorldSize, MapDimensions},
+    build_app_with_config,
+    resources::{MapDimensions, WorldSeed, WorldSize},
+    AppConfig, DiagnosticsConfig,
 };
 
 // Thread pool configuration constants
 const THREAD_POOL_CPU_PERCENTAGE: f32 = 0.75; // Use 75% of available cores
-const MIN_WORKER_THREADS: usize = 2;           // Minimum threads for parallelism
-const DEFAULT_WORKER_THREADS: usize = 4;       // Fallback if detection fails
-const MAX_WORKER_THREADS: usize = 32;          // Cap to prevent resource exhaustion
+const MIN_WORKER_THREADS: usize = 2; // Minimum threads for parallelism
+const DEFAULT_WORKER_THREADS: usize = 4; // Fallback if detection fails
+const MAX_WORKER_THREADS: usize = 32; // Cap to prevent resource exhaustion
 
 /// Living Worlds - Command line arguments
-/// 
+///
 /// The game is primarily menu-driven, but these arguments allow
 /// for debugging and development workflows.
 #[derive(Parser, Debug)]
@@ -37,7 +38,10 @@ struct Args {
     debug: bool,
 
     /// Skip main menu for development (requires --dev-seed)
-    #[arg(long, help = "Skip menu and generate world immediately (development only)")]
+    #[arg(
+        long,
+        help = "Skip menu and generate world immediately (development only)"
+    )]
     dev_quick_start: bool,
 
     /// Development seed for quick start mode
@@ -87,18 +91,18 @@ fn parse_world_size(s: &str) -> Result<WorldSize, String> {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Parse command line arguments
     let args = Args::parse();
-    
+
     // Initialize logging based on debug flag
     initialize_logging(args.debug);
-    
+
     // Setup thread pool for world generation
     setup_thread_pool(args.threads)?;
-    
+
     let config = build_config(&args);
-    
+
     let mut app = build_app_with_config(config)
         .map_err(|e| format!("Failed to initialize application: {}", e))?;
-    
+
     // Add development resources if in quick-start mode
     if args.dev_quick_start {
         setup_development_world(&mut app, &args);
@@ -107,10 +111,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // The WorldConfiguration screen will handle this
         info!("Starting in normal mode - main menu will handle world configuration");
     }
-    
+
     info!("Launching Living Worlds...");
     app.run();
-    
+
     Ok(())
 }
 
@@ -133,24 +137,24 @@ fn setup_thread_pool(requested_threads: usize) -> Result<(), Box<dyn std::error:
         // Auto-detect optimal thread count
         calculate_optimal_threads()
     };
-    
+
     rayon::ThreadPoolBuilder::new()
         .num_threads(num_threads)
         .thread_name(|i| format!("world-gen-{}", i))
         .build_global()
         .map_err(|e| format!("Failed to initialize thread pool: {}", e))?;
-    
+
     let total_cores = std::thread::available_parallelism()
         .map(|n| n.get())
         .unwrap_or(DEFAULT_WORKER_THREADS);
-    
+
     info!(
         "Thread pool initialized: {} worker threads ({}% of {} cores)",
         num_threads,
         (num_threads * 100) / total_cores,
         total_cores
     );
-    
+
     Ok(())
 }
 
@@ -196,21 +200,21 @@ fn setup_development_world(app: &mut App, args: &Args) {
                 42
             })
     });
-    
+
     // Use provided size or default to medium
     let world_size = args.dev_size.unwrap_or(WorldSize::Medium);
     let map_dimensions = MapDimensions::from_world_size(&world_size);
-    
+
     info!(
         "Development mode: Quick-starting with seed {} and {:?} world",
         seed, world_size
     );
-    
+
     // Insert resources for world generation
     app.insert_resource(WorldSeed(seed))
         .insert_resource(world_size)
         .insert_resource(map_dimensions);
-    
+
     // Note: The game should skip to WorldGeneration state when these resources
     // are present at startup. This would require changes to the state system.
 }

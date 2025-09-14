@@ -4,42 +4,39 @@
 //! when the player pauses during gameplay. It provides options to
 //! resume, save, load, access settings, or return to the main menu.
 
-use bevy::prelude::*;
-use bevy::app::AppExit;
+use super::types::{MenuAction, MenuButton, SpawnSaveBrowserEvent, SpawnSettingsMenuEvent};
+use crate::save_load::{scan_save_files_internal, SaveCompleteEvent, SaveGameEvent, SaveGameList};
 use crate::states::{GameState, RequestStateTransition};
-use crate::ui::{ButtonBuilder, ButtonStyle, ButtonSize};
-use crate::save_load::{SaveGameEvent, SaveGameList, scan_save_files_internal, SaveCompleteEvent};
-use super::types::{MenuButton, MenuAction, SpawnSettingsMenuEvent, SpawnSaveBrowserEvent};
-
+use crate::ui::{ButtonBuilder, ButtonSize, ButtonStyle};
+use bevy::app::AppExit;
+use bevy::prelude::*;
 
 /// Plugin that manages the pause menu
 pub struct PauseMenuPlugin;
 
 impl Plugin for PauseMenuPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_systems(OnEnter(GameState::Paused), spawn_pause_menu)
+        app.add_systems(OnEnter(GameState::Paused), spawn_pause_menu)
             .add_systems(OnExit(GameState::Paused), despawn_pause_menu)
-            .add_systems(Update, (
-                handle_pause_button_interactions,
-                handle_pause_esc_key,
-                handle_exit_confirmation_dialog,
-                update_load_button_after_save,
-            ).run_if(in_state(GameState::Paused)));
+            .add_systems(
+                Update,
+                (
+                    handle_pause_button_interactions,
+                    handle_pause_esc_key,
+                    handle_exit_confirmation_dialog,
+                    update_load_button_after_save,
+                )
+                    .run_if(in_state(GameState::Paused)),
+            );
     }
 }
-
 
 /// Marker component for the pause menu root entity
 #[derive(Component)]
 pub struct PauseMenuRoot;
 
-
 /// Spawns the pause menu UI
-fn spawn_pause_menu(
-    mut commands: Commands,
-    mut save_list: ResMut<SaveGameList>,
-) {
+fn spawn_pause_menu(mut commands: Commands, mut save_list: ResMut<SaveGameList>) {
     println!("Spawning pause menu UI");
 
     // Scan for save files to determine if Load Game should be enabled
@@ -47,73 +44,74 @@ fn spawn_pause_menu(
     let has_saves = !save_list.saves.is_empty();
 
     // Root container - full screen with dark semi-transparent overlay that blocks clicks
-    commands.spawn((
-        Button,  // Add Button to block clicks to elements behind pause menu
-        Node {
-            width: Val::Percent(100.0),
-            height: Val::Percent(100.0),
-            justify_content: JustifyContent::Center,
-            align_items: AlignItems::Center,
-            flex_direction: FlexDirection::Column,
-            ..default()
-        },
-        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.8)),
-        PauseMenuRoot,
-    )).with_children(|parent| {
-        // Pause menu panel
-        parent.spawn((
+    commands
+        .spawn((
+            Button, // Add Button to block clicks to elements behind pause menu
             Node {
-                width: Val::Px(400.0),
-                padding: UiRect::all(Val::Px(30.0)),
-                flex_direction: FlexDirection::Column,
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
-                border: UiRect::all(Val::Px(2.0)),
+                flex_direction: FlexDirection::Column,
                 ..default()
             },
-            BackgroundColor(Color::srgb(0.1, 0.1, 0.12)),
-            BorderColor(Color::srgb(0.4, 0.4, 0.45)),
-        )).with_children(|panel| {
-            // Title
-            panel.spawn((
-                Text::new("PAUSED"),
-                TextFont {
-                    font_size: 48.0,
-                    ..default()
-                },
-                TextColor(Color::srgb(0.9, 0.9, 0.9)),
-                Node {
-                    margin: UiRect::bottom(Val::Px(30.0)),
-                    ..default()
-                },
-            ));
+            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.8)),
+            PauseMenuRoot,
+        ))
+        .with_children(|parent| {
+            // Pause menu panel
+            parent
+                .spawn((
+                    Node {
+                        width: Val::Px(400.0),
+                        padding: UiRect::all(Val::Px(30.0)),
+                        flex_direction: FlexDirection::Column,
+                        align_items: AlignItems::Center,
+                        border: UiRect::all(Val::Px(2.0)),
+                        ..default()
+                    },
+                    BackgroundColor(Color::srgb(0.1, 0.1, 0.12)),
+                    BorderColor(Color::srgb(0.4, 0.4, 0.45)),
+                ))
+                .with_children(|panel| {
+                    // Title
+                    panel.spawn((
+                        Text::new("PAUSED"),
+                        TextFont {
+                            font_size: 48.0,
+                            ..default()
+                        },
+                        TextColor(Color::srgb(0.9, 0.9, 0.9)),
+                        Node {
+                            margin: UiRect::bottom(Val::Px(30.0)),
+                            ..default()
+                        },
+                    ));
 
-            // Helper closure for creating buttons using ButtonBuilder
-            let mut create_button = |text: &str, action: MenuAction, enabled: bool| {
-                ButtonBuilder::new(text)
-                    .style(ButtonStyle::Secondary)
-                    .size(ButtonSize::XLarge)
-                    .enabled(enabled)
-                    .margin(UiRect::vertical(Val::Px(8.0)))
-                    .with_marker(MenuButton { action, enabled })
-                    .build(panel);
-            };
+                    // Helper closure for creating buttons using ButtonBuilder
+                    let mut create_button = |text: &str, action: MenuAction, enabled: bool| {
+                        ButtonBuilder::new(text)
+                            .style(ButtonStyle::Secondary)
+                            .size(ButtonSize::XLarge)
+                            .enabled(enabled)
+                            .margin(UiRect::vertical(Val::Px(8.0)))
+                            .with_marker(MenuButton { action, enabled })
+                            .build(panel);
+                    };
 
-            // Buttons
-            create_button("Resume", MenuAction::Resume, true);
-            create_button("Settings", MenuAction::Settings, true);
-            create_button("Save Game", MenuAction::SaveGame, true);
-            create_button("Load Game", MenuAction::LoadGame, has_saves);
-            create_button("Main Menu", MenuAction::BackToMainMenu, true);
-            create_button("Exit Game", MenuAction::Exit, true);
+                    // Buttons
+                    create_button("Resume", MenuAction::Resume, true);
+                    create_button("Settings", MenuAction::Settings, true);
+                    create_button("Save Game", MenuAction::SaveGame, true);
+                    create_button("Load Game", MenuAction::LoadGame, has_saves);
+                    create_button("Main Menu", MenuAction::BackToMainMenu, true);
+                    create_button("Exit Game", MenuAction::Exit, true);
+                });
         });
-    });
 }
 
 /// Despawns the pause menu UI
-fn despawn_pause_menu(
-    mut commands: Commands,
-    query: Query<Entity, With<PauseMenuRoot>>,
-) {
+fn despawn_pause_menu(mut commands: Commands, query: Query<Entity, With<PauseMenuRoot>>) {
     println!("Despawning pause menu UI");
     for entity in &query {
         commands.entity(entity).despawn_recursive();
@@ -137,7 +135,15 @@ fn handle_pause_esc_key(
 /// Update Load Game button after a save completes
 fn update_load_button_after_save(
     mut save_complete_events: EventReader<SaveCompleteEvent>,
-    mut menu_buttons: Query<(&mut MenuButton, &mut BackgroundColor, &mut BorderColor, &Children), With<MenuButton>>,
+    mut menu_buttons: Query<
+        (
+            &mut MenuButton,
+            &mut BackgroundColor,
+            &mut BorderColor,
+            &Children,
+        ),
+        With<MenuButton>,
+    >,
     mut button_texts: Query<&mut TextColor>,
     mut save_list: ResMut<SaveGameList>,
 ) {
@@ -172,10 +178,7 @@ fn update_load_button_after_save(
 
 /// Handles button interactions in the pause menu
 fn handle_pause_button_interactions(
-    mut interactions: Query<
-        (&Interaction, &MenuButton),
-        (Changed<Interaction>, With<Button>)
-    >,
+    mut interactions: Query<(&Interaction, &MenuButton), (Changed<Interaction>, With<Button>)>,
     mut state_events: EventWriter<RequestStateTransition>,
     mut save_events: EventWriter<SaveGameEvent>,
     mut settings_events: EventWriter<SpawnSettingsMenuEvent>,
@@ -243,8 +246,11 @@ fn handle_pause_button_interactions(
 /// Handles exit confirmation dialog button interactions
 fn handle_exit_confirmation_dialog(
     mut interactions: Query<
-        (&Interaction, AnyOf<(&crate::ui::ConfirmButton, &crate::ui::CancelButton)>),
-        Changed<Interaction>
+        (
+            &Interaction,
+            AnyOf<(&crate::ui::ConfirmButton, &crate::ui::CancelButton)>,
+        ),
+        Changed<Interaction>,
     >,
     mut commands: Commands,
     dialog_query: Query<Entity, With<crate::ui::ExitConfirmationDialog>>,

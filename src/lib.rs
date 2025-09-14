@@ -1,5 +1,5 @@
 //! Living Worlds - Core Game Library
-//! 
+//!
 //! This library contains all game systems, components, and logic for the
 //! Living Worlds civilization observer simulator. It can be used by multiple
 //! binaries, testing frameworks, and tooling.
@@ -12,8 +12,8 @@ pub mod resources;
 pub mod states;
 
 // World generation and representation
-pub mod math;        // Single source of truth for spatial math and noise
-pub mod world;       // World representation and rendering
+pub mod math; // Single source of truth for spatial math and noise
+pub mod world; // World representation and rendering
 
 // Gameplay systems
 pub mod simulation;
@@ -50,37 +50,31 @@ pub const MS_PER_SECOND: f32 = 1000.0;
 // === Prelude Module ===
 /// Re-export only the most essential types that are used across many modules.
 /// For other types, prefer explicit imports from their respective modules.
-/// 
+///
 /// # Guidelines for prelude inclusion:
 /// - Core component types used in most game systems
 /// - Fundamental enums that define the game world
 /// - State types needed by UI and game logic
-/// 
+///
 /// # Explicit imports required for:
 /// - Resources (WorldSeed, GameTime, etc.) - use `resources::Type`
 /// - Constants - use `constants::CONSTANT_NAME`
 /// - Specific systems - import from their modules
 pub mod prelude {
     // Core components (used in almost every game system)
-    pub use crate::world::{
-        Province, ProvinceId,
-    };
-    
+    pub use crate::world::{Province, ProvinceId};
+
     // Core game states (needed by UI and systems)
-    pub use crate::states::{
-        GameState, MenuState,
-    };
-    
+    pub use crate::states::{GameState, MenuState};
+
     // Fundamental world types (define the game world)
-    pub use crate::world::{
-        TerrainType, ClimateZone,
-    };
+    pub use crate::world::{ClimateZone, TerrainType};
 }
 
 // === Imports ===
-use bevy::prelude::*;
-use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, DiagnosticsStore};
 use bevy::audio::AudioPlugin;
+use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
+use bevy::prelude::*;
 use bevy_pkv::PkvStore;
 
 // Import all plugins consistently
@@ -96,12 +90,8 @@ use crate::{
     ui::UIPlugin,
     // World module plugins
     world::{
-        BorderPlugin,
-        CloudPlugin,
-        OverlayPlugin,
-        TerrainPlugin,
+        BorderPlugin, CloudPlugin, OverlayPlugin, ProvinceEventsPlugin, TerrainPlugin,
         WorldConfigPlugin,
-        ProvinceEventsPlugin,
     },
 };
 
@@ -111,7 +101,7 @@ use crate::{
 pub enum AppBuildError {
     #[error("Failed to initialize storage: {0}")]
     StorageInit(String),
-    
+
     #[error("Failed to initialize plugin: {0}")]
     PluginInit(String),
 }
@@ -174,12 +164,12 @@ impl Default for AppConfig {
 }
 
 /// Builds the core Bevy application with all Living Worlds plugins.
-/// 
+///
 /// This sets up the engine, window, and all game systems but doesn't
 /// include game-specific resources or startup systems.
-/// 
+///
 /// # Plugin Initialization Order
-/// 
+///
 /// The plugins are initialized in a specific order to ensure proper dependencies:
 /// 1. **Steam** (if enabled) - Must be before rendering plugins
 /// 2. **States** - Core state management, required by most other plugins
@@ -192,9 +182,9 @@ impl Default for AppConfig {
 /// 9. **Simulation & Game Systems** - Core gameplay plugins
 /// 10. **UI & Camera** - User interface and camera controls
 /// 11. **Borders** - GPU-instanced border rendering (visual layer)
-/// 
+///
 /// # Errors
-/// 
+///
 /// Returns `AppBuildError` if:
 /// - Storage initialization fails
 /// - Critical plugin initialization fails
@@ -205,70 +195,72 @@ pub fn build_app() -> Result<App, AppBuildError> {
 /// Builds the app with custom configuration
 pub fn build_app_with_config(config: AppConfig) -> Result<App, AppBuildError> {
     let mut app = App::new();
-    
+
     // Add Steam plugin FIRST (must be before DefaultPlugins/RenderPlugin)
     #[cfg(feature = "steam")]
     {
         info!("Initializing Steam integration");
         app.add_plugins(crate::steam::SteamPlugin);
     }
-    
+
     // Configure Bevy's default plugins with our settings
-    let mut default_plugins = DefaultPlugins
-        .set(WindowPlugin {
-            primary_window: Some(Window {
-                title: config.window.title.clone(),
-                resolution: (config.window.width, config.window.height).into(),
-                resizable: config.window.resizable,
-                ..default()
-            }),
+    let mut default_plugins = DefaultPlugins.set(WindowPlugin {
+        primary_window: Some(Window {
+            title: config.window.title.clone(),
+            resolution: (config.window.width, config.window.height).into(),
+            resizable: config.window.resizable,
             ..default()
-        });
-    
+        }),
+        ..default()
+    });
+
     // Conditionally disable audio based on configuration
     if !config.enable_audio {
         info!("Audio disabled in configuration");
         default_plugins = default_plugins.disable::<AudioPlugin>();
     }
-    
+
     app.add_plugins(default_plugins);
-    
+
     // Add diagnostics if enabled
     if config.diagnostics.show_fps {
         app.add_plugins(FrameTimeDiagnosticsPlugin::default())
             .insert_resource(config.diagnostics.clone())
-            .add_systems(Update, display_fps.run_if(resource_exists::<DiagnosticsConfig>));
+            .add_systems(
+                Update,
+                display_fps.run_if(resource_exists::<DiagnosticsConfig>),
+            );
     }
-    
+
     // Initialize storage - PkvStore::new returns PkvStore directly, not Result
     app.insert_resource(PkvStore::new("LivingWorlds", "LivingWorlds"));
-    
+
     // Add all Living Worlds game plugins in dependency order
     info!("Initializing game plugins");
-    
+
     // Core systems (required by others)
-    app.add_plugins(StatesPlugin)  // State management (required by menus, world_config, etc.)
-        .add_plugins(ModdingPlugin)  // Mod system (loads configs early)
+    app.add_plugins(StatesPlugin) // State management (required by menus, world_config, etc.)
+        .add_plugins(ModdingPlugin) // Mod system (loads configs early)
         .add_plugins(ProvinceEventsPlugin); // Province change events
-    
+
     // UI Systems (depend on States)
-    app.add_plugins(MenusPlugin)   // Menu UI system
+    app.add_plugins(MenusPlugin) // Menu UI system
         .add_plugins(WorldConfigPlugin) // World configuration UI
         .add_plugins(LoadingScreenPlugin) // Unified loading screen
         .add_plugins(SettingsPlugin); // Settings menu system
-    
+
     // World and simulation systems
     app.add_plugins(CloudPlugin)
         .add_plugins(TerrainPlugin)
         .add_plugins(OverlayPlugin)
         .add_plugins(SimulationPlugin)
         .add_plugins(SaveLoadPlugin);
-    
+
     // User interface and controls
     app.add_plugins(UIPlugin)
         .add_plugins(CameraPlugin)
-        .add_plugins(BorderPlugin);  // GPU-instanced border rendering
-    
+        .add_plugins(BorderPlugin); // GPU-instanced border rendering
+
     Ok(app)
 }
 
@@ -282,11 +274,11 @@ fn display_fps(
     if time.elapsed_secs() - *last_print < config.fps_interval {
         return;
     }
-    
+
     if let Some(fps) = diagnostics.get(&FrameTimeDiagnosticsPlugin::FPS) {
         if let Some(value) = fps.smoothed() {
             let frame_time_ms = MS_PER_SECOND / value as f32;
-            
+
             if config.use_console {
                 // Console output (only in debug builds or when explicitly enabled)
                 info!("FPS: {:.1} | Frame Time: {:.2}ms", value, frame_time_ms);
@@ -296,7 +288,7 @@ fn display_fps(
                 #[cfg(debug_assertions)]
                 trace!("FPS: {:.1} | Frame Time: {:.2}ms", value, frame_time_ms);
             }
-            
+
             *last_print = time.elapsed_secs();
         }
     }
