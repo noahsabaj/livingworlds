@@ -1,8 +1,8 @@
 //! Separator component for visual dividers
 
-use bevy::prelude::*;
 use super::super::{colors, dimensions};
 use super::types::Orientation;
+use bevy::prelude::*;
 
 /// Component for separators/dividers
 #[derive(Component, Debug)]
@@ -15,12 +15,12 @@ pub struct Separator {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SeparatorStyle {
     #[default]
-    Solid,       // Solid line
-    Dashed,      // Dashed line (simulated with width)
-    Dotted,      // Dotted line (simulated with width)
-    Thick,       // Thicker line
-    Thin,        // Thinner line
-    Invisible,   // Spacing only, no visual
+    Solid, // Solid line
+    Dashed,    // Dashed line (simulated with width)
+    Dotted,    // Dotted line (simulated with width)
+    Thick,     // Thicker line
+    Thin,      // Thinner line
+    Invisible, // Spacing only, no visual
 }
 
 impl SeparatorStyle {
@@ -104,18 +104,20 @@ impl SeparatorBuilder {
             Orientation::Vertical => (Val::Px(thickness), self.length),
         };
 
-        parent.spawn((
-            Node {
-                width,
-                height,
-                margin: self.margin,
-                ..default()
-            },
-            BackgroundColor(color),
-            Separator {
-                orientation: self.orientation,
-                style: self.style,
-            },
-        )).id()
+        parent
+            .spawn((
+                Node {
+                    width,
+                    height,
+                    margin: self.margin,
+                    ..default()
+                },
+                BackgroundColor(color),
+                Separator {
+                    orientation: self.orientation,
+                    style: self.style,
+                },
+            ))
+            .id()
     }
 }

@@ -1,12 +1,12 @@
 //! Progress bar component for showing progress and loading states
 
-use bevy::prelude::*;
 use super::super::{colors, dimensions};
+use bevy::prelude::*;
 
 /// Component for progress bars
 #[derive(Component, Debug)]
 pub struct ProgressBar {
-    pub value: f32,        // 0.0 to 1.0
+    pub value: f32, // 0.0 to 1.0
     pub style: ProgressBarStyle,
     pub animated: bool,
 }
@@ -15,10 +15,10 @@ pub struct ProgressBar {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ProgressBarStyle {
     #[default]
-    Default,     // Standard progress bar
-    Thin,        // Thinner bar
-    Thick,       // Thicker bar
-    Segmented,   // Segmented appearance
+    Default, // Standard progress bar
+    Thin,      // Thinner bar
+    Thick,     // Thicker bar
+    Segmented, // Segmented appearance
 }
 
 impl ProgressBarStyle {
@@ -140,79 +140,82 @@ impl ProgressBarBuilder {
         let track_color = self.track_color.unwrap_or_else(|| self.style.track_color());
         let fill_color = self.fill_color.unwrap_or_else(|| self.style.fill_color());
 
-        parent.spawn((
-            Node {
-                width: self.width,
-                flex_direction: FlexDirection::Column,
-                margin: self.margin,
-                ..default()
-            },
-            BackgroundColor(Color::NONE),
-        ))
-        .with_children(|container| {
-            // Progress bar track (background)
-            container.spawn((
+        parent
+            .spawn((
                 Node {
-                    width: Val::Percent(100.0),
-                    height,
-                    position_type: PositionType::Relative,
-                    overflow: Overflow::clip(),
+                    width: self.width,
+                    flex_direction: FlexDirection::Column,
+                    margin: self.margin,
                     ..default()
                 },
-                BackgroundColor(track_color),
-                BorderRadius::all(Val::Px(2.0)),
-                ProgressBarTrack,
+                BackgroundColor(Color::NONE),
             ))
-            .with_children(|track| {
-                // Progress bar fill
-                track.spawn((
-                    Node {
-                        width: Val::Percent(self.value * 100.0),
-                        height: Val::Percent(100.0),
-                        position_type: PositionType::Absolute,
-                        left: Val::Px(0.0),
-                        top: Val::Px(0.0),
-                        ..default()
-                    },
-                    BackgroundColor(fill_color),
-                    BorderRadius::all(Val::Px(2.0)),
-                    ProgressBarFill,
-                ));
-            });
-
-            // Optional label
-            if self.show_label {
-                let label_text = self.custom_label.unwrap_or_else(|| {
-                    format!("{}%", (self.value * 100.0) as i32)
-                });
-
-                container.spawn((
-                    Node {
-                        margin: UiRect::top(Val::Px(4.0)),
-                        justify_content: JustifyContent::Center,
-                        ..default()
-                    },
-                    BackgroundColor(Color::NONE),
-                ))
-                .with_children(|label_container| {
-                    label_container.spawn((
-                        Text::new(label_text),
-                        TextFont {
-                            font_size: dimensions::FONT_SIZE_SMALL,
+            .with_children(|container| {
+                // Progress bar track (background)
+                container
+                    .spawn((
+                        Node {
+                            width: Val::Percent(100.0),
+                            height,
+                            position_type: PositionType::Relative,
+                            overflow: Overflow::clip(),
                             ..default()
                         },
-                        TextColor(colors::TEXT_MUTED),
-                        ProgressBarLabel,
-                    ));
-                });
-            }
-        })
-        .insert(ProgressBar {
-            value: self.value,
-            style: self.style,
-            animated: self.animated,
-        })
-        .id()
+                        BackgroundColor(track_color),
+                        BorderRadius::all(Val::Px(2.0)),
+                        ProgressBarTrack,
+                    ))
+                    .with_children(|track| {
+                        // Progress bar fill
+                        track.spawn((
+                            Node {
+                                width: Val::Percent(self.value * 100.0),
+                                height: Val::Percent(100.0),
+                                position_type: PositionType::Absolute,
+                                left: Val::Px(0.0),
+                                top: Val::Px(0.0),
+                                ..default()
+                            },
+                            BackgroundColor(fill_color),
+                            BorderRadius::all(Val::Px(2.0)),
+                            ProgressBarFill,
+                        ));
+                    });
+
+                // Optional label
+                if self.show_label {
+                    let label_text = self
+                        .custom_label
+                        .unwrap_or_else(|| format!("{}%", (self.value * 100.0) as i32));
+
+                    container
+                        .spawn((
+                            Node {
+                                margin: UiRect::top(Val::Px(4.0)),
+                                justify_content: JustifyContent::Center,
+                                ..default()
+                            },
+                            BackgroundColor(Color::NONE),
+                        ))
+                        .with_children(|label_container| {
+                            label_container.spawn((
+                                Text::new(label_text),
+                                TextFont {
+                                    font_size: dimensions::FONT_SIZE_SMALL,
+                                    ..default()
+                                },
+                                TextColor(colors::TEXT_MUTED),
+                                ProgressBarLabel,
+                            ));
+                        });
+                }
+            })
+            .insert(ProgressBar {
+                value: self.value,
+                style: self.style,
+                animated: self.animated,
+            })
+            .id()
     }
 }
 

@@ -30,44 +30,27 @@
 //! ```
 
 // Submodules - all private, exposed through controlled re-exports
-mod types;
-mod panel;
 mod label;
-mod separator;
+mod panel;
 mod progress_bar;
+mod separator;
+mod types;
 
 // PUBLIC RE-EXPORTS - The Gateway's Public API
 
 // Shared types used across components
-pub use types::{Orientation, ComponentMarker};
+pub use types::{ComponentMarker, Orientation};
 
-pub use panel::{
-    Panel,
-    PanelStyle,
-    PanelBuilder,
-};
+pub use panel::{Panel, PanelBuilder, PanelStyle};
 
 // Label component and builder
-pub use label::{
-    Label,
-    LabelStyle,
-    LabelBuilder,
-};
+pub use label::{Label, LabelBuilder, LabelStyle};
 
 // Separator component and builder
-pub use separator::{
-    Separator,
-    SeparatorStyle,
-    SeparatorBuilder,
-};
+pub use separator::{Separator, SeparatorBuilder, SeparatorStyle};
 
 // Progress bar component and builder
 pub use progress_bar::{
-    ProgressBar,
-    ProgressBarStyle,
-    ProgressBarBuilder,
-    ProgressBarFill,
+    ProgressBar, ProgressBarBuilder, ProgressBarFill, ProgressBarLabel, ProgressBarStyle,
     ProgressBarTrack,
-    ProgressBarLabel,
 };
-

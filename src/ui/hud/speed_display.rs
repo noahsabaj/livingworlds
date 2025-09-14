@@ -1,8 +1,8 @@
 //! Speed display component for showing simulation speed
 
-use bevy::prelude::*;
-use crate::resources::GameTime;
 use super::super::{LabelBuilder, LabelStyle};
+use crate::resources::GameTime;
+use bevy::prelude::*;
 
 /// Marker component for the game speed display
 #[derive(Component, Reflect)]

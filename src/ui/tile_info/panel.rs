@@ -1,9 +1,9 @@
 //! Tile info panel for displaying province information
 
-use bevy::prelude::*;
+use super::super::{LabelBuilder, PanelBuilder, PanelStyle};
 use crate::resources::SelectedProvinceInfo;
-use crate::world::{ProvinceStorage, ProvinceId};
-use super::super::{PanelBuilder, PanelStyle, LabelBuilder};
+use crate::world::{ProvinceId, ProvinceStorage};
+use bevy::prelude::*;
 
 /// Marker component for the tile info panel
 #[derive(Component)]
@@ -40,7 +40,10 @@ pub fn update_tile_info_ui(
     if let Ok(mut text) = text_query.get_single_mut() {
         if let Some(province_id) = selected_info.province_id {
             // Use HashMap for O(1) lookup instead of O(n) linear search
-            if let Some(&idx) = province_storage.province_by_id.get(&ProvinceId::new(province_id)) {
+            if let Some(&idx) = province_storage
+                .province_by_id
+                .get(&ProvinceId::new(province_id))
+            {
                 let province = &province_storage.provinces[idx];
                 *text = Text::new(format!(
                     "Province #{}

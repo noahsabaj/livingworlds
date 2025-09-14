@@ -5,18 +5,16 @@
 
 use rand::prelude::*;
 
-
 /// Categories of tips for filtering
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TipCategory {
-    Controls,      // Keyboard and mouse controls
-    Gameplay,      // Game mechanics and features
-    Interface,     // UI tips and shortcuts
-    Observation,   // Tips about watching civilizations
-    WorldGen,      // World generation insights
-    Performance,   // Performance and settings tips
+    Controls,    // Keyboard and mouse controls
+    Gameplay,    // Game mechanics and features
+    Interface,   // UI tips and shortcuts
+    Observation, // Tips about watching civilizations
+    WorldGen,    // World generation insights
+    Performance, // Performance and settings tips
 }
-
 
 /// A loading tip with its category
 pub struct LoadingTip {
@@ -63,7 +61,6 @@ pub const LOADING_TIPS: &[LoadingTip] = &[
         text: "Press Home to reset the camera to the world center",
         category: TipCategory::Controls,
     },
-
     // Gameplay
     LoadingTip {
         text: "Living Worlds is an observer game - watch civilizations rise and fall naturally",
@@ -101,7 +98,6 @@ pub const LOADING_TIPS: &[LoadingTip] = &[
         text: "Wars and alliances form naturally based on resources and borders",
         category: TipCategory::Gameplay,
     },
-
     // Interface
     LoadingTip {
         text: "The overlay system shows political, mineral, and infrastructure maps",
@@ -123,7 +119,6 @@ pub const LOADING_TIPS: &[LoadingTip] = &[
         text: "The year display tracks the passage of time in your world",
         category: TipCategory::Interface,
     },
-
     // Observation
     LoadingTip {
         text: "You cannot control nations - enjoy watching their stories unfold",
@@ -149,7 +144,6 @@ pub const LOADING_TIPS: &[LoadingTip] = &[
         text: "Civilizations rise and fall in cycles - no empire lasts forever",
         category: TipCategory::Observation,
     },
-
     // World Generation
     LoadingTip {
         text: "Larger worlds support more diverse civilizations and longer histories",
@@ -175,7 +169,6 @@ pub const LOADING_TIPS: &[LoadingTip] = &[
         text: "Erosion simulation creates realistic mountain and valley formations",
         category: TipCategory::WorldGen,
     },
-
     // Performance
     LoadingTip {
         text: "Large worlds with 3 million provinces run at 60+ FPS on modern GPUs",
@@ -195,11 +188,11 @@ pub const LOADING_TIPS: &[LoadingTip] = &[
     },
 ];
 
-
 /// Get a random tip from all categories
 pub fn get_random_tip() -> &'static str {
     let mut rng = thread_rng();
-    LOADING_TIPS.choose(&mut rng)
+    LOADING_TIPS
+        .choose(&mut rng)
         .map(|tip| tip.text)
         .unwrap_or("Living Worlds - A Civilization Observer")
 }
@@ -255,7 +248,6 @@ impl TipSequence {
         self.tips.get(self.current_index).copied()
     }
 }
-
 
 /// Tips with weights for more intelligent selection
 pub struct WeightedTipSelector {

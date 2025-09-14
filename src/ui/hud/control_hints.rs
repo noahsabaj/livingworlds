@@ -1,8 +1,8 @@
 //! Control hints display for showing keyboard shortcuts
 
-use bevy::prelude::*;
-use crate::resources::GameTime;
 use super::super::{LabelBuilder, LabelStyle};
+use crate::resources::GameTime;
+use bevy::prelude::*;
 
 /// Marker component for the control hints text
 #[derive(Component, Reflect)]
@@ -26,11 +26,7 @@ pub fn update_control_hints(
     mut query: Query<&mut Text, With<ControlHintsText>>,
 ) {
     if let Ok(mut text) = query.get_single_mut() {
-        let pause_text = if game_time.paused {
-            "Unpause"
-        } else {
-            "Pause"
-        };
+        let pause_text = if game_time.paused { "Unpause" } else { "Pause" };
         **text = format!("[1-5] Speed | [Space] {}", pause_text);
     }
 }

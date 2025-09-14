@@ -1,8 +1,8 @@
 //! Time display component for showing game date/time
 
-use bevy::prelude::*;
-use crate::resources::GameTime;
 use super::super::{LabelBuilder, LabelStyle};
+use crate::resources::GameTime;
+use bevy::prelude::*;
 
 /// Marker component for the game time display
 #[derive(Component, Reflect)]

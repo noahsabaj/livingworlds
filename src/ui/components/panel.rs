@@ -1,6 +1,5 @@
-
-use bevy::prelude::*;
 use super::super::{colors, dimensions};
+use bevy::prelude::*;
 
 /// Component for panels/containers
 #[derive(Component, Debug)]
@@ -12,12 +11,12 @@ pub struct Panel {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum PanelStyle {
     #[default]
-    Default,      // Standard panel
-    Elevated,     // With shadow/depth
-    Transparent,  // No background
-    Dark,         // Dark background
-    Light,        // Light background
-    Bordered,     // With visible border
+    Default, // Standard panel
+    Elevated,    // With shadow/depth
+    Transparent, // No background
+    Dark,        // Dark background
+    Light,       // Light background
+    Bordered,    // With visible border
 }
 
 impl PanelStyle {
@@ -144,7 +143,8 @@ impl PanelBuilder {
     }
 
     pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
-        let background_color = self.custom_background
+        let background_color = self
+            .custom_background
             .unwrap_or_else(|| self.style.background_color());
 
         let mut panel_entity = parent.spawn((
@@ -163,9 +163,7 @@ impl PanelBuilder {
             },
             BackgroundColor(background_color),
             BorderColor(self.style.border_color()),
-            Panel {
-                style: self.style,
-            },
+            Panel { style: self.style },
         ));
 
         // Add title if provided
@@ -186,43 +184,43 @@ impl PanelBuilder {
         parent: &mut ChildSpawnerCommands,
         children: impl FnOnce(&mut ChildSpawnerCommands),
     ) -> Entity {
-        let background_color = self.custom_background
+        let background_color = self
+            .custom_background
             .unwrap_or_else(|| self.style.background_color());
 
         let title = self.title.clone(); // Clone title for use in closure
 
-        parent.spawn((
-            Node {
-                width: self.width,
-                height: self.height,
-                padding: self.padding,
-                margin: self.margin,
-                border: UiRect::all(self.style.border_width()),
-                flex_direction: self.flex_direction,
-                justify_content: self.justify_content,
-                align_items: self.align_items,
-                position_type: self.position_type,
-                display: self.display,
-                ..default()
-            },
-            BackgroundColor(background_color),
-            BorderColor(self.style.border_color()),
-            Panel {
-                style: self.style,
-            },
-        ))
-        .with_children(|parent| {
-            // Add title first if provided
-            if let Some(title_text) = title {
-                super::label::LabelBuilder::new(title_text)
-                    .style(super::label::LabelStyle::Title)
-                    .margin(UiRect::bottom(Val::Px(dimensions::MARGIN_SMALL)))
-                    .build(parent);
-            }
+        parent
+            .spawn((
+                Node {
+                    width: self.width,
+                    height: self.height,
+                    padding: self.padding,
+                    margin: self.margin,
+                    border: UiRect::all(self.style.border_width()),
+                    flex_direction: self.flex_direction,
+                    justify_content: self.justify_content,
+                    align_items: self.align_items,
+                    position_type: self.position_type,
+                    display: self.display,
+                    ..default()
+                },
+                BackgroundColor(background_color),
+                BorderColor(self.style.border_color()),
+                Panel { style: self.style },
+            ))
+            .with_children(|parent| {
+                // Add title first if provided
+                if let Some(title_text) = title {
+                    super::label::LabelBuilder::new(title_text)
+                        .style(super::label::LabelStyle::Title)
+                        .margin(UiRect::bottom(Val::Px(dimensions::MARGIN_SMALL)))
+                        .build(parent);
+                }
 
-            // Then add user-provided children
-            children(parent);
-        })
-        .id()
+                // Then add user-provided children
+                children(parent);
+            })
+            .id()
     }
 }

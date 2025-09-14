@@ -1,7 +1,7 @@
 //! Label component for text display
 
-use bevy::prelude::*;
 use super::super::{colors, dimensions};
+use bevy::prelude::*;
 
 /// Component for text labels
 #[derive(Component, Debug)]
@@ -12,15 +12,15 @@ pub struct Label {
 /// Label style variants
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum LabelStyle {
-    Title,       // Large title text
-    Heading,     // Section heading
+    Title,   // Large title text
+    Heading, // Section heading
     #[default]
-    Body,        // Normal body text
-    Caption,     // Small caption text
-    Muted,       // De-emphasized text
-    Error,       // Error message text
-    Success,     // Success message text
-    Warning,     // Warning message text
+    Body, // Normal body text
+    Caption, // Small caption text
+    Muted,   // De-emphasized text
+    Error,   // Error message text
+    Success, // Success message text
+    Warning, // Warning message text
 }
 
 impl LabelStyle {
@@ -105,28 +105,27 @@ impl LabelBuilder {
         let font_size = self.font_size.unwrap_or_else(|| self.style.font_size());
         let text_color = self.color.unwrap_or_else(|| self.style.text_color());
 
-        parent.spawn((
-            Node {
-                margin: self.margin,
-                justify_content: self.text_align,
-                ..default()
-            },
-            BackgroundColor(Color::NONE),
-        ))
-        .with_children(|container| {
-            // The actual text entity
-            container.spawn((
-                Text::new(self.text.clone()),
-                TextFont {
-                    font_size,
+        parent
+            .spawn((
+                Node {
+                    margin: self.margin,
+                    justify_content: self.text_align,
                     ..default()
                 },
-                TextColor(text_color),
-                Label {
-                    style: self.style,
-                },
-            ));
-        })
-        .id()
+                BackgroundColor(Color::NONE),
+            ))
+            .with_children(|container| {
+                // The actual text entity
+                container.spawn((
+                    Text::new(self.text.clone()),
+                    TextFont {
+                        font_size,
+                        ..default()
+                    },
+                    TextColor(text_color),
+                    Label { style: self.style },
+                ));
+            })
+            .id()
     }
 }

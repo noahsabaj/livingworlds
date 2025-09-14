@@ -20,21 +20,21 @@ mod components;
 
 // UI subsystems (directories with gateways)
 mod hud;
+mod interaction;
 mod overlay_display;
 mod tile_info;
-mod interaction;
 
 // Other UI modules (single files) - ALL PRIVATE
-mod styles;
+mod builders;
 mod buttons;
 mod dialogs;
-mod text_inputs;
-mod sliders;
 mod form;
-mod toolbar;
 mod loading;
+mod sliders;
+mod styles;
+mod text_inputs;
 mod tips;
-mod builders;
+mod toolbar;
 
 // PUBLIC EXPORTS - Gateway for All UI Types
 
@@ -42,70 +42,83 @@ mod builders;
 // This is the ONLY way external code should access UI internals
 
 // From buttons module
-pub use buttons::{ButtonBuilder, ButtonStyle, ButtonSize, StyledButton, presets as button_presets};
+pub use buttons::{
+    presets as button_presets, ButtonBuilder, ButtonSize, ButtonStyle, StyledButton,
+};
 
 // From dialogs module
 pub use dialogs::{
-    DialogBuilder, DialogType, DialogButton, presets as dialog_presets,
-    ConfirmButton, CancelButton, SaveButton, DiscardButton,  // Button markers
-    KeepButton, RevertButton, CountdownText,  // Additional markers
+    presets as dialog_presets,
+    CancelButton,
+    ConfirmButton,
+    CountdownText, // Additional markers
+    DialogBody,
+    DialogBuilder,
+    DialogButton,
+    DialogButtonRow,
+    DialogContainer,
     // Dialog component types
-    DialogOverlay, DialogContainer, DialogTitle, DialogBody, DialogButtonRow,
-    ExitConfirmationDialog, UnsavedChangesDialog, ResolutionDialog,
-    ResolutionConfirmDialog, WorldGenerationErrorDialog,
+    DialogOverlay,
+    DialogTitle,
+    DialogType,
+    DiscardButton, // Button markers
+    ExitConfirmationDialog,
+    KeepButton,
+    ResolutionConfirmDialog,
+    ResolutionDialog,
+    RevertButton,
+    SaveButton,
+    UnsavedChangesDialog,
+    WorldGenerationErrorDialog,
 };
 
 // From sliders module
-pub use sliders::{SliderBuilder, ValueFormat, slider, Slider};
+pub use sliders::{slider, Slider, SliderBuilder, ValueFormat};
 
 // From text_inputs module
-pub use text_inputs::{TextInputBuilder, InputFilter, InputTransform, FocusGroupId, text_input};
+pub use text_inputs::{text_input, FocusGroupId, InputFilter, InputTransform, TextInputBuilder};
 
 // From components directory (already has its own gateway)
 pub use components::{
-    PanelBuilder, PanelStyle,
-    LabelBuilder, LabelStyle,
-    SeparatorBuilder, SeparatorStyle,
-    Orientation,
-    ProgressBarBuilder, ProgressBarStyle,
-    ProgressBarFill, ProgressBarTrack, ProgressBarLabel,
+    LabelBuilder, LabelStyle, Orientation, PanelBuilder, PanelStyle, ProgressBarBuilder,
+    ProgressBarFill, ProgressBarLabel, ProgressBarStyle, ProgressBarTrack, SeparatorBuilder,
+    SeparatorStyle,
 };
 
 // From form module
-pub use form::{FormBuilder, form, presets as form_presets};
+pub use form::{form, presets as form_presets, FormBuilder};
 
 // From toolbar module
-pub use toolbar::{ToolbarBuilder, ToolbarOrientation, ToolbarStyle, toolbar, presets as toolbar_presets};
+pub use toolbar::{
+    presets as toolbar_presets, toolbar, ToolbarBuilder, ToolbarOrientation, ToolbarStyle,
+};
 
 // From loading module
 pub use loading::{
-    LoadingIndicatorBuilder, LoadingStyle, LoadingSize, LabelPosition,
-    loading_spinner, loading_dots, loading_pulse,
+    loading_dots, loading_pulse, loading_spinner, LabelPosition, LoadingIndicatorBuilder,
+    LoadingSize, LoadingStyle,
 };
 
 // From HUD subsystem
 pub use hud::{HudPlugin, HudRoot};
 
 // From overlay display subsystem
-pub use overlay_display::{OverlayDisplayPlugin, ResourceOverlayText, MineralLegendContainer};
+pub use overlay_display::{MineralLegendContainer, OverlayDisplayPlugin, ResourceOverlayText};
 
 // From tile info subsystem
-pub use tile_info::{TileInfoPlugin, TileInfoPanel, TileInfoText};
+pub use tile_info::{TileInfoPanel, TileInfoPlugin, TileInfoText};
 
 // From interaction subsystem
 pub use interaction::SelectedProvinceInfo;
 
 // From styles module (commonly needed)
-pub use styles::{colors, dimensions, layers, helpers};
+pub use styles::{colors, dimensions, helpers, layers};
 
 // From tips module
-pub use tips::{get_random_tip, TipCategory, LoadingTip};
+pub use tips::{get_random_tip, LoadingTip, TipCategory};
 
 // Builders convenience module - re-export its public interface
-pub use builders::{
-    button, primary_button, danger_button, dialog, progress_bar,
-};
-
+pub use builders::{button, danger_button, dialog, primary_button, progress_bar};
 
 /// Main UI Plugin that coordinates all UI subsystems
 pub struct UIPlugin;
@@ -120,7 +133,6 @@ impl Plugin for UIPlugin {
             .add_plugins(text_inputs::TextInputPlugin)
             .add_plugins(loading::LoadingIndicatorPlugin)
             .add_plugins(sliders::SliderPlugin)
-
             // Game UI systems
             .add_plugins(hud::HudPlugin)
             .add_plugins(overlay_display::OverlayDisplayPlugin)

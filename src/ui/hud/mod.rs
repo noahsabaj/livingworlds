@@ -7,11 +7,10 @@
 use bevy::prelude::*;
 
 // Submodules - all private, exposed through plugin
-mod time_display;
-mod speed_display;
 mod control_hints;
 mod setup;
-
+mod speed_display;
+mod time_display;
 
 /// Plugin that manages all HUD elements
 pub struct HudPlugin;
@@ -31,14 +30,17 @@ impl Plugin for HudPlugin {
             .register_type::<time_display::GameTimeDisplay>()
             .register_type::<speed_display::GameSpeedDisplay>()
             .register_type::<control_hints::ControlHintsText>()
-
             // Systems from submodules
             .add_systems(OnEnter(GameState::InGame), setup::setup_hud)
             .add_systems(OnExit(GameState::InGame), setup::cleanup_hud)
-            .add_systems(Update, (
-                time_display::update_time_display,
-                speed_display::update_speed_display,
-                control_hints::update_control_hints,
-            ).run_if(in_state(GameState::InGame)));
+            .add_systems(
+                Update,
+                (
+                    time_display::update_time_display,
+                    speed_display::update_speed_display,
+                    control_hints::update_control_hints,
+                )
+                    .run_if(in_state(GameState::InGame)),
+            );
     }
 }

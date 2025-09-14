@@ -9,7 +9,6 @@ use bevy::prelude::*;
 mod panel;
 mod setup;
 
-
 /// Plugin that manages tile information display
 pub struct TileInfoPlugin;
 
@@ -30,10 +29,11 @@ impl Plugin for TileInfoPlugin {
             // Systems from submodules
             .add_systems(OnEnter(GameState::InGame), setup::setup_tile_info)
             .add_systems(OnExit(GameState::InGame), setup::cleanup_tile_info)
-            .add_systems(Update,
+            .add_systems(
+                Update,
                 panel::update_tile_info_ui
                     .run_if(resource_changed::<crate::resources::SelectedProvinceInfo>)
-                    .run_if(in_state(GameState::InGame))
+                    .run_if(in_state(GameState::InGame)),
             );
     }
 }

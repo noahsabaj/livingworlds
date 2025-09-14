@@ -1,9 +1,9 @@
 //! Mineral legend display for resource overlays
 
-use bevy::prelude::*;
-use crate::resources::ResourceOverlay;
+use super::super::{LabelBuilder, PanelBuilder, PanelStyle};
 use crate::components::MineralType;
-use super::super::{PanelBuilder, PanelStyle, LabelBuilder};
+use crate::resources::ResourceOverlay;
+use bevy::prelude::*;
 
 /// Marker component for the mineral legend container
 #[derive(Component)]
@@ -14,7 +14,7 @@ pub fn spawn_mineral_legend(parent: &mut ChildSpawnerCommands) {
     let panel_entity = PanelBuilder::new()
         .style(PanelStyle::Transparent)
         .flex_direction(FlexDirection::Column)
-        .display(Display::None)  // Start hidden
+        .display(Display::None) // Start hidden
         .build_with_children(parent, |container| {
             // Title using LabelBuilder
             LabelBuilder::new("Mineral Legend:")
@@ -23,32 +23,30 @@ pub fn spawn_mineral_legend(parent: &mut ChildSpawnerCommands) {
                 .margin(UiRect::bottom(Val::Px(4.0)))
                 .build(container);
 
-        // Define minerals with their colors and chemical symbols
-        let minerals = [
-            (MineralType::Iron, "Fe", Color::srgb(0.7, 0.3, 0.2)),      // Rusty brown
-            (MineralType::Copper, "Cu", Color::srgb(0.7, 0.4, 0.2)),    // Copper orange
-            (MineralType::Tin, "Sn", Color::srgb(0.6, 0.6, 0.7)),       // Silver-grey
-            (MineralType::Gold, "Au", Color::srgb(1.0, 0.84, 0.0)),     // Gold
-            (MineralType::Coal, "C", Color::srgb(0.2, 0.2, 0.2)),       // Black
-            (MineralType::Stone, "Si", Color::srgb(0.5, 0.5, 0.5)),     // Grey
-            (MineralType::Gems, "Gm", Color::srgb(0.5, 0.2, 0.9)),      // Purple
-        ];
+            // Define minerals with their colors and chemical symbols
+            let minerals = [
+                (MineralType::Iron, "Fe", Color::srgb(0.7, 0.3, 0.2)), // Rusty brown
+                (MineralType::Copper, "Cu", Color::srgb(0.7, 0.4, 0.2)), // Copper orange
+                (MineralType::Tin, "Sn", Color::srgb(0.6, 0.6, 0.7)),  // Silver-grey
+                (MineralType::Gold, "Au", Color::srgb(1.0, 0.84, 0.0)), // Gold
+                (MineralType::Coal, "C", Color::srgb(0.2, 0.2, 0.2)),  // Black
+                (MineralType::Stone, "Si", Color::srgb(0.5, 0.5, 0.5)), // Grey
+                (MineralType::Gems, "Gm", Color::srgb(0.5, 0.2, 0.9)), // Purple
+            ];
 
-        for (_mineral_type, symbol, color) in minerals.iter() {
-            spawn_mineral_row(container, symbol, color, get_mineral_name(symbol));
-        }
-    });
+            for (_mineral_type, symbol, color) in minerals.iter() {
+                spawn_mineral_row(container, symbol, color, get_mineral_name(symbol));
+            }
+        });
 
-    parent.commands().entity(panel_entity).insert(MineralLegendContainer);
+    parent
+        .commands()
+        .entity(panel_entity)
+        .insert(MineralLegendContainer);
 }
 
 /// Spawn a single mineral legend row
-fn spawn_mineral_row(
-    parent: &mut ChildSpawnerCommands,
-    symbol: &str,
-    color: &Color,
-    name: &str,
-) {
+fn spawn_mineral_row(parent: &mut ChildSpawnerCommands, symbol: &str, color: &Color, name: &str) {
     // Row container using PanelBuilder
     PanelBuilder::new()
         .style(PanelStyle::Transparent)
@@ -69,7 +67,8 @@ fn spawn_mineral_row(
                 },
                 BackgroundColor(*color),
                 BorderColor(Color::srgba(0.3, 0.3, 0.3, 1.0)),
-            )).with_children(|square| {
+            ))
+            .with_children(|square| {
                 // Chemical symbol using LabelBuilder
                 LabelBuilder::new(symbol)
                     .font_size(10.0)

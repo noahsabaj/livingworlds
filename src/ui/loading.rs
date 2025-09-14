@@ -4,10 +4,9 @@
 //! throughout the application for async operations, loading screens,
 //! and progress indication.
 
-use bevy::prelude::*;
 use super::{colors, dimensions};
 use crate::math::fast_sin;
-
+use bevy::prelude::*;
 
 /// Component for loading indicators
 #[derive(Component)]
@@ -20,14 +19,14 @@ pub struct LoadingIndicator {
 /// Component for rotating spinners
 #[derive(Component)]
 pub struct LoadingSpinner {
-    pub speed: f32,  // Rotations per second
+    pub speed: f32, // Rotations per second
 }
 
 /// Component for pulsing indicators
 #[derive(Component)]
 pub struct LoadingPulse {
-    pub speed: f32,  // Pulses per second
-    pub intensity: f32,  // 0.0 to 1.0
+    pub speed: f32,     // Pulses per second
+    pub intensity: f32, // 0.0 to 1.0
 }
 
 /// Component for animated dots (...)
@@ -38,23 +37,22 @@ pub struct LoadingDots {
     pub timer: Timer,
 }
 
-
 /// Style of loading indicator
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum LoadingStyle {
-    Spinner,     // Rotating symbol
-    Dots,        // Animated dots ...
-    Pulse,       // Pulsing circle
-    Bar,         // Indeterminate progress bar
+    Spinner, // Rotating symbol
+    Dots,    // Animated dots ...
+    Pulse,   // Pulsing circle
+    Bar,     // Indeterminate progress bar
 }
 
 /// Size of loading indicator
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum LoadingSize {
-    Small,   // 16px
-    Medium,  // 32px
-    Large,   // 48px
-    XLarge,  // 64px
+    Small,  // 16px
+    Medium, // 32px
+    Large,  // 48px
+    XLarge, // 64px
 }
 
 impl LoadingSize {
@@ -76,7 +74,6 @@ impl LoadingSize {
         }
     }
 }
-
 
 /// Builder for creating loading indicators
 pub struct LoadingIndicatorBuilder {
@@ -196,7 +193,6 @@ impl LoadingIndicatorBuilder {
     }
 }
 
-
 /// Spawn a rotating spinner
 fn spawn_spinner(
     parent: &mut ChildSpawnerCommands,
@@ -205,7 +201,7 @@ fn spawn_spinner(
     animated: bool,
 ) -> Entity {
     let mut entity_commands = parent.spawn((
-        Text::new("◈"),  // Unicode diamond symbol
+        Text::new("◈"), // Unicode diamond symbol
         TextFont {
             font_size: size.font_size(),
             ..default()
@@ -278,7 +274,7 @@ fn spawn_pulse(
     animated: bool,
 ) -> Entity {
     let mut entity_commands = parent.spawn((
-        Text::new("●"),  // Unicode circle
+        Text::new("●"), // Unicode circle
         TextFont {
             font_size: size.font_size(),
             ..default()
@@ -322,33 +318,35 @@ fn spawn_indeterminate_bar(
         LoadingSize::XLarge => 10.0,
     };
 
-    parent.spawn((
-        Node {
-            width: Val::Px(size.container_size() * 3.0),
-            height: Val::Px(height),
-            border: UiRect::all(Val::Px(1.0)),
-            ..default()
-        },
-        BackgroundColor(colors::BACKGROUND_DARKER),
-        BorderColor(colors::BORDER_DEFAULT),
-        LoadingIndicator {
-            style: LoadingStyle::Bar,
-            size,
-            animated,
-        },
-    )).with_children(|bar| {
-        // Animated fill that moves back and forth
-        bar.spawn((
+    parent
+        .spawn((
             Node {
-                width: Val::Percent(30.0),
-                height: Val::Percent(100.0),
+                width: Val::Px(size.container_size() * 3.0),
+                height: Val::Px(height),
+                border: UiRect::all(Val::Px(1.0)),
                 ..default()
             },
-            BackgroundColor(color),
-        ));
-    }).id()
+            BackgroundColor(colors::BACKGROUND_DARKER),
+            BorderColor(colors::BORDER_DEFAULT),
+            LoadingIndicator {
+                style: LoadingStyle::Bar,
+                size,
+                animated,
+            },
+        ))
+        .with_children(|bar| {
+            // Animated fill that moves back and forth
+            bar.spawn((
+                Node {
+                    width: Val::Percent(30.0),
+                    height: Val::Percent(100.0),
+                    ..default()
+                },
+                BackgroundColor(color),
+            ));
+        })
+        .id()
 }
-
 
 /// System to animate rotating spinners
 pub fn animate_loading_spinners(
@@ -362,10 +360,7 @@ pub fn animate_loading_spinners(
 }
 
 /// System to animate pulsing indicators
-pub fn animate_loading_pulses(
-    time: Res<Time>,
-    mut query: Query<(&mut TextColor, &LoadingPulse)>,
-) {
+pub fn animate_loading_pulses(time: Res<Time>, mut query: Query<(&mut TextColor, &LoadingPulse)>) {
     for (mut text_color, pulse) in &mut query {
         let alpha = fast_sin(time.elapsed_secs() * pulse.speed * std::f32::consts::TAU);
         let intensity = pulse.intensity;
@@ -377,10 +372,7 @@ pub fn animate_loading_pulses(
 }
 
 /// System to animate dots
-pub fn animate_loading_dots(
-    time: Res<Time>,
-    mut query: Query<(&mut Text, &mut LoadingDots)>,
-) {
+pub fn animate_loading_dots(time: Res<Time>, mut query: Query<(&mut Text, &mut LoadingDots)>) {
     for (mut text, mut dots) in &mut query {
         dots.timer.tick(time.delta());
 
@@ -393,21 +385,21 @@ pub fn animate_loading_dots(
     }
 }
 
-
 /// Plugin that manages loading indicator animations
 pub struct LoadingIndicatorPlugin;
 
 impl Plugin for LoadingIndicatorPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_systems(Update, (
+        app.add_systems(
+            Update,
+            (
                 animate_loading_spinners,
                 animate_loading_pulses,
                 animate_loading_dots,
-            ));
+            ),
+        );
     }
 }
-
 
 /// Quick spinner creation
 pub fn loading_spinner() -> LoadingIndicatorBuilder {

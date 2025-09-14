@@ -1,11 +1,11 @@
 //! Reusable dialog system for Living Worlds UI
-//! 
+//!
 //! Provides standardized dialog creation with consistent styling,
 //! animations, and behavior across the entire game interface.
 
+use super::buttons::{ButtonBuilder, ButtonSize, ButtonStyle};
+use super::styles::{colors, dimensions, helpers, layers};
 use bevy::prelude::*;
-use super::styles::{colors, dimensions, layers, helpers};
-use super::buttons::{ButtonBuilder, ButtonStyle, ButtonSize};
 
 /// Component for dialog overlays
 #[derive(Component, Debug, Clone)]
@@ -126,33 +126,33 @@ impl DialogBuilder {
             z_index: layers::MODAL_OVERLAY,
         }
     }
-    
+
     pub fn title(mut self, title: impl Into<String>) -> Self {
         self.title = title.into();
         self
     }
-    
+
     pub fn body(mut self, body: impl Into<String>) -> Self {
         self.body = body.into();
         self
     }
-    
+
     pub fn width(mut self, width: f32) -> Self {
         self.width = width;
         self
     }
-    
+
     /// Set whether the dialog can be dismissed by clicking outside
     pub fn dismissible(mut self, dismissible: bool) -> Self {
         self.dismissible = dismissible;
         self
     }
-    
+
     pub fn z_index(mut self, z_index: i32) -> Self {
         self.z_index = z_index;
         self
     }
-    
+
     pub fn confirm_button(mut self, text: impl Into<String>) -> Self {
         self.buttons.push(DialogButton {
             text: text.into(),
@@ -161,7 +161,7 @@ impl DialogBuilder {
         });
         self
     }
-    
+
     pub fn cancel_button(mut self, text: impl Into<String>) -> Self {
         self.buttons.push(DialogButton {
             text: text.into(),
@@ -170,7 +170,7 @@ impl DialogBuilder {
         });
         self
     }
-    
+
     pub fn danger_button(mut self, text: impl Into<String>, marker: DialogButtonMarker) -> Self {
         self.buttons.push(DialogButton {
             text: text.into(),
@@ -179,7 +179,7 @@ impl DialogBuilder {
         });
         self
     }
-    
+
     pub fn save_button(mut self, text: impl Into<String>) -> Self {
         self.buttons.push(DialogButton {
             text: text.into(),
@@ -188,7 +188,7 @@ impl DialogBuilder {
         });
         self
     }
-    
+
     pub fn custom_button(
         mut self,
         text: impl Into<String>,
@@ -202,31 +202,35 @@ impl DialogBuilder {
         });
         self
     }
-    
+
     pub fn build(self, commands: &mut Commands) -> Entity {
         // Create overlay that blocks clicks
-        let overlay_entity = commands.spawn((
-            Button,  // Add Button to block clicks to elements behind
-            Node {
-                position_type: PositionType::Absolute,
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.0),
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                ..default()
-            },
-            BackgroundColor(colors::OVERLAY_DARK),
-            DialogOverlay {
-                dialog_type: self.dialog_type,
-                dismissible: self.dismissible,
-            },
-            ZIndex(self.z_index),
-        )).id();
-        
+        let overlay_entity = commands
+            .spawn((
+                Button, // Add Button to block clicks to elements behind
+                Node {
+                    position_type: PositionType::Absolute,
+                    width: Val::Percent(100.0),
+                    height: Val::Percent(100.0),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    ..default()
+                },
+                BackgroundColor(colors::OVERLAY_DARK),
+                DialogOverlay {
+                    dialog_type: self.dialog_type,
+                    dismissible: self.dismissible,
+                },
+                ZIndex(self.z_index),
+            ))
+            .id();
+
         // Add type-specific marker
         match self.dialog_type {
             DialogType::ExitConfirmation => {
-                commands.entity(overlay_entity).insert(ExitConfirmationDialog);
+                commands
+                    .entity(overlay_entity)
+                    .insert(ExitConfirmationDialog);
             }
             DialogType::UnsavedChanges => {
                 commands.entity(overlay_entity).insert(UnsavedChangesDialog);
@@ -236,121 +240,129 @@ impl DialogBuilder {
             }
             _ => {}
         }
-        
+
         // Create container
-        let container_entity = commands.spawn((
-            Node {
-                width: Val::Px(self.width),
-                padding: helpers::standard_padding(),
-                flex_direction: FlexDirection::Column,
-                align_items: AlignItems::Center,
-                border: helpers::standard_border(),
-                ..default()
-            },
-            BackgroundColor(colors::BACKGROUND_MEDIUM),
-            BorderColor(colors::BORDER_DEFAULT),
-            DialogContainer {
-                dialog_type: self.dialog_type,
-            },
-            ZIndex(self.z_index + 50),
-        )).id();
-        
+        let container_entity = commands
+            .spawn((
+                Node {
+                    width: Val::Px(self.width),
+                    padding: helpers::standard_padding(),
+                    flex_direction: FlexDirection::Column,
+                    align_items: AlignItems::Center,
+                    border: helpers::standard_border(),
+                    ..default()
+                },
+                BackgroundColor(colors::BACKGROUND_MEDIUM),
+                BorderColor(colors::BORDER_DEFAULT),
+                DialogContainer {
+                    dialog_type: self.dialog_type,
+                },
+                ZIndex(self.z_index + 50),
+            ))
+            .id();
+
         commands.entity(container_entity).with_children(|parent| {
             // Title
             if !self.title.is_empty() {
-                parent.spawn((
-                    Node {
-                        width: Val::Percent(100.0),
-                        margin: UiRect::bottom(Val::Px(dimensions::DIALOG_SPACING)),
-                        justify_content: JustifyContent::Center,
-                        align_items: AlignItems::Center,
-                        ..default()
-                    },
-                    BackgroundColor(Color::NONE),
-                )).with_children(|title_parent| {
-                    title_parent.spawn((
-                        Text::new(self.title.clone()),
-                        TextFont {
-                            font_size: dimensions::FONT_SIZE_TITLE,
+                parent
+                    .spawn((
+                        Node {
+                            width: Val::Percent(100.0),
+                            margin: UiRect::bottom(Val::Px(dimensions::DIALOG_SPACING)),
+                            justify_content: JustifyContent::Center,
+                            align_items: AlignItems::Center,
                             ..default()
                         },
-                        TextColor(colors::TEXT_TITLE),
-                        DialogTitle,
-                    ));
-                });
+                        BackgroundColor(Color::NONE),
+                    ))
+                    .with_children(|title_parent| {
+                        title_parent.spawn((
+                            Text::new(self.title.clone()),
+                            TextFont {
+                                font_size: dimensions::FONT_SIZE_TITLE,
+                                ..default()
+                            },
+                            TextColor(colors::TEXT_TITLE),
+                            DialogTitle,
+                        ));
+                    });
             }
-            
+
             // Body
             if !self.body.is_empty() {
-                parent.spawn((
-                    Node {
-                        width: Val::Percent(100.0),
-                        margin: UiRect::bottom(Val::Px(dimensions::DIALOG_SPACING)),
-                        justify_content: JustifyContent::Center,
-                        align_items: AlignItems::Center,
-                        ..default()
-                    },
-                    BackgroundColor(Color::NONE),
-                )).with_children(|body_parent| {
-                    body_parent.spawn((
-                        Text::new(self.body.clone()),
-                        TextFont {
-                            font_size: dimensions::FONT_SIZE_NORMAL,
+                parent
+                    .spawn((
+                        Node {
+                            width: Val::Percent(100.0),
+                            margin: UiRect::bottom(Val::Px(dimensions::DIALOG_SPACING)),
+                            justify_content: JustifyContent::Center,
+                            align_items: AlignItems::Center,
                             ..default()
                         },
-                        TextColor(colors::TEXT_SECONDARY),
-                        DialogBody,
-                    ));
-                });
+                        BackgroundColor(Color::NONE),
+                    ))
+                    .with_children(|body_parent| {
+                        body_parent.spawn((
+                            Text::new(self.body.clone()),
+                            TextFont {
+                                font_size: dimensions::FONT_SIZE_NORMAL,
+                                ..default()
+                            },
+                            TextColor(colors::TEXT_SECONDARY),
+                            DialogBody,
+                        ));
+                    });
             }
-            
+
             if !self.buttons.is_empty() {
-                parent.spawn((
-                    Node {
-                        width: Val::Percent(100.0),
-                        flex_direction: FlexDirection::Row,
-                        justify_content: JustifyContent::Center,
-                        column_gap: Val::Px(dimensions::MARGIN_MEDIUM),
-                        ..default()
-                    },
-                    BackgroundColor(Color::NONE),
-                    DialogButtonRow,
-                )).with_children(|button_row| {
-                    for button in self.buttons {
-                        let mut builder = ButtonBuilder::new(button.text)
-                            .style(button.style)
-                            .size(ButtonSize::Medium);
-                        
-                        // Add marker based on type
-                        match button.marker {
-                            DialogButtonMarker::Confirm => {
-                                builder = builder.with_marker(ConfirmButton);
+                parent
+                    .spawn((
+                        Node {
+                            width: Val::Percent(100.0),
+                            flex_direction: FlexDirection::Row,
+                            justify_content: JustifyContent::Center,
+                            column_gap: Val::Px(dimensions::MARGIN_MEDIUM),
+                            ..default()
+                        },
+                        BackgroundColor(Color::NONE),
+                        DialogButtonRow,
+                    ))
+                    .with_children(|button_row| {
+                        for button in self.buttons {
+                            let mut builder = ButtonBuilder::new(button.text)
+                                .style(button.style)
+                                .size(ButtonSize::Medium);
+
+                            // Add marker based on type
+                            match button.marker {
+                                DialogButtonMarker::Confirm => {
+                                    builder = builder.with_marker(ConfirmButton);
+                                }
+                                DialogButtonMarker::Cancel => {
+                                    builder = builder.with_marker(CancelButton);
+                                }
+                                DialogButtonMarker::Save => {
+                                    builder = builder.with_marker(SaveButton);
+                                }
+                                DialogButtonMarker::Discard => {
+                                    builder = builder.with_marker(DiscardButton);
+                                }
+                                DialogButtonMarker::Custom(_marker_fn) => {
+                                    // Custom markers require manual spawning as closures
+                                    // cannot be stored in the builder pattern structure
+                                    continue;
+                                }
                             }
-                            DialogButtonMarker::Cancel => {
-                                builder = builder.with_marker(CancelButton);
-                            }
-                            DialogButtonMarker::Save => {
-                                builder = builder.with_marker(SaveButton);
-                            }
-                            DialogButtonMarker::Discard => {
-                                builder = builder.with_marker(DiscardButton);
-                            }
-                            DialogButtonMarker::Custom(_marker_fn) => {
-                                // Custom markers require manual spawning as closures
-                                // cannot be stored in the builder pattern structure
-                                continue;
-                            }
+
+                            builder.build(button_row);
                         }
-                        
-                        builder.build(button_row);
-                    }
-                });
+                    });
             }
         });
-        
+
         // Add container as child of overlay
         commands.entity(overlay_entity).add_child(container_entity);
-        
+
         overlay_entity
     }
 }
@@ -358,7 +370,7 @@ impl DialogBuilder {
 /// Helper functions for creating common dialogs
 pub mod presets {
     use super::*;
-    
+
     pub fn exit_confirmation_dialog(mut commands: Commands) -> Entity {
         DialogBuilder::new(DialogType::ExitConfirmation)
             .title("Exit Game")
@@ -370,7 +382,7 @@ pub mod presets {
             .cancel_button("Cancel")
             .build(&mut commands)
     }
-    
+
     pub fn unsaved_changes_dialog(mut commands: Commands) -> Entity {
         DialogBuilder::new(DialogType::UnsavedChanges)
             .title("Unsaved Changes")
@@ -382,17 +394,20 @@ pub mod presets {
             .cancel_button("Cancel")
             .build(&mut commands)
     }
-    
+
     pub fn resolution_dialog(mut commands: Commands, new_resolution: (u32, u32)) -> Entity {
         DialogBuilder::new(DialogType::Resolution)
             .title("Change Resolution")
-            .body(format!("Change resolution to {}x{}?", new_resolution.0, new_resolution.1))
+            .body(format!(
+                "Change resolution to {}x{}?",
+                new_resolution.0, new_resolution.1
+            ))
             .width(dimensions::DIALOG_WIDTH_SMALL)
             .confirm_button("Apply")
             .cancel_button("Cancel")
             .build(&mut commands)
     }
-    
+
     pub fn world_generation_error_dialog(mut commands: Commands, error_message: &str) -> Entity {
         DialogBuilder::new(DialogType::WorldGenerationError)
             .title("World Generation Failed")
@@ -404,7 +419,7 @@ pub mod presets {
             .cancel_button("Main Menu")
             .build(&mut commands)
     }
-    
+
     pub fn info_dialog(mut commands: Commands, title: &str, message: &str) -> Entity {
         DialogBuilder::new(DialogType::Info)
             .title(title)
@@ -413,7 +428,7 @@ pub mod presets {
             .confirm_button("OK")
             .build(&mut commands)
     }
-    
+
     pub fn error_dialog(mut commands: Commands, error_message: &str) -> Entity {
         DialogBuilder::new(DialogType::Error)
             .title("Error")
@@ -424,115 +439,125 @@ pub mod presets {
             .confirm_button("OK")
             .build(&mut commands)
     }
-    
+
     pub fn resolution_confirm_dialog(mut commands: Commands) -> Entity {
         // Create overlay that blocks clicks
-        let overlay_entity = commands.spawn((
-            Button,  // Add Button to block clicks to elements behind
-            Node {
-                position_type: PositionType::Absolute,
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.0),
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                ..default()
-            },
-            BackgroundColor(colors::OVERLAY_DARK),
-            DialogOverlay {
-                dialog_type: DialogType::Resolution,
-                dismissible: false,
-            },
-            ResolutionConfirmDialog,
-            ZIndex(layers::CRITICAL_DIALOG),
-        )).id();
-        
+        let overlay_entity = commands
+            .spawn((
+                Button, // Add Button to block clicks to elements behind
+                Node {
+                    position_type: PositionType::Absolute,
+                    width: Val::Percent(100.0),
+                    height: Val::Percent(100.0),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    ..default()
+                },
+                BackgroundColor(colors::OVERLAY_DARK),
+                DialogOverlay {
+                    dialog_type: DialogType::Resolution,
+                    dismissible: false,
+                },
+                ResolutionConfirmDialog,
+                ZIndex(layers::CRITICAL_DIALOG),
+            ))
+            .id();
+
         // Create container
-        let container_entity = commands.spawn((
-            Node {
-                width: Val::Px(dimensions::DIALOG_WIDTH_SMALL),
-                padding: helpers::standard_padding(),
-                flex_direction: FlexDirection::Column,
-                align_items: AlignItems::Center,
-                border: helpers::standard_border(),
-                ..default()
-            },
-            BackgroundColor(colors::BACKGROUND_MEDIUM),
-            BorderColor(colors::BORDER_DEFAULT),
-            DialogContainer {
-                dialog_type: DialogType::Resolution,
-            },
-            ZIndex(layers::CRITICAL_DIALOG + 50),
-        )).id();
-        
+        let container_entity = commands
+            .spawn((
+                Node {
+                    width: Val::Px(dimensions::DIALOG_WIDTH_SMALL),
+                    padding: helpers::standard_padding(),
+                    flex_direction: FlexDirection::Column,
+                    align_items: AlignItems::Center,
+                    border: helpers::standard_border(),
+                    ..default()
+                },
+                BackgroundColor(colors::BACKGROUND_MEDIUM),
+                BorderColor(colors::BORDER_DEFAULT),
+                DialogContainer {
+                    dialog_type: DialogType::Resolution,
+                },
+                ZIndex(layers::CRITICAL_DIALOG + 50),
+            ))
+            .id();
+
         commands.entity(container_entity).with_children(|parent| {
             // Title
-            parent.spawn((
-                Node {
-                    margin: UiRect::bottom(Val::Px(dimensions::DIALOG_SPACING)),
-                    ..default()
-                },
-                BackgroundColor(Color::NONE),
-            )).with_children(|title_parent| {
-                title_parent.spawn((
-                    Text::new("Keep Display Settings?"),
-                    TextFont {
-                        font_size: dimensions::FONT_SIZE_TITLE,
+            parent
+                .spawn((
+                    Node {
+                        margin: UiRect::bottom(Val::Px(dimensions::DIALOG_SPACING)),
                         ..default()
                     },
-                    TextColor(colors::TEXT_TITLE),
-                    DialogTitle,
-                ));
-            });
-            
+                    BackgroundColor(Color::NONE),
+                ))
+                .with_children(|title_parent| {
+                    title_parent.spawn((
+                        Text::new("Keep Display Settings?"),
+                        TextFont {
+                            font_size: dimensions::FONT_SIZE_TITLE,
+                            ..default()
+                        },
+                        TextColor(colors::TEXT_TITLE),
+                        DialogTitle,
+                    ));
+                });
+
             // Countdown text
-            parent.spawn((
-                Node {
-                    margin: UiRect::bottom(Val::Px(dimensions::DIALOG_SPACING)),
-                    ..default()
-                },
-                BackgroundColor(Color::NONE),
-            )).with_children(|countdown_parent| {
-                countdown_parent.spawn((
-                    Text::new("Reverting in 15 seconds..."),
-                    TextFont {
-                        font_size: dimensions::FONT_SIZE_NORMAL,
+            parent
+                .spawn((
+                    Node {
+                        margin: UiRect::bottom(Val::Px(dimensions::DIALOG_SPACING)),
                         ..default()
                     },
-                    TextColor(colors::TEXT_SECONDARY),
-                    CountdownText,
-                ));
-            });
-            
-            parent.spawn((
-                Node {
-                    width: Val::Percent(100.0),
-                    flex_direction: FlexDirection::Row,
-                    justify_content: JustifyContent::Center,
-                    column_gap: Val::Px(dimensions::MARGIN_MEDIUM),
-                    ..default()
-                },
-                BackgroundColor(Color::NONE),
-                DialogButtonRow,
-            )).with_children(|button_row| {
-                // Keep button
-                ButtonBuilder::new("Keep")
-                    .style(ButtonStyle::Success)
-                    .size(ButtonSize::Medium)
-                    .with_marker(KeepButton)
-                    .build(button_row);
-                
-                // Revert button
-                ButtonBuilder::new("Revert")
-                    .style(ButtonStyle::Danger)
-                    .size(ButtonSize::Medium)
-                    .with_marker(RevertButton)
-                    .build(button_row);
-            });
+                    BackgroundColor(Color::NONE),
+                ))
+                .with_children(|countdown_parent| {
+                    countdown_parent.spawn((
+                        Text::new("Reverting in 15 seconds..."),
+                        TextFont {
+                            font_size: dimensions::FONT_SIZE_NORMAL,
+                            ..default()
+                        },
+                        TextColor(colors::TEXT_SECONDARY),
+                        CountdownText,
+                    ));
+                });
+
+            parent
+                .spawn((
+                    Node {
+                        width: Val::Percent(100.0),
+                        flex_direction: FlexDirection::Row,
+                        justify_content: JustifyContent::Center,
+                        column_gap: Val::Px(dimensions::MARGIN_MEDIUM),
+                        ..default()
+                    },
+                    BackgroundColor(Color::NONE),
+                    DialogButtonRow,
+                ))
+                .with_children(|button_row| {
+                    // Keep button
+                    ButtonBuilder::new("Keep")
+                        .style(ButtonStyle::Success)
+                        .size(ButtonSize::Medium)
+                        .with_marker(KeepButton)
+                        .build(button_row);
+
+                    // Revert button
+                    ButtonBuilder::new("Revert")
+                        .style(ButtonStyle::Danger)
+                        .size(ButtonSize::Medium)
+                        .with_marker(RevertButton)
+                        .build(button_row);
+                });
         });
-        
+
         // Add container as child of overlay
         commands.entity(overlay_entity).add_child(container_entity);
-        
+
         overlay_entity
     }
 }

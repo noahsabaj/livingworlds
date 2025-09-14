@@ -9,11 +9,7 @@
 
 // IMPORTS - From parent module's public exports
 
-use super::{
-    ButtonBuilder, ButtonStyle,
-    DialogBuilder, DialogType,
-    ProgressBarBuilder,
-};
+use super::{ButtonBuilder, ButtonStyle, DialogBuilder, DialogType, ProgressBarBuilder};
 
 // CONVENIENCE FUNCTIONS - Selectively exported by ui/mod.rs
 
@@ -41,7 +37,6 @@ pub fn dialog(dialog_type: DialogType) -> DialogBuilder {
 pub fn progress_bar(value: f32) -> ProgressBarBuilder {
     ProgressBarBuilder::new(value)
 }
-
 
 // Note: This module is PRIVATE. It exists only to provide convenience functions
 // that ui/mod.rs selectively exports. The actual builder types are exported

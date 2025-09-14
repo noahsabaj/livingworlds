@@ -1,10 +1,10 @@
 //! Reusable button system for Living Worlds UI
-//! 
+//!
 //! Provides a standardized button component with consistent styling,
 //! hover effects, and behavior across the entire game interface.
 
-use bevy::prelude::*;
 use super::styles::{colors, dimensions, helpers};
+use bevy::prelude::*;
 
 /// Component for styled buttons with consistent behavior
 #[derive(Component, Debug, Clone)]
@@ -27,12 +27,12 @@ impl Default for StyledButton {
 /// Button style variants
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ButtonStyle {
-    Primary,    // Main actions (blue)
-    Secondary,  // Secondary actions (gray)
-    Danger,     // Destructive actions (red)
-    Success,    // Positive actions (green)
-    Warning,    // Cautionary actions (yellow)
-    Ghost,      // Transparent with border only
+    Primary,   // Main actions (blue)
+    Secondary, // Secondary actions (gray)
+    Danger,    // Destructive actions (red)
+    Success,   // Positive actions (green)
+    Warning,   // Cautionary actions (yellow)
+    Ghost,     // Transparent with border only
 }
 
 /// Button size variants
@@ -55,7 +55,7 @@ impl ButtonStyle {
             ButtonStyle::Ghost => Color::NONE,
         }
     }
-    
+
     pub fn hover_color(&self) -> Color {
         match self {
             ButtonStyle::Primary => colors::PRIMARY_HOVER,
@@ -66,7 +66,7 @@ impl ButtonStyle {
             ButtonStyle::Ghost => Color::srgba(1.0, 1.0, 1.0, 0.05),
         }
     }
-    
+
     pub fn pressed_color(&self) -> Color {
         match self {
             ButtonStyle::Primary => colors::PRIMARY_PRESSED,
@@ -77,14 +77,14 @@ impl ButtonStyle {
             ButtonStyle::Ghost => Color::srgba(1.0, 1.0, 1.0, 0.1),
         }
     }
-    
+
     pub fn text_color(&self) -> Color {
         match self {
             ButtonStyle::Ghost => colors::TEXT_SECONDARY,
             _ => colors::TEXT_PRIMARY,
         }
     }
-    
+
     pub fn border_color(&self) -> Color {
         match self {
             ButtonStyle::Primary => colors::PRIMARY.lighter(0.2),
@@ -106,7 +106,7 @@ impl ButtonSize {
             ButtonSize::XLarge => dimensions::BUTTON_WIDTH_XLARGE,
         }
     }
-    
+
     pub fn height(&self) -> f32 {
         match self {
             ButtonSize::Small => dimensions::BUTTON_HEIGHT_SMALL,
@@ -115,7 +115,7 @@ impl ButtonSize {
             ButtonSize::XLarge => dimensions::BUTTON_HEIGHT_LARGE,
         }
     }
-    
+
     pub fn font_size(&self) -> f32 {
         match self {
             ButtonSize::Small => dimensions::FONT_SIZE_SMALL,
@@ -147,35 +147,35 @@ impl ButtonBuilder {
             marker: None,
         }
     }
-    
+
     pub fn style(mut self, style: ButtonStyle) -> Self {
         self.style = style;
         self
     }
-    
+
     pub fn size(mut self, size: ButtonSize) -> Self {
         self.size = size;
         self
     }
-    
+
     /// Set whether the button is enabled
     pub fn enabled(mut self, enabled: bool) -> Self {
         self.enabled = enabled;
         self
     }
-    
+
     pub fn margin(mut self, margin: UiRect) -> Self {
         self.margin = Some(margin);
         self
     }
-    
+
     pub fn with_marker<M: Component>(mut self, marker: M) -> Self {
         self.marker = Some(Box::new(move |entity: &mut EntityCommands| {
             entity.insert(marker);
         }));
         self
     }
-    
+
     pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
         // If we have a custom marker, we need to handle it differently
         if let Some(marker_fn) = self.marker {
@@ -186,19 +186,19 @@ impl ButtonBuilder {
             } else {
                 Color::srgb(0.1, 0.1, 0.1)
             };
-            
+
             let text_color = if self.enabled {
                 self.style.text_color()
             } else {
                 colors::TEXT_MUTED
             };
-            
+
             let border_color = if self.enabled {
                 self.style.border_color()
             } else {
                 Color::srgb(0.2, 0.2, 0.2)
             };
-            
+
             let mut entity_commands = parent.spawn((
                 Button,
                 StyledButton {
@@ -218,12 +218,12 @@ impl ButtonBuilder {
                 BackgroundColor(base_color),
                 BorderColor(border_color),
             ));
-            
+
             // Add custom marker
             marker_fn(&mut entity_commands);
-            
+
             let entity = entity_commands.id();
-            
+
             // Add text child
             entity_commands.with_children(|button| {
                 button.spawn((
@@ -235,46 +235,55 @@ impl ButtonBuilder {
                     TextColor(text_color),
                 ));
             });
-            
+
             entity
         } else {
             // No custom marker, spawn button directly
             let (base_color, border_color, text_color) = if self.enabled {
-                (self.style.base_color(), self.style.border_color(), Color::WHITE)
+                (
+                    self.style.base_color(),
+                    self.style.border_color(),
+                    Color::WHITE,
+                )
             } else {
-                (Color::srgb(0.3, 0.3, 0.3), Color::srgb(0.2, 0.2, 0.2), Color::srgb(0.5, 0.5, 0.5))
+                (
+                    Color::srgb(0.3, 0.3, 0.3),
+                    Color::srgb(0.2, 0.2, 0.2),
+                    Color::srgb(0.5, 0.5, 0.5),
+                )
             };
 
-            let entity = parent.spawn((
-                Button,
-                StyledButton {
-                    style: self.style,
-                    size: self.size,
-                    enabled: self.enabled,
-                },
-                Node {
-                    width: Val::Px(self.size.width()),
-                    height: Val::Px(self.size.height()),
-                    justify_content: JustifyContent::Center,
-                    align_items: AlignItems::Center,
-                    border: helpers::standard_border(),
-                    margin: self.margin.unwrap_or_default(),
-                    ..default()
-                },
-                BackgroundColor(base_color),
-                BorderColor(border_color),
-            ))
-            .with_children(|button| {
-                button.spawn((
-                    Text::new(self.text),
-                    TextFont {
-                        font_size: self.size.font_size(),
+            let entity = parent
+                .spawn((
+                    Button,
+                    StyledButton {
+                        style: self.style,
+                        size: self.size,
+                        enabled: self.enabled,
+                    },
+                    Node {
+                        width: Val::Px(self.size.width()),
+                        height: Val::Px(self.size.height()),
+                        justify_content: JustifyContent::Center,
+                        align_items: AlignItems::Center,
+                        border: helpers::standard_border(),
+                        margin: self.margin.unwrap_or_default(),
                         ..default()
                     },
-                    TextColor(text_color),
-                ));
-            })
-            .id();
+                    BackgroundColor(base_color),
+                    BorderColor(border_color),
+                ))
+                .with_children(|button| {
+                    button.spawn((
+                        Text::new(self.text),
+                        TextFont {
+                            font_size: self.size.font_size(),
+                            ..default()
+                        },
+                        TextColor(text_color),
+                    ));
+                })
+                .id();
 
             entity
         }
@@ -284,57 +293,44 @@ impl ButtonBuilder {
 /// Helper functions for creating common button types
 pub mod presets {
     use super::*;
-    
-    pub fn primary_button(
-        text: impl Into<String>,
-    ) -> ButtonBuilder {
+
+    pub fn primary_button(text: impl Into<String>) -> ButtonBuilder {
         ButtonBuilder::new(text).style(ButtonStyle::Primary)
     }
-    
-    pub fn secondary_button(
-        text: impl Into<String>,
-    ) -> ButtonBuilder {
+
+    pub fn secondary_button(text: impl Into<String>) -> ButtonBuilder {
         ButtonBuilder::new(text).style(ButtonStyle::Secondary)
     }
-    
-    pub fn danger_button(
-        text: impl Into<String>,
-    ) -> ButtonBuilder {
+
+    pub fn danger_button(text: impl Into<String>) -> ButtonBuilder {
         ButtonBuilder::new(text).style(ButtonStyle::Danger)
     }
-    
-    pub fn success_button(
-        text: impl Into<String>,
-    ) -> ButtonBuilder {
+
+    pub fn success_button(text: impl Into<String>) -> ButtonBuilder {
         ButtonBuilder::new(text).style(ButtonStyle::Success)
     }
-    
-    pub fn warning_button(
-        text: impl Into<String>,
-    ) -> ButtonBuilder {
+
+    pub fn warning_button(text: impl Into<String>) -> ButtonBuilder {
         ButtonBuilder::new(text).style(ButtonStyle::Warning)
     }
-    
-    pub fn ghost_button(
-        text: impl Into<String>,
-    ) -> ButtonBuilder {
+
+    pub fn ghost_button(text: impl Into<String>) -> ButtonBuilder {
         ButtonBuilder::new(text).style(ButtonStyle::Ghost)
     }
 }
-
 
 /// Universal hover system for styled buttons
 pub fn styled_button_hover_system(
     mut interactions: Query<
         (&Interaction, &StyledButton, &mut BackgroundColor),
-        (Changed<Interaction>, With<Button>)
+        (Changed<Interaction>, With<Button>),
     >,
 ) {
     for (interaction, button, mut bg_color) in &mut interactions {
         if !button.enabled {
             continue; // Skip disabled buttons
         }
-        
+
         *bg_color = BackgroundColor(match interaction {
             Interaction::Hovered => button.style.hover_color(),
             Interaction::Pressed => button.style.pressed_color(),
