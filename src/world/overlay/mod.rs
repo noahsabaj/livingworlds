@@ -8,4 +8,4 @@ mod types;
 // PUBLIC EXPORTS
 pub use cache::CachedOverlayColors;
 pub use rendering::{update_province_colors, OverlayPlugin};
-pub use types::{OverlayMode, ResourceOverlay};
+pub use types::MapMode;

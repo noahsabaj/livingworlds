@@ -73,7 +73,7 @@ impl Plugin for SaveLoadPlugin {
             .register_type::<crate::resources::MapDimensions>()
             .register_type::<crate::resources::GameTime>()
             .register_type::<crate::resources::WorldTension>()
-            .register_type::<crate::resources::ResourceOverlay>()
+            .register_type::<crate::resources::MapMode>()
             .register_type::<crate::world::ProvinceStorage>();
     }
 }

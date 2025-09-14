@@ -20,7 +20,7 @@ pub struct OverlayDisplayRoot;
 
 // Re-export marker components for external use
 pub use mineral_legend::MineralLegendContainer;
-pub use overlay_text::ResourceOverlayText;
+pub use overlay_text::MapModeText;
 
 // PLUGIN IMPLEMENTATION - Pure Orchestration
 
@@ -37,7 +37,7 @@ impl Plugin for OverlayDisplayPlugin {
                 (
                     overlay_text::update_overlay_display,
                     mineral_legend::update_mineral_legend_visibility
-                        .run_if(resource_changed::<crate::resources::ResourceOverlay>),
+                        .run_if(resource_changed::<crate::resources::MapMode>),
                 )
                     .run_if(in_state(GameState::InGame)),
             );

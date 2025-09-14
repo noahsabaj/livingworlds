@@ -1,24 +1,25 @@
-//! Map overlay rendering system for Living Worlds with zero-copy architecture
+//! Map overlay rendering system for Living Worlds
 //!
 //! This module handles all visual overlay modes for the map including
 //! political boundaries, terrain, mineral resources, and infrastructure.
-//! Now optimized with Arc-based zero-copy architecture for instant mode switching.
+//! It acts as the central coordinator for how provinces are visually
+//! represented based on the current viewing mode.
 
 use crate::constants::MS_PER_SECOND;
-use crate::world::mesh::ProvinceStorage;
-use crate::world::overlay::types::MapMode;
-use bevy::log::{debug, trace, warn};
+use crate::resources::ResourceOverlay;
 use bevy::prelude::*;
 use bevy::render::mesh::Mesh;
-use std::sync::Arc;
+// TerrainType import moved to CachedOverlayColors
+// Color calculations moved to CachedOverlayColors::get_or_calculate
+use crate::world::mesh::ProvinceStorage;
 
 /// Bytes per megabyte for memory calculations
 const BYTES_PER_MB: f32 = 1024.0 * 1024.0;
 
 /// System that updates province colors in the mega-mesh based on active overlay mode
-/// Now uses Arc-based zero-copy architecture for instant switching
+/// Uses lazy-loaded colors with LRU caching to reduce memory usage
 pub fn update_province_colors(
-    overlay: Res<MapMode>,
+    overlay: Res<ResourceOverlay>,
     mut cached_colors: ResMut<crate::resources::CachedOverlayColors>,
     province_storage: Res<ProvinceStorage>,
     mesh_handle: Res<crate::world::mesh::WorldMeshHandle>,
@@ -41,37 +42,32 @@ pub fn update_province_colors(
 
     let mesh_lookup_time = start.elapsed();
 
-    // Get Arc to colors - NO CLONING, just reference counting!
-    let colors_arc = cached_colors.get_or_calculate(*overlay, &province_storage);
+    let colors = cached_colors.get_or_calculate(*overlay, &province_storage);
 
     let selection_time = start.elapsed() - mesh_lookup_time;
 
-    let buffer_size_mb = (colors_arc.len() * std::mem::size_of::<[f32; 4]>()) as f32 / BYTES_PER_MB;
+    let buffer_size_mb = (colors.len() * std::mem::size_of::<[f32; 4]>()) as f32 / BYTES_PER_MB;
 
-    // Only clone here if mesh requires ownership (Bevy's requirement)
-    // This is the ONLY clone now, down from 3 clones before
+    // Safe clone operation - Vec::clone() internally uses optimized memcpy for primitive types
+    let clone_start = std::time::Instant::now();
+    let cloned_colors = colors.clone();
+    let clone_time = clone_start.elapsed();
+
     let insert_start = std::time::Instant::now();
-    mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors_arc.as_ref().clone());
+    mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, cloned_colors);
     let insert_time = insert_start.elapsed();
 
     let total_time = start.elapsed();
 
-    // Log memory usage and Arc diagnostics for monitoring
+    // Log memory usage for monitoring
     let total_memory = cached_colors.memory_usage_mb();
-    let arc_count = Arc::strong_count(&colors_arc);
 
-    debug!("Color update complete: Total={:.1}ms (buffer={:.1}MB, total_mem={:.1}MB, GPU upload={:.1}ms, Arc refs={})",
+    debug!("Color update complete: Total={:.1}ms (buffer={:.1}MB, total_mem={:.1}MB, clone={:.1}ms, GPU upload={:.1}ms)",
            total_time.as_secs_f32() * MS_PER_SECOND,
            buffer_size_mb,
            total_memory,
-           insert_time.as_secs_f32() * MS_PER_SECOND,
-           arc_count);
-
-    // Optional: Log Arc diagnostics in trace mode
-    #[cfg(debug_assertions)]
-    {
-        cached_colors.arc_diagnostics();
-    }
+           clone_time.as_secs_f32() * MS_PER_SECOND,
+           insert_time.as_secs_f32() * MS_PER_SECOND);
 }
 
 /// Plugin that manages map overlay rendering
@@ -81,15 +77,15 @@ impl Plugin for OverlayPlugin {
     fn build(&self, app: &mut App) {
         use crate::states::GameState;
 
-        app.init_resource::<MapMode>()
+        app.init_resource::<ResourceOverlay>()
             .init_resource::<crate::resources::CachedOverlayColors>()
-            // Initialize with default overlay and pre-calculate common modes
+            // Initialize with default overlay only - others loaded on-demand
             .add_systems(OnExit(GameState::LoadingWorld), initialize_overlay_colors)
             .add_systems(
                 Update,
                 (
                     handle_overlay_input,
-                    update_province_colors.run_if(resource_changed::<MapMode>),
+                    update_province_colors.run_if(resource_changed::<ResourceOverlay>),
                 )
                     .run_if(in_state(GameState::InGame)),
             );
@@ -99,25 +95,25 @@ impl Plugin for OverlayPlugin {
 /// Handle overlay mode cycling input (M key)
 pub fn handle_overlay_input(
     keyboard: Res<ButtonInput<KeyCode>>,
-    mut overlay_res: ResMut<MapMode>,
+    mut overlay_res: ResMut<ResourceOverlay>,
     time: Res<Time>,
 ) {
-    // M key to cycle through all map modes
+    // M key to cycle resource overlay modes
     if keyboard.just_pressed(KeyCode::KeyM) {
         let start = std::time::Instant::now();
-        let previous = *overlay_res;
         overlay_res.cycle();
-
         debug!(
-            "Overlay switched from {} to {} (input lag: {:.1}ms)",
-            previous.display_name(),
+            "Overlay switched to: {} (input lag: {:.1}ms)",
             overlay_res.display_name(),
             start.elapsed().as_secs_f32() * MS_PER_SECOND
         );
     }
 }
 
-/// Initialize the overlay system with default terrain and pre-calculate common modes
+// Helper function moved to CachedOverlayColors implementation
+
+/// Initialize the overlay system with the default terrain overlay
+/// Only calculates the initial overlay, others are loaded on-demand
 pub fn initialize_overlay_colors(
     province_storage: Res<ProvinceStorage>,
     mut cached_colors: ResMut<crate::resources::CachedOverlayColors>,
@@ -128,20 +124,17 @@ pub fn initialize_overlay_colors(
     );
     let start = std::time::Instant::now();
 
-    // Calculate the default terrain overlay
-    let default_mode = MapMode::Terrain;
-    cached_colors.get_or_calculate(default_mode, &province_storage);
-
-    // Pre-calculate common overlays for instant switching
-    cached_colors.pre_calculate_common_modes(&province_storage);
+    // Only pre-calculate the default terrain overlay
+    // Other overlays will be calculated on-demand when first accessed
+    let default_overlay = ResourceOverlay::None;
+    cached_colors.get_or_calculate(default_overlay, &province_storage);
 
     let elapsed = start.elapsed();
     let memory_mb = cached_colors.memory_usage_mb();
 
     info!(
-        "Overlay system initialized in {:.2}s (using {:.1}MB, {} modes pre-calculated)",
+        "Overlay system initialized in {:.2}s (using {:.1}MB)",
         elapsed.as_secs_f32(),
-        memory_mb,
-        cached_colors.cache.len() + 1 // +1 for current
+        memory_mb
     );
 }

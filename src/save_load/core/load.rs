@@ -129,7 +129,7 @@ pub fn check_for_pending_load(
         commands.insert_resource(load_data.0.map_dimensions);
         commands.insert_resource(load_data.0.game_time.clone());
         commands.insert_resource(load_data.0.world_tension.clone());
-        commands.insert_resource(load_data.0.resource_overlay);
+        commands.insert_resource(load_data.0.map_mode);
         set_loading_progress(&mut loading_state, 0.4, "Resources restored...");
 
         // Rebuild world mesh

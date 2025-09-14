@@ -1,12 +1,12 @@
 //! Overlay text display for showing current map mode
 
 use super::super::{LabelBuilder, LabelStyle, Orientation, SeparatorBuilder};
-use crate::resources::ResourceOverlay;
+use crate::resources::MapMode;
 use bevy::prelude::*;
 
-/// Marker component for the resource overlay display text
+/// Marker component for the map mode display text
 #[derive(Component)]
-pub struct ResourceOverlayText;
+pub struct MapModeText;
 
 /// Spawn the overlay text display
 pub fn spawn_overlay_text(parent: &mut ChildSpawnerCommands) {
@@ -18,10 +18,7 @@ pub fn spawn_overlay_text(parent: &mut ChildSpawnerCommands) {
         .build(parent);
 
     // Add our marker to the label's text entity
-    parent
-        .commands()
-        .entity(label_entity)
-        .insert(ResourceOverlayText);
+    parent.commands().entity(label_entity).insert(MapModeText);
 
     // Control hint using fixed LabelBuilder
     LabelBuilder::new("[M] Cycle Overlay")
@@ -40,8 +37,8 @@ pub fn spawn_overlay_text(parent: &mut ChildSpawnerCommands) {
 
 /// Update the resource overlay display text
 pub fn update_overlay_display(
-    overlay: Res<ResourceOverlay>,
-    mut query: Query<&mut Text, With<ResourceOverlayText>>,
+    overlay: Res<MapMode>,
+    mut query: Query<&mut Text, With<MapModeText>>,
 ) {
     if !overlay.is_changed() {
         return;

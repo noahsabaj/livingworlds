@@ -5,7 +5,7 @@
 use super::{SaveCompleteEvent, SaveGameEvent};
 use super::{SaveGameData, SAVE_DIRECTORY, SAVE_EXTENSION, SAVE_VERSION};
 use crate::resources::{
-    GameTime, MapDimensions, ResourceOverlay, WorldName, WorldSeed, WorldSize, WorldTension,
+    GameTime, MapDimensions, MapMode, WorldName, WorldSeed, WorldSize, WorldTension,
 };
 use crate::world::ProvinceStorage;
 use bevy::prelude::*;
@@ -24,7 +24,7 @@ pub fn handle_save_game(
     map_dims: Option<Res<MapDimensions>>,
     game_time: Option<Res<GameTime>>,
     world_tension: Option<Res<WorldTension>>,
-    resource_overlay: Option<Res<ResourceOverlay>>,
+    map_mode: Option<Res<MapMode>>,
     province_storage: Option<Res<ProvinceStorage>>,
 ) {
     for event in save_events.read() {
@@ -43,7 +43,7 @@ pub fn handle_save_game(
             map_dimensions: map_dims.as_deref().copied().unwrap_or_default(),
             game_time: game_time.as_deref().cloned().unwrap_or_default(),
             world_tension: world_tension.as_deref().cloned().unwrap_or_default(),
-            resource_overlay: resource_overlay.as_deref().copied().unwrap_or_default(),
+            map_mode: map_mode.as_deref().copied().unwrap_or_default(),
             provinces: province_storage
                 .as_ref()
                 .map(|s| s.provinces.clone())

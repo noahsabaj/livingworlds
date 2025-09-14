@@ -2,7 +2,7 @@
 //!
 //! This module contains all the data structures used for saving and loading game state.
 
-use crate::resources::{GameTime, MapDimensions, ResourceOverlay, WorldSize, WorldTension};
+use crate::resources::{GameTime, MapDimensions, MapMode, WorldSize, WorldTension};
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -44,6 +44,6 @@ pub struct SaveGameData {
     pub map_dimensions: MapDimensions,
     pub game_time: GameTime,
     pub world_tension: WorldTension,
-    pub resource_overlay: ResourceOverlay,
+    pub map_mode: MapMode,
     pub provinces: Vec<crate::world::Province>,
 }

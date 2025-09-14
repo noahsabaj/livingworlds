@@ -37,7 +37,7 @@ pub use crate::ui::SelectedProvinceInfo;
 pub use crate::world::ProvincesSpatialIndex;
 
 // Overlay system
-pub use crate::world::{CachedOverlayColors, ResourceOverlay};
+pub use crate::world::{CachedOverlayColors, MapMode};
 
 // World tension
 pub use crate::simulation::WorldTension;

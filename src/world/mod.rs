@@ -75,9 +75,7 @@ pub use borders::{BorderEntity, BorderPlugin, SelectionBorder};
 pub use mesh::{build_world_mesh, MeshBuildStats, MeshBuilder, ProvinceStorage, WorldMeshHandle};
 
 // === Overlay System ===
-pub use overlay::{
-    update_province_colors, CachedOverlayColors, OverlayMode, OverlayPlugin, ResourceOverlay,
-};
+pub use overlay::{update_province_colors, CachedOverlayColors, MapMode, OverlayPlugin};
 
 // === Color System ===
 pub use colors::{theme_colors, ColorProvider, Colorable, SafeColor, StoneAbundance, WorldColors};

@@ -2,7 +2,7 @@
 
 use super::super::{LabelBuilder, PanelBuilder, PanelStyle};
 use crate::components::MineralType;
-use crate::resources::ResourceOverlay;
+use crate::resources::MapMode;
 use bevy::prelude::*;
 
 /// Marker component for the mineral legend container
@@ -99,14 +99,15 @@ fn get_mineral_name(symbol: &str) -> &'static str {
 
 /// Update mineral legend visibility based on current overlay
 pub fn update_mineral_legend_visibility(
-    overlay: Res<ResourceOverlay>,
+    map_mode: Res<MapMode>,
     mut legend_query: Query<&mut Node, With<MineralLegendContainer>>,
 ) {
     if let Ok(mut node) = legend_query.get_single_mut() {
         // Only show legend when viewing mineral overlays
-        node.display = match *overlay {
-            ResourceOverlay::Mineral(_) | ResourceOverlay::AllMinerals => Display::Flex,
-            _ => Display::None,
+        node.display = if map_mode.is_mineral_mode() {
+            Display::Flex
+        } else {
+            Display::None
         };
     }
 }

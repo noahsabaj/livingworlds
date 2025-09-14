@@ -103,7 +103,7 @@ pub use loading::{
 pub use hud::{HudPlugin, HudRoot};
 
 // From overlay display subsystem
-pub use overlay_display::{MineralLegendContainer, OverlayDisplayPlugin, ResourceOverlayText};
+pub use overlay_display::{MapModeText, MineralLegendContainer, OverlayDisplayPlugin};
 
 // From tile info subsystem
 pub use tile_info::{TileInfoPanel, TileInfoPlugin, TileInfoText};
