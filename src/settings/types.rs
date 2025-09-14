@@ -7,9 +7,6 @@
 use serde::{Deserialize, Serialize};
 use bevy::prelude::*;
 
-// ============================================================================
-// MAIN SETTINGS STRUCTURES
-// ============================================================================
 
 /// Main settings structure containing all game settings
 #[derive(Resource, Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -41,9 +38,6 @@ impl Default for TempGameSettings {
     }
 }
 
-// ============================================================================
-// GRAPHICS SETTINGS
-// ============================================================================
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct GraphicsSettings {
@@ -118,9 +112,6 @@ pub enum GraphicsPreset {
     Ultra,
 }
 
-// ============================================================================
-// AUDIO SETTINGS
-// ============================================================================
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct AudioSettings {
@@ -139,9 +130,6 @@ impl Default for AudioSettings {
     }
 }
 
-// ============================================================================
-// INTERFACE SETTINGS
-// ============================================================================
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct InterfaceSettings {
@@ -164,9 +152,6 @@ impl Default for InterfaceSettings {
     }
 }
 
-// ============================================================================
-// CONTROL SETTINGS
-// ============================================================================
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ControlSettings {
@@ -189,9 +174,6 @@ impl Default for ControlSettings {
     }
 }
 
-// ============================================================================
-// ENUMS FOR SETTINGS OPTIONS
-// ============================================================================
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub enum WindowModeOption {
@@ -283,9 +265,6 @@ impl QualityLevel {
     }
 }
 
-// ============================================================================
-// SETTING TYPES ENUM
-// ============================================================================
 
 /// Types of settings that can be modified
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -318,9 +297,6 @@ pub enum SettingType {
     ShowFPS,
 }
 
-// ============================================================================
-// EVENTS
-// ============================================================================
 
 /// Event triggered when settings are changed
 #[derive(Event)]
@@ -330,9 +306,6 @@ pub struct SettingsChanged;
 #[derive(Event)]
 pub struct RequestResolutionConfirm;
 
-// ============================================================================
-// RESOURCES
-// ============================================================================
 
 /// Tracks whether settings have been modified
 #[derive(Resource, Default)]

@@ -86,7 +86,6 @@ pub fn spawn_settings_menu(
                 BackgroundColor(Color::srgb(0.08, 0.08, 0.08)),
                 BorderColor(Color::srgb(0.3, 0.3, 0.35)),
             )).with_children(|content| {
-                // Spawn content based on current tab
                 match current_tab.0 {
                     SettingsTab::Graphics => spawn_graphics_content(content, &temp_settings.0.graphics),
                     SettingsTab::Audio => spawn_audio_content(content, &temp_settings.0.audio),
@@ -341,9 +340,6 @@ fn spawn_controls_content(parent: &mut ChildSpawnerCommands, settings: &ControlS
     });
 }
 
-// ============================================================================
-// WIDGET CREATION HELPERS
-// ============================================================================
 
 /// Creates a row with a cycle button for switching between options
 fn create_cycle_row(parent: &mut ChildSpawnerCommands, label: &str, current: &str, setting_type: SettingType) {
@@ -446,7 +442,6 @@ fn create_slider_row(parent: &mut ChildSpawnerCommands, label: &str, value: f32,
         ValueFormat::Decimal(1)
     };
     
-    // Build the slider with the SettingsSlider marker containing the setting type
     slider(min, max)
         .with_label(label)
         .with_value(value)

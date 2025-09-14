@@ -7,9 +7,6 @@ use bevy::prelude::*;
 use crate::states::SettingsTab;
 use super::types::SettingType;
 
-// ============================================================================
-// ROOT MARKERS
-// ============================================================================
 
 /// Marker for the settings menu root entity
 #[derive(Component)]
@@ -19,9 +16,6 @@ pub struct SettingsMenuRoot;
 #[derive(Component)]
 pub struct ResolutionConfirmDialog;
 
-// ============================================================================
-// NAVIGATION COMPONENTS
-// ============================================================================
 
 /// Marker for tab buttons
 #[derive(Component)]
@@ -43,9 +37,6 @@ pub struct FocusedElement {
     pub max_index: usize,
 }
 
-// ============================================================================
-// INTERACTIVE ELEMENTS
-// ============================================================================
 
 /// Component for cycle buttons that cycle through options
 #[derive(Component)]
@@ -79,9 +70,6 @@ pub struct SliderValueText {
     pub setting_type: SettingType,
 }
 
-// ============================================================================
-// SLIDER MARKERS FOR NEW SLIDER SYSTEM
-// ============================================================================
 
 /// Marker for settings sliders using the new SliderBuilder
 #[derive(Component)]
@@ -101,9 +89,6 @@ pub struct SFXVolumeSlider;
 #[derive(Component)]
 pub struct RenderScaleSlider;
 
-// ============================================================================
-// BUTTON MARKERS
-// ============================================================================
 
 /// Apply button marker
 #[derive(Component)]
@@ -123,15 +108,9 @@ pub struct PresetButton {
 #[derive(Component)]
 pub struct ResetButton;
 
-// ============================================================================
-// DIALOG MARKERS
-// ============================================================================
 
 // Dialog components are now provided by crate::ui::dialogs
 
-// ============================================================================
-// TEXT MARKERS
-// ============================================================================
 
 /// Countdown text for resolution confirmation
 #[derive(Component)]

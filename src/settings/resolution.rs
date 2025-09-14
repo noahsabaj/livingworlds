@@ -43,7 +43,6 @@ pub fn update_resolution_countdown(
     
     confirmation.timer.tick(time.delta());
     
-    // Update countdown text
     let remaining = confirmation.timer.remaining_secs();
     for mut text in &mut countdown_texts {
         **text = format!("Reverting in {} seconds...", remaining.ceil() as u32);
@@ -81,7 +80,6 @@ pub fn handle_resolution_confirm_buttons(
         return;
     }
     
-    // Check Keep button
     for interaction in &keep_buttons {
         if *interaction == Interaction::Pressed {
             println!("Resolution confirmed - keeping settings");
@@ -95,7 +93,6 @@ pub fn handle_resolution_confirm_buttons(
         }
     }
     
-    // Check Revert button
     for interaction in &revert_buttons {
         if *interaction == Interaction::Pressed {
             println!("Resolution rejected - reverting");

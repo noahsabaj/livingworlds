@@ -1,22 +1,28 @@
 //! Modding system for Living Worlds
-//! 
+//!
 //! This module provides comprehensive mod support including:
 //! - Configuration externalization
 //! - Mod discovery and loading
 //! - Hot-reload support
 //! - Steam Workshop integration
+//!
+//! # Gateway Architecture
+//! This module follows the Gateway Architecture pattern where mod.rs is the ONLY
+//! entry/exit point. All submodules are private and only controlled exports are
+//! exposed through this file.
 
-pub mod types;
-pub mod manager;
-pub mod loader;
-pub mod ui;
+// INTERNAL MODULES - ALL PRIVATE
+mod types;
+mod manager;
+mod loader;
+mod ui;
 
 // #[cfg(test)]
 // mod test; // TODO: Add test module when needed
 
 use bevy::prelude::*;
-use manager::ModManager;
-use loader::ConfigReloadEvent;
+use self::manager::ModManager;
+use self::loader::ConfigReloadEvent;
 
 /// The main modding plugin
 pub struct ModdingPlugin;
@@ -47,14 +53,12 @@ impl Plugin for ModdingPlugin {
             .add_event::<ModEnabledEvent>()
             .add_event::<ModDisabledEvent>()
             
-            // Add the UI plugin
-            .add_plugins(ui::ModBrowserUIPlugin)
-            
-            // Systems
-            .add_systems(Startup, loader::setup_config_watching)
+            .add_plugins(self::ui::ModBrowserUIPlugin)
+
+            .add_systems(Startup, self::loader::setup_config_watching)
             .add_systems(Update, (
-                loader::check_config_changes,
-                loader::handle_config_reload,
+                self::loader::check_config_changes,
+                self::loader::handle_config_reload,
                 handle_mod_toggle_events,
             ).chain());
     }
@@ -89,12 +93,20 @@ fn handle_mod_toggle_events(
     }
 }
 
+// Only expose what external code actually needs. Everything else stays private.
+
+// The main plugin is already public above (pub struct ModdingPlugin)
+// The events are already public above (pub struct ModEnabledEvent/ModDisabledEvent)
+
+// UI Events that need to be accessible from menus
+pub use self::ui::OpenModBrowserEvent;
+
+// Helper functions (currently unused externally but kept for compatibility)
 /// Helper function to get the current game configuration
-pub fn get_game_config(mod_manager: &ModManager) -> &types::GameConfig {
+pub fn get_game_config(mod_manager: &ModManager) -> &self::types::GameConfig {
     mod_manager.get_config()
 }
 
-/// Create an example mod for testing
 pub fn create_example_mod() {
     use std::fs;
     use std::path::Path;

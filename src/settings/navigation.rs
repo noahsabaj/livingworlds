@@ -40,7 +40,6 @@ pub fn handle_keyboard_navigation(
             }
         }
         
-        // Update visual focus
         for (_entity, focusable, mut bg_color, interaction) in &mut param_set.p0() {
             if focusable.order as usize == focus.index {
                 // Highlight focused element

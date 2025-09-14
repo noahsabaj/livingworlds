@@ -25,7 +25,6 @@ pub struct ConfigWatcher {
 }
 
 impl ConfigWatcher {
-    /// Create a new config watcher
     pub fn new() -> Self {
         let (tx, rx) = unbounded();
         
@@ -54,7 +53,6 @@ impl ConfigWatcher {
     pub fn check_events(&mut self) -> Vec<ConfigReloadEvent> {
         let mut events = Vec::new();
         
-        // Process all pending file events
         while let Ok(Ok(event)) = self.receiver.try_recv() {
             for path in event.paths {
                 if path.extension().and_then(|s| s.to_str()) == Some("ron") {
@@ -108,7 +106,6 @@ pub fn handle_config_reload(
                 // Re-load the mod's configuration overrides
                 let config_dir = loaded_mod.path.join("config");
                 
-                // Check which config file changed
                 if event.path.ends_with("balance.ron") {
                     if let Ok(contents) = std::fs::read_to_string(&event.path) {
                         if let Ok(balance) = ron::from_str::<BalanceConfig>(&contents) {
@@ -117,7 +114,6 @@ pub fn handle_config_reload(
                         }
                     }
                 }
-                // Handle other config files...
             }
         } else {
             // Reload base configuration

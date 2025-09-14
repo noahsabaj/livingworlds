@@ -37,10 +37,8 @@ impl Plugin for SettingsPlugin {
             .add_event::<SettingsChanged>()
             .add_event::<RequestResolutionConfirm>()
             
-            // Load settings on startup
             .add_systems(Startup, persistence::load_settings)
             
-            // Handle settings menu spawning event
             .add_systems(Update, handle_spawn_settings_menu_event)
             
             // Systems - only run when settings menu is open

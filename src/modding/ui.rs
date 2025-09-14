@@ -17,9 +17,6 @@ use crate::ui::text_inputs::text_input;
 use crate::loading_screen::{LoadingState, start_mod_application_loading};
 use super::manager::ModManager;
 
-// ============================================================================
-// EVENTS
-// ============================================================================
 
 /// Event to open the mod browser
 #[derive(Event)]
@@ -39,9 +36,6 @@ pub struct SwitchModTabEvent {
     pub tab: ModBrowserTab,
 }
 
-// ============================================================================
-// COMPONENTS
-// ============================================================================
 
 /// Root component for the mod browser UI
 #[derive(Component)]
@@ -119,9 +113,6 @@ pub enum FilterType {
     UpdateAvailable,
 }
 
-// ============================================================================
-// RESOURCES
-// ============================================================================
 
 /// Current state of the mod browser
 #[derive(Resource)]
@@ -181,9 +172,6 @@ pub struct WorkshopItem {
     pub tags: Vec<String>,
 }
 
-// ============================================================================
-// PLUGIN
-// ============================================================================
 
 pub struct ModBrowserUIPlugin;
 
@@ -212,9 +200,6 @@ impl Plugin for ModBrowserUIPlugin {
     }
 }
 
-// ============================================================================
-// UI SPAWNING
-// ============================================================================
 
 /// Spawn the mod browser UI
 pub fn spawn_mod_browser(
@@ -840,7 +825,6 @@ fn spawn_tab_content(
                             TextColor(colors::TEXT_TERTIARY),
                         ));
                         
-                        // Load order number
                         item.spawn((
                             Text::new(format!("#{}", index + 1)),
                             TextFont {
@@ -906,9 +890,6 @@ fn spawn_tab_content(
     }
 }
 
-// ============================================================================
-// SYSTEMS
-// ============================================================================
 
 /// Handle opening the mod browser
 fn handle_open_mod_browser(
@@ -924,7 +905,6 @@ fn handle_open_mod_browser(
             commands.entity(entity).despawn_recursive();
         }
         
-        // Spawn new browser
         spawn_mod_browser(&mut commands, &mod_manager, &state);
     }
 }
@@ -1016,7 +996,6 @@ fn handle_mod_toggles(
 ) {
     for (interaction, toggle) in &mut interaction_query {
         if *interaction == Interaction::Pressed {
-            // Find the mod and toggle its enabled state
             if let Some(mod_ref) = mod_manager.available_mods.iter_mut()
                 .find(|m| m.manifest.id == toggle.mod_id) 
             {
@@ -1066,7 +1045,6 @@ fn handle_search_input_changes(
     mod_manager: Res<ModManager>,
 ) {
     for text_value in &mut text_inputs {
-        // Update the browser state with new search query
         browser_state.search_query = text_value.0.clone();
         
         // Rebuild the content area to show filtered results
@@ -1113,7 +1091,6 @@ fn update_mod_browser_ui(
         return;
     }
     
-    // Update tab button styles
     for (tab_button, mut styled_button, mut bg_color, mut border_color) in &mut tab_query {
         if tab_button.tab == state.current_tab {
             styled_button.style = ButtonStyle::Primary;

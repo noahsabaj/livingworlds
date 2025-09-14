@@ -45,7 +45,6 @@ impl Default for ModPaths {
 }
 
 impl ModManager {
-    /// Create a new mod manager
     pub fn new() -> Self {
         let base_config = GameConfig::default();
         
@@ -62,7 +61,6 @@ impl ModManager {
     pub fn initialize(&mut self) {
         info!("Initializing mod manager...");
         
-        // Load base configuration
         if let Err(e) = self.load_base_config() {
             error!("Failed to load base configuration: {}", e);
         }
@@ -70,7 +68,6 @@ impl ModManager {
         // Discover available mods
         self.discover_mods();
         
-        // Load mod manifests
         self.load_mod_manifests();
         
         // Sort mods by dependencies and load order
@@ -86,7 +83,6 @@ impl ModManager {
     fn load_base_config(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         let base_path = &self.mod_paths.base_config;
         
-        // Load balance.ron
         let balance_path = base_path.join("balance.ron");
         if balance_path.exists() {
             let contents = fs::read_to_string(&balance_path)?;
@@ -96,7 +92,6 @@ impl ModManager {
             }
         }
         
-        // Load colors.ron
         let colors_path = base_path.join("colors.ron");
         if colors_path.exists() {
             let contents = fs::read_to_string(&colors_path)?;
@@ -104,7 +99,6 @@ impl ModManager {
             info!("Loaded colors configuration");
         }
         
-        // Load other config files...
         info!("Base configuration loaded");
         Ok(())
     }
@@ -188,7 +182,6 @@ impl ModManager {
                 }
             }
             
-            // Load mod configuration overrides
             Self::load_mod_config_overrides(loaded_mod);
         }
     }
@@ -200,7 +193,6 @@ impl ModManager {
             return;
         }
         
-        // Load balance overrides
         let balance_path = config_dir.join("balance.ron");
         if balance_path.exists() {
             if let Ok(contents) = fs::read_to_string(&balance_path) {
@@ -210,7 +202,6 @@ impl ModManager {
             }
         }
         
-        // Load other config overrides...
         // (colors, generation, simulation, audio)
     }
     
@@ -275,7 +266,6 @@ impl ModManager {
         info!("Disabled mod: {}", mod_id);
     }
     
-    /// Get the current merged configuration
     pub fn get_config(&self) -> &GameConfig {
         &self.merged_config
     }

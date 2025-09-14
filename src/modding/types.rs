@@ -8,9 +8,6 @@ use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-// ============================================================================
-// MOD MANIFEST
-// ============================================================================
 
 /// Metadata for a mod
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -51,9 +48,6 @@ pub enum ModSource {
     Workshop(u64), // Steam Workshop ID
 }
 
-// ============================================================================
-// MASTER CONFIGURATION
-// ============================================================================
 
 /// The complete game configuration, merging base + all active mods
 #[derive(Resource, Debug, Clone, Serialize, Deserialize)]
@@ -87,9 +81,6 @@ pub struct ModConfigOverrides {
     pub audio: Option<AudioConfig>,
 }
 
-// ============================================================================
-// BALANCE CONFIGURATION
-// ============================================================================
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BalanceConfig {
@@ -308,9 +299,7 @@ impl Default for HexagonConfig {
     }
 }
 
-// ============================================================================
 // COLOR CONFIGURATION (simplified for brevity)
-// ============================================================================
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ColorsConfig {
@@ -329,9 +318,7 @@ impl Default for ColorsConfig {
     }
 }
 
-// ============================================================================
 // GENERATION CONFIGURATION (simplified for brevity)
-// ============================================================================
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GenerationConfig {
@@ -352,9 +339,7 @@ impl Default for GenerationConfig {
     }
 }
 
-// ============================================================================
 // SIMULATION CONFIGURATION (simplified for brevity)
-// ============================================================================
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SimulationConfig {
@@ -375,9 +360,7 @@ impl Default for SimulationConfig {
     }
 }
 
-// ============================================================================
 // AUDIO CONFIGURATION (simplified for brevity)
-// ============================================================================
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AudioConfig {

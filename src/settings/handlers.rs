@@ -45,11 +45,9 @@ pub fn handle_cycle_buttons(
 ) {
     for (interaction, cycle_button, children) in &mut interactions {
         if *interaction == Interaction::Pressed {
-            // Update the setting
             match cycle_button.setting_type {
                 SettingType::WindowMode => {
                     temp_settings.0.graphics.window_mode = temp_settings.0.graphics.window_mode.cycle();
-                    // Update button text
                     for child in children {
                         if let Ok(mut text) = text_query.get_mut(*child) {
                             **text = format!("< {} >", temp_settings.0.graphics.window_mode.as_str());
@@ -89,7 +87,6 @@ pub fn handle_toggle_buttons(
         if *interaction == Interaction::Pressed {
             toggle.enabled = !toggle.enabled;
             
-            // Update the setting
             match toggle.setting_type {
                 SettingType::VSync => temp_settings.0.graphics.vsync = toggle.enabled,
                 SettingType::MuteWhenUnfocused => temp_settings.0.audio.mute_when_unfocused = toggle.enabled,
@@ -100,14 +97,12 @@ pub fn handle_toggle_buttons(
                 _ => {}
             }
             
-            // Update visual
             *bg_color = BackgroundColor(if toggle.enabled {
                 Color::srgb(0.2, 0.4, 0.2)
             } else {
                 Color::srgb(0.15, 0.15, 0.18)
             });
             
-            // Update checkmark - try to update existing text first
             let mut found_text = false;
             for &child in children {
                 if let Ok(mut text) = text_query.get_mut(child) {
@@ -140,7 +135,6 @@ pub fn handle_slider_interactions(
     mut temp_settings: ResMut<TempGameSettings>,
 ) {
     for (slider, settings_slider) in &sliders {
-        // Update temp settings based on the slider's setting type
         match settings_slider.setting_type {
             SettingType::RenderScale => temp_settings.0.graphics.render_scale = slider.value,
             SettingType::MasterVolume => temp_settings.0.audio.master_volume = slider.value,
@@ -183,14 +177,12 @@ pub fn handle_apply_cancel_buttons(
                 
                 println!("Applying settings");
                 
-                // Check if resolution/window mode changed
                 let resolution_changed = settings.graphics.resolution.width != temp_settings.0.graphics.resolution.width
                     || settings.graphics.resolution.height != temp_settings.0.graphics.resolution.height
                     || settings.graphics.window_mode != temp_settings.0.graphics.window_mode;
                 
                 // Copy temp settings to actual settings
                 *settings = temp_settings.0.clone();
-                // Save settings to disk
                 save_settings(&*settings, &mut *pkv);
                 // Fire event to apply settings
                 events.write(SettingsChanged);
@@ -260,7 +252,6 @@ pub fn handle_preset_buttons(
         temp_settings.0.graphics.apply_preset(pressed);
         dirty_state.is_dirty = true;
         
-        // Update all sliders to reflect the new preset values
         for (mut slider, children) in &mut slider_queries {
             match slider.setting_type {
                 SettingType::RenderScale => {
@@ -269,7 +260,6 @@ pub fn handle_preset_buttons(
                 _ => {}
             }
             
-            // Update the slider value text
             for child in children.iter() {
                 if let Ok(mut text) = text_query.get_mut(child) {
                     if slider.setting_type == SettingType::RenderScale {
@@ -279,7 +269,6 @@ pub fn handle_preset_buttons(
             }
         }
         
-        // Update ALL preset buttons to reflect the new selection
         for (entity, button_preset, mut bg_color, mut border_color) in preset_queries.p1().iter_mut() {
             let is_selected = button_preset.preset == pressed;
             if is_selected {
@@ -294,7 +283,6 @@ pub fn handle_preset_buttons(
         }
     }
     
-    // Handle hover interactions
     for (entity, preset) in hover_interactions {
         let is_selected = temp_settings.0.graphics.current_preset() == Some(preset);
         if !is_selected {
@@ -306,7 +294,6 @@ pub fn handle_preset_buttons(
         }
     }
     
-    // Handle none interactions (mouse left the button)
     for (entity, preset) in none_interactions {
         let is_selected = temp_settings.0.graphics.current_preset() == Some(preset);
         if let Ok((_, _, mut bg_color, mut border_color)) = preset_queries.p1().get_mut(entity) {
@@ -351,7 +338,6 @@ pub fn update_ui_on_settings_change(
     mut toggle_buttons: Query<(&mut ToggleButton, &Children)>,
     mut text_query: Query<&mut Text>,
 ) {
-    // Update preset button colors based on current selection
     for (preset_button, mut bg_color, mut border_color) in &mut preset_buttons {
         let is_selected = temp_settings.0.graphics.current_preset() == Some(preset_button.preset);
         if is_selected {
@@ -363,7 +349,6 @@ pub fn update_ui_on_settings_change(
         }
     }
     
-    // Update cycle button text displays
     for (cycle_button, children) in &mut cycle_buttons {
         for child in children.iter() {
             if let Ok(mut text) = text_query.get_mut(child) {
@@ -383,7 +368,6 @@ pub fn update_ui_on_settings_change(
         }
     }
     
-    // Update toggle button visuals
     for (mut toggle_button, children) in &mut toggle_buttons {
         let is_enabled = match toggle_button.setting_type {
             SettingType::VSync => temp_settings.0.graphics.vsync,
@@ -396,7 +380,6 @@ pub fn update_ui_on_settings_change(
         };
         toggle_button.enabled = is_enabled;
         
-        // Update checkbox visual
         for child in children.iter() {
             if let Ok(mut text) = text_query.get_mut(child) {
                 text.0 = if is_enabled { "X".to_string() } else { "".to_string() };
@@ -430,7 +413,6 @@ pub fn track_dirty_state(
     if is_dirty != dirty_state.is_dirty {
         dirty_state.is_dirty = is_dirty;
         
-        // Update Apply button visual state
         // This could be moved to a separate system if needed
     }
 }
@@ -503,7 +485,6 @@ pub fn validate_settings(
 ) {
     let Ok(window) = windows.single() else { return; };
     
-    // Get monitor size (approximate from current window)
     let monitor_width = window.width();
     let monitor_height = window.height();
     
@@ -628,7 +609,6 @@ pub fn handle_unsaved_changes_dialog(
             }
             
             if save_button.is_some() {
-                // Save and exit
                 println!("Saving changes and exiting");
                 *settings = temp_settings.0.clone();
                 save_settings(&*settings, &mut *pkv);
