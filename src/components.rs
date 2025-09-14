@@ -6,8 +6,7 @@
 
 use bevy::prelude::*;
 use bevy::reflect::Reflect;
-use serde::{Serialize, Deserialize};
-
+use serde::{Deserialize, Serialize};
 
 /// Types of mineral resources available in the game
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq, Hash, Reflect, Serialize, Deserialize)]
@@ -55,13 +54,13 @@ impl MineralType {
 
     pub fn rarity(&self) -> f32 {
         match self {
-            MineralType::Stone => 0.0,     // Everywhere
-            MineralType::Iron => 0.2,      // Common
-            MineralType::Copper => 0.25,   // Common
-            MineralType::Coal => 0.3,      // Somewhat common
-            MineralType::Gold => 0.7,      // Rare
-            MineralType::Tin => 0.75,      // Rare
-            MineralType::Gems => 0.9,      // Very rare
+            MineralType::Stone => 0.0,   // Everywhere
+            MineralType::Iron => 0.2,    // Common
+            MineralType::Copper => 0.25, // Common
+            MineralType::Coal => 0.3,    // Somewhat common
+            MineralType::Gold => 0.7,    // Rare
+            MineralType::Tin => 0.75,    // Rare
+            MineralType::Gems => 0.9,    // Very rare
         }
     }
 
@@ -78,7 +77,6 @@ impl MineralType {
     }
 }
 
-
 /// Marker component for selected provinces
 #[derive(Component)]
 pub struct SelectedProvince;
@@ -90,7 +88,6 @@ pub struct HoverableProvince;
 /// Component for UI panels showing province info
 #[derive(Component)]
 pub struct ProvinceInfoPanel;
-
 
 /// Represents a nation/civilization in the game
 #[derive(Component, Debug, Clone)]
@@ -119,7 +116,6 @@ impl Nation {
         }
     }
 }
-
 
 /// Component for UI text that displays information
 #[derive(Component)]
