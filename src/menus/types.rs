@@ -6,7 +6,6 @@
 
 use bevy::prelude::*;
 
-
 /// Component for menu buttons that defines their action
 #[derive(Component)]
 pub struct MenuButton {
@@ -17,7 +16,6 @@ pub struct MenuButton {
 /// Marker component for button text entities
 #[derive(Component)]
 pub struct ButtonText;
-
 
 /// Actions that menu buttons can trigger
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -34,7 +32,6 @@ pub enum MenuAction {
     SaveGame,
     BackToMainMenu,
 }
-
 
 /// Event to trigger settings menu spawning
 #[derive(Event)]

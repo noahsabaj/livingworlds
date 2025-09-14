@@ -3,40 +3,35 @@
 //! This module handles the title screen menu that players see when
 //! launching the game. It provides options to start a new world,
 
-use bevy::prelude::*;
-use bevy::app::AppExit;
+use super::types::{MenuAction, MenuButton, SpawnSaveBrowserEvent, SpawnSettingsMenuEvent};
+use crate::save_load::{scan_save_files_internal, SaveGameList};
 use crate::states::{GameState, RequestStateTransition};
-use crate::ui::{ButtonBuilder, ButtonStyle, ButtonSize};
-use crate::save_load::{SaveGameList, scan_save_files_internal};
-use super::types::{MenuButton, MenuAction, SpawnSettingsMenuEvent, SpawnSaveBrowserEvent};
-
+use crate::ui::{ButtonBuilder, ButtonSize, ButtonStyle};
+use bevy::app::AppExit;
+use bevy::prelude::*;
 
 /// Plugin that manages the main menu
 pub struct MainMenuPlugin;
 
 impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_systems(OnEnter(GameState::MainMenu), spawn_main_menu)
+        app.add_systems(OnEnter(GameState::MainMenu), spawn_main_menu)
             .add_systems(OnExit(GameState::MainMenu), despawn_main_menu)
-            .add_systems(Update, (
-                handle_button_interactions,
-                handle_exit_confirmation_dialog,
-            ).chain().run_if(in_state(GameState::MainMenu)));
+            .add_systems(
+                Update,
+                (handle_button_interactions, handle_exit_confirmation_dialog)
+                    .chain()
+                    .run_if(in_state(GameState::MainMenu)),
+            );
     }
 }
-
 
 /// Marker component for the main menu root entity
 #[derive(Component)]
 pub struct MainMenuRoot;
 
-
 /// Spawns the main menu UI
-fn spawn_main_menu(
-    mut commands: Commands,
-    mut save_list: ResMut<SaveGameList>,
-) {
+fn spawn_main_menu(mut commands: Commands, mut save_list: ResMut<SaveGameList>) {
     println!("Spawning main menu UI");
 
     // Scan for save files to determine if Load Game should be enabled
@@ -44,102 +39,105 @@ fn spawn_main_menu(
     let has_saves = !save_list.saves.is_empty();
 
     // Root container - full screen with dark semi-transparent overlay
-    commands.spawn((
-        Node {
-            width: Val::Percent(100.0),
-            height: Val::Percent(100.0),
-            justify_content: JustifyContent::Center,
-            align_items: AlignItems::Center,
-            flex_direction: FlexDirection::Column,
-            ..default()
-        },
-        BackgroundColor(Color::srgba(0.05, 0.05, 0.05, 0.98)),
-        MainMenuRoot,
-    )).with_children(|parent| {
-        // Title section
-        parent.spawn(Node {
-            flex_direction: FlexDirection::Column,
-            align_items: AlignItems::Center,
-            ..default()
-        }).with_children(|title_parent| {
-            // Main title
-            title_parent.spawn((
-                Text::new("LIVING WORLDS"),
-                TextFont {
-                    font_size: 72.0,
-                    ..default()
-                },
-                TextColor(Color::srgb(0.9, 0.85, 0.7)),
-                Node {
-                    margin: UiRect::bottom(Val::Px(10.0)),
-                    ..default()
-                },
-            ));
-
-            // Subtitle
-            title_parent.spawn((
-                Text::new("A Civilization Observer"),
-                TextFont {
-                    font_size: 28.0,
-                    ..default()
-                },
-                TextColor(Color::srgb(0.6, 0.6, 0.65)),
-            ));
-        });
-
-        // Spacer
-        parent.spawn(Node {
-            height: Val::Px(40.0),
-            ..default()
-        });
-
-        parent.spawn(Node {
-            flex_direction: FlexDirection::Column,
-            align_items: AlignItems::Center,
-            ..default()
-        }).with_children(|button_parent| {
-            // Helper closure for creating buttons using ButtonBuilder
-            let mut create_button = |text: &str, action: MenuAction, enabled: bool| {
-                ButtonBuilder::new(text)
-                    .style(ButtonStyle::Secondary)
-                    .size(ButtonSize::XLarge)
-                    .enabled(enabled)
-                    .margin(UiRect::vertical(Val::Px(8.0)))
-                    .with_marker(MenuButton { action, enabled })
-                    .build(button_parent);
-            };
-
-            // Create menu buttons
-            create_button("New World", MenuAction::NewWorld, true);
-            create_button("Load Game", MenuAction::LoadGame, has_saves);
-            create_button("Settings", MenuAction::Settings, true);
-            create_button("Mods", MenuAction::Mods, true);
-            create_button("Exit", MenuAction::Exit, true);
-        });
-
-        // Version info at bottom
-        parent.spawn((
-            Text::new("v0.1.0 - Early Development"),
-            TextFont {
-                font_size: 14.0,
-                ..default()
-            },
-            TextColor(Color::srgb(0.4, 0.4, 0.4)),
+    commands
+        .spawn((
             Node {
-                position_type: PositionType::Absolute,
-                bottom: Val::Px(20.0),
-                left: Val::Px(20.0),
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                flex_direction: FlexDirection::Column,
                 ..default()
             },
-        ));
-    });
+            BackgroundColor(Color::srgba(0.05, 0.05, 0.05, 0.98)),
+            MainMenuRoot,
+        ))
+        .with_children(|parent| {
+            // Title section
+            parent
+                .spawn(Node {
+                    flex_direction: FlexDirection::Column,
+                    align_items: AlignItems::Center,
+                    ..default()
+                })
+                .with_children(|title_parent| {
+                    // Main title
+                    title_parent.spawn((
+                        Text::new("LIVING WORLDS"),
+                        TextFont {
+                            font_size: 72.0,
+                            ..default()
+                        },
+                        TextColor(Color::srgb(0.9, 0.85, 0.7)),
+                        Node {
+                            margin: UiRect::bottom(Val::Px(10.0)),
+                            ..default()
+                        },
+                    ));
+
+                    // Subtitle
+                    title_parent.spawn((
+                        Text::new("A Civilization Observer"),
+                        TextFont {
+                            font_size: 28.0,
+                            ..default()
+                        },
+                        TextColor(Color::srgb(0.6, 0.6, 0.65)),
+                    ));
+                });
+
+            // Spacer
+            parent.spawn(Node {
+                height: Val::Px(40.0),
+                ..default()
+            });
+
+            parent
+                .spawn(Node {
+                    flex_direction: FlexDirection::Column,
+                    align_items: AlignItems::Center,
+                    ..default()
+                })
+                .with_children(|button_parent| {
+                    // Helper closure for creating buttons using ButtonBuilder
+                    let mut create_button = |text: &str, action: MenuAction, enabled: bool| {
+                        ButtonBuilder::new(text)
+                            .style(ButtonStyle::Secondary)
+                            .size(ButtonSize::XLarge)
+                            .enabled(enabled)
+                            .margin(UiRect::vertical(Val::Px(8.0)))
+                            .with_marker(MenuButton { action, enabled })
+                            .build(button_parent);
+                    };
+
+                    // Create menu buttons
+                    create_button("New World", MenuAction::NewWorld, true);
+                    create_button("Load Game", MenuAction::LoadGame, has_saves);
+                    create_button("Settings", MenuAction::Settings, true);
+                    create_button("Mods", MenuAction::Mods, true);
+                    create_button("Exit", MenuAction::Exit, true);
+                });
+
+            // Version info at bottom
+            parent.spawn((
+                Text::new("v0.1.0 - Early Development"),
+                TextFont {
+                    font_size: 14.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.4, 0.4, 0.4)),
+                Node {
+                    position_type: PositionType::Absolute,
+                    bottom: Val::Px(20.0),
+                    left: Val::Px(20.0),
+                    ..default()
+                },
+            ));
+        });
 }
 
 /// Despawns the main menu UI
-fn despawn_main_menu(
-    mut commands: Commands,
-    query: Query<Entity, With<MainMenuRoot>>,
-) {
+fn despawn_main_menu(mut commands: Commands, query: Query<Entity, With<MainMenuRoot>>) {
     println!("Despawning main menu UI");
     for entity in &query {
         commands.entity(entity).despawn_recursive();
@@ -148,10 +146,7 @@ fn despawn_main_menu(
 
 /// Handles button click interactions in the main menu
 fn handle_button_interactions(
-    mut interactions: Query<
-        (&Interaction, &MenuButton),
-        (Changed<Interaction>, With<Button>)
-    >,
+    mut interactions: Query<(&Interaction, &MenuButton), (Changed<Interaction>, With<Button>)>,
     mut state_events: EventWriter<RequestStateTransition>,
     mut settings_events: EventWriter<SpawnSettingsMenuEvent>,
     mut save_browser_events: EventWriter<SpawnSaveBrowserEvent>,
@@ -201,8 +196,11 @@ fn handle_button_interactions(
 /// Handles exit confirmation dialog button interactions
 fn handle_exit_confirmation_dialog(
     mut interactions: Query<
-        (&Interaction, AnyOf<(&crate::ui::ConfirmButton, &crate::ui::CancelButton)>),
-        Changed<Interaction>
+        (
+            &Interaction,
+            AnyOf<(&crate::ui::ConfirmButton, &crate::ui::CancelButton)>,
+        ),
+        Changed<Interaction>,
     >,
     mut commands: Commands,
     dialog_query: Query<Entity, With<crate::ui::ExitConfirmationDialog>>,

@@ -21,19 +21,15 @@ use bevy::prelude::*;
 
 // PRIVATE MODULES - Menu implementation details
 
-mod types;
 mod main_menu;
 mod pause_menu;
+mod types;
 
 // SELECTIVE PUBLIC EXPORTS - Controlled menu API
 
 // Export shared types for external use
 pub use types::{
-    MenuButton,
-    MenuAction,
-    ButtonText,
-    SpawnSettingsMenuEvent,
-    SpawnSaveBrowserEvent,
+    ButtonText, MenuAction, MenuButton, SpawnSaveBrowserEvent, SpawnSettingsMenuEvent,
 };
 
 // Export menu root markers (needed for queries in other systems)
@@ -54,10 +50,9 @@ impl Plugin for MenusPlugin {
             // Register shared events
             .add_event::<SpawnSettingsMenuEvent>()
             .add_event::<SpawnSaveBrowserEvent>()
-
             // Add specialized menu plugins
             // Each plugin manages its own systems and resources
-            .add_plugins(main_menu::MainMenuPlugin)    // Title screen menu
+            .add_plugins(main_menu::MainMenuPlugin) // Title screen menu
             .add_plugins(pause_menu::PauseMenuPlugin); // In-game pause overlay
 
         // Note: Each submodule plugin registers its own systems:
@@ -73,4 +68,3 @@ impl Plugin for MenusPlugin {
 // - Pause menu logic is in pause_menu.rs
 // - Shared types are in types.rs
 // This gateway file should NEVER contain implementation logic.
-
