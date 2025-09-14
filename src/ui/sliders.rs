@@ -1,4 +1,3 @@
-//! Slider builder system for Living Worlds
 //! 
 //! Provides THE standard way to create sliders with consistent styling,
 //! automatic value tracking, and built-in interaction handling.
@@ -8,9 +7,6 @@ use bevy::ui::RelativeCursorPosition;
 use super::styles::{colors, dimensions};
 use super::buttons::{ButtonBuilder, ButtonStyle, ButtonSize};
 
-// ============================================================================
-// COMPONENTS
-// ============================================================================
 
 /// Main slider component with configuration and state
 #[derive(Component, Clone, Debug)]
@@ -24,7 +20,6 @@ pub struct Slider {
 }
 
 impl Slider {
-    /// Create a new slider with the given range
     pub fn new(min: f32, max: f32, value: f32) -> Self {
         Self {
             value: value.clamp(min, max),
@@ -136,9 +131,6 @@ impl Default for SliderConfig {
     }
 }
 
-// ============================================================================
-// BUILDER
-// ============================================================================
 
 /// Builder for creating sliders
 pub struct SliderBuilder {
@@ -167,7 +159,6 @@ pub struct SliderBuilderWithMarker<M: Component> {
 }
 
 impl<M: Component> SliderBuilderWithMarker<M> {
-    /// Add a value text marker
     pub fn with_value_marker<V: Component>(self, value_marker: V) -> SliderBuilderWithMarkers<M, V> {
         SliderBuilderWithMarkers {
             builder: self.builder,
@@ -176,7 +167,6 @@ impl<M: Component> SliderBuilderWithMarker<M> {
         }
     }
     
-    /// Build the slider
     pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
         build_slider_internal(parent, self.builder, Some(self.marker), None::<NoMarker>)
     }
@@ -190,14 +180,12 @@ pub struct SliderBuilderWithMarkers<M: Component, V: Component> {
 }
 
 impl<M: Component, V: Component> SliderBuilderWithMarkers<M, V> {
-    /// Build the slider with both markers
     pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
         build_slider_internal(parent, self.builder, Some(self.slider_marker), Some(self.value_marker))
     }
 }
 
 impl SliderBuilder {
-    /// Create a new slider builder
     pub fn new(min: f32, max: f32) -> Self {
         Self {
             label: None,
@@ -219,25 +207,21 @@ impl SliderBuilder {
         }
     }
     
-    /// Set the label text
     pub fn with_label(mut self, label: impl Into<String>) -> Self {
         self.label = Some(label.into());
         self
     }
     
-    /// Set the initial value
     pub fn with_value(mut self, value: f32) -> Self {
         self.value = value.clamp(self.min, self.max);
         self
     }
     
-    /// Set the step size for discrete values
     pub fn with_step(mut self, step: f32) -> Self {
         self.step = Some(step);
         self
     }
     
-    /// Set the slider width
     pub fn with_width(mut self, width: Val) -> Self {
         self.width = width;
         self
@@ -249,7 +233,6 @@ impl SliderBuilder {
         self
     }
     
-    /// Set the value format
     pub fn with_format(mut self, format: ValueFormat) -> Self {
         self.value_format = format;
         self
@@ -308,13 +291,11 @@ impl SliderBuilder {
         self
     }
     
-    /// Set the step size for button increments
     pub fn button_step(mut self, step: f32) -> Self {
         self.button_step = Some(step);
         self
     }
     
-    /// Add a marker component to the slider
     pub fn with_marker<M: Component>(self, marker: M) -> SliderBuilderWithMarker<M> {
         SliderBuilderWithMarker {
             builder: self,
@@ -322,7 +303,6 @@ impl SliderBuilder {
         }
     }
     
-    /// Build the slider
     pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
         build_slider_internal_no_markers(parent, self)
     }
@@ -407,7 +387,6 @@ fn build_slider_internal<M: Component, V: Component>(
             });
         }
         
-        // Slider track
         let mut slider_entity = container.spawn((
             Button,  // For interaction
             Node {
@@ -427,7 +406,6 @@ fn build_slider_internal<M: Component, V: Component>(
         
         let track_entity = slider_entity.id();
         
-        // Add the Slider component and optional marker
         let mut slider = Slider::new(builder.min, builder.max, builder.value);
         slider.step = builder.step;
         slider.value_text_entity = value_text_id;  // Associate the value text with this slider
@@ -447,7 +425,6 @@ fn build_slider_internal<M: Component, V: Component>(
             slider_entity.insert(marker);
         }
         
-        // Build track visuals
         slider_entity.with_children(|track| {
             // Track background
             track.spawn((
@@ -536,9 +513,6 @@ fn build_slider_internal<M: Component, V: Component>(
     container_id
 }
 
-// ============================================================================
-// PLUGIN
-// ============================================================================
 
 /// Plugin that provides the slider system
 pub struct SliderPlugin;
@@ -553,9 +527,6 @@ impl Plugin for SliderPlugin {
     }
 }
 
-// ============================================================================
-// SYSTEMS
-// ============================================================================
 
 
 /// Handle slider dragging interaction
@@ -578,7 +549,6 @@ fn handle_slider_interaction(
             *dragged_slider = Some(entity);
         }
         
-        // Update value only for the slider being dragged
         if *dragged_slider == Some(entity) {
             if let Some(cursor_pos) = cursor_pos.normalized {
                 let normalized_x = cursor_pos.x.clamp(0.0, 1.0);
@@ -602,14 +572,11 @@ fn update_slider_visuals(
     mut value_texts: Query<&mut Text>,
 ) {
     for (slider, config, children) in &sliders {
-        // Update fill and handle through children
         for child in children.iter() {
-            // Update fill width
             if let Ok(mut fill_node) = fills.get_mut(child) {
                 fill_node.width = Val::Percent(slider.normalized() * 100.0);
             }
             
-            // Update handle position - keep handle within track bounds
             if let Ok(mut handle_node) = handles.get_mut(child) {
                 // At 100%, position handle at the right edge but still within track
                 // Account for handle width to keep it fully within track
@@ -619,7 +586,6 @@ fn update_slider_visuals(
             }
         }
         
-        // Update ONLY the value text associated with this specific slider
         if let Some(value_text_entity) = slider.value_text_entity {
             if let Ok(mut text) = value_texts.get_mut(value_text_entity) {
                 **text = config.value_format.format(slider.value);
@@ -650,199 +616,8 @@ fn handle_slider_button_clicks(
     }
 }
 
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
 
 /// Convenience function to create a slider builder
 pub fn slider(min: f32, max: f32) -> SliderBuilder {
     SliderBuilder::new(min, max)
-}
-
-/// Static helper to spawn a slider without using the builder pattern
-/// This avoids lifetime issues in preset functions and other contexts
-pub fn spawn_slider(
-    parent: &mut ChildSpawnerCommands,
-    min: f32,
-    max: f32,
-    value: f32,
-) -> Entity {
-    spawn_slider_full(
-        parent,
-        min,
-        max,
-        value,
-        None,  // No label
-        false, // No buttons
-        None::<Slider>, // No custom marker
-    )
-}
-
-/// Static helper to spawn a slider with label
-pub fn spawn_slider_with_label(
-    parent: &mut ChildSpawnerCommands,
-    min: f32,
-    max: f32,
-    value: f32,
-    label: impl Into<String>,
-) -> Entity {
-    spawn_slider_full(
-        parent,
-        min,
-        max,
-        value,
-        Some(label.into()),
-        false, // No buttons
-        None::<Slider>, // No custom marker
-    )
-}
-
-/// Static helper to spawn a slider with all options
-pub fn spawn_slider_full<M: Component>(
-    parent: &mut ChildSpawnerCommands,
-    min: f32,
-    max: f32,
-    value: f32,
-    label: Option<String>,
-    show_buttons: bool,
-    marker: Option<M>,
-) -> Entity {
-    // We need to track the slider entity across closures
-    let mut actual_slider_entity = Entity::PLACEHOLDER;
-    
-    // Container for the whole slider
-    let container_entity = parent.spawn((
-        Node {
-            width: Val::Percent(100.0),
-            flex_direction: FlexDirection::Column,
-            row_gap: Val::Px(5.0),
-            ..default()
-        },
-        BackgroundColor(Color::NONE),
-    )).with_children(|container| {
-        // Add label if provided
-        if let Some(label_text) = label {
-            container.spawn((
-                Text::new(label_text),
-                TextFont {
-                    font_size: dimensions::FONT_SIZE_NORMAL,
-                    ..default()
-                },
-                TextColor(colors::TEXT_PRIMARY),
-            ));
-        }
-        
-        // Row for slider and value display
-        container.spawn((
-            Node {
-                width: Val::Percent(100.0),
-                flex_direction: FlexDirection::Row,
-                column_gap: Val::Px(10.0),
-                align_items: AlignItems::Center,
-                ..default()
-            },
-            BackgroundColor(Color::NONE),
-        )).with_children(|row| {
-            // The slider track and handle
-            let mut slider_commands = row.spawn((
-                Node {
-                    flex_grow: 1.0,
-                    height: Val::Px(30.0),
-                    padding: UiRect::horizontal(Val::Px(5.0)),
-                    border: UiRect::all(Val::Px(dimensions::BORDER_WIDTH)),
-                    align_items: AlignItems::Center,
-                    ..default()
-                },
-                BackgroundColor(colors::BACKGROUND_LIGHT),
-                BorderColor(colors::BORDER_DEFAULT),
-                Slider::new(min, max, value),
-                Interaction::default(),
-            ));
-            
-            // Add custom marker if provided
-            if let Some(m) = marker {
-                slider_commands.insert(m);
-            }
-            
-            // Spawn slider handle as child before getting ID
-            slider_commands.with_children(|track| {
-                let handle_position = ((value - min) / (max - min)).clamp(0.0, 1.0);
-                track.spawn((
-                    Node {
-                        position_type: PositionType::Absolute,
-                        left: Val::Percent(handle_position * 100.0),
-                        top: Val::Percent(50.0),
-                        width: Val::Px(20.0),
-                        height: Val::Px(20.0),
-                        margin: UiRect {
-                            left: Val::Px(-10.0),
-                            top: Val::Px(-10.0),
-                            ..default()
-                        },
-                        ..default()
-                    },
-                    BackgroundColor(colors::PRIMARY),
-                    SliderHandle,
-                ));
-            });
-            
-            let slider_entity = slider_commands.id();
-            actual_slider_entity = slider_entity; // Store for button usage
-            
-            // Value display
-            let value_text_entity = row.spawn((
-                Text::new(format!("{:.1}", value)),
-                TextFont {
-                    font_size: dimensions::FONT_SIZE_NORMAL,
-                    ..default()
-                },
-                TextColor(colors::TEXT_PRIMARY),
-                Node {
-                    min_width: Val::Px(50.0),
-                    ..default()
-                },
-            )).id();
-            
-            // Update the slider with the value text entity
-            row.commands().entity(slider_entity).insert(Slider {
-                min,
-                max,
-                value,
-                value_text_entity: Some(value_text_entity),
-                step: None,
-            });
-        });
-        
-        // Add buttons if requested
-        if show_buttons {
-            use super::buttons::{spawn_button, ButtonStyle, ButtonSize};
-            
-            container.spawn((
-                Node {
-                    width: Val::Percent(100.0),
-                    flex_direction: FlexDirection::Row,
-                    justify_content: JustifyContent::SpaceBetween,
-                    margin: UiRect::top(Val::Px(5.0)),
-                    ..default()
-                },
-                BackgroundColor(Color::NONE),
-            )).with_children(|button_row| {
-                // Decrement button
-                let dec_entity = spawn_button(button_row, "-", ButtonStyle::Secondary, ButtonSize::Small);
-                button_row.commands().entity(dec_entity).insert(SliderButtonAction {
-                    slider_entity: actual_slider_entity,
-                    delta: -(max - min) * 0.1,
-                });
-                
-                // Increment button
-                let inc_entity = spawn_button(button_row, "+", ButtonStyle::Secondary, ButtonSize::Small);
-                button_row.commands().entity(inc_entity).insert(SliderButtonAction {
-                    slider_entity: actual_slider_entity,
-                    delta: (max - min) * 0.1,
-                });
-            });
-        }
-    }).id();
-    
-    container_entity
 }

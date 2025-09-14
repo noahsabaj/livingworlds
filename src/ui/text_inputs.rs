@@ -13,9 +13,6 @@ use bevy_simple_text_input::{
 use super::styles::{colors, dimensions};
 use super::buttons::{ButtonBuilder, ButtonStyle, ButtonSize};
 
-// ============================================================================
-// INPUT VALIDATION
-// ============================================================================
 
 /// Defines input validation and filtering rules
 #[derive(Component, Clone, Debug)]
@@ -157,9 +154,6 @@ impl InputFilter {
     }
 }
 
-// ============================================================================
-// COMPONENTS
-// ============================================================================
 
 /// Component that marks a clear button and tracks which text input it clears
 #[derive(Component)]
@@ -187,9 +181,6 @@ pub enum FocusGroupId {
     Custom(u32),
 }
 
-// ============================================================================
-// BUILDER
-// ============================================================================
 
 /// Builder for creating text inputs with managed focus
 #[derive(Clone)]
@@ -235,7 +226,6 @@ fn build_text_input_with_extras<M>(
         let mut text_input_id = None;
         
         parent.commands().entity(container_id).with_children(|container| {
-            // Create the text input with adjusted width
             let mut entity_commands = container.spawn((
                 // Node components for layout
                 Node {
@@ -251,7 +241,6 @@ fn build_text_input_with_extras<M>(
                 BorderColor(colors::BORDER_DEFAULT),
                 BorderRadius::all(Val::Px(5.0)),
                 
-                // Text input components
                 TextInput,
                 TextInputValue(if builder.value.is_empty() && builder.placeholder.is_some() {
                     builder.placeholder.clone().unwrap()
@@ -320,7 +309,6 @@ fn build_text_input_with_extras<M>(
             BorderColor(colors::BORDER_DEFAULT),
             BorderRadius::all(Val::Px(5.0)),
             
-            // Text input components
             TextInput,
             TextInputValue(if builder.value.is_empty() && builder.placeholder.is_some() {
                 builder.placeholder.unwrap()
@@ -362,7 +350,6 @@ fn build_text_input_with_extras<M>(
 }
 
 impl<M: Component> TextInputBuilderWithMarker<M> {
-    /// Add another marker component
     pub fn and_marker<N: Component>(self, marker2: N) -> TextInputBuilderWithTwoMarkers<M, N> {
         TextInputBuilderWithTwoMarkers {
             builder: self.builder,
@@ -397,7 +384,6 @@ impl<M: Component, N: Component> TextInputBuilderWithTwoMarkers<M, N> {
 }
 
 impl TextInputBuilder {
-    /// Create a new text input builder
     pub fn new() -> Self {
         Self {
             value: String::new(),
@@ -414,7 +400,6 @@ impl TextInputBuilder {
         }
     }
 
-    /// Set the initial value
     pub fn with_value(mut self, value: impl Into<String>) -> Self {
         self.value = value.into();
         self
@@ -426,19 +411,16 @@ impl TextInputBuilder {
         self
     }
 
-    /// Set the font size
     pub fn with_font_size(mut self, size: f32) -> Self {
         self.font_size = size;
         self
     }
 
-    /// Set the width
     pub fn with_width(mut self, width: Val) -> Self {
         self.width = width;
         self
     }
 
-    /// Set the height
     pub fn with_height(mut self, height: Val) -> Self {
         self.height = height;
         self
@@ -562,13 +544,11 @@ impl TextInputBuilder {
         self
     }
     
-    /// Add a clear button to the text input
     pub fn with_clear_button(mut self) -> Self {
         self.show_clear_button = true;
         self
     }
 
-    /// Add a marker component to the input
     pub fn with_marker<M: Component>(self, marker: M) -> TextInputBuilderWithMarker<M> {
         TextInputBuilderWithMarker {
             builder: self,
@@ -582,9 +562,6 @@ impl TextInputBuilder {
     }
 }
 
-// ============================================================================
-// PLUGIN
-// ============================================================================
 
 /// Plugin that provides the complete text input system for the application
 pub struct TextInputPlugin;
@@ -600,9 +577,6 @@ impl Plugin for TextInputPlugin {
     }
 }
 
-// ============================================================================
-// SYSTEMS
-// ============================================================================
 
 /// Handle clicking on text inputs to manage focus
 fn handle_text_input_focus(
@@ -649,9 +623,7 @@ fn handle_click_outside_unfocus(
     interactions: Query<&Interaction, With<TextInput>>,
     all_inputs: Query<Entity, With<TextInput>>,
 ) {
-    // Check if left mouse was just pressed
     if mouse_button.just_pressed(MouseButton::Left) {
-        // Check if any text input is being interacted with
         let clicking_on_input = interactions.iter().any(|i| *i != Interaction::None);
         
         // If not clicking on any input, unfocus all
@@ -719,81 +691,8 @@ fn handle_clear_button_clicks(
     }
 }
 
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
 
 /// Convenience function to create a text input builder
 pub fn text_input() -> TextInputBuilder {
     TextInputBuilder::new()
-}
-
-/// Static helper to spawn a text input without using the builder pattern
-/// This avoids lifetime issues in preset functions and other contexts
-pub fn spawn_text_input(
-    parent: &mut ChildSpawnerCommands,
-    placeholder: impl Into<String>,
-) -> Entity {
-    spawn_text_input_full(
-        parent,
-        placeholder,
-        None,  // No initial value
-        Val::Px(200.0),  // Default width
-        true,  // Active by default
-        None::<TextInput>,  // No custom marker
-    )
-}
-
-/// Static helper to spawn a text input with all options
-pub fn spawn_text_input_full<M: Component>(
-    parent: &mut ChildSpawnerCommands,
-    placeholder: impl Into<String>,
-    value: Option<String>,
-    width: Val,
-    active: bool,
-    marker: Option<M>,
-) -> Entity {
-    let placeholder = placeholder.into();
-    let initial_value = value.unwrap_or_else(|| placeholder.clone());
-    
-    let bg_color = if active {
-        colors::BACKGROUND_LIGHT
-    } else {
-        Color::srgb(0.08, 0.08, 0.08)
-    };
-    
-    let mut entity_commands = parent.spawn((
-        Node {
-            width,
-            height: Val::Px(40.0),
-            padding: UiRect::all(Val::Px(10.0)),
-            border: UiRect::all(Val::Px(dimensions::BORDER_WIDTH)),
-            ..default()
-        },
-        BackgroundColor(bg_color),
-        BorderColor(if active { colors::BORDER_DEFAULT } else { Color::srgb(0.2, 0.2, 0.2) }),
-        TextInput,
-        TextInputValue(initial_value),
-        TextInputTextFont(TextFont {
-            font_size: dimensions::FONT_SIZE_NORMAL,
-            ..default()
-        }),
-        TextInputTextColor(TextColor(colors::TEXT_PRIMARY)),
-        TextInputSettings {
-            retain_on_submit: true,
-            ..default()
-        },
-    ));
-    
-    // Add inactive state if needed
-    if !active {
-        entity_commands.insert(TextInputInactive(true));
-    }
-    
-    // Add custom marker if provided
-    if let Some(m) = marker {
-        entity_commands.insert(m);
-    }
-    
-    entity_commands.id()
 }

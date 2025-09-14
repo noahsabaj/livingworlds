@@ -1,0 +1,68 @@
+//! Tile info panel for displaying province information
+
+use bevy::prelude::*;
+use crate::resources::SelectedProvinceInfo;
+use crate::world::mesh::ProvinceStorage;
+use crate::components::ProvinceId;
+use super::super::{PanelBuilder, PanelStyle, LabelBuilder};
+
+/// Marker component for the tile info panel
+#[derive(Component)]
+pub struct TileInfoPanel;
+
+/// Marker component for the tile info text
+#[derive(Component)]
+pub struct TileInfoText;
+
+/// Spawn the tile info panel UI
+pub fn spawn_tile_info_panel(parent: &mut ChildSpawnerCommands) {
+    // Create panel using PanelBuilder
+    PanelBuilder::new(parent)
+        .style(PanelStyle::Default)
+        .custom_background(crate::constants::COLOR_TILE_INFO_BACKGROUND)
+        .padding(UiRect::all(Val::Px(10.0)))
+        .build_with_children(|panel| {
+            let entity = LabelBuilder::new(panel, "Click a tile to see info")
+                .font_size(16.0)
+                .color(Color::WHITE)
+                .build();
+
+            // Add our marker to the text entity
+            panel.commands().entity(entity).insert(TileInfoText);
+        });
+}
+
+/// Update UI panel showing selected tile info
+pub fn update_tile_info_ui(
+    selected_info: Res<SelectedProvinceInfo>,
+    province_storage: Res<ProvinceStorage>,
+    mut text_query: Query<&mut Text, With<TileInfoText>>,
+) {
+    if let Ok(mut text) = text_query.get_single_mut() {
+        if let Some(province_id) = selected_info.province_id {
+            // Use HashMap for O(1) lookup instead of O(n) linear search
+            if let Some(&idx) = province_storage.province_by_id.get(&ProvinceId::new(province_id)) {
+                let province = &province_storage.provinces[idx];
+                *text = Text::new(format!(
+                    "Province #{}
+Terrain: {:?}
+Elevation: {:.2}
+Population: {:.0}
+Agriculture: {:.1}
+Water Distance: {:.1} hex
+Position: ({:.0}, {:.0})",
+                    province.id,
+                    province.terrain,
+                    province.elevation,
+                    province.population,
+                    province.agriculture,
+                    province.fresh_water_distance,
+                    province.position.x,
+                    province.position.y,
+                ));
+            }
+        } else {
+            *text = Text::new("Click a tile to see info");
+        }
+    }
+}

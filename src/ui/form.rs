@@ -9,9 +9,6 @@ use super::components::{PanelBuilder, PanelStyle};
 use super::text_inputs::FocusGroupId;
 use super::sliders::{Slider, SliderButtonAction};
 
-// ============================================================================
-// FORM BUILDER
-// ============================================================================
 
 /// High-level builder for creating forms with automatic layout management
 pub struct FormBuilder<'a> {
@@ -49,7 +46,6 @@ enum FormField {
 }
 
 impl<'a> FormBuilder<'a> {
-    /// Create a new form builder
     pub fn new(parent: &'a mut ChildSpawnerCommands<'a>) -> Self {
         Self {
             parent,
@@ -61,13 +57,11 @@ impl<'a> FormBuilder<'a> {
         }
     }
     
-    /// Set the form title
     pub fn title(mut self, title: impl Into<String>) -> Self {
         self.title = Some(title.into());
         self
     }
     
-    /// Set the form width
     pub fn width(mut self, width: Val) -> Self {
         self.width = width;
         self
@@ -85,7 +79,6 @@ impl<'a> FormBuilder<'a> {
         self
     }
     
-    /// Add a new section to the form
     pub fn section(mut self, title: impl Into<String>) -> Self {
         self.sections.push(FormSection {
             title: Some(title.into()),
@@ -94,7 +87,6 @@ impl<'a> FormBuilder<'a> {
         self
     }
     
-    /// Add a text input field to the current section
     pub fn text_field(mut self, label: impl Into<String>, placeholder: impl Into<String>) -> Self {
         if self.sections.is_empty() {
             self.sections.push(FormSection {
@@ -114,7 +106,6 @@ impl<'a> FormBuilder<'a> {
         self
     }
     
-    /// Add a slider field to the current section
     pub fn slider_field(mut self, label: impl Into<String>, min: f32, max: f32, value: f32) -> Self {
         if self.sections.is_empty() {
             self.sections.push(FormSection {
@@ -136,7 +127,6 @@ impl<'a> FormBuilder<'a> {
         self
     }
     
-    /// Add a slider with buttons to the current section
     pub fn slider_with_buttons(mut self, label: impl Into<String>, min: f32, max: f32, value: f32) -> Self {
         if self.sections.is_empty() {
             self.sections.push(FormSection {
@@ -158,7 +148,6 @@ impl<'a> FormBuilder<'a> {
         self
     }
     
-    /// Add a custom field using a closure
     pub fn custom_field<F>(mut self, builder_fn: F) -> Self 
     where
         F: FnOnce(&mut ChildSpawnerCommands) + 'static,
@@ -179,7 +168,6 @@ impl<'a> FormBuilder<'a> {
         self
     }
     
-    /// Build the form
     pub fn build(self) -> Entity {
         // Use PanelBuilder for the container
         let mut panel_builder = PanelBuilder::new(self.parent)
@@ -192,10 +180,8 @@ impl<'a> FormBuilder<'a> {
         }
         
         panel_builder.build_with_children(|form_container| {
-            // Create a focus group for all text inputs in this form
             let focus_group = FocusGroupId::Custom(rand::random());
             
-            // Build each section
             for (section_idx, section) in self.sections.into_iter().enumerate() {
                 // Add section separator if not first section
                 if section_idx > 0 {
@@ -226,7 +212,6 @@ impl<'a> FormBuilder<'a> {
                     ));
                 }
                 
-                // Build each field in the section
                 for field in section.fields {
                     // Field container
                     form_container.spawn((
@@ -255,7 +240,6 @@ impl<'a> FormBuilder<'a> {
                                     },
                                 ));
                                     
-                                // Text input - spawn directly with components
                                 field_container.spawn((
                                     Node {
                                         width: Val::Percent(100.0),
@@ -297,7 +281,6 @@ impl<'a> FormBuilder<'a> {
                                         TextColor(colors::TEXT_PRIMARY),
                                     ));
                                     
-                                    // Slider track and handle
                                     let slider_entity = slider_container.spawn((
                                         Node {
                                             width: Val::Percent(100.0),
@@ -448,23 +431,16 @@ impl<'a> FormBuilder<'a> {
     }
 }
 
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
 
 /// Convenience function to create a form builder
 pub fn form<'a>(parent: &'a mut ChildSpawnerCommands<'a>) -> FormBuilder<'a> {
     FormBuilder::new(parent)
 }
 
-// ============================================================================
-// PRESETS
-// ============================================================================
 
 pub mod presets {
     use super::*;
     
-    /// Create a basic login form
     pub fn login_form(parent: &mut ChildSpawnerCommands) -> Entity {
         // We can't use the builder pattern across lifetime boundaries in presets
         // So we create the form manually with proper structure
@@ -554,7 +530,6 @@ pub mod presets {
                 bevy_simple_text_input::TextInputTextColor(TextColor(colors::TEXT_PRIMARY)),
             ));
             
-            // Button row
             form.spawn((
                 Node {
                     width: Val::Percent(100.0),
@@ -610,7 +585,6 @@ pub mod presets {
         }).id()
     }
     
-    /// Create a settings form with sliders
     pub fn settings_form(parent: &mut ChildSpawnerCommands) -> Entity {
         // Manual construction due to lifetime constraints
         parent.spawn((
@@ -751,7 +725,6 @@ pub mod presets {
                 });
             }
             
-            // Button row
             form.spawn((
                 Node {
                     width: Val::Percent(100.0),

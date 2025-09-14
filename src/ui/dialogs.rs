@@ -115,7 +115,6 @@ pub enum DialogButtonMarker {
 }
 
 impl DialogBuilder {
-    /// Create a new dialog builder
     pub fn new(dialog_type: DialogType) -> Self {
         Self {
             title: String::new(),
@@ -128,19 +127,16 @@ impl DialogBuilder {
         }
     }
     
-    /// Set the dialog title
     pub fn title(mut self, title: impl Into<String>) -> Self {
         self.title = title.into();
         self
     }
     
-    /// Set the dialog body text
     pub fn body(mut self, body: impl Into<String>) -> Self {
         self.body = body.into();
         self
     }
     
-    /// Set the dialog width
     pub fn width(mut self, width: f32) -> Self {
         self.width = width;
         self
@@ -152,13 +148,11 @@ impl DialogBuilder {
         self
     }
     
-    /// Set the z-index layer
     pub fn z_index(mut self, z_index: i32) -> Self {
         self.z_index = z_index;
         self
     }
     
-    /// Add a confirm button
     pub fn confirm_button(mut self, text: impl Into<String>) -> Self {
         self.buttons.push(DialogButton {
             text: text.into(),
@@ -168,7 +162,6 @@ impl DialogBuilder {
         self
     }
     
-    /// Add a cancel button
     pub fn cancel_button(mut self, text: impl Into<String>) -> Self {
         self.buttons.push(DialogButton {
             text: text.into(),
@@ -178,7 +171,6 @@ impl DialogBuilder {
         self
     }
     
-    /// Add a danger button (for destructive actions)
     pub fn danger_button(mut self, text: impl Into<String>, marker: DialogButtonMarker) -> Self {
         self.buttons.push(DialogButton {
             text: text.into(),
@@ -188,7 +180,6 @@ impl DialogBuilder {
         self
     }
     
-    /// Add a save button
     pub fn save_button(mut self, text: impl Into<String>) -> Self {
         self.buttons.push(DialogButton {
             text: text.into(),
@@ -198,7 +189,6 @@ impl DialogBuilder {
         self
     }
     
-    /// Add a custom button
     pub fn custom_button(
         mut self,
         text: impl Into<String>,
@@ -213,7 +203,6 @@ impl DialogBuilder {
         self
     }
     
-    /// Build the dialog and return its root entity
     pub fn build(self, commands: &mut Commands) -> Entity {
         // Create overlay that blocks clicks
         let overlay_entity = commands.spawn((
@@ -266,7 +255,6 @@ impl DialogBuilder {
             ZIndex(self.z_index + 50),
         )).id();
         
-        // Build dialog content
         commands.entity(container_entity).with_children(|parent| {
             // Title
             if !self.title.is_empty() {
@@ -316,7 +304,6 @@ impl DialogBuilder {
                 });
             }
             
-            // Button row
             if !self.buttons.is_empty() {
                 parent.spawn((
                     Node {
@@ -372,7 +359,6 @@ impl DialogBuilder {
 pub mod presets {
     use super::*;
     
-    /// Create a standard exit confirmation dialog
     pub fn exit_confirmation_dialog(mut commands: Commands) -> Entity {
         DialogBuilder::new(DialogType::ExitConfirmation)
             .title("Exit Game")
@@ -385,7 +371,6 @@ pub mod presets {
             .build(&mut commands)
     }
     
-    /// Create an unsaved changes dialog
     pub fn unsaved_changes_dialog(mut commands: Commands) -> Entity {
         DialogBuilder::new(DialogType::UnsavedChanges)
             .title("Unsaved Changes")
@@ -398,7 +383,6 @@ pub mod presets {
             .build(&mut commands)
     }
     
-    /// Create a resolution change dialog
     pub fn resolution_dialog(mut commands: Commands, new_resolution: (u32, u32)) -> Entity {
         DialogBuilder::new(DialogType::Resolution)
             .title("Change Resolution")
@@ -409,7 +393,6 @@ pub mod presets {
             .build(&mut commands)
     }
     
-    /// Create a world generation error dialog
     pub fn world_generation_error_dialog(mut commands: Commands, error_message: &str) -> Entity {
         DialogBuilder::new(DialogType::WorldGenerationError)
             .title("World Generation Failed")
@@ -422,7 +405,6 @@ pub mod presets {
             .build(&mut commands)
     }
     
-    /// Create a simple info dialog
     pub fn info_dialog(mut commands: Commands, title: &str, message: &str) -> Entity {
         DialogBuilder::new(DialogType::Info)
             .title(title)
@@ -432,7 +414,6 @@ pub mod presets {
             .build(&mut commands)
     }
     
-    /// Create an error dialog
     pub fn error_dialog(mut commands: Commands, error_message: &str) -> Entity {
         DialogBuilder::new(DialogType::Error)
             .title("Error")
@@ -444,7 +425,6 @@ pub mod presets {
             .build(&mut commands)
     }
     
-    /// Create a resolution confirmation dialog with countdown
     pub fn resolution_confirm_dialog(mut commands: Commands) -> Entity {
         // Create overlay that blocks clicks
         let overlay_entity = commands.spawn((
@@ -484,7 +464,6 @@ pub mod presets {
             ZIndex(layers::CRITICAL_DIALOG + 50),
         )).id();
         
-        // Build dialog content
         commands.entity(container_entity).with_children(|parent| {
             // Title
             parent.spawn((
@@ -524,7 +503,6 @@ pub mod presets {
                 ));
             });
             
-            // Button row
             parent.spawn((
                 Node {
                     width: Val::Percent(100.0),

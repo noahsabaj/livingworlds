@@ -45,7 +45,6 @@ pub enum ButtonSize {
 }
 
 impl ButtonStyle {
-    /// Get the base color for this button style
     pub fn base_color(&self) -> Color {
         match self {
             ButtonStyle::Primary => colors::PRIMARY,
@@ -57,7 +56,6 @@ impl ButtonStyle {
         }
     }
     
-    /// Get the hover color for this button style
     pub fn hover_color(&self) -> Color {
         match self {
             ButtonStyle::Primary => colors::PRIMARY_HOVER,
@@ -69,7 +67,6 @@ impl ButtonStyle {
         }
     }
     
-    /// Get the pressed color for this button style
     pub fn pressed_color(&self) -> Color {
         match self {
             ButtonStyle::Primary => colors::PRIMARY_PRESSED,
@@ -81,7 +78,6 @@ impl ButtonStyle {
         }
     }
     
-    /// Get the text color for this button style
     pub fn text_color(&self) -> Color {
         match self {
             ButtonStyle::Ghost => colors::TEXT_SECONDARY,
@@ -89,7 +85,6 @@ impl ButtonStyle {
         }
     }
     
-    /// Get the border color for this button style
     pub fn border_color(&self) -> Color {
         match self {
             ButtonStyle::Primary => colors::PRIMARY.lighter(0.2),
@@ -103,7 +98,6 @@ impl ButtonStyle {
 }
 
 impl ButtonSize {
-    /// Get the width for this button size
     pub fn width(&self) -> f32 {
         match self {
             ButtonSize::Small => dimensions::BUTTON_WIDTH_SMALL,
@@ -113,7 +107,6 @@ impl ButtonSize {
         }
     }
     
-    /// Get the height for this button size
     pub fn height(&self) -> f32 {
         match self {
             ButtonSize::Small => dimensions::BUTTON_HEIGHT_SMALL,
@@ -123,7 +116,6 @@ impl ButtonSize {
         }
     }
     
-    /// Get the font size for this button size
     pub fn font_size(&self) -> f32 {
         match self {
             ButtonSize::Small => dimensions::FONT_SIZE_SMALL,
@@ -145,7 +137,6 @@ pub struct ButtonBuilder {
 }
 
 impl ButtonBuilder {
-    /// Create a new button builder
     pub fn new(text: impl Into<String>) -> Self {
         Self {
             text: text.into(),
@@ -157,13 +148,11 @@ impl ButtonBuilder {
         }
     }
     
-    /// Set the button style
     pub fn style(mut self, style: ButtonStyle) -> Self {
         self.style = style;
         self
     }
     
-    /// Set the button size
     pub fn size(mut self, size: ButtonSize) -> Self {
         self.size = size;
         self
@@ -175,13 +164,11 @@ impl ButtonBuilder {
         self
     }
     
-    /// Set the button margin
     pub fn margin(mut self, margin: UiRect) -> Self {
         self.margin = Some(margin);
         self
     }
     
-    /// Add a custom marker component to the button
     pub fn with_marker<M: Component>(mut self, marker: M) -> Self {
         self.marker = Some(Box::new(move |entity: &mut EntityCommands| {
             entity.insert(marker);
@@ -189,7 +176,6 @@ impl ButtonBuilder {
         self
     }
     
-    /// Build the button and return its entity
     pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
         // If we have a custom marker, we need to handle it differently
         if let Some(marker_fn) = self.marker {
@@ -270,42 +256,36 @@ impl ButtonBuilder {
 pub mod presets {
     use super::*;
     
-    /// Create a primary action button
     pub fn primary_button(
         text: impl Into<String>,
     ) -> ButtonBuilder {
         ButtonBuilder::new(text).style(ButtonStyle::Primary)
     }
     
-    /// Create a secondary action button
     pub fn secondary_button(
         text: impl Into<String>,
     ) -> ButtonBuilder {
         ButtonBuilder::new(text).style(ButtonStyle::Secondary)
     }
     
-    /// Create a danger/destructive action button
     pub fn danger_button(
         text: impl Into<String>,
     ) -> ButtonBuilder {
         ButtonBuilder::new(text).style(ButtonStyle::Danger)
     }
     
-    /// Create a success/positive action button
     pub fn success_button(
         text: impl Into<String>,
     ) -> ButtonBuilder {
         ButtonBuilder::new(text).style(ButtonStyle::Success)
     }
     
-    /// Create a warning/cautionary action button
     pub fn warning_button(
         text: impl Into<String>,
     ) -> ButtonBuilder {
         ButtonBuilder::new(text).style(ButtonStyle::Warning)
     }
     
-    /// Create a ghost button (transparent background)
     pub fn ghost_button(
         text: impl Into<String>,
     ) -> ButtonBuilder {
@@ -313,91 +293,6 @@ pub mod presets {
     }
 }
 
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
-
-/// Static helper to spawn a button without using the builder pattern
-/// This avoids lifetime issues in preset functions and other contexts
-pub fn spawn_button(
-    parent: &mut ChildSpawnerCommands,
-    text: impl Into<String>,
-    style: ButtonStyle,
-    size: ButtonSize,
-) -> Entity {
-    spawn_button_full(parent, text, style, size, true, None, None::<Button>)
-}
-
-/// Static helper to spawn a button with all options
-pub fn spawn_button_full<M: Component>(
-    parent: &mut ChildSpawnerCommands,
-    text: impl Into<String>,
-    style: ButtonStyle,
-    size: ButtonSize,
-    enabled: bool,
-    margin: Option<UiRect>,
-    marker: Option<M>,
-) -> Entity {
-    let text = text.into();
-    let base_color = if enabled {
-        style.base_color()
-    } else {
-        Color::srgb(0.1, 0.1, 0.1)
-    };
-    
-    let text_color = if enabled {
-        style.text_color()
-    } else {
-        colors::TEXT_MUTED
-    };
-    
-    let border_color = if enabled {
-        style.border_color()
-    } else {
-        Color::srgb(0.2, 0.2, 0.2)
-    };
-    
-    let mut entity_commands = parent.spawn((
-        Button,
-        StyledButton {
-            style,
-            size,
-            enabled,
-        },
-        Node {
-            width: Val::Px(size.width()),
-            height: Val::Px(size.height()),
-            justify_content: JustifyContent::Center,
-            align_items: AlignItems::Center,
-            border: helpers::standard_border(),
-            margin: margin.unwrap_or_default(),
-            ..default()
-        },
-        BackgroundColor(base_color),
-        BorderColor(border_color),
-    ));
-    
-    // Add marker if provided
-    if let Some(m) = marker {
-        entity_commands.insert(m);
-    }
-    
-    let entity = entity_commands.id();
-    
-    // Add text child
-    entity_commands.with_children(|button| {
-        button.spawn((
-            Text::new(text),
-            TextFont {
-                font_size: size.font_size(),
-                ..default()
-            },
-            TextColor(text_color),
-        ));
-    });
-    
-    entity
-}
 
 /// Universal hover system for styled buttons
 pub fn styled_button_hover_system(

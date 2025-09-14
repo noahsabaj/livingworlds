@@ -43,7 +43,6 @@ pub mod colors {
     pub const OVERLAY_MEDIUM: Color = Color::srgba(0.0, 0.0, 0.0, 0.5);
     pub const OVERLAY_LIGHT: Color = Color::srgba(0.0, 0.0, 0.0, 0.3);
     
-    // Text colors
     pub const TEXT_PRIMARY: Color = Color::srgb(0.9, 0.9, 0.9);
     pub const TEXT_SECONDARY: Color = Color::srgb(0.7, 0.7, 0.7);
     pub const TEXT_TERTIARY: Color = Color::srgb(0.5, 0.5, 0.5);
@@ -63,7 +62,6 @@ pub mod dimensions {
     pub const BORDER_WIDTH_THIN: f32 = 1.0;
     pub const BORDER_WIDTH_THICK: f32 = 3.0;
     
-    // Button dimensions
     pub const BUTTON_HEIGHT: f32 = 45.0;
     pub const BUTTON_HEIGHT_SMALL: f32 = 35.0;
     pub const BUTTON_HEIGHT_LARGE: f32 = 55.0;
