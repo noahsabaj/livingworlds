@@ -10,11 +10,11 @@ pub struct ControlHintsText;
 
 /// Spawn the control hints UI element
 pub fn spawn_control_hints(parent: &mut ChildSpawnerCommands) {
-    let entity = LabelBuilder::new(parent, "[1-5] Speed | [Space] Pause")
+    let entity = LabelBuilder::new("[1-5] Speed | [Space] Pause")
         .style(LabelStyle::Caption)
         .color(Color::srgba(0.5, 0.5, 0.5, 1.0))
         .margin(UiRect::top(Val::Px(8.0)))
-        .build();
+        .build(parent);
 
     // Add our marker component
     parent.commands().entity(entity).insert(ControlHintsText);

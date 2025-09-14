@@ -10,30 +10,29 @@ pub struct ResourceOverlayText;
 
 /// Spawn the overlay text display
 pub fn spawn_overlay_text(parent: &mut ChildSpawnerCommands) {
-    // Current overlay display using LabelBuilder
-    // We need to spawn the marker separately since LabelBuilder creates its own structure
-    let label_entity = LabelBuilder::new(parent, "Political Map")
+    // Current overlay display using fixed LabelBuilder
+    let label_entity = LabelBuilder::new("Political Map")
         .font_size(20.0)
         .color(Color::WHITE)
         .margin(UiRect::bottom(Val::Px(4.0)))
-        .build();
+        .build(parent);
 
     // Add our marker to the label's text entity
     parent.commands().entity(label_entity).insert(ResourceOverlayText);
 
-    // Control hint using LabelBuilder
-    LabelBuilder::new(parent, "[M] Cycle Overlay")
+    // Control hint using fixed LabelBuilder
+    LabelBuilder::new("[M] Cycle Overlay")
         .style(LabelStyle::Caption)
         .color(Color::srgba(0.5, 0.5, 0.5, 1.0))
         .margin(UiRect::top(Val::Px(2.0)))
-        .build();
+        .build(parent);
 
-    // Divider using SeparatorBuilder
-    SeparatorBuilder::new(parent)
+    // Divider using fixed SeparatorBuilder
+    SeparatorBuilder::new()
         .orientation(Orientation::Horizontal)
         .color(Color::srgba(1.0, 1.0, 1.0, 0.2))
         .margin(UiRect::vertical(Val::Px(4.0)))
-        .build();
+        .build(parent);
 }
 
 /// Update the resource overlay display text

@@ -52,8 +52,7 @@ impl LabelStyle {
 }
 
 /// Builder for creating labels with consistent styling
-pub struct LabelBuilder<'a> {
-    parent: &'a mut ChildSpawnerCommands<'a>,
+pub struct LabelBuilder {
     text: String,
     style: LabelStyle,
     font_size: Option<f32>,
@@ -62,10 +61,9 @@ pub struct LabelBuilder<'a> {
     text_align: JustifyContent,
 }
 
-impl<'a> LabelBuilder<'a> {
-    pub fn new(parent: &'a mut ChildSpawnerCommands<'a>, text: impl Into<String>) -> Self {
+impl LabelBuilder {
+    pub fn new(text: impl Into<String>) -> Self {
         Self {
-            parent,
             text: text.into(),
             style: LabelStyle::Body,
             font_size: None,
@@ -103,11 +101,11 @@ impl<'a> LabelBuilder<'a> {
         self
     }
 
-    pub fn build(mut self) -> Entity {
+    pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
         let font_size = self.font_size.unwrap_or_else(|| self.style.font_size());
         let text_color = self.color.unwrap_or_else(|| self.style.text_color());
 
-        self.parent.spawn((
+        parent.spawn((
             Node {
                 margin: self.margin,
                 justify_content: self.text_align,

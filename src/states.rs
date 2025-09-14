@@ -431,7 +431,7 @@ fn check_and_trigger_world_generation(
     time: Res<Time>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    settings: Res<crate::world::config::WorldGenerationSettings>,
+    settings: Res<crate::world::WorldGenerationSettings>,
     mut next_state: ResMut<NextState<GameState>>,
     mut loading_state: ResMut<crate::loading_screen::LoadingState>,
 ) {
@@ -450,7 +450,7 @@ fn check_and_trigger_world_generation(
     
     println!("Starting world generation after loading screen renders");
     
-    crate::setup::setup_world(
+    crate::world::setup_world(
         commands,
         meshes,
         materials,
@@ -526,7 +526,7 @@ fn enter_world_generation_failed(
     #[cfg(feature = "debug-states")]
     println!("Entering WorldGenerationFailed state with error: {}", error_resource.error_message);
     
-    crate::ui::dialogs::presets::world_generation_error_dialog(
+    crate::ui::dialog_presets::world_generation_error_dialog(
         commands,
         &error_resource.error_message
     );
@@ -536,9 +536,9 @@ fn enter_world_generation_failed(
 fn handle_error_dialog_buttons(
     mut commands: Commands,
     mut next_state: ResMut<NextState<GameState>>,
-    dialog_query: Query<Entity, With<crate::ui::dialogs::WorldGenerationErrorDialog>>,
-    confirm_button_query: Query<&Interaction, (Changed<Interaction>, With<crate::ui::dialogs::ConfirmButton>)>,
-    cancel_button_query: Query<&Interaction, (Changed<Interaction>, With<crate::ui::dialogs::CancelButton>)>,
+    dialog_query: Query<Entity, With<crate::ui::WorldGenerationErrorDialog>>,
+    confirm_button_query: Query<&Interaction, (Changed<Interaction>, With<crate::ui::ConfirmButton>)>,
+    cancel_button_query: Query<&Interaction, (Changed<Interaction>, With<crate::ui::CancelButton>)>,
 ) {
     for interaction in &confirm_button_query {
         if *interaction == Interaction::Pressed {
@@ -568,7 +568,7 @@ fn handle_error_dialog_buttons(
 /// Cleanup when exiting the WorldGenerationFailed state
 fn exit_world_generation_failed(
     mut commands: Commands,
-    dialog_query: Query<Entity, With<crate::ui::dialogs::DialogOverlay>>,
+    dialog_query: Query<Entity, With<crate::ui::DialogOverlay>>,
 ) {
     #[cfg(feature = "debug-states")]
     println!("Exiting WorldGenerationFailed state");

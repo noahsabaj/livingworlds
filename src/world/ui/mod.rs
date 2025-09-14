@@ -5,6 +5,37 @@
 //! world-specific interfaces.
 //!
 //! This is a GATEWAY file - it only controls access to UI implementations.
+//!
+//! # Architecture
+//!
+//! This module follows the feature-centric pattern where feature-specific UI
+//! lives with the feature, while reusable UI tools remain in src/ui/.
+//!
+//! # Gateway Pattern
+//!
+//! This mod.rs file is a pure gateway controlling access to UI implementations.
+//! The actual UI code is in private submodules.
+//!
+//! # Contents
+//!
+//! - **config**: World generation configuration screen
+//!   - Parameter selection (size, climate, resources)
+//!   - Preview and seed management
+//!   - Advanced settings panel
+//!
+//! # Usage
+//!
+//! ```rust
+//! use crate::world::ui::{WorldConfigPlugin, WorldGenerationSettings};
+//!
+//! app.add_plugins(WorldConfigPlugin);
+//! ```
+//!
+//! # Design Philosophy
+//!
+//! Feature-specific UI (like world configuration) lives with its feature module,
+//! while the src/ui/ directory contains only reusable UI tools and components
+//! that can be used across multiple features.
 
 // PRIVATE MODULES - UI implementation details
 
@@ -27,37 +58,3 @@ pub use config::{
     ResourceAbundance,
     MineralDistribution,
 };
-
-
-/// The world UI module provides user interfaces for world configuration.
-///
-/// # Architecture
-///
-/// This module follows the feature-centric pattern where feature-specific UI
-/// lives with the feature, while reusable UI tools remain in src/ui/.
-///
-/// # Gateway Pattern
-///
-/// This mod.rs file is a pure gateway controlling access to UI implementations.
-/// The actual UI code is in private submodules.
-///
-/// # Contents
-///
-/// - **config**: World generation configuration screen
-///   - Parameter selection (size, climate, resources)
-///   - Preview and seed management
-///   - Advanced settings panel
-///
-/// # Usage
-///
-/// ```rust
-/// use crate::world::ui::{WorldConfigPlugin, WorldGenerationSettings};
-///
-/// app.add_plugins(WorldConfigPlugin);
-/// ```
-///
-/// # Design Philosophy
-///
-/// Feature-specific UI (like world configuration) lives with its feature module,
-/// while the src/ui/ directory contains only reusable UI tools and components
-/// that can be used across multiple features.

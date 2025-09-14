@@ -223,13 +223,13 @@ pub fn update_progress_bars(
     mut labels: Query<&mut Text, With<ProgressBarLabel>>,
 ) {
     for (bar, children) in &mut bars {
-        for &child in children.iter() {
+        for child in children.iter() {
             if let Ok(mut fill_node) = fills.get_mut(child) {
                 fill_node.width = Val::Percent(bar.value * 100.0);
             }
         }
 
-        for &child in children.iter() {
+        for child in children.iter() {
             if let Ok(mut label_text) = labels.get_mut(child) {
                 **label_text = format!("{}%", (bar.value * 100.0) as i32);
             }

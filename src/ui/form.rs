@@ -11,8 +11,7 @@ use super::sliders::{Slider, SliderButtonAction};
 
 
 /// High-level builder for creating forms with automatic layout management
-pub struct FormBuilder<'a> {
-    parent: &'a mut ChildSpawnerCommands<'a>,
+pub struct FormBuilder {
     title: Option<String>,
     width: Val,
     padding: UiRect,
@@ -45,10 +44,9 @@ enum FormField {
     },
 }
 
-impl<'a> FormBuilder<'a> {
-    pub fn new(parent: &'a mut ChildSpawnerCommands<'a>) -> Self {
+impl FormBuilder {
+    pub fn new() -> Self {
         Self {
-            parent,
             title: None,
             width: Val::Px(400.0),
             padding: UiRect::all(Val::Px(dimensions::PADDING_LARGE)),
@@ -168,18 +166,18 @@ impl<'a> FormBuilder<'a> {
         self
     }
     
-    pub fn build(self) -> Entity {
+    pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
         // Use PanelBuilder for the container
-        let mut panel_builder = PanelBuilder::new(self.parent)
+        let mut panel_builder = PanelBuilder::new()
             .style(PanelStyle::Default)
             .width(self.width)
             .padding(self.padding);
-            
+
         if let Some(title) = self.title {
             panel_builder = panel_builder.with_title(title);
         }
-        
-        panel_builder.build_with_children(|form_container| {
+
+        panel_builder.build_with_children(parent, |form_container| {
             let focus_group = FocusGroupId::Custom(rand::random());
             
             for (section_idx, section) in self.sections.into_iter().enumerate() {
@@ -433,8 +431,8 @@ impl<'a> FormBuilder<'a> {
 
 
 /// Convenience function to create a form builder
-pub fn form<'a>(parent: &'a mut ChildSpawnerCommands<'a>) -> FormBuilder<'a> {
-    FormBuilder::new(parent)
+pub fn form() -> FormBuilder {
+    FormBuilder::new()
 }
 
 

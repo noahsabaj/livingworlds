@@ -6,7 +6,7 @@
 use bevy::prelude::*;
 use bevy::app::AppExit;
 use crate::states::{GameState, RequestStateTransition};
-use crate::ui::buttons::{ButtonBuilder, ButtonStyle, ButtonSize};
+use crate::ui::{ButtonBuilder, ButtonStyle, ButtonSize};
 use crate::save_load::{SaveGameList, scan_save_files_internal};
 use super::types::{MenuButton, MenuAction, SpawnSettingsMenuEvent, SpawnSaveBrowserEvent};
 
@@ -188,8 +188,8 @@ fn handle_button_interactions(
                 }
                 MenuAction::Exit => {
                     println!("Exit button pressed - showing confirmation dialog");
-                    use crate::ui::dialogs::presets;
-                    presets::exit_confirmation_dialog(commands);
+                    use crate::ui::dialog_presets;
+                    dialog_presets::exit_confirmation_dialog(commands);
                     return;
                 }
                 _ => {}
@@ -201,11 +201,11 @@ fn handle_button_interactions(
 /// Handles exit confirmation dialog button interactions
 fn handle_exit_confirmation_dialog(
     mut interactions: Query<
-        (&Interaction, AnyOf<(&crate::ui::dialogs::ConfirmButton, &crate::ui::dialogs::CancelButton)>),
+        (&Interaction, AnyOf<(&crate::ui::ConfirmButton, &crate::ui::CancelButton)>),
         Changed<Interaction>
     >,
     mut commands: Commands,
-    dialog_query: Query<Entity, With<crate::ui::dialogs::ExitConfirmationDialog>>,
+    dialog_query: Query<Entity, With<crate::ui::ExitConfirmationDialog>>,
     mut exit_events: EventWriter<AppExit>,
 ) {
     for (interaction, (confirm_button, cancel_button)) in &mut interactions {

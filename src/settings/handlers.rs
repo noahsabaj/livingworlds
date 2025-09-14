@@ -131,7 +131,7 @@ pub fn handle_toggle_buttons(
 
 /// Handle slider interactions using the new SliderBuilder system
 pub fn handle_slider_interactions(
-    sliders: Query<(&crate::ui::sliders::Slider, &SettingsSlider), Changed<crate::ui::sliders::Slider>>,
+    sliders: Query<(&crate::ui::Slider, &SettingsSlider), Changed<crate::ui::Slider>>,
     mut temp_settings: ResMut<TempGameSettings>,
 ) {
     for (slider, settings_slider) in &sliders {
@@ -586,15 +586,15 @@ pub fn update_apply_exit_button_hover(
 /// Spawn unsaved changes confirmation dialog
 fn spawn_unsaved_changes_dialog(commands: Commands) {
     // Use the new dialog builder system
-    use crate::ui::dialogs::presets;
-    presets::unsaved_changes_dialog(commands);
+    use crate::ui::dialog_presets;
+    dialog_presets::unsaved_changes_dialog(commands);
 }
 
 /// Handle unsaved changes dialog buttons
 pub fn handle_unsaved_changes_dialog(
-    interactions: Query<(&Interaction, AnyOf<(&crate::ui::dialogs::SaveButton, &crate::ui::dialogs::DiscardButton, &crate::ui::dialogs::CancelButton)>), Changed<Interaction>>,
+    interactions: Query<(&Interaction, AnyOf<(&crate::ui::SaveButton, &crate::ui::DiscardButton, &crate::ui::CancelButton)>), Changed<Interaction>>,
     mut commands: Commands,
-    dialog_query: Query<Entity, With<crate::ui::dialogs::UnsavedChangesDialog>>,
+    dialog_query: Query<Entity, With<crate::ui::UnsavedChangesDialog>>,
     settings_root: Query<Entity, With<SettingsMenuRoot>>,
     mut settings: ResMut<GameSettings>,
     temp_settings: Res<TempGameSettings>,

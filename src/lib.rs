@@ -12,14 +12,10 @@ pub mod resources;
 pub mod states;
 
 // World generation and representation
-pub mod generation;  // Tools and builders for world creation
 pub mod math;        // Single source of truth for spatial math and noise
 pub mod world;       // World representation and rendering
-pub mod setup;       // World initialization
 
 // Gameplay systems
-pub mod minerals;
-pub mod province_events;
 pub mod simulation;
 
 // UI and menus
@@ -30,7 +26,6 @@ pub mod ui;
 
 // Utility systems
 pub mod camera;
-pub mod colors;
 pub mod modding;
 pub mod name_generator;
 pub mod save_load;
@@ -67,7 +62,7 @@ pub const MS_PER_SECOND: f32 = 1000.0;
 /// - Specific systems - import from their modules
 pub mod prelude {
     // Core components (used in almost every game system)
-    pub use crate::components::{
+    pub use crate::world::{
         Province, ProvinceId,
     };
     
@@ -77,7 +72,7 @@ pub mod prelude {
     };
     
     // Fundamental world types (define the game world)
-    pub use crate::world::terrain::{
+    pub use crate::world::{
         TerrainType, ClimateZone,
     };
 }
@@ -94,7 +89,6 @@ use crate::{
     loading_screen::LoadingScreenPlugin,
     menus::MenusPlugin,
     modding::ModdingPlugin,
-    province_events::ProvinceEventsPlugin,
     save_load::SaveLoadPlugin,
     settings::SettingsPlugin,
     simulation::SimulationPlugin,
@@ -107,6 +101,7 @@ use crate::{
         OverlayPlugin,
         TerrainPlugin,
         WorldConfigPlugin,
+        ProvinceEventsPlugin,
     },
 };
 

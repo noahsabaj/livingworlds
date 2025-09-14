@@ -16,13 +16,13 @@ pub fn setup_overlay_display(mut commands: Commands) {
         ZIndex(100),
         OverlayDisplayRoot,
     )).with_children(|parent| {
-        PanelBuilder::new(parent)
+        PanelBuilder::new()
             .style(PanelStyle::Dark)
             .custom_background(Color::srgba(0.05, 0.05, 0.05, 0.85))
             .flex_direction(FlexDirection::Column)
             .padding(UiRect::all(Val::Px(8.0)))
             .width(Val::Px(180.0))
-            .build_with_children(|panel| {
+            .build_with_children(parent, |panel| {
                 // Add overlay text display
                 overlay_text::spawn_overlay_text(panel);
 

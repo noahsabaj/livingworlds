@@ -48,8 +48,7 @@ impl PanelStyle {
 }
 
 /// Builder for creating panels with consistent styling
-pub struct PanelBuilder<'a> {
-    parent: &'a mut ChildSpawnerCommands<'a>,
+pub struct PanelBuilder {
     style: PanelStyle,
     width: Val,
     height: Val,
@@ -61,12 +60,12 @@ pub struct PanelBuilder<'a> {
     position_type: PositionType,
     display: Display,
     custom_background: Option<Color>,
+    title: Option<String>,
 }
 
-impl<'a> PanelBuilder<'a> {
-    pub fn new(parent: &'a mut ChildSpawnerCommands<'a>) -> Self {
+impl PanelBuilder {
+    pub fn new() -> Self {
         Self {
-            parent,
             style: PanelStyle::Default,
             width: Val::Auto,
             height: Val::Auto,
@@ -78,6 +77,7 @@ impl<'a> PanelBuilder<'a> {
             position_type: PositionType::Relative,
             display: Display::Flex,
             custom_background: None,
+            title: None,
         }
     }
 
@@ -137,11 +137,17 @@ impl<'a> PanelBuilder<'a> {
         self
     }
 
-    pub fn build(mut self) -> Entity {
+    /// Set a title for the panel
+    pub fn with_title(mut self, title: impl Into<String>) -> Self {
+        self.title = Some(title.into());
+        self
+    }
+
+    pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
         let background_color = self.custom_background
             .unwrap_or_else(|| self.style.background_color());
 
-        self.parent.spawn((
+        let mut panel_entity = parent.spawn((
             Node {
                 width: self.width,
                 height: self.height,
@@ -160,17 +166,32 @@ impl<'a> PanelBuilder<'a> {
             Panel {
                 style: self.style,
             },
-        )).id()
+        ));
+
+        // Add title if provided
+        if let Some(title) = self.title {
+            panel_entity.with_children(|parent| {
+                super::label::LabelBuilder::new(title)
+                    .style(super::label::LabelStyle::Title)
+                    .margin(UiRect::bottom(Val::Px(dimensions::MARGIN_SMALL)))
+                    .build(parent);
+            });
+        }
+
+        panel_entity.id()
     }
 
     pub fn build_with_children(
-        mut self,
+        self,
+        parent: &mut ChildSpawnerCommands,
         children: impl FnOnce(&mut ChildSpawnerCommands),
     ) -> Entity {
         let background_color = self.custom_background
             .unwrap_or_else(|| self.style.background_color());
 
-        self.parent.spawn((
+        let title = self.title.clone(); // Clone title for use in closure
+
+        parent.spawn((
             Node {
                 width: self.width,
                 height: self.height,
@@ -190,7 +211,18 @@ impl<'a> PanelBuilder<'a> {
                 style: self.style,
             },
         ))
-        .with_children(children)
+        .with_children(|parent| {
+            // Add title first if provided
+            if let Some(title_text) = title {
+                super::label::LabelBuilder::new(title_text)
+                    .style(super::label::LabelStyle::Title)
+                    .margin(UiRect::bottom(Val::Px(dimensions::MARGIN_SMALL)))
+                    .build(parent);
+            }
+
+            // Then add user-provided children
+            children(parent);
+        })
         .id()
     }
 }

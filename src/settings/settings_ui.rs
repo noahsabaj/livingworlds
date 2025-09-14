@@ -2,8 +2,7 @@
 
 use bevy::prelude::*;
 use crate::states::{CurrentSettingsTab, SettingsTab};
-use crate::ui::buttons::{ButtonBuilder, ButtonStyle, ButtonSize};
-use crate::ui::sliders::{slider, ValueFormat};
+use crate::ui::{ButtonBuilder, ButtonStyle, ButtonSize, slider, ValueFormat};
 use super::types::*;
 use super::components::*;
 

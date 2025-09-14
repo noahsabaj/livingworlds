@@ -245,7 +245,16 @@ pub fn weighted_blend_vec3(values: &[(Vec3, f32)]) -> Vec3 {
 /// This is the centralized version of colors.rs interpolate()
 #[inline]
 pub fn lerp_color(from: Color, to: Color, t: f32) -> Color {
-    from.mix(&to, t.clamp(0.0, 1.0))
+    let t = t.clamp(0.0, 1.0);
+    let [from_r, from_g, from_b, from_a] = from.to_linear().to_f32_array();
+    let [to_r, to_g, to_b, to_a] = to.to_linear().to_f32_array();
+
+    Color::LinearRgba(bevy::color::LinearRgba::new(
+        from_r + (to_r - from_r) * t,
+        from_g + (to_g - from_g) * t,
+        from_b + (to_b - from_b) * t,
+        from_a + (to_a - from_a) * t,
+    ))
 }
 
 /// Weighted blend of multiple colors

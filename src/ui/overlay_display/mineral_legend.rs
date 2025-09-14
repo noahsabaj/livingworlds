@@ -11,17 +11,17 @@ pub struct MineralLegendContainer;
 
 /// Spawn the mineral legend
 pub fn spawn_mineral_legend(parent: &mut ChildSpawnerCommands) {
-    let panel_entity = PanelBuilder::new(parent)
+    let panel_entity = PanelBuilder::new()
         .style(PanelStyle::Transparent)
         .flex_direction(FlexDirection::Column)
         .display(Display::None)  // Start hidden
-        .build_with_children(|container| {
+        .build_with_children(parent, |container| {
             // Title using LabelBuilder
-            LabelBuilder::new(container, "Mineral Legend:")
+            LabelBuilder::new("Mineral Legend:")
                 .font_size(14.0)
                 .color(Color::srgba(0.8, 0.8, 0.8, 1.0))
                 .margin(UiRect::bottom(Val::Px(4.0)))
-                .build();
+                .build(container);
 
         // Define minerals with their colors and chemical symbols
         let minerals = [
@@ -50,12 +50,12 @@ fn spawn_mineral_row(
     name: &str,
 ) {
     // Row container using PanelBuilder
-    PanelBuilder::new(parent)
+    PanelBuilder::new()
         .style(PanelStyle::Transparent)
         .flex_direction(FlexDirection::Row)
         .align_items(AlignItems::Center)
         .margin(UiRect::bottom(Val::Px(2.0)))
-        .build_with_children(|row| {
+        .build_with_children(parent, |row| {
             // Colored square with border
             row.spawn((
                 Node {
@@ -71,17 +71,17 @@ fn spawn_mineral_row(
                 BorderColor(Color::srgba(0.3, 0.3, 0.3, 1.0)),
             )).with_children(|square| {
                 // Chemical symbol using LabelBuilder
-                LabelBuilder::new(square, symbol)
+                LabelBuilder::new(symbol)
                     .font_size(10.0)
                     .color(Color::WHITE)
-                    .build();
+                    .build(square);
             });
 
             // Mineral name using LabelBuilder
-            LabelBuilder::new(row, name)
+            LabelBuilder::new(name)
                 .font_size(12.0)
                 .color(Color::srgba(0.7, 0.7, 0.7, 1.0))
-                .build();
+                .build(row);
         });
 }
 

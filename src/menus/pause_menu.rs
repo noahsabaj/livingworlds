@@ -7,7 +7,7 @@
 use bevy::prelude::*;
 use bevy::app::AppExit;
 use crate::states::{GameState, RequestStateTransition};
-use crate::ui::buttons::{ButtonBuilder, ButtonStyle, ButtonSize};
+use crate::ui::{ButtonBuilder, ButtonStyle, ButtonSize};
 use crate::save_load::{SaveGameEvent, SaveGameList, scan_save_files_internal, SaveCompleteEvent};
 use super::types::{MenuButton, MenuAction, SpawnSettingsMenuEvent, SpawnSaveBrowserEvent};
 
@@ -154,11 +154,11 @@ fn update_load_button_after_save(
                     // Enable the button
                     button.enabled = true;
 
-                    *bg_color = BackgroundColor(crate::ui::buttons::ButtonStyle::Secondary.base_color());
-                    *border_color = BorderColor(crate::ui::buttons::ButtonStyle::Secondary.border_color());
+                    *bg_color = BackgroundColor(crate::ui::ButtonStyle::Secondary.base_color());
+                    *border_color = BorderColor(crate::ui::ButtonStyle::Secondary.border_color());
 
                     for child in children.iter() {
-                        if let Ok(mut text_color) = button_texts.get_mut(*child) {
+                        if let Ok(mut text_color) = button_texts.get_mut(child) {
                             *text_color = TextColor(Color::WHITE);
                         }
                     }
@@ -214,8 +214,8 @@ fn handle_pause_button_interactions(
                 }
                 MenuAction::Exit => {
                     println!("Exit from pause menu - showing confirmation dialog");
-                    use crate::ui::dialogs::presets;
-                    presets::exit_confirmation_dialog(commands);
+                    use crate::ui::dialog_presets;
+                    dialog_presets::exit_confirmation_dialog(commands);
                     return;
                 }
                 MenuAction::SaveGame => {
@@ -243,11 +243,11 @@ fn handle_pause_button_interactions(
 /// Handles exit confirmation dialog button interactions
 fn handle_exit_confirmation_dialog(
     mut interactions: Query<
-        (&Interaction, AnyOf<(&crate::ui::dialogs::ConfirmButton, &crate::ui::dialogs::CancelButton)>),
+        (&Interaction, AnyOf<(&crate::ui::ConfirmButton, &crate::ui::CancelButton)>),
         Changed<Interaction>
     >,
     mut commands: Commands,
-    dialog_query: Query<Entity, With<crate::ui::dialogs::ExitConfirmationDialog>>,
+    dialog_query: Query<Entity, With<crate::ui::ExitConfirmationDialog>>,
     mut exit_events: EventWriter<AppExit>,
 ) {
     for (interaction, (confirm_button, cancel_button)) in &mut interactions {

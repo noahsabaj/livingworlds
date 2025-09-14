@@ -53,8 +53,7 @@ impl ToolbarStyle {
 
 
 /// Builder for creating toolbars
-pub struct ToolbarBuilder<'a> {
-    parent: &'a mut ChildSpawnerCommands<'a>,
+pub struct ToolbarBuilder {
     orientation: ToolbarOrientation,
     style: ToolbarStyle,
     width: Val,
@@ -78,10 +77,9 @@ enum ToolbarItem {
     },
 }
 
-impl<'a> ToolbarBuilder<'a> {
-    pub fn new(parent: &'a mut ChildSpawnerCommands<'a>) -> Self {
+impl ToolbarBuilder {
+    pub fn new() -> Self {
         Self {
-            parent,
             orientation: ToolbarOrientation::Horizontal,
             style: ToolbarStyle::Default,
             width: Val::Auto,
@@ -188,18 +186,18 @@ impl<'a> ToolbarBuilder<'a> {
         self
     }
     
-    pub fn build(self) -> Entity {
+    pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
         let (flex_direction, justify_content) = match self.orientation {
             ToolbarOrientation::Horizontal => (FlexDirection::Row, JustifyContent::Start),
             ToolbarOrientation::Vertical => (FlexDirection::Column, JustifyContent::Start),
         };
-        
+
         let (column_gap, row_gap) = match self.orientation {
             ToolbarOrientation::Horizontal => (self.gap, Val::ZERO),
             ToolbarOrientation::Vertical => (Val::ZERO, self.gap),
         };
-        
-        self.parent.spawn((
+
+        parent.spawn((
             Toolbar {
                 orientation: self.orientation,
                 style: self.style,
@@ -267,8 +265,8 @@ impl<'a> ToolbarBuilder<'a> {
 
 
 /// Convenience function to create a toolbar builder
-pub fn toolbar<'a>(parent: &'a mut ChildSpawnerCommands<'a>) -> ToolbarBuilder<'a> {
-    ToolbarBuilder::new(parent)
+pub fn toolbar() -> ToolbarBuilder {
+    ToolbarBuilder::new()
 }
 
 

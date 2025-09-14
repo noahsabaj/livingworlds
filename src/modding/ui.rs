@@ -11,9 +11,11 @@ use bevy_simple_text_input::{
     TextInputPlugin, TextInputSubmitEvent, TextInputValue
 };
 use crate::states::{GameState, RequestStateTransition};
-use crate::ui::styles::{colors, layers};
-use crate::ui::buttons::{ButtonBuilder, ButtonStyle, ButtonSize, StyledButton};
-use crate::ui::text_inputs::text_input;
+use crate::ui::{
+    colors, layers,  // Re-exported from styles
+    ButtonBuilder, ButtonStyle, ButtonSize, StyledButton,
+    text_input,  // Re-exported from text_inputs
+};
 use crate::loading_screen::{LoadingState, start_mod_application_loading};
 use super::manager::ModManager;
 

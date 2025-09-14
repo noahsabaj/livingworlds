@@ -35,8 +35,10 @@ pub mod colors {
     
     // UI background colors
     pub const BACKGROUND_DARK: Color = Color::srgb(0.05, 0.05, 0.05);
+    pub const BACKGROUND_DARKER: Color = Color::srgb(0.03, 0.03, 0.03);  // Even darker than DARK
     pub const BACKGROUND_MEDIUM: Color = Color::srgb(0.08, 0.08, 0.1);
     pub const BACKGROUND_LIGHT: Color = Color::srgb(0.12, 0.12, 0.15);
+    pub const SURFACE: Color = Color::srgb(0.1, 0.1, 0.12);  // Surface color for panels
     
     // Overlay colors
     pub const OVERLAY_DARK: Color = Color::srgba(0.0, 0.0, 0.0, 0.7);
@@ -51,6 +53,7 @@ pub mod colors {
     
     // Border colors
     pub const BORDER_DEFAULT: Color = Color::srgb(0.3, 0.3, 0.35);
+    pub const BORDER: Color = Color::srgb(0.3, 0.3, 0.35);   // Alias for BORDER_DEFAULT
     pub const BORDER_HOVER: Color = Color::srgb(0.4, 0.4, 0.45);
     pub const BORDER_ACTIVE: Color = Color::srgb(0.5, 0.5, 0.55);
 }
@@ -94,11 +97,13 @@ pub mod dimensions {
     pub const MARGIN_LARGE: f32 = 15.0;
     pub const MARGIN_XLARGE: f32 = 20.0;
     pub const MARGIN_XXLARGE: f32 = 30.0;
-    
+    pub const SEPARATOR_MARGIN: f32 = 8.0;  // Specific margin for separators
+
     // Padding values
     pub const PADDING_SMALL: f32 = 5.0;
     pub const PADDING_MEDIUM: f32 = 10.0;
     pub const PADDING_LARGE: f32 = 15.0;
+    pub const PANEL_PADDING: f32 = 12.0;  // Standard padding for panels
     
     // Corner radius (for future rounded corners)
     pub const CORNER_RADIUS: f32 = 4.0;

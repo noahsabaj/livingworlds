@@ -79,8 +79,7 @@ impl LoadingSize {
 
 
 /// Builder for creating loading indicators
-pub struct LoadingIndicatorBuilder<'a> {
-    parent: &'a mut ChildSpawnerCommands<'a>,
+pub struct LoadingIndicatorBuilder {
     style: LoadingStyle,
     size: LoadingSize,
     color: Color,
@@ -97,10 +96,9 @@ pub enum LabelPosition {
     Left,
 }
 
-impl<'a> LoadingIndicatorBuilder<'a> {
-    pub fn new(parent: &'a mut ChildSpawnerCommands<'a>) -> Self {
+impl LoadingIndicatorBuilder {
+    pub fn new() -> Self {
         Self {
-            parent,
             style: LoadingStyle::Spinner,
             size: LoadingSize::Medium,
             color: colors::PRIMARY,
@@ -142,7 +140,7 @@ impl<'a> LoadingIndicatorBuilder<'a> {
         self
     }
 
-    pub fn build(self) -> Entity {
+    pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
         let container_size = self.size.container_size();
         let flex_direction = match self.label_position {
             LabelPosition::Below => FlexDirection::Column,
@@ -151,7 +149,7 @@ impl<'a> LoadingIndicatorBuilder<'a> {
             LabelPosition::Left => FlexDirection::RowReverse,
         };
 
-        let container = self.parent.spawn((
+        let mut container = parent.spawn((
             Node {
                 flex_direction,
                 align_items: AlignItems::Center,
@@ -161,9 +159,11 @@ impl<'a> LoadingIndicatorBuilder<'a> {
                 ..default()
             },
             BackgroundColor(Color::NONE),
-        )).id();
+        ));
 
-        self.parent.entity(container).with_children(|parent| {
+        let container_id = container.id();
+
+        container.with_children(|parent| {
             match self.style {
                 LoadingStyle::Spinner => {
                     spawn_spinner(parent, self.size, self.color, self.animated);
@@ -192,7 +192,7 @@ impl<'a> LoadingIndicatorBuilder<'a> {
             }
         });
 
-        container
+        container_id
     }
 }
 
@@ -204,7 +204,7 @@ fn spawn_spinner(
     color: Color,
     animated: bool,
 ) -> Entity {
-    let entity = parent.spawn((
+    let mut entity_commands = parent.spawn((
         Text::new("◈"),  // Unicode diamond symbol
         TextFont {
             font_size: size.font_size(),
@@ -223,13 +223,13 @@ fn spawn_spinner(
             size,
             animated,
         },
-    )).id();
+    ));
 
     if animated {
-        parent.entity(entity).insert(LoadingSpinner { speed: 1.0 });
+        entity_commands.insert(LoadingSpinner { speed: 1.0 });
     }
 
-    entity
+    entity_commands.id()
 }
 
 /// Spawn animated dots
@@ -239,7 +239,7 @@ fn spawn_dots(
     color: Color,
     animated: bool,
 ) -> Entity {
-    let entity = parent.spawn((
+    let mut entity_commands = parent.spawn((
         Text::new("•"),
         TextFont {
             font_size: size.font_size(),
@@ -257,17 +257,17 @@ fn spawn_dots(
             size,
             animated,
         },
-    )).id();
+    ));
 
     if animated {
-        parent.entity(entity).insert(LoadingDots {
+        entity_commands.insert(LoadingDots {
             max_dots: 3,
             current_dots: 1,
             timer: Timer::from_seconds(0.5, TimerMode::Repeating),
         });
     }
 
-    entity
+    entity_commands.id()
 }
 
 /// Spawn a pulsing indicator
@@ -277,7 +277,7 @@ fn spawn_pulse(
     color: Color,
     animated: bool,
 ) -> Entity {
-    let entity = parent.spawn((
+    let mut entity_commands = parent.spawn((
         Text::new("●"),  // Unicode circle
         TextFont {
             font_size: size.font_size(),
@@ -296,16 +296,16 @@ fn spawn_pulse(
             size,
             animated,
         },
-    )).id();
+    ));
 
     if animated {
-        parent.entity(entity).insert(LoadingPulse {
+        entity_commands.insert(LoadingPulse {
             speed: 2.0,
             intensity: 0.5,
         });
     }
 
-    entity
+    entity_commands.id()
 }
 
 /// Spawn an indeterminate progress bar
@@ -410,16 +410,16 @@ impl Plugin for LoadingIndicatorPlugin {
 
 
 /// Quick spinner creation
-pub fn loading_spinner<'a>(parent: &'a mut ChildSpawnerCommands<'a>) -> LoadingIndicatorBuilder<'a> {
-    LoadingIndicatorBuilder::new(parent).style(LoadingStyle::Spinner)
+pub fn loading_spinner() -> LoadingIndicatorBuilder {
+    LoadingIndicatorBuilder::new().style(LoadingStyle::Spinner)
 }
 
 /// Quick dots creation
-pub fn loading_dots<'a>(parent: &'a mut ChildSpawnerCommands<'a>) -> LoadingIndicatorBuilder<'a> {
-    LoadingIndicatorBuilder::new(parent).style(LoadingStyle::Dots)
+pub fn loading_dots() -> LoadingIndicatorBuilder {
+    LoadingIndicatorBuilder::new().style(LoadingStyle::Dots)
 }
 
 /// Quick pulse creation
-pub fn loading_pulse<'a>(parent: &'a mut ChildSpawnerCommands<'a>) -> LoadingIndicatorBuilder<'a> {
-    LoadingIndicatorBuilder::new(parent).style(LoadingStyle::Pulse)
+pub fn loading_pulse() -> LoadingIndicatorBuilder {
+    LoadingIndicatorBuilder::new().style(LoadingStyle::Pulse)
 }

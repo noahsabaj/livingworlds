@@ -2,8 +2,7 @@
 
 use bevy::prelude::*;
 use crate::resources::SelectedProvinceInfo;
-use crate::world::mesh::ProvinceStorage;
-use crate::components::ProvinceId;
+use crate::world::{ProvinceStorage, ProvinceId};
 use super::super::{PanelBuilder, PanelStyle, LabelBuilder};
 
 /// Marker component for the tile info panel
@@ -17,15 +16,15 @@ pub struct TileInfoText;
 /// Spawn the tile info panel UI
 pub fn spawn_tile_info_panel(parent: &mut ChildSpawnerCommands) {
     // Create panel using PanelBuilder
-    PanelBuilder::new(parent)
+    PanelBuilder::new()
         .style(PanelStyle::Default)
         .custom_background(crate::constants::COLOR_TILE_INFO_BACKGROUND)
         .padding(UiRect::all(Val::Px(10.0)))
-        .build_with_children(|panel| {
-            let entity = LabelBuilder::new(panel, "Click a tile to see info")
+        .build_with_children(parent, |panel| {
+            let entity = LabelBuilder::new("Click a tile to see info")
                 .font_size(16.0)
                 .color(Color::WHITE)
-                .build();
+                .build(panel);
 
             // Add our marker to the text entity
             panel.commands().entity(entity).insert(TileInfoText);

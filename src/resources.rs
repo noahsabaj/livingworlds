@@ -1,122 +1,49 @@
 //! Global resources for the Living Worlds game
-//! 
-//! Resources are singleton data that exists globally in the game world,
-//! accessible from any system. Unlike components which are attached to
-//! entities, resources represent game-wide state and configuration.
+//!
+//! This module now serves as a centralized re-export point for resources that have been
+//! moved to their domain-specific modules. Only truly global state (GameTime) remains here.
+//!
+//! # Architecture Note
+//!
+//! Resources have been refactored into their logical domains:
+//! - World configuration → world::core
+//! - Generation errors → world::generation
+//! - Weather system → world::clouds::weather
+//! - Spatial indexing → world::provinces (already there)
+//! - Overlay system → world::overlay
+//! - World tension → simulation
+//! - UI interaction → ui::interaction
 
 use bevy::prelude::*;
 use bevy::reflect::Reflect;
-use bevy::math::Vec2;
-use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
-use crate::components::MineralType;
-use crate::math::euclidean_vec2;
 
+// ===== BACKWARD COMPATIBILITY RE-EXPORTS =====
+// These maintain the existing API surface while the actual implementations
+// live in their domain-specific modules
 
-/// Configuration for world generation - the seed determines the entire world
-#[derive(Resource, Reflect, Clone, Serialize, Deserialize)]
-pub struct WorldSeed(pub u32);
+// World configuration types
+pub use crate::world::{WorldSeed, WorldName, WorldSize, MapDimensions, MapBounds};
 
-/// The name of the current world
-#[derive(Resource, Reflect, Clone, Serialize, Deserialize)]
-pub struct WorldName(pub String);
+// Generation error types
+pub use crate::world::{WorldGenerationError, WorldGenerationErrorType};
 
-impl Default for WorldName {
-    fn default() -> Self {
-        Self("Unnamed World".to_string())
-    }
-}
+// Weather system
+pub use crate::world::{WeatherState, WeatherSystem};
 
-/// World size configuration controlling map dimensions
-#[derive(Resource, Clone, Copy, Debug, PartialEq, Reflect, Serialize, Deserialize)]
-pub enum WorldSize {
-    Small,   // 1250x800 provinces (1,000,000 hexagons)
-    Medium,  // 1600x1250 provinces (2,000,000 hexagons)
-    Large,   // 2000x1500 provinces (3,000,000 hexagons)
-}
+// Province selection
+pub use crate::ui::SelectedProvinceInfo;
 
-/// Stores error information when world generation fails
-#[derive(Resource, Clone, Debug)]
-pub struct WorldGenerationError {
-    pub error_message: String,
-    pub error_type: WorldGenerationErrorType,
-}
+// Spatial indexing
+pub use crate::world::ProvincesSpatialIndex;
 
-/// Types of world generation errors
-#[derive(Clone, Debug, PartialEq)]
-pub enum WorldGenerationErrorType {
-    InvalidSettings,
-    GenerationFailed,
-    MeshBuildingFailed,
-    EmptyWorld,
-    ResourceError,
-}
+// Overlay system
+pub use crate::world::{CachedOverlayColors, ResourceOverlay};
 
-impl WorldSize {
-    pub fn from_str(s: &str) -> Self {
-        match s.to_lowercase().as_str() {
-            "small" => WorldSize::Small,
-            "large" => WorldSize::Large,
-            _ => WorldSize::Medium,
-        }
-    }
-    
-    pub fn dimensions(&self) -> (usize, usize) {
-        match self {
-            WorldSize::Small => (1250, 800),    // 1,000,000 hexagons
-            WorldSize::Medium => (1600, 1250),  // 2,000,000 hexagons
-            WorldSize::Large => (2000, 1500),   // 3,000,000 hexagons
-        }
-    }
-}
+// World tension
+pub use crate::simulation::WorldTension;
 
-/// Single source of truth for map dimensions - used by generation, camera, and all systems
-#[derive(Resource, Debug, Clone, Copy, Reflect, Default, Serialize, Deserialize)]
-pub struct MapDimensions {
-    pub provinces_per_row: u32,
-    pub provinces_per_col: u32,
-    pub width_pixels: f32,
-    pub height_pixels: f32,
-    pub hex_size: f32,
-    pub bounds: MapBounds,
-}
-
-/// Map boundary information
-#[derive(Debug, Clone, Copy, Reflect, Default, Serialize, Deserialize)]
-pub struct MapBounds {
-    pub x_min: f32,
-    pub x_max: f32,
-    pub y_min: f32,
-    pub y_max: f32,
-}
-
-impl MapDimensions {
-    pub fn from_world_size(size: &WorldSize) -> Self {
-        let (provinces_per_row, provinces_per_col) = size.dimensions();
-        let provinces_per_row = provinces_per_row as u32;
-        let provinces_per_col = provinces_per_col as u32;
-        
-        use crate::math::{HEX_SIZE, SQRT_3};
-        let hex_size = HEX_SIZE;
-        let width_pixels = provinces_per_row as f32 * hex_size * 1.5;
-        let height_pixels = provinces_per_col as f32 * hex_size * SQRT_3;
-        
-        Self {
-            provinces_per_row,
-            provinces_per_col,
-            width_pixels,
-            height_pixels,
-            hex_size,
-            bounds: MapBounds {
-                x_min: -width_pixels / 2.0,
-                x_max: width_pixels / 2.0,
-                y_min: -height_pixels / 2.0,
-                y_max: height_pixels / 2.0,
-            },
-        }
-    }
-}
-
+// ===== TRULY GLOBAL STATE =====
 
 /// Current game time and simulation speed
 #[derive(Resource, Reflect, Clone, Serialize, Deserialize)]
@@ -134,413 +61,6 @@ impl Default for GameTime {
             speed: 1.0,
             paused: false,
             speed_before_pause: 1.0,
-        }
-    }
-}
-
-/// World Tension - Global metric tracking conflict and instability
-/// 
-/// Tension ranges from 0.0 (perfect peace) to 1.0 (world war).
-/// It rises quickly with conflicts but falls slowly during peace,
-/// simulating how real-world tensions have momentum.
-#[derive(Resource, Reflect, Clone, Serialize, Deserialize)]
-pub struct WorldTension {
-    /// Current tension level (0.0 to 1.0)
-    pub current: f32,
-    /// Target tension based on world state
-    pub target: f32,
-    /// Rate of change
-    pub velocity: f32,
-    
-    // Contributing factors (each 0.0 to 1.0)
-    /// Percentage of nations at war
-    pub war_factor: f32,
-    /// Power imbalance (one nation too dominant)
-    pub power_imbalance: f32,
-    /// Economic disruption (trade routes broken)
-    pub economic_stress: f32,
-    /// Recent collapses or disasters
-    pub instability_factor: f32,
-    
-    // Physics parameters
-    /// How fast tension rises (default: 2.0)
-    pub heating_rate: f32,
-    /// How slowly tension falls (default: 0.3)
-    pub cooling_rate: f32,
-    /// Resistance to change (default: 0.8)
-    pub inertia: f32,
-}
-
-impl Default for WorldTension {
-    fn default() -> Self {
-        Self {
-            current: 0.0,  // Start at perfect peace
-            target: 0.0,
-            velocity: 0.0,
-            
-            war_factor: 0.0,
-            power_imbalance: 0.0,
-            economic_stress: 0.0,
-            instability_factor: 0.0,
-            
-            heating_rate: 2.0,    // Wars escalate quickly
-            cooling_rate: 0.3,    // Peace returns slowly
-            inertia: 0.8,         // Smooth transitions
-        }
-    }
-}
-
-impl WorldTension {
-    /// Calculate tension from war percentage using exponential curve
-    /// 
-    /// This uses a power function to make tension rise exponentially:
-    /// - 10% at war = ~18% tension (local conflicts)
-    /// - 25% at war = ~40% tension (regional wars)  
-    /// - 50% at war = ~70% tension (world crisis)
-    /// - 75% at war = ~90% tension (near apocalypse)
-    /// - 100% at war = 100% tension (total war)
-    pub fn calculate_from_war_percentage(war_percentage: f32) -> f32 {
-        // Use square root for exponential growth
-        // This makes small conflicts barely register but large wars escalate rapidly
-        war_percentage.sqrt().clamp(0.0, 1.0)
-    }
-}
-
-
-/// Weather states representing different atmospheric conditions
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum WeatherState {
-    Clear,      // 0-10% cloud coverage - bright sunny day
-    Fair,       // 10-30% cloud coverage - pleasant with some clouds
-    Partly,     // 30-60% cloud coverage - mix of sun and clouds
-    Cloudy,     // 60-80% cloud coverage - mostly cloudy
-    Overcast,   // 80-100% cloud coverage - completely grey sky
-    Storm,      // 90-100% coverage + dark clouds and rain
-}
-
-impl WeatherState {
-    pub fn coverage_range(&self) -> (f32, f32) {
-        match self {
-            WeatherState::Clear => (0.0, 0.1),
-            WeatherState::Fair => (0.1, 0.3),
-            WeatherState::Partly => (0.3, 0.6),
-            WeatherState::Cloudy => (0.6, 0.8),
-            WeatherState::Overcast => (0.8, 1.0),
-            WeatherState::Storm => (0.9, 1.0),
-        }
-    }
-    
-    /// Get a descriptive name for the weather
-    pub fn description(&self) -> &str {
-        match self {
-            WeatherState::Clear => "Clear skies",
-            WeatherState::Fair => "Fair weather",
-            WeatherState::Partly => "Partly cloudy",
-            WeatherState::Cloudy => "Cloudy",
-            WeatherState::Overcast => "Overcast",
-            WeatherState::Storm => "Stormy",
-        }
-    }
-}
-
-/// Dynamic weather system controlling cloud coverage and atmospheric conditions
-#[derive(Resource)]
-pub struct WeatherSystem {
-    /// Current weather state
-    pub current_state: WeatherState,
-    /// Target weather state we're transitioning to
-    pub target_state: WeatherState,
-    /// Progress of transition (0.0 = start, 1.0 = complete)
-    pub transition_progress: f32,
-    /// Current cloud coverage (0.0 = clear, 1.0 = overcast)
-    pub cloud_coverage: f32,
-    /// Wind speed and direction
-    pub wind_speed: Vec2,
-    /// Time since last weather change in seconds
-    pub time_since_change: f32,
-    /// Minimum time before next weather change
-    pub min_weather_duration: f32,
-    /// Random weather change chance per second
-    pub weather_change_chance: f32,
-}
-
-impl Default for WeatherSystem {
-    fn default() -> Self {
-        Self {
-            current_state: WeatherState::Partly,  // More clouds initially
-            target_state: WeatherState::Partly,
-            transition_progress: 1.0,
-            cloud_coverage: 0.5,  // Start with 50% coverage instead of 20%
-            wind_speed: Vec2::new(5.0, 1.0),
-            time_since_change: 0.0,
-            min_weather_duration: 60.0,  // At least 1 minute per weather
-            weather_change_chance: 0.01, // 1% chance per second after min duration
-        }
-    }
-}
-
-
-/// Tracks information about the currently selected province
-/// In mega-mesh architecture, provinces are data (not entities) stored in ProvinceStorage
-#[derive(Resource, Default)]
-pub struct SelectedProvinceInfo {
-    pub province_id: Option<u32>,
-}
-
-/// Spatial index for O(1) province lookups instead of O(n) linear search
-/// This dramatically improves performance for mouse picking and neighbor queries
-#[derive(Resource)]
-pub struct ProvincesSpatialIndex {
-    /// Grid cell size - should be about 2x hexagon size for optimal performance
-    pub cell_size: f32,
-    /// HashMap: grid_coord -> list of (position, province_id)
-    /// No Entity needed in mega-mesh architecture where provinces are data, not entities
-    pub grid: HashMap<(i32, i32), Vec<(Vec2, u32)>>,
-}
-
-impl Default for ProvincesSpatialIndex {
-    fn default() -> Self {
-        use crate::math::HEX_SIZE;
-        use crate::constants::SPATIAL_INDEX_CELL_SIZE_MULTIPLIER;
-        Self {
-            cell_size: HEX_SIZE * SPATIAL_INDEX_CELL_SIZE_MULTIPLIER,
-            grid: HashMap::new(),
-        }
-    }
-}
-
-impl ProvincesSpatialIndex {
-    /// Insert a province into the spatial index
-    /// In mega-mesh architecture, provinces are data, not entities
-    pub fn insert(&mut self, position: Vec2, province_id: u32) {
-        let grid_x = (position.x / self.cell_size).floor() as i32;
-        let grid_y = (position.y / self.cell_size).floor() as i32;
-        
-        self.grid
-            .entry((grid_x, grid_y))
-            .or_insert_with(Vec::new)
-            .push((position, province_id));
-    }
-    
-    /// Query provinces near a world position
-    /// Returns all provinces within search_radius of the given position
-    pub fn query_near(&self, world_pos: Vec2, search_radius: f32) -> Vec<(Vec2, u32)> {
-        let mut results = Vec::new();
-        
-        let min_x = ((world_pos.x - search_radius) / self.cell_size).floor() as i32;
-        let max_x = ((world_pos.x + search_radius) / self.cell_size).floor() as i32;
-        let min_y = ((world_pos.y - search_radius) / self.cell_size).floor() as i32;
-        let max_y = ((world_pos.y + search_radius) / self.cell_size).floor() as i32;
-        
-        for x in min_x..=max_x {
-            for y in min_y..=max_y {
-                if let Some(provinces) = self.grid.get(&(x, y)) {
-                    for &(pos, id) in provinces {
-                        let dist = euclidean_vec2(world_pos, pos);
-                        if dist <= search_radius {
-                            results.push((pos, id));
-                        }
-                    }
-                }
-            }
-        }
-        
-        results
-    }
-}
-
-/// Lazy-loaded overlay colors with LRU cache for memory efficiency
-/// Instead of pre-calculating all 9 overlays (~1.2GB), we load on-demand (~135MB each)
-#[derive(Resource)]
-pub struct CachedOverlayColors {
-    /// Currently active overlay colors (always loaded)
-    pub current: Vec<[f32; 4]>,
-    /// Current overlay type for tracking
-    pub current_type: ResourceOverlay,
-    /// LRU cache: stores recently used overlays (max 2 entries)
-    /// This allows fast switching between recent overlays
-    pub cache: std::collections::HashMap<ResourceOverlay, Vec<[f32; 4]>>,
-    /// Maximum cache entries (default: 2 = current + 1 previous)
-    pub max_cache_size: usize,
-}
-
-impl Default for CachedOverlayColors {
-    fn default() -> Self {
-        Self {
-            current: Vec::new(),
-            current_type: ResourceOverlay::None,
-            cache: std::collections::HashMap::new(),
-            max_cache_size: 2,  // Keep current + 1 previous overlay
-        }
-    }
-}
-
-impl CachedOverlayColors {
-    /// Get colors for an overlay, calculating if not cached
-    pub fn get_or_calculate(
-        &mut self,
-        overlay: ResourceOverlay,
-        province_storage: &super::world::mesh::ProvinceStorage,
-    ) -> &Vec<[f32; 4]> {
-        use crate::components::MineralType;
-        use crate::colors::{get_terrain_color_gradient, mineral_abundance_color, stone_abundance_color, combined_richness_color};
-        use crate::minerals::calculate_total_richness;
-        use crate::world::terrain::TerrainType;
-        use crate::math::VERTICES_PER_HEX;
-
-        // If requesting current overlay, return it
-        if overlay == self.current_type {
-            return &self.current;
-        }
-
-        if let Some(cached) = self.cache.get(&overlay) {
-            // Move to current
-            self.current = cached.clone();
-            self.current_type = overlay;
-            return &self.current;
-        }
-
-        info!("Calculating overlay colors for: {}", overlay.display_name());
-        let start = std::time::Instant::now();
-
-        // Generate colors for all vertices (7 colors per province)
-        let colors: Vec<[f32; 4]> = province_storage.provinces
-            .iter()  // Use sequential iteration since order matters
-            .flat_map(|province| {
-                let province_color = match overlay {
-                    ResourceOverlay::None => {
-                        get_terrain_color_gradient(province.terrain, province.elevation.value())
-                    },
-                    ResourceOverlay::Mineral(mineral_type) => {
-                        let color = if let Some(abundance) = province.get_mineral_abundance(mineral_type) {
-                            if mineral_type == MineralType::Stone {
-                                stone_abundance_color(abundance)
-                            } else {
-                                mineral_abundance_color(abundance)
-                            }
-                        } else {
-                            get_terrain_color_gradient(province.terrain, province.elevation.value())
-                        };
-                        // Helper for ocean default
-                        if province.terrain == TerrainType::Ocean {
-                            get_terrain_color_gradient(province.terrain, province.elevation.value())
-                        } else {
-                            color
-                        }
-                    },
-                    ResourceOverlay::AllMinerals => {
-                        let color = {
-                            let total_richness = calculate_total_richness(province);
-                            combined_richness_color(total_richness)
-                        };
-                        if province.terrain == TerrainType::Ocean {
-                            get_terrain_color_gradient(province.terrain, province.elevation.value())
-                        } else {
-                            color
-                        }
-                    },
-                };
-
-                let linear = province_color.to_linear();
-                let color_array = [linear.red, linear.green, linear.blue, linear.alpha];
-                vec![color_array; VERTICES_PER_HEX]
-            })
-            .collect();
-
-        debug!("Calculated {} overlay in {:.2}ms (buffer size: {} colors for {} provinces = {} vertices)",
-               overlay.display_name(),
-               start.elapsed().as_secs_f32() * 1000.0,
-               colors.len(),
-               province_storage.provinces.len(),
-               province_storage.provinces.len() * VERTICES_PER_HEX);
-
-        // Store in cache and manage size
-        if self.cache.len() >= self.max_cache_size {
-            // Remove least recently used (not current)
-            if let Some(key_to_remove) = self.cache.keys()
-                .find(|&&k| k != self.current_type)
-                .cloned() {
-                self.cache.remove(&key_to_remove);
-            }
-        }
-
-        // Add previous current to cache if it's not None
-        if self.current_type != ResourceOverlay::None && !self.current.is_empty() {
-            self.cache.insert(self.current_type, self.current.clone());
-        }
-
-        self.current = colors;
-        self.current_type = overlay;
-
-        &self.current
-    }
-
-    /// Clear cache to free memory
-    pub fn clear_cache(&mut self) {
-        self.cache.clear();
-        debug!("Cleared overlay color cache");
-    }
-
-    /// Get memory usage in MB
-    pub fn memory_usage_mb(&self) -> f32 {
-        const BYTES_PER_MB: f32 = 1024.0 * 1024.0;
-        let current_size = self.current.len() * std::mem::size_of::<[f32; 4]>();
-        let cache_size: usize = self.cache.values()
-            .map(|v| v.len() * std::mem::size_of::<[f32; 4]>())
-            .sum();
-        (current_size + cache_size) as f32 / BYTES_PER_MB
-    }
-}
-
-
-
-/// Resource visualization overlay modes for displaying mineral distribution
-#[derive(Resource, Debug, Clone, Copy, PartialEq, Eq, Hash, Reflect, Serialize, Deserialize)]
-pub enum ResourceOverlay {
-    /// No overlay - show normal political/terrain colors
-    None,
-    /// Show specific mineral abundance
-    Mineral(MineralType),
-    /// Show all minerals combined (richness heat map)
-    AllMinerals,
-}
-
-impl Default for ResourceOverlay {
-    fn default() -> Self {
-        ResourceOverlay::None
-    }
-}
-
-impl ResourceOverlay {
-    /// Cycle to the next overlay mode
-    pub fn cycle(&mut self) {
-        use crate::components::MineralType;
-        *self = match self {
-            ResourceOverlay::None => ResourceOverlay::Mineral(MineralType::Iron),
-            ResourceOverlay::Mineral(MineralType::Iron) => ResourceOverlay::Mineral(MineralType::Copper),
-            ResourceOverlay::Mineral(MineralType::Copper) => ResourceOverlay::Mineral(MineralType::Tin),
-            ResourceOverlay::Mineral(MineralType::Tin) => ResourceOverlay::Mineral(MineralType::Gold),
-            ResourceOverlay::Mineral(MineralType::Gold) => ResourceOverlay::Mineral(MineralType::Coal),
-            ResourceOverlay::Mineral(MineralType::Coal) => ResourceOverlay::Mineral(MineralType::Stone),
-            ResourceOverlay::Mineral(MineralType::Stone) => ResourceOverlay::Mineral(MineralType::Gems),
-            ResourceOverlay::Mineral(MineralType::Gems) => ResourceOverlay::AllMinerals,
-            ResourceOverlay::AllMinerals => ResourceOverlay::None,
-        }
-    }
-
-    /// Get display name for current overlay
-    pub fn display_name(&self) -> &str {
-        use crate::components::MineralType;
-        match self {
-            ResourceOverlay::None => "Natural Terrain",
-            ResourceOverlay::Mineral(MineralType::Iron) => "Iron Deposits",
-            ResourceOverlay::Mineral(MineralType::Copper) => "Copper Deposits",
-            ResourceOverlay::Mineral(MineralType::Tin) => "Tin Deposits",
-            ResourceOverlay::Mineral(MineralType::Gold) => "Gold Deposits",
-            ResourceOverlay::Mineral(MineralType::Coal) => "Coal Deposits",
-            ResourceOverlay::Mineral(MineralType::Stone) => "Stone Deposits",
-            ResourceOverlay::Mineral(MineralType::Gems) => "Gem Deposits",
-            ResourceOverlay::AllMinerals => "All Minerals",
         }
     }
 }

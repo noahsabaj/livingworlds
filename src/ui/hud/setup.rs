@@ -17,22 +17,25 @@ pub fn setup_hud(mut commands: Commands) {
         ZIndex(100),
         HudRoot,
     )).with_children(|parent| {
-        PanelBuilder::new(parent)
-            .style(PanelStyle::Dark)
-            .custom_background(Color::srgba(0.05, 0.05, 0.05, 0.85))
-            .flex_direction(FlexDirection::Column)
-            .align_items(AlignItems::End)
-            .padding(UiRect::all(Val::Px(8.0)))
-            .build_with_children(|panel| {
-                // Add time display
-                time_display::spawn_time_display(panel);
+        // Create panel with consistent styling using direct Bevy API
+        parent.spawn((
+            Node {
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::End,
+                padding: UiRect::all(Val::Px(8.0)),
+                ..default()
+            },
+            BackgroundColor(Color::srgba(0.05, 0.05, 0.05, 0.85)),
+        )).with_children(|panel| {
+            // Add time display
+            time_display::spawn_time_display(panel);
 
-                // Add speed display
-                speed_display::spawn_speed_display(panel);
+            // Add speed display
+            speed_display::spawn_speed_display(panel);
 
-                // Add control hints
-                control_hints::spawn_control_hints(panel);
-            });
+            // Add control hints
+            control_hints::spawn_control_hints(panel);
+        });
     });
 }
 

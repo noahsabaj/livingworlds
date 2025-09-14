@@ -22,6 +22,7 @@ mod components;
 mod hud;
 mod overlay_display;
 mod tile_info;
+mod interaction;
 
 // Other UI modules (single files) - ALL PRIVATE
 mod styles;
@@ -41,13 +42,21 @@ mod builders;
 // This is the ONLY way external code should access UI internals
 
 // From buttons module
-pub use buttons::{ButtonBuilder, ButtonStyle, ButtonSize, presets as button_presets};
+pub use buttons::{ButtonBuilder, ButtonStyle, ButtonSize, StyledButton, presets as button_presets};
 
 // From dialogs module
-pub use dialogs::{DialogBuilder, DialogType, DialogButton, presets as dialog_presets};
+pub use dialogs::{
+    DialogBuilder, DialogType, DialogButton, presets as dialog_presets,
+    ConfirmButton, CancelButton, SaveButton, DiscardButton,  // Button markers
+    KeepButton, RevertButton, CountdownText,  // Additional markers
+    // Dialog component types
+    DialogOverlay, DialogContainer, DialogTitle, DialogBody, DialogButtonRow,
+    ExitConfirmationDialog, UnsavedChangesDialog, ResolutionDialog,
+    ResolutionConfirmDialog, WorldGenerationErrorDialog,
+};
 
 // From sliders module
-pub use sliders::{SliderBuilder, ValueFormat, slider};
+pub use sliders::{SliderBuilder, ValueFormat, slider, Slider};
 
 // From text_inputs module
 pub use text_inputs::{TextInputBuilder, InputFilter, InputTransform, FocusGroupId, text_input};
@@ -83,8 +92,11 @@ pub use overlay_display::{OverlayDisplayPlugin, ResourceOverlayText, MineralLege
 // From tile info subsystem
 pub use tile_info::{TileInfoPlugin, TileInfoPanel, TileInfoText};
 
+// From interaction subsystem
+pub use interaction::SelectedProvinceInfo;
+
 // From styles module (commonly needed)
-pub use styles::{colors, dimensions, layers};
+pub use styles::{colors, dimensions, layers, helpers};
 
 // From tips module
 pub use tips::{get_random_tip, TipCategory, LoadingTip};
@@ -92,7 +104,6 @@ pub use tips::{get_random_tip, TipCategory, LoadingTip};
 // Builders convenience module - re-export its public interface
 pub use builders::{
     button, primary_button, danger_button, dialog, progress_bar,
-    UIBuilder,
 };
 
 

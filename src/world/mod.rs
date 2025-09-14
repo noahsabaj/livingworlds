@@ -1,39 +1,88 @@
 //! World module gateway - The single entry point for all world functionality
 //!
-//! This module provides a feature-centric architecture with strict gateway control.
-//! All submodules are private, and only carefully selected APIs are exposed.
+//! This is a PURE GATEWAY following strict gateway architecture principles.
+//! NO IMPLEMENTATION CODE HERE - only module organization and exports.
 //!
 //! # Architecture
 //!
-//! The world module is organized into four main areas:
-//! - **data/**: Core data structures (Province, World, Terrain, etc.)
-//! - **generation/**: Builders that create world data
-//! - **rendering/**: GPU concerns (mesh, overlays, borders)
-//! - **ui/**: User interface for world configuration
+//! The world module uses feature-based organization:
+//! - Each feature (clouds, terrain, rivers, etc.) contains ALL related code
+//! - `core.rs` contains shared orchestration types (World struct)
+//! - `setup.rs` handles ALL Bevy integration
+//! - `generation/` orchestrates world creation using feature builders
 //!
-//! Each submodule has its own gateway controlling access to implementation details.
+//! # Module Responsibilities
+//!
+//! - **core.rs**: Pure data structures (World) that orchestrate features
+//! - **setup.rs**: ALL Bevy integration (Plugin, systems, resources, entities)
+//! - **generation/**: Orchestrates builders from feature modules
+//! - **Feature modules**: Self-contained functionality (data + logic + rendering)
 
-use bevy::prelude::*;
+// PRIVATE FEATURE MODULES - Implementation details are hidden
 
-// PRIVATE SUBMODULES - Implementation details are hidden
+mod clouds;     // Cloud system (data, generation, rendering)
+mod colors;     // Color system (themes, providers, calculations)
+mod terrain;    // Terrain types, climate, erosion
+mod provinces;  // Province data, spatial indexing, agriculture
+mod rivers;     // River systems and flow
+mod minerals;   // Mineral resources
+mod mesh;       // World mesh rendering
+mod borders;    // Border rendering
+mod overlay;    // Overlay rendering modes
 
-mod data;
-mod generation;
-mod rendering;
-mod ui;
+// Non-feature modules
+mod core;        // Core world data structures (World)
+mod generation;  // World generation orchestrator
+mod simulation;  // Simulation events
+mod ui;          // World configuration UI
+mod setup;       // Bevy integration layer (Plugin, systems, resources)
 
 // SELECTIVE PUBLIC EXPORTS - The controlled API surface
 
-// === Core Data Structures ===
-pub use data::{
-    // World and systems
+// === Core Data Structure ===
+pub use core::{
     World,
-    RiverSystem,
+    WorldSeed,
+    WorldName,
+    WorldSize,
+    MapDimensions,
+    MapBounds,
+};
+
+// === Clouds Feature ===
+pub use clouds::{
     CloudSystem,
     CloudData,
     CloudLayer,
+    CloudEntity,
+    CloudBuilder,
+    CloudPlugin,
+    CloudSprite,
+    CloudFormationType,
+    generate_cloud_formation,
+    create_cloud_texture,
+    CloudTextureParams,
+    animate_clouds,
+    update_weather_system,
+    dynamic_cloud_spawn_system,
+    WeatherState,
+    WeatherSystem,
+};
 
-    // Province and related types
+// === Terrain Feature ===
+pub use terrain::{
+    TerrainEntity,
+    TerrainType,
+    ClimateZone,
+    Biome,
+    classify_terrain_with_climate,
+    TerrainPlugin,
+    apply_erosion_to_provinces,
+    apply_climate_to_provinces,
+};
+
+// === Provinces Feature ===
+pub use provinces::{
     Province,
     ProvinceId,
     Elevation,
@@ -41,40 +90,55 @@ pub use data::{
     Distance,
     Abundance,
     HexDirection,
-
-    // Terrain
-    TerrainType,
-    ClimateZone,
-    classify_terrain_with_climate,
-
-    // Spatial indexing
     ProvincesSpatialIndex,
     WorldBounds,
-
-    TerrainEntity,
-    CloudEntity,
-    BorderEntity,
+    ProvinceBuilder,
+    calculate_agriculture_values,
+    calculate_ocean_depths,
 };
 
-// === World Generation ===
-pub use generation::WorldBuilder;
+// === Rivers Feature ===
+pub use rivers::{
+    RiverSystem,
+    RiverBuilder,
+};
 
-// === Rendering Systems ===
-pub use rendering::{
-    // Mesh system
+// === Minerals Feature ===
+pub use minerals::*;  // Re-export all mineral types
+
+// === Borders Feature ===
+pub use borders::{
+    BorderEntity,
+    SelectionBorder,
+    BorderPlugin,
+};
+
+// === Mesh Rendering ===
+pub use mesh::{
     build_world_mesh,
     ProvinceStorage,
     WorldMeshHandle,
     MeshBuilder,
     MeshBuildStats,
+};
 
-    // Overlays
+// === Overlay System ===
+pub use overlay::{
     update_province_colors,
     OverlayMode,
+    ResourceOverlay,
+    CachedOverlayColors,
+    OverlayPlugin,
+};
 
-    // Borders
-    SelectionBorder,
-    BorderSettings,
+// === Color System ===
+pub use colors::{
+    WorldColors,
+    StoneAbundance,
+    SafeColor,
+    ColorProvider,
+    Colorable,
+    theme_colors,
 };
 
 // === World UI ===
@@ -91,148 +155,21 @@ pub use ui::{
     MineralDistribution,
 };
 
-// WORLD PLUGIN - Aggregates all world functionality
+// === World Generation ===
+pub use generation::{
+    WorldBuilder,
+    WorldGenerationError,
+    WorldGenerationErrorType,
+};
 
-/// Main world plugin that registers all world-related systems
-///
-/// This plugin aggregates the generation, rendering, and configuration plugins
-/// into a single cohesive system. It's the only plugin external code needs
-/// to register for complete world functionality.
-pub struct WorldPlugin;
+// === World Simulation ===
+pub use simulation::*;  // Events and simulation systems
 
-impl Plugin for WorldPlugin {
-    fn build(&self, app: &mut App) {
-        app
-            // Add sub-plugins
-            .add_plugins(rendering::RenderingPlugin)
-            .add_plugins(generation::GenerationPlugin)
-            .add_plugins(ui::WorldConfigPlugin)
-
-            // Register world resources
-            .init_resource::<ProvincesSpatialIndex>()
-
-            // Register world events
-            .add_event::<WorldGeneratedEvent>()
-            .add_event::<ProvinceSelectedEvent>()
-
-            // Add world systems
-            .add_systems(Startup, initialize_world_systems)
-            .add_systems(Update, (
-                handle_province_selection,
-                update_world_bounds_camera,
-            ).chain());
-    }
-}
-
-
-/// Event fired when world generation completes
-#[derive(Event)]
-pub struct WorldGeneratedEvent {
-    pub world: World,
-    pub generation_time: std::time::Duration,
-}
-
-/// Event fired when a province is selected
-#[derive(Event)]
-pub struct ProvinceSelectedEvent {
-    pub province_id: Option<ProvinceId>,
-    pub position: Vec2,
-}
-
-// INTERNAL SYSTEMS - Not exposed outside
-
-/// Initialize world systems on startup
-fn initialize_world_systems(mut commands: Commands) {
-    info!("World systems initialized");
-
-    // Initialize any world-specific resources
-    commands.insert_resource(WorldState::default());
-}
-
-/// Handle province selection from mouse input
-fn handle_province_selection(
-    mouse_button: Res<ButtonInput<MouseButton>>,
-    camera_query: Query<(&Camera, &GlobalTransform)>,
-    windows: Query<&Window>,
-    spatial_index: Res<ProvincesSpatialIndex>,
-    mut selection_events: EventWriter<ProvinceSelectedEvent>,
-) {
-    // Implementation would handle mouse picking and province selection
-    // This is internal to the world module
-}
-
-/// Update camera bounds based on world size
-fn update_world_bounds_camera(
-    spatial_index: Res<ProvincesSpatialIndex>,
-    mut camera_query: Query<&mut Transform, With<Camera2d>>,
-) {
-    // Implementation would constrain camera to world bounds
-    // This is internal to the world module
-}
-
-/// Internal world state
-#[derive(Resource, Default)]
-struct WorldState {
-    initialized: bool,
-    selected_province: Option<ProvinceId>,
-}
-
-
-/// # World Module
-///
-/// The world module is the heart of Living Worlds, providing all functionality
-/// related to world representation, generation, and rendering.
-///
-/// ## Gateway Architecture
-///
-/// This module follows strict gateway architecture principles:
-/// - All submodules are private
-/// - Only explicitly exported types are accessible
-/// - Each submodule has its own gateway
-/// - Implementation details are completely hidden
-///
-/// ## Usage Examples
-///
-/// ### Generating a World
-/// ```rust
-/// use livingworlds::world::{WorldBuilder, WorldSize};
-///
-/// let world = WorldBuilder::new(
-///     42,                    // seed
-///     WorldSize::Medium,     // size
-///     7,                     // continents
-///     0.6,                   // ocean coverage
-///     1.0,                   // river density
-/// ).build();
-/// ```
-///
-/// ### Accessing Province Data
-/// ```rust
-/// use livingworlds::world::{World, ProvinceId};
-///
-/// let province = world.get_province(ProvinceId::new(100));
-/// if let Some(p) = province {
-///     println!("Terrain: {:?}", p.terrain);
-///     println!("Population: {}", p.population);
-/// }
-/// ```
-///
-/// ### Building the World Mesh
-/// ```rust
-/// use livingworlds::world::build_world_mesh;
-///
-/// let (mesh, storage) = build_world_mesh(&world.provinces);
-/// commands.spawn(MaterialMesh2dBundle {
-///     mesh: meshes.add(mesh),
-///     // ...
-/// });
-/// ```
-///
-/// ## Performance
-///
-/// The world module is optimized for large-scale simulations:
-/// - Supports up to 9,000,000 provinces
-/// - Single draw call rendering via mega-mesh
-/// - O(1) spatial lookups via grid indexing
-/// - Parallel world generation with rayon
-/// - 60+ FPS on modern hardware
+// === Bevy Integration (from setup.rs) ===
+pub use setup::{
+    setup_world,
+    WorldPlugin,        // Main plugin that registers everything
+    WorldGeneratedEvent,
+    ProvinceSelectedEvent,
+    WorldSetupError,
+};

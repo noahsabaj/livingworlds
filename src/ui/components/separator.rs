@@ -42,8 +42,7 @@ impl SeparatorStyle {
 }
 
 /// Builder for creating separators with consistent styling
-pub struct SeparatorBuilder<'a> {
-    parent: &'a mut ChildSpawnerCommands<'a>,
+pub struct SeparatorBuilder {
     orientation: Orientation,
     style: SeparatorStyle,
     color: Option<Color>,
@@ -52,10 +51,9 @@ pub struct SeparatorBuilder<'a> {
     length: Val,
 }
 
-impl<'a> SeparatorBuilder<'a> {
-    pub fn new(parent: &'a mut ChildSpawnerCommands<'a>) -> Self {
+impl SeparatorBuilder {
+    pub fn new() -> Self {
         Self {
-            parent,
             orientation: Orientation::Horizontal,
             style: SeparatorStyle::Solid,
             color: None,
@@ -97,7 +95,7 @@ impl<'a> SeparatorBuilder<'a> {
         self
     }
 
-    pub fn build(mut self) -> Entity {
+    pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
         let color = self.color.unwrap_or_else(|| self.style.color());
         let thickness = self.thickness.unwrap_or_else(|| self.style.thickness());
 
@@ -106,7 +104,7 @@ impl<'a> SeparatorBuilder<'a> {
             Orientation::Vertical => (Val::Px(thickness), self.length),
         };
 
-        self.parent.spawn((
+        parent.spawn((
             Node {
                 width,
                 height,

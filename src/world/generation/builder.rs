@@ -3,16 +3,15 @@
 //! This module contains the main WorldBuilder that orchestrates all generation steps
 //! to create a complete World data structure.
 
-use bevy::prelude::*;
 use rand::{SeedableRng, rngs::StdRng};
 use std::collections::HashMap;
 
 use crate::resources::{WorldSize, MapDimensions};
 use crate::constants::*;
-use super::super::data::World;
+use crate::world::World;
 
-// Import the internal generation modules
-use super::{provinces, rivers, agriculture, clouds, erosion, climate, utils};
+// Import utilities
+use super::utils;
 
 /// World builder that orchestrates all generation steps
 ///
@@ -52,15 +51,9 @@ impl WorldBuilder {
 
     pub fn build(mut self) -> World {
         let start = std::time::Instant::now();
-        println!("═══════════════════════════════════════════════════════");
-        println!("Starting world generation with seed: {}", self.seed);
-        println!("World size: {:?} ({} provinces)", self.size,
-                 self.dimensions.provinces_per_row * self.dimensions.provinces_per_col);
-        println!("═══════════════════════════════════════════════════════");
 
         // Step 1: Generate provinces with Perlin noise elevation
-        println!("\n[1/7] Generating provinces with Perlin noise terrain...");
-        let mut provinces = provinces::ProvinceBuilder::new(
+        let mut provinces = crate::world::ProvinceBuilder::new(
             self.dimensions,
             &mut self.rng,
             self.seed,
@@ -70,14 +63,12 @@ impl WorldBuilder {
         .build();
 
         // Step 2: Apply erosion simulation for realistic terrain
-        println!("\n[2/7] Applying erosion simulation...");
         let erosion_iterations = match self.dimensions.provinces_per_row * self.dimensions.provinces_per_col {
             n if n < 400_000 => 3_000,
             n if n < 700_000 => 5_000,
             _ => 8_000,
         };
-        println!("  Using {} erosion iterations for world size", erosion_iterations);
-        erosion::apply_erosion_to_provinces(
+        crate::world::apply_erosion_to_provinces(
             &mut provinces,
             self.dimensions,
             self.rng.clone(),
@@ -85,53 +76,36 @@ impl WorldBuilder {
         );
 
         // Step 3: Calculate ocean depths
-        println!("\n[3/7] Calculating ocean depths...");
-        utils::calculate_ocean_depths(&mut provinces, self.dimensions);
+        crate::world::calculate_ocean_depths(&mut provinces, self.dimensions);
 
         // Step 4: Generate climate zones
-        println!("\n[4/7] Applying climate zones...");
-        climate::apply_climate_to_provinces(&mut provinces, self.dimensions);
+        crate::world::apply_climate_to_provinces(&mut provinces, self.dimensions);
 
         // Step 5: Generate river systems
-        println!("\n[5/7] Generating river systems...");
-        let river_system = rivers::RiverBuilder::new(
-            &provinces,
+        let river_system = crate::world::RiverBuilder::new(
+            &mut provinces,
             self.dimensions,
-            self.rng.clone(),
+            &mut self.rng,
         )
-        .with_river_count(self.river_density)
-        .build(&mut provinces);
+        .with_density(self.river_density)
+        .build()
+        .expect("Failed to generate rivers");
 
         // Step 6: Calculate agriculture values
-        println!("\n[6/7] Calculating agriculture values...");
-        agriculture::calculate_agriculture_values(&mut provinces);
+        crate::world::calculate_agriculture_values(&mut provinces, &river_system, self.dimensions)
+            .expect("Failed to calculate agriculture");
 
         // Step 7: Generate cloud system
-        println!("\n[7/7] Generating atmospheric clouds...");
-        let cloud_system = clouds::CloudBuilder::new(
-            self.dimensions,
-            self.rng.clone(),
+        let cloud_system = crate::world::CloudBuilder::new(
+            &mut self.rng,
+            &self.dimensions,
         ).build();
-
-        println!("\n[*] Building spatial index...");
-        let mut spatial_index = HashMap::new();
-        for province in &provinces {
-            let col = province.id.value() % self.dimensions.provinces_per_row;
-            let row = province.id.value() / self.dimensions.provinces_per_row;
-            spatial_index.insert((col as i32, row as i32), province.id.value());
-        }
-
-        let elapsed = start.elapsed();
-        println!("\n═══════════════════════════════════════════════════════");
-        println!("World generation completed in {:.2}s", elapsed.as_secs_f32());
-        println!("═══════════════════════════════════════════════════════");
 
         World {
             provinces,
             rivers: river_system,
-            spatial_index,
-            map_dimensions: self.dimensions,
             clouds: cloud_system,
+            seed: self.seed,
         }
     }
 }

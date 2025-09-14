@@ -10,12 +10,12 @@ pub struct GameSpeedDisplay;
 
 /// Spawn the speed display UI element
 pub fn spawn_speed_display(parent: &mut ChildSpawnerCommands) {
-    let entity = LabelBuilder::new(parent, "Speed: 1x")
+    let entity = LabelBuilder::new("Speed: 1x")
         .style(LabelStyle::Body)
         .font_size(16.0)
         .color(Color::srgba(0.8, 0.8, 0.8, 1.0))
         .margin(UiRect::top(Val::Px(4.0)))
-        .build();
+        .build(parent);
 
     // Add our marker component
     parent.commands().entity(entity).insert(GameSpeedDisplay);

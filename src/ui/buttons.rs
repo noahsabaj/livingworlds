@@ -238,16 +238,45 @@ impl ButtonBuilder {
             
             entity
         } else {
-            // No custom marker, use the helper function
-            spawn_button_full(
-                parent,
-                self.text,
-                self.style,
-                self.size,
-                self.enabled,
-                self.margin,
-                None::<Button>,
-            )
+            // No custom marker, spawn button directly
+            let (base_color, border_color, text_color) = if self.enabled {
+                (self.style.base_color(), self.style.border_color(), Color::WHITE)
+            } else {
+                (Color::srgb(0.3, 0.3, 0.3), Color::srgb(0.2, 0.2, 0.2), Color::srgb(0.5, 0.5, 0.5))
+            };
+
+            let entity = parent.spawn((
+                Button,
+                StyledButton {
+                    style: self.style,
+                    size: self.size,
+                    enabled: self.enabled,
+                },
+                Node {
+                    width: Val::Px(self.size.width()),
+                    height: Val::Px(self.size.height()),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    border: helpers::standard_border(),
+                    margin: self.margin.unwrap_or_default(),
+                    ..default()
+                },
+                BackgroundColor(base_color),
+                BorderColor(border_color),
+            ))
+            .with_children(|button| {
+                button.spawn((
+                    Text::new(self.text),
+                    TextFont {
+                        font_size: self.size.font_size(),
+                        ..default()
+                    },
+                    TextColor(text_color),
+                ));
+            })
+            .id();
+
+            entity
         }
     }
 }

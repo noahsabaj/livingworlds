@@ -10,11 +10,11 @@ pub struct GameTimeDisplay;
 
 /// Spawn the time display UI element
 pub fn spawn_time_display(parent: &mut ChildSpawnerCommands) {
-    let entity = LabelBuilder::new(parent, "Year 1000")
+    let entity = LabelBuilder::new("Year 1000")
         .style(LabelStyle::Heading)
         .font_size(24.0)
         .color(Color::WHITE)
-        .build();
+        .build(parent);
 
     // Add our marker component
     parent.commands().entity(entity).insert(GameTimeDisplay);
