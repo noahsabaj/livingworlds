@@ -75,83 +75,53 @@ The project uses a **modular plugin architecture** with Bevy's ECS (Entity Compo
 
 ```
 livingworlds/
-├── src/                    # Source code (~1 MB total)
-│   ├── generation/        # World generation builders (92KB, 8 files)
-│   │   ├── mod.rs         # WorldBuilder orchestrator
-│   │   ├── climate.rs     # Climate simulation system
-│   │   ├── erosion.rs     # Erosion and weathering simulation
-│   │   ├── provinces.rs   # ProvinceBuilder with parallel processing
-│   │   ├── rivers.rs      # RiverBuilder with flow accumulation
-│   │   ├── agriculture.rs # Agriculture and fertility calculations
-│   │   ├── clouds.rs      # CloudBuilder for atmospheric effects
-│   │   └── utils.rs       # Utility functions
-│   ├── world/             # World data and rendering (143KB, 9 files)
-│   │   ├── config.rs      # World configuration UI (66KB)
-│   │   ├── clouds.rs      # Cloud rendering and animation
-│   │   ├── terrain.rs     # Terrain types and climate zones
-│   │   ├── mesh.rs        # Mega-mesh building and vertex generation
-│   │   ├── borders.rs     # Selection border rendering
-│   │   ├── data.rs        # Core data structures
-│   │   ├── overlay.rs     # Map overlay with dynamic vertex colors
-│   │   ├── mod.rs         # Module exports
-│   │   └── components.rs  # World-specific components
-│   ├── ui/                # User interface system (187KB, 10 files)
-│   │   ├── form.rs        # Form handling system (33KB)
-│   │   ├── sliders.rs     # SliderBuilder for value controls (28KB)
-│   │   ├── components.rs  # Common UI components (27KB)
-│   │   ├── text_inputs.rs # TextInputBuilder with validation (26KB)
-│   │   ├── dialogs.rs     # DialogBuilder for consistent dialogs
+├── src/                    # Source code (modular architecture)
+│   ├── world/             # World systems with 11 subdirectories
+│   │   ├── borders/       # Province border rendering
+│   │   ├── clouds/        # Cloud rendering and animation
+│   │   ├── colors/        # Terrain and mineral colors
+│   │   ├── mesh/          # Mega-mesh generation
+│   │   ├── minerals/      # Resource generation
+│   │   ├── overlay/       # Map overlay modes
+│   │   ├── provinces/     # Province data structures
+│   │   ├── rivers/        # River generation
+│   │   ├── simulation/    # World simulation systems
+│   │   ├── terrain/       # Terrain types and climate
+│   │   ├── ui/            # World configuration UI
+│   │   └── (gateway mod.rs controls all access)
+│   ├── ui/                # User interface system
+│   │   ├── hud/           # HUD components
+│   │   ├── overlay_display/ # Overlay display
+│   │   ├── components/    # UI components
+│   │   ├── form.rs        # Form handling
+│   │   ├── loading.rs     # Loading UI
 │   │   ├── toolbar.rs     # Toolbar system
-│   │   ├── mod.rs         # UI plugin and coordination
-│   │   ├── buttons.rs     # StyledButton builder system
-│   │   ├── styles.rs      # Centralized colors and dimensions
-│   │   └── builders.rs    # UI builder utilities
-│   ├── math/              # Mathematics module (7 files)
-│   │   ├── perlin.rs      # Single source of truth for ALL noise
-│   │   ├── hexagon.rs     # Single source of truth for hex math
-│   │   ├── interpolation.rs # Interpolation and smoothing functions
-│   │   ├── distance.rs    # Distance calculations
-│   │   ├── angles.rs      # Angle and trigonometry utilities
-│   │   ├── random.rs      # Random number generation utilities
-│   │   └── mod.rs         # Module exports with gateway architecture
-│   ├── name_generator/    # Name generation system (directory)
-│   │   ├── generator.rs   # Core name generation logic (25KB)
-│   │   ├── tests.rs       # Unit tests
-│   │   ├── types.rs       # Type definitions
-│   │   ├── utils.rs       # Utility functions
-│   │   ├── mod.rs         # Module gateway
-│   │   └── data/          # Name data by culture
-│   ├── settings/          # Settings management (8 files)
-│   │   ├── handlers.rs    # Event handlers
-│   │   ├── settings_ui.rs # Settings menu UI
-│   │   ├── types.rs       # Settings data structures
-│   │   ├── resolution.rs  # Resolution detection
-│   │   ├── components.rs  # Settings components
-│   │   ├── mod.rs         # Settings plugin
-│   │   ├── navigation.rs  # Tab navigation
-│   │   └── persistence.rs # Save/load settings
-│   ├── modding/           # Modding system (5 files)
-│   │   ├── ui.rs          # Mod browser UI (40KB)
-│   │   ├── manager.rs     # Mod management
-│   │   ├── types.rs       # Mod data structures
-│   │   ├── loader.rs      # Mod loading system
-│   │   └── mod.rs         # Modding plugin gateway
-│   ├── save_load.rs       # Save/load game functionality (57KB)
-│   ├── minerals.rs        # Mineral resources and extraction (27KB)
-│   ├── colors.rs          # Terrain and mineral color functions (24KB)
-│   ├── components.rs      # Core ECS components (22KB)
-│   ├── states.rs          # Game state management (22KB)
-│   ├── resources.rs       # Global game resources (21KB)
-│   ├── menus.rs           # Main and pause menus (20KB)
-│   ├── camera.rs          # Camera controls and viewport (16KB)
-│   ├── steam.rs           # Steam integration (14KB)
-│   ├── loading_screen.rs  # Loading screen system (14KB)
-│   ├── province_events.rs # Province event handling (12KB)
-│   ├── setup.rs           # World initialization (11KB)
-│   ├── constants.rs       # Game configuration constants (11KB)
-│   ├── simulation.rs      # Time simulation and population (11KB)
-│   ├── lib.rs             # Library root, plugin orchestration (10KB)
-│   └── main.rs            # Binary entry point (7KB)
+│   │   └── (gateway architecture)
+│   ├── simulation/        # Simulation systems (gateway architecture)
+│   │   ├── time/          # Time management subsystem
+│   │   ├── input/         # Input handling (refactored from 137 to 91 lines)
+│   │   ├── tension/       # World tension subsystem
+│   │   └── (each subsystem has gateway mod.rs)
+│   ├── math/              # Mathematics module (single source of truth)
+│   │   ├── perlin.rs      # ALL noise generation
+│   │   ├── hexagon.rs     # ALL hex calculations
+│   │   ├── interpolation.rs # Smoothing functions
+│   │   └── (gateway enforces single source)
+│   ├── name_generator/    # Name generation system
+│   │   ├── data/          # Culture-specific data
+│   │   ├── generator.rs   # Core generation logic
+│   │   └── (gateway architecture)
+│   ├── settings/          # Settings management
+│   ├── modding/           # Modding system
+│   ├── menus/             # Menu systems
+│   │   ├── main_menu.rs   # Main menu
+│   │   └── pause_menu.rs  # Pause menu
+│   ├── save_load.rs       # Save/load functionality
+│   ├── loading_screen.rs  # Loading UI
+│   ├── states.rs          # Game state management
+│   ├── resources.rs       # Global game resources
+│   ├── lib.rs             # Library root, plugin orchestration
+│   └── main.rs            # Binary entry point
 ├── images/                 # Screenshots and documentation
 ├── Cargo.toml             # Rust dependencies
 ├── CLAUDE.md              # Detailed technical documentation
