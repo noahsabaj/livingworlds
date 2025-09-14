@@ -1,15 +1,12 @@
 //! Time simulation systems
 
-use bevy::prelude::*;
-use crate::constants::{SIMULATION_STARTING_YEAR, SIMULATION_DAYS_PER_YEAR_F32};
+use super::events::{NewYearEvent, SimulationSpeedChanged};
 use super::resources::GameTime;
-use super::events::{SimulationSpeedChanged, NewYearEvent};
+use crate::constants::{SIMULATION_DAYS_PER_YEAR_F32, SIMULATION_STARTING_YEAR};
+use bevy::prelude::*;
 
 /// Advance the game time based on real time and speed multiplier
-pub fn advance_game_time(
-    mut game_time: ResMut<GameTime>,
-    time: Res<Time>,
-) {
+pub fn advance_game_time(mut game_time: ResMut<GameTime>, time: Res<Time>) {
     // Don't advance if paused
     if game_time.paused {
         return;
@@ -26,12 +23,11 @@ pub fn track_year_changes(
     mut last_year: Local<u32>,
     mut year_events: EventWriter<NewYearEvent>,
 ) {
-    let current_year = SIMULATION_STARTING_YEAR + (game_time.current_date / SIMULATION_DAYS_PER_YEAR_F32) as u32;
+    let current_year =
+        SIMULATION_STARTING_YEAR + (game_time.current_date / SIMULATION_DAYS_PER_YEAR_F32) as u32;
 
     if current_year != *last_year && *last_year > 0 {
-        year_events.send(NewYearEvent {
-            year: current_year,
-        });
+        year_events.send(NewYearEvent { year: current_year });
 
         #[cfg(feature = "debug-simulation")]
         println!("Year {}", current_year);

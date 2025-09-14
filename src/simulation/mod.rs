@@ -15,10 +15,10 @@
 //! This creates a hierarchical gateway system ensuring clean module boundaries.
 
 // PRIVATE modules - internal implementation details
-mod plugin;
-mod time;
 mod input;
+mod plugin;
 mod tension;
+mod time;
 
 // CONTROLLED PUBLIC EXPORTS
 // Only expose what external code needs, nothing more
@@ -31,7 +31,7 @@ pub use plugin::SimulationPlugin;
 pub use tension::WorldTension;
 
 // Time-related exports that other systems need
-pub use time::{SimulationSpeedChanged, NewYearEvent};
+pub use time::{GameTime, NewYearEvent, SimulationSpeedChanged};
 
 // Note: Input handling is internal only - no public exports needed
 // Note: Time systems are internal only - exposed through plugin

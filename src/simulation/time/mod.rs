@@ -10,7 +10,7 @@ mod resources;
 mod systems;
 
 // Re-export what parent modules need
-pub use constants::{SPEED_PAUSED, SPEED_NORMAL, SPEED_FAST, SPEED_FASTER, SPEED_FASTEST};
-pub use events::{SimulationSpeedChanged, NewYearEvent};
-pub use resources::GameTime;
-pub use systems::{advance_game_time, track_year_changes, resume_from_pause_menu};
+pub use constants::{SPEED_FAST, SPEED_FASTER, SPEED_FASTEST, SPEED_NORMAL, SPEED_PAUSED};
+pub use events::{NewYearEvent, SimulationSpeedChanged};
+pub use resources::GameTime; // Now defined locally in this module
+pub use systems::{advance_game_time, resume_from_pause_menu, track_year_changes};

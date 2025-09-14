@@ -19,7 +19,8 @@ pub const SPEED_LEVELS: &[(KeyCode, f32, &str)] = &[
 
 /// Check if any speed key was pressed and return the corresponding speed
 pub fn handle_speed_keys(keyboard: &ButtonInput<KeyCode>) -> Option<(f32, &'static str)> {
-    SPEED_LEVELS.iter()
+    SPEED_LEVELS
+        .iter()
         .find(|(key, _, _)| keyboard.just_pressed(*key))
         .map(|(_, speed, name)| (*speed, *name))
 }

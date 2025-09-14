@@ -2,7 +2,7 @@
 
 use bevy::prelude::*;
 use bevy::reflect::Reflect;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// World Tension - Global metric tracking conflict and instability
 ///
@@ -40,7 +40,7 @@ pub struct WorldTension {
 impl Default for WorldTension {
     fn default() -> Self {
         Self {
-            current: 0.0,  // Start at perfect peace
+            current: 0.0, // Start at perfect peace
             target: 0.0,
             velocity: 0.0,
 
@@ -49,9 +49,9 @@ impl Default for WorldTension {
             economic_stress: 0.0,
             instability_factor: 0.0,
 
-            heating_rate: 2.0,    // Wars escalate quickly
-            cooling_rate: 0.3,    // Peace returns slowly
-            inertia: 0.8,         // Smooth transitions
+            heating_rate: 2.0, // Wars escalate quickly
+            cooling_rate: 0.3, // Peace returns slowly
+            inertia: 0.8,      // Smooth transitions
         }
     }
 }

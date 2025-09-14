@@ -4,9 +4,9 @@
 //! Tension ranges from 0.0 (perfect peace) to 1.0 (world war).
 
 // PRIVATE modules - internal implementation
-mod types;
 mod calculations;
 mod systems;
+mod types;
 
 // Re-export for backward compatibility
 pub use types::WorldTension;

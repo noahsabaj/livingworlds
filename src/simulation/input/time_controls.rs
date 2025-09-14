@@ -1,11 +1,13 @@
 //! Time control input handling (refactored to eliminate duplication)
 
-use bevy::prelude::*;
 use crate::resources::GameTime;
+use bevy::prelude::*;
 // Access sibling modules through parent gateway
-use crate::simulation::{SimulationSpeedChanged};
 use super::speed_mapping::SPEED_PAUSED;
-use super::speed_mapping::{handle_speed_keys, get_next_speed_level, get_previous_speed_level, get_speed_name};
+use super::speed_mapping::{
+    get_next_speed_level, get_previous_speed_level, get_speed_name, handle_speed_keys,
+};
+use crate::simulation::SimulationSpeedChanged;
 
 /// Handle keyboard input for time control
 /// Space for pause/resume, number keys 1-5 for speed control, +/- for speed increment/decrement
@@ -84,9 +86,19 @@ pub fn handle_time_controls(
         speed_changed = true;
 
         #[cfg(feature = "debug-simulation")]
-        println!("Simulation {} (speed: {}x)",
-            if game_time.paused { "paused" } else { "resumed" },
-            if game_time.paused { 0.0 } else { game_time.speed });
+        println!(
+            "Simulation {} (speed: {}x)",
+            if game_time.paused {
+                "paused"
+            } else {
+                "resumed"
+            },
+            if game_time.paused {
+                0.0
+            } else {
+                game_time.speed
+            }
+        );
     }
 
     // Send event if speed changed
