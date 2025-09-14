@@ -11,7 +11,7 @@ use bevy::window::{PrimaryWindow, CursorGrabMode};
 use crate::constants::*;
 use crate::resources::MapDimensions;
 use crate::states::{GameState, RequestStateTransition};
-use crate::math::interpolation::{lerp_exp_vec3, lerp_exp};
+use crate::math::{lerp_exp_vec3, lerp_exp};
 
 /// Camera control plugin for managing viewport and camera movement
 pub struct CameraPlugin;
@@ -25,7 +25,6 @@ impl Plugin for CameraPlugin {
             .init_resource::<WindowFocusState>()
             .add_systems(Startup, setup_camera)
             .add_systems(Update, (
-                // Input gathering systems
                 handle_keyboard_input,
                 handle_mouse_wheel_zoom,
                 handle_mouse_drag,
@@ -122,11 +121,10 @@ fn calculate_camera_bounds(
 ) {
     let Ok(window) = windows.get_single() else { return; };
     
-    // Calculate zoom bounds
     let min_zoom_x = map_dimensions.width_pixels / window.width();
     let min_zoom_y = map_dimensions.height_pixels / window.height();
     let min_zoom = min_zoom_x.max(min_zoom_y) * CAMERA_MAP_PADDING_FACTOR;
-    
+
     bounds.min_zoom = CAMERA_MIN_ZOOM;
     bounds.max_zoom = min_zoom.max(CAMERA_MAX_ZOOM);
     bounds.half_map_width = map_dimensions.width_pixels / 2.0;
@@ -162,7 +160,6 @@ fn handle_keyboard_input(
     
     let Ok(mut controller) = query.get_single_mut() else { return; };
     
-    // Calculate speed with shift modifier
     let speed_multiplier = if keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight) {
         CAMERA_SPEED_MULTIPLIER
     } else {
@@ -171,7 +168,6 @@ fn handle_keyboard_input(
     
     let pan_speed = controller.pan_speed_base * controller.current_zoom * time.delta_secs() * speed_multiplier;
     
-    // Update target position based on input
     if keyboard.pressed(KeyCode::KeyW) || keyboard.pressed(KeyCode::ArrowUp) {
         controller.target_position.y += pan_speed;
     }
@@ -208,7 +204,6 @@ fn handle_mouse_wheel_zoom(
             MouseScrollUnit::Pixel => event.y * 0.01,
         };
         
-        // Calculate new zoom level
         let zoom_factor = 1.0 - zoom_delta * CAMERA_ZOOM_SPEED;
         let new_zoom = (controller.target_zoom * zoom_factor).clamp(bounds.min_zoom, bounds.max_zoom);
         
@@ -230,7 +225,6 @@ fn handle_mouse_wheel_zoom(
                     cursor_ndc.y * ortho.scale * window.height() / 2.0 + transform.translation.y,
                 );
                 
-                // Calculate world position after zoom
                 let world_pos_after = Vec2::new(
                     cursor_ndc.x * new_zoom * window.width() / 2.0 + transform.translation.x,
                     cursor_ndc.y * new_zoom * window.height() / 2.0 + transform.translation.y,
@@ -300,7 +294,6 @@ fn handle_edge_panning(
     let edge_threshold = CAMERA_EDGE_PAN_THRESHOLD;
     let edge_speed = controller.edge_pan_speed_base * controller.current_zoom * time.delta_secs();
     
-    // Check each edge
     if cursor_pos.x <= edge_threshold {
         controller.target_position.x -= edge_speed;
     }
@@ -355,7 +348,7 @@ fn apply_smooth_movement(
     }
 }
 
-/// Apply camera bounds and handle wrapping
+/// Apply camera bounds with clamping
 fn apply_camera_bounds(
     mut query: Query<(&mut Transform, &mut CameraController, &Projection)>,
     bounds: Res<CameraBounds>,
@@ -363,28 +356,25 @@ fn apply_camera_bounds(
     map_dimensions: Res<MapDimensions>,
 ) {
     let Ok(window) = windows.get_single() else { return; };
-    
+
     for (mut transform, mut controller, projection) in query.iter_mut() {
         let Projection::Orthographic(ortho) = projection else { continue; };
-        
-        // Calculate visible area
+
+        let visible_width = window.width() * ortho.scale;
         let visible_height = window.height() * ortho.scale;
-        
+
         // Y-axis clamping with margin
         let margin_factor = 0.3;
         let max_y = (bounds.max_y - visible_height / 2.0 + map_dimensions.height_pixels * margin_factor).max(0.0);
-        
+
         transform.translation.y = transform.translation.y.clamp(-max_y, max_y);
         controller.target_position.y = controller.target_position.y.clamp(-max_y, max_y);
-        
-        // X-axis wrapping for seamless horizontal scrolling
-        if transform.translation.x > bounds.half_map_width {
-            transform.translation.x -= map_dimensions.width_pixels;
-            controller.target_position.x -= map_dimensions.width_pixels;
-        } else if transform.translation.x < -bounds.half_map_width {
-            transform.translation.x += map_dimensions.width_pixels;
-            controller.target_position.x += map_dimensions.width_pixels;
-        }
+
+        // X-axis clamping (same as Y-axis, no wrapping)
+        let max_x = (bounds.half_map_width - visible_width / 2.0 + map_dimensions.width_pixels * margin_factor).max(0.0);
+
+        transform.translation.x = transform.translation.x.clamp(-max_x, max_x);
+        controller.target_position.x = controller.target_position.x.clamp(-max_x, max_x);
     }
 }
 
@@ -421,7 +411,6 @@ fn handle_window_focus(
         if is_focused != focus_state.was_focused {
             focus_state.was_focused = is_focused;
             
-            // Simple logic: confined when focused, free when not
             window.cursor_options.grab_mode = if is_focused {
                 CursorGrabMode::Confined  // Enable edge panning
             } else {

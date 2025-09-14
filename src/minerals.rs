@@ -17,16 +17,12 @@ use std::collections::HashMap;
 use thiserror::Error;
 
 use crate::components::{
-    Province,
-    MineralType, Abundance
+    MineralType
 };
-use crate::world::terrain::TerrainType;
+use crate::world::{Province, Abundance, TerrainType};
 use crate::constants::*;
-use crate::math::distance::{euclidean_vec2, gaussian_falloff};
+use crate::math::{euclidean_vec2, gaussian_falloff};
 
-// ============================================================================
-// ERROR TYPES
-// ============================================================================
 
 #[derive(Debug, Error)]
 pub enum MineralGenerationError {
@@ -40,9 +36,6 @@ pub enum MineralGenerationError {
     InvalidRichness(f32, f32, f32),
 }
 
-// ============================================================================
-// MINERAL GENERATION CONSTANTS
-// ============================================================================
 
 /// Number of ore veins to generate for each mineral type
 pub const IRON_VEIN_COUNT: usize = 40;
@@ -107,9 +100,6 @@ pub const DEPLETION_RATES: [(MineralType, f32); 7] = [
     (MineralType::Gems, 0.03),    // ~33 years
 ];
 
-// ============================================================================
-// BEVY PLUGIN
-// ============================================================================
 
 pub struct MineralPlugin;
 
@@ -123,9 +113,6 @@ impl Plugin for MineralPlugin {
 
 // System to update mineral overlays would go here when integrated
 
-// ============================================================================
-// ORE VEIN GENERATION
-// ============================================================================
 
 /// Represents a concentrated deposit of a mineral
 #[derive(Debug, Clone)]
@@ -136,17 +123,14 @@ pub struct OreVein {
 }
 
 impl OreVein {
-    /// Get the position of this vein
     pub fn position(&self) -> Vec2 {
         self.position
     }
     
-    /// Get the mineral type
     pub fn mineral_type(&self) -> MineralType {
         self.mineral_type
     }
     
-    /// Get the richness multiplier
     pub fn richness(&self) -> f32 {
         self.richness
     }
@@ -264,9 +248,7 @@ pub fn generate_ore_veins(
     Ok(veins)
 }
 
-// ============================================================================
 // SPATIAL INDEXING FOR O(1) VEIN LOOKUPS
-// ============================================================================
 
 /// Spatial index for fast vein proximity queries
 #[derive(Resource)]
@@ -323,13 +305,11 @@ impl VeinSpatialIndex {
     pub fn query_near(&self, position: Vec2, mineral_type: MineralType, radius: f32) -> Vec<(usize, f32)> {
         let mut results = Vec::new();
         
-        // Calculate cells to check
         let min_x = ((position.x - radius) / self.cell_size).floor() as i32;
         let max_x = ((position.x + radius) / self.cell_size).floor() as i32;
         let min_y = ((position.y - radius) / self.cell_size).floor() as i32;
         let max_y = ((position.y + radius) / self.cell_size).floor() as i32;
         
-        // Check relevant cells
         for x in min_x..=max_x {
             for y in min_y..=max_y {
                 if let Some(indices) = self.grid.get(&(x, y)) {
@@ -420,9 +400,6 @@ pub fn get_terrain_bias(mineral: MineralType, terrain: &TerrainType, elevation: 
 }
 
 
-// ============================================================================
-// RESOURCE CALCULATION (OPTIMIZED WITH SPATIAL INDEX)
-// ============================================================================
 
 /// Calculate mineral abundance for a province based on distance to ore veins
 pub fn calculate_province_resources(
@@ -483,7 +460,6 @@ fn calculate_abundance_with_index(
         return 0;
     }
     
-    // Find closest vein from the pre-filtered results
     let (closest_idx, min_distance) = nearby_veins
         .iter()
         .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
@@ -524,7 +500,6 @@ pub fn calculate_all_province_resources(
         // Stone abundance
         province.stone = Abundance::new(get_stone_abundance(&province.terrain));
         
-        // Calculate each mineral (can't use the mutable helper here due to parallel access)
         province.iron = Abundance::new(calculate_abundance_with_index(
             province.position, MineralType::Iron, &province.terrain, spatial_index
         ));
@@ -551,9 +526,6 @@ fn get_terrain_extraction_bonus(terrain: &TerrainType) -> f32 {
     terrain.properties().extraction_difficulty
 }
 
-// ============================================================================
-// WORLD GENERATION
-// ============================================================================
 
 
 /// Generate mineral resources for the entire world using terrain and elevation
@@ -679,20 +651,15 @@ pub fn generate_world_minerals(seed: u32, provinces: &mut [Province]) {
     ore_veins.insert(MineralType::Coal, coal_veins);
     ore_veins.insert(MineralType::Gems, gem_veins);
 
-    // Build spatial index for O(1) lookups
     let mut spatial_index = VeinSpatialIndex::new(VEIN_SPATIAL_CELL_SIZE);
     spatial_index.build_from_veins(ore_veins);
 
-    // Calculate resources for all provinces in parallel
     calculate_all_province_resources(provinces, &spatial_index);
 
     let elapsed = start_time.elapsed();
     info!("Mineral generation completed in {:.2}ms", elapsed.as_secs_f32() * 1000.0);
 }
 
-// ============================================================================
-// HELPER FUNCTIONS FOR OVERLAY
-// ============================================================================
 
 /// Get mineral abundance for a specific province and mineral type
 pub fn get_mineral_abundance(

@@ -284,7 +284,6 @@ fn display_fps(
     mut last_print: Local<f32>,
     time: Res<Time>,
 ) {
-    // Check if enough time has passed since last update
     if time.elapsed_secs() - *last_print < config.fps_interval {
         return;
     }

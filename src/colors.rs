@@ -10,23 +10,19 @@ use crate::components::MineralType;
 use crate::world::terrain::TerrainType;
 use crate::constants::*;
 use crate::resources::{WeatherSystem, GameTime};
-use crate::math::interpolation::{lerp_color, weighted_blend_colors};
+use crate::math::{lerp_color, weighted_blend_colors, hash_random, fast_sin};
 
-// ============================================================================
 // TYPE-SAFE WRAPPERS
-// ============================================================================
 
 /// Type-safe wrapper for stone abundance with validation
 #[derive(Debug, Clone, Copy)]
 pub struct StoneAbundance(u8);
 
 impl StoneAbundance {
-    /// Create a new stone abundance, clamping to valid range [0, 100]
     pub fn new(value: u8) -> Self {
         Self(value.min(100))
     }
     
-    /// Get the normalized value [0.0, 1.0] accounting for stone's 20-80 range
     pub fn normalized(&self) -> f32 {
         if self.0 == 0 {
             0.0  // Ocean/no stone
@@ -55,9 +51,6 @@ impl SafeColor {
     }
 }
 
-// ============================================================================
-// UNIFIED COLOR THEME
-// ============================================================================
 
 /// Unified color theme combining world and UI colors
 pub mod theme {
@@ -121,22 +114,15 @@ pub mod theme {
     pub const DIALOG_BACKGROUND: Color = Color::srgba(0.05, 0.05, 0.05, 0.95);
 }
 
-// ============================================================================
-// FAST MATH APPROXIMATIONS
-// ============================================================================
 
 
 /// Position-based hash for deterministic variation
 #[inline]
 fn position_hash(x: f32, y: f32, seed: u32) -> f32 {
-    let mut h = ((x * 12.9898 + y * 78.233) * (seed as f32 * 0.001)).sin() * 43758.5453;
-    h = h.fract();
-    h * 2.0 - 1.0  // Return -1 to 1
+    // Use centralized hash_random and convert from [0,1] to [-1,1]
+    hash_random(x, y, seed) * 2.0 - 1.0
 }
 
-// ============================================================================
-// COLOR PALETTE CACHE
-// ============================================================================
 
 /// Pre-computed color palettes for all terrain types
 static COLOR_PALETTES: LazyLock<TerrainColorPalettes> = LazyLock::new(|| {
@@ -315,15 +301,12 @@ fn compute_terrain_color(terrain: TerrainType, elevation: f32) -> Color {
         },
         TerrainType::Mangrove => {
             // Coastal marsh green with tidal influence
-            let mangrove_tide = (elevation * 2.0).sin() * 0.05 + elevation * 0.1;
+            let mangrove_tide = fast_sin(elevation * 2.0) * 0.05 + elevation * 0.1;
             SafeColor::srgb(0.18 + mangrove_tide, 0.32 + mangrove_tide * 1.5, 0.22 + mangrove_tide)
         },
     }
 }
 
-// ============================================================================
-// COLOR TRAITS
-// ============================================================================
 
 /// Trait for types that can provide colors
 pub trait Colorable {
@@ -359,9 +342,6 @@ impl Colorable for MineralType {
     }
 }
 
-// ============================================================================
-// COLOR PROVIDER ABSTRACTION
-// ============================================================================
 
 /// Abstraction for providing colors to different game systems
 pub trait ColorProvider {
@@ -437,9 +417,6 @@ impl ColorProvider for StandardColorProvider {
     }
 }
 
-// ============================================================================
-// DYNAMIC COLOR SYSTEM
-// ============================================================================
 
 /// Dynamic color adjustments based on time, weather, and atmosphere
 pub struct DynamicColorSystem;
@@ -447,7 +424,6 @@ pub struct DynamicColorSystem;
 impl DynamicColorSystem {
     /// Apply time of day color adjustments
     pub fn apply_time_of_day(base_color: Color, game_time: &GameTime) -> Color {
-        // Calculate time of day (0-24 hours)
         let hours = (game_time.current_date % 1.0) * 24.0;
         
         // Dawn/dusk tinting
@@ -490,9 +466,7 @@ impl DynamicColorSystem {
     }
 }
 
-// ============================================================================
 // PUBLIC API - SIMPLIFIED FACADE
-// ============================================================================
 
 /// Simplified API for getting colors throughout the game
 pub struct WorldColors {
@@ -577,11 +551,8 @@ impl WorldColors {
     }
 }
 
-// ============================================================================
 // BACKWARDS COMPATIBILITY - PUBLIC API FUNCTIONS
-// ============================================================================
 
-/// Get the global world colors instance
 #[inline]
 fn get_world_colors() -> WorldColors {
     WorldColors::new(0)

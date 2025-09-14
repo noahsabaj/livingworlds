@@ -10,11 +10,8 @@ use bevy::math::Vec2;
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 use crate::components::MineralType;
-use crate::math::distance::euclidean_vec2;
+use crate::math::euclidean_vec2;
 
-// ============================================================================
-// WORLD CONFIGURATION RESOURCES
-// ============================================================================
 
 /// Configuration for world generation - the seed determines the entire world
 #[derive(Resource, Reflect, Clone, Serialize, Deserialize)]
@@ -33,9 +30,9 @@ impl Default for WorldName {
 /// World size configuration controlling map dimensions
 #[derive(Resource, Clone, Copy, Debug, PartialEq, Reflect, Serialize, Deserialize)]
 pub enum WorldSize {
-    Small,   // 600x500 provinces (300,000 hexagons)
-    Medium,  // 800x750 provinces (600,000 hexagons) 
-    Large,   // 1000x900 provinces (900,000 hexagons)
+    Small,   // 1250x800 provinces (1,000,000 hexagons)
+    Medium,  // 1600x1250 provinces (2,000,000 hexagons)
+    Large,   // 2000x1500 provinces (3,000,000 hexagons)
 }
 
 /// Stores error information when world generation fails
@@ -66,9 +63,9 @@ impl WorldSize {
     
     pub fn dimensions(&self) -> (usize, usize) {
         match self {
-            WorldSize::Small => (600, 500),   // 300,000 hexagons
-            WorldSize::Medium => (800, 750),  // 600,000 hexagons
-            WorldSize::Large => (1000, 900),  // 900,000 hexagons
+            WorldSize::Small => (1250, 800),    // 1,000,000 hexagons
+            WorldSize::Medium => (1600, 1250),  // 2,000,000 hexagons
+            WorldSize::Large => (2000, 1500),   // 3,000,000 hexagons
         }
     }
 }
@@ -99,7 +96,7 @@ impl MapDimensions {
         let provinces_per_row = provinces_per_row as u32;
         let provinces_per_col = provinces_per_col as u32;
         
-        use crate::math::hexagon::{HEX_SIZE, SQRT_3};
+        use crate::math::{HEX_SIZE, SQRT_3};
         let hex_size = HEX_SIZE;
         let width_pixels = provinces_per_row as f32 * hex_size * 1.5;
         let height_pixels = provinces_per_col as f32 * hex_size * SQRT_3;
@@ -120,9 +117,6 @@ impl MapDimensions {
     }
 }
 
-// ============================================================================
-// GAME STATE RESOURCES
-// ============================================================================
 
 /// Current game time and simulation speed
 #[derive(Resource, Reflect, Clone, Serialize, Deserialize)]
@@ -212,9 +206,6 @@ impl WorldTension {
     }
 }
 
-// ============================================================================
-// WEATHER SYSTEM RESOURCES
-// ============================================================================
 
 /// Weather states representing different atmospheric conditions
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -228,7 +219,6 @@ pub enum WeatherState {
 }
 
 impl WeatherState {
-    /// Get the cloud coverage range for this weather state
     pub fn coverage_range(&self) -> (f32, f32) {
         match self {
             WeatherState::Clear => (0.0, 0.1),
@@ -289,9 +279,6 @@ impl Default for WeatherSystem {
     }
 }
 
-// ============================================================================
-// GAMEPLAY RESOURCES
-// ============================================================================
 
 /// Tracks information about the currently selected province
 /// In mega-mesh architecture, provinces are data (not entities) stored in ProvinceStorage
@@ -313,7 +300,7 @@ pub struct ProvincesSpatialIndex {
 
 impl Default for ProvincesSpatialIndex {
     fn default() -> Self {
-        use crate::math::hexagon::HEX_SIZE;
+        use crate::math::HEX_SIZE;
         use crate::constants::SPATIAL_INDEX_CELL_SIZE_MULTIPLIER;
         Self {
             cell_size: HEX_SIZE * SPATIAL_INDEX_CELL_SIZE_MULTIPLIER,
@@ -340,13 +327,11 @@ impl ProvincesSpatialIndex {
     pub fn query_near(&self, world_pos: Vec2, search_radius: f32) -> Vec<(Vec2, u32)> {
         let mut results = Vec::new();
         
-        // Calculate grid cells to check based on search radius
         let min_x = ((world_pos.x - search_radius) / self.cell_size).floor() as i32;
         let max_x = ((world_pos.x + search_radius) / self.cell_size).floor() as i32;
         let min_y = ((world_pos.y - search_radius) / self.cell_size).floor() as i32;
         let max_y = ((world_pos.y + search_radius) / self.cell_size).floor() as i32;
         
-        // Check all relevant grid cells
         for x in min_x..=max_x {
             for y in min_y..=max_y {
                 if let Some(provinces) = self.grid.get(&(x, y)) {
@@ -401,14 +386,13 @@ impl CachedOverlayColors {
         use crate::colors::{get_terrain_color_gradient, mineral_abundance_color, stone_abundance_color, combined_richness_color};
         use crate::minerals::calculate_total_richness;
         use crate::world::terrain::TerrainType;
-        use crate::math::hexagon::VERTICES_PER_HEX;
+        use crate::math::VERTICES_PER_HEX;
 
         // If requesting current overlay, return it
         if overlay == self.current_type {
             return &self.current;
         }
 
-        // Check cache first
         if let Some(cached) = self.cache.get(&overlay) {
             // Move to current
             self.current = cached.clone();
@@ -416,7 +400,6 @@ impl CachedOverlayColors {
             return &self.current;
         }
 
-        // Calculate new overlay colors
         info!("Calculating overlay colors for: {}", overlay.display_name());
         let start = std::time::Instant::now();
 
@@ -486,7 +469,6 @@ impl CachedOverlayColors {
             self.cache.insert(self.current_type, self.current.clone());
         }
 
-        // Update current
         self.current = colors;
         self.current_type = overlay;
 
@@ -511,9 +493,6 @@ impl CachedOverlayColors {
 }
 
 
-// ============================================================================
-// VISUALIZATION RESOURCES
-// ============================================================================
 
 /// Resource visualization overlay modes for displaying mineral distribution
 #[derive(Resource, Debug, Clone, Copy, PartialEq, Eq, Hash, Reflect, Serialize, Deserialize)]

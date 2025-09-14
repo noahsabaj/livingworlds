@@ -49,7 +49,6 @@ impl Plugin for SimulationPlugin {
                 track_year_changes,
             ).chain().run_if(in_state(GameState::InGame)))
             
-            // Handle resuming from pause menu
             .add_systems(OnEnter(GameState::InGame), resume_from_pause_menu);
             
             // Example population growth system with events (will be enabled when nations are added)
@@ -176,7 +175,6 @@ fn handle_time_controls(
     if keyboard.just_pressed(KeyCode::Space) {
         game_time.paused = !game_time.paused;
         if game_time.paused {
-            // Save current speed before pausing
             game_time.speed_before_pause = game_time.speed;
             game_time.speed = SPEED_PAUSED;
         } else {
@@ -221,10 +219,8 @@ fn track_year_changes(
     mut last_year: Local<u32>,
     mut year_events: EventWriter<NewYearEvent>,
 ) {
-    // Calculate current year (starting from year 1000)
     let current_year = SIMULATION_STARTING_YEAR + (game_time.current_date / SIMULATION_DAYS_PER_YEAR_F32) as u32;
     
-    // Check if year changed
     if current_year != *last_year && *last_year > 0 {
         year_events.send(NewYearEvent {
             year: current_year,
@@ -261,53 +257,43 @@ fn resume_from_pause_menu(
 }
 
 
-// ============================================================================
 // FUTURE SYSTEMS (To be implemented when nations/civilizations are added)
-// ============================================================================
-// 
 // These systems will be added as the game develops:
-// 
 // - population_growth_system: Simulate population changes based on:
 //   * Agriculture and food production
 //   * Fresh water access
 //   * Terrain type bonuses
 //   * Disease and disasters
 //   * War casualties
-//
 // - nation_ai_system: Make decisions for AI nations:
 //   * Diplomacy (alliances, wars, trade)
 //   * Expansion and colonization
 //   * Military production and movement
 //   * Economic development
 //   * Technology research
-//
 // - economic_simulation: Track resources and trade:
 //   * Resource extraction from provinces
 //   * Trade route establishment
 //   * Market prices and supply/demand
 //   * Nation treasuries and taxation
 //   * Infrastructure development
-//
 // - technology_progression: Advance through ages:
 //   * Research trees for nations
 //   * Technology spread between nations
 //   * Unlocking new units and buildings
 //   * Cultural and scientific achievements
-//
 // - battle_resolution: Resolve military conflicts:
 //   * Army movement and positioning
 //   * Combat calculations
 //   * Siege warfare
 //   * Naval battles
 //   * War exhaustion
-//
 // - event_system: Random and triggered events:
 //   * Natural disasters (earthquakes, floods, droughts)
 //   * Plagues and diseases
 //   * Religious movements
 //   * Revolutions and civil wars
 //   * Great persons and discoveries
-//
 // - climate_system: Long-term climate changes:
 //   * Ice ages and warming periods
 //   * Desertification and reforestation

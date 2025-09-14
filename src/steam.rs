@@ -17,9 +17,6 @@ use std::path::PathBuf;
 // Your Steam App ID (replace with actual ID from Valve)
 const STEAM_APP_ID: u32 = 480; // Using Spacewar ID for testing - REPLACE WITH YOUR ACTUAL APP ID
 
-// ============================================================================
-// PLUGIN
-// ============================================================================
 
 /// Steam integration plugin for Living Worlds
 pub struct SteamPlugin;
@@ -61,7 +58,6 @@ impl Plugin for SteamPlugin {
         println!("Steam integration initialized successfully!");
         println!("Steam App ID: {}", STEAM_APP_ID);
         
-        // Get Steam user info
         if let Ok(user) = client.user() {
             let steam_id = user.steam_id();
             let name = client.friends().get_friend_name(steam_id);
@@ -70,9 +66,6 @@ impl Plugin for SteamPlugin {
     }
 }
 
-// ============================================================================
-// RESOURCES
-// ============================================================================
 
 /// Wrapper for the Steam client
 #[derive(Resource, Clone)]
@@ -90,9 +83,6 @@ pub struct SteamStats {
     pub peak_world_population: u64,
 }
 
-// ============================================================================
-// EVENTS
-// ============================================================================
 
 #[derive(Event)]
 pub struct AchievementUnlockedEvent {
@@ -112,9 +102,6 @@ pub struct CloudSaveSyncedEvent {
     pub files_synced: u32,
 }
 
-// ============================================================================
-// ACHIEVEMENTS
-// ============================================================================
 
 /// Achievement IDs for Living Worlds
 pub mod achievements {
@@ -147,7 +134,6 @@ fn handle_achievement_triggers(
     let client = &steam.0;
     let user_stats = client.user_stats();
     
-    // Check time-based achievements
     let hours_played = stats.total_playtime_minutes / 60.0;
     
     if hours_played >= 1.0 {
@@ -160,18 +146,15 @@ fn handle_achievement_triggers(
         unlock_achievement(&user_stats, achievements::OBSERVER_MASTER, &mut achievement_events);
     }
     
-    // Check simulation achievements
     let years = game_time.current_date / 365.0;
     if years >= 1000.0 {
         unlock_achievement(&user_stats, achievements::MILLENNIUM, &mut achievement_events);
     }
     
-    // Check tension achievements
     if world_tension.current >= 0.95 {
         unlock_achievement(&user_stats, achievements::APOCALYPSE, &mut achievement_events);
     }
     
-    // Check world generation achievements
     if stats.worlds_generated >= 10 {
         unlock_achievement(&user_stats, achievements::WORLD_EXPLORER, &mut achievement_events);
     }
@@ -220,9 +203,6 @@ fn get_achievement_display_name(id: &str) -> String {
     }.to_string()
 }
 
-// ============================================================================
-// RICH PRESENCE
-// ============================================================================
 
 /// Update Steam Rich Presence to show what the player is doing
 fn update_rich_presence(
@@ -234,7 +214,6 @@ fn update_rich_presence(
     let client = &steam.0;
     let friends = client.friends();
     
-    // Build presence string based on game state
     let status = match **game_state {
         crate::states::GameState::MainMenu => "In Main Menu",
         crate::states::GameState::WorldConfiguration => "Configuring New World",
@@ -251,7 +230,6 @@ fn update_rich_presence(
         _ => "Playing",
     };
     
-    // Set rich presence
     friends.set_rich_presence("status", status);
     
     if let Some(size) = world_size {
@@ -262,9 +240,6 @@ fn update_rich_presence(
     // Steam will display: "Playing Living Worlds - Observing Year 1453"
 }
 
-// ============================================================================
-// CLOUD SAVES
-// ============================================================================
 
 /// Sync save files with Steam Cloud
 fn sync_cloud_saves(
@@ -285,9 +260,6 @@ fn sync_cloud_saves(
     // }
 }
 
-// ============================================================================
-// WORKSHOP SUPPORT
-// ============================================================================
 
 /// Workshop item types for Living Worlds
 #[derive(Debug, Clone, Copy)]
@@ -317,9 +289,6 @@ pub fn get_subscribed_items(steam: &SteamClient) -> Vec<PublishedFileId> {
     ugc.subscribed_items()
 }
 
-// ============================================================================
-// STATISTICS
-// ============================================================================
 
 /// Initialize Steam statistics
 fn initialize_stats(
@@ -342,7 +311,6 @@ pub fn update_steam_stats(
     let client = &steam.0;
     let user_stats = client.user_stats();
     
-    // Update stats
     let _ = user_stats.set_stat("total_playtime_minutes", stats.total_playtime_minutes);
     let _ = user_stats.set_stat("worlds_generated", stats.worlds_generated as f32);
     let _ = user_stats.set_stat("provinces_explored", stats.provinces_explored as f32);
@@ -355,9 +323,6 @@ pub fn update_steam_stats(
     let _ = user_stats.store_stats();
 }
 
-// ============================================================================
-// SYSTEM FUNCTIONS
-// ============================================================================
 
 fn setup_steam_callbacks(
     steam: Res<SteamClient>,
@@ -385,9 +350,7 @@ fn cleanup_steam(
     // Steam cleanup is handled automatically
 }
 
-// ============================================================================
 // LEADERBOARDS (Future Feature)
-// ============================================================================
 
 /// Leaderboard IDs
 pub mod leaderboards {
@@ -406,7 +369,6 @@ pub fn submit_leaderboard_score(
     let client = &steam.0;
     let user_stats = client.user_stats();
     
-    // Find or create leaderboard
     user_stats.find_or_create_leaderboard(
         leaderboard_name,
         LeaderboardSortMethod::Descending,

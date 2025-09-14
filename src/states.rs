@@ -203,9 +203,6 @@ impl Plugin for StatesPlugin {
     }
 }
 
-// ============================================================================
-// STATE TRANSITION HANDLERS
-// ============================================================================
 
 /// Validates and handles state transition requests
 fn handle_state_transitions(
@@ -310,9 +307,7 @@ fn handle_menu_events(
     }
 }
 
-// ============================================================================
 // STATE ENTER/EXIT SYSTEMS
-// ============================================================================
 
 /// System that runs when entering the Loading state
 fn enter_loading(
@@ -424,7 +419,6 @@ fn enter_loading_world(
     // If we have a save to load, transition to InGame after loading
     // Otherwise, wait for world generation to complete
     if pending_load.is_some() {
-        // Save loading will handle the transition
     } else {
         // World generation will handle the transition
     }
@@ -456,7 +450,6 @@ fn check_and_trigger_world_generation(
     
     println!("Starting world generation after loading screen renders");
     
-    // Run world generation
     crate::setup::setup_world(
         commands,
         meshes,
@@ -533,7 +526,6 @@ fn enter_world_generation_failed(
     #[cfg(feature = "debug-states")]
     println!("Entering WorldGenerationFailed state with error: {}", error_resource.error_message);
     
-    // Spawn the error dialog
     crate::ui::dialogs::presets::world_generation_error_dialog(
         commands,
         &error_resource.error_message
@@ -548,7 +540,6 @@ fn handle_error_dialog_buttons(
     confirm_button_query: Query<&Interaction, (Changed<Interaction>, With<crate::ui::dialogs::ConfirmButton>)>,
     cancel_button_query: Query<&Interaction, (Changed<Interaction>, With<crate::ui::dialogs::CancelButton>)>,
 ) {
-    // Check confirm button ("Try Again")
     for interaction in &confirm_button_query {
         if *interaction == Interaction::Pressed {
             // Go back to world configuration
@@ -561,7 +552,6 @@ fn handle_error_dialog_buttons(
         }
     }
     
-    // Check cancel button ("Main Menu")
     for interaction in &cancel_button_query {
         if *interaction == Interaction::Pressed {
             // Go back to main menu
@@ -592,9 +582,6 @@ fn exit_world_generation_failed(
     commands.remove_resource::<crate::resources::WorldGenerationError>();
 }
 
-// ============================================================================
-// DEBUG HELPERS
-// ============================================================================
 
 /// Logs state changes for debugging (only runs when state actually changes)
 fn log_state_changes(
@@ -614,9 +601,6 @@ fn log_state_changes(
     println!("Game state changed to: {:?}", **state);
 }
 
-// ============================================================================
-// PUBLIC API
-// ============================================================================
 
 /// Request a state transition (with validation)
 pub fn request_transition(

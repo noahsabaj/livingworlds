@@ -1,6 +1,4 @@
-// ============================================================================
 // WORLD SETUP - Robust orchestrator with error handling and validation
-// ============================================================================
 
 use bevy::prelude::*;
 use bevy::sprite::MeshMaterial2d;
@@ -17,9 +15,6 @@ use crate::world::config::WorldGenerationSettings;
 use crate::states::GameState;
 use crate::loading_screen::{LoadingState, set_loading_progress};
 
-// ============================================================================
-// CONSTANTS
-// ============================================================================
 
 /// Loading progress milestones
 const PROGRESS_TERRAIN: f32 = 0.1;
@@ -35,9 +30,6 @@ const MIN_OCEAN_COVERAGE: f32 = 0.05;
 const MAX_RIVER_DENSITY: f32 = 1.0;
 const MIN_RIVER_DENSITY: f32 = 0.0;
 
-// ============================================================================
-// ERROR TYPES
-// ============================================================================
 
 /// Custom error type for world setup failures
 #[derive(Debug)]
@@ -68,9 +60,6 @@ impl fmt::Display for WorldSetupError {
 
 impl std::error::Error for WorldSetupError {}
 
-// ============================================================================
-// MAIN SETUP FUNCTION
-// ============================================================================
 
 /// Main world setup system - orchestrates world generation with full error handling
 pub fn setup_world(
@@ -83,7 +72,6 @@ pub fn setup_world(
 ) {
     let start_time = std::time::Instant::now();
     
-    // Run setup with error handling
     match setup_world_internal(
         &mut commands,
         &mut meshes,
@@ -127,9 +115,6 @@ pub fn setup_world(
     }
 }
 
-// ============================================================================
-// INTERNAL SETUP IMPLEMENTATION
-// ============================================================================
 
 /// Internal setup implementation with Result return type
 fn setup_world_internal(
@@ -150,7 +135,6 @@ fn setup_world_internal(
         return Err(WorldSetupError::EmptyWorld);
     }
     
-    // Build rendering mesh
     let mesh_handle = build_rendering_mesh(&world, meshes, loading_state)?;
     
     // Setup all resources
@@ -162,9 +146,6 @@ fn setup_world_internal(
     Ok(())
 }
 
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
 
 /// Validates world generation settings
 fn validate_settings(settings: &WorldGenerationSettings) -> Result<(), WorldSetupError> {
@@ -262,7 +243,6 @@ fn setup_world_resources(
     // Store map dimensions from the generated world (single source of truth)
     commands.insert_resource(world.map_dimensions.clone());
     
-    // Calculate statistics
     let total_provinces = world.provinces.len();
     let land_count = world.provinces.iter()
         .filter(|p| p.terrain != TerrainType::Ocean)
@@ -271,7 +251,6 @@ fn setup_world_resources(
     info!("Generated world with {} provinces, {} land tiles", 
              total_provinces, land_count);
     
-    // Build spatial index for mega-mesh architecture
     // Now simplified - no Entity needed since provinces are data, not entities
     let mut spatial_index = ProvincesSpatialIndex::default();
     for province in &world.provinces {
@@ -279,7 +258,6 @@ fn setup_world_resources(
     }
     commands.insert_resource(spatial_index);
     
-    // Build HashMap for O(1) province lookups by ID
     let province_by_id: HashMap<ProvinceId, usize> = world.provinces.iter()
         .enumerate()
         .map(|(idx, p)| (p.id, idx))
@@ -297,7 +275,6 @@ fn setup_world_resources(
     // Store mesh handle for overlay system
     commands.insert_resource(WorldMeshHandle(mesh_handle.clone()));
     
-    // Spawn the world as a single entity
     commands.spawn((
         Mesh2d(mesh_handle),
         MeshMaterial2d(materials.add(ColorMaterial::from(Color::WHITE))),

@@ -1,24 +1,15 @@
 //! Global constants for Living Worlds
-//! 
+//!
 //! This module contains all game constants organized by category.
 //! Centralizing constants ensures consistency and makes tuning easier.
 
 use bevy::prelude::Color;
+use crate::math::{HEX_SIZE, SQRT_3};
 
-// ============================================================================
-// HEXAGON GEOMETRY - Import from single source of truth
-// ============================================================================
-// ALL hexagon constants come from geometry/hexagon.rs to prevent duplication
-
-// Re-export for backward compatibility (deprecated - use geometry::hexagon directly)
-pub use crate::math::hexagon::{SQRT_3, HEX_SIZE, HALF};
-
-// Alias for backward compatibility (deprecated - use HEX_SIZE directly)
+// Re-export commonly used hexagon size constant
 pub const HEX_SIZE_PIXELS: f32 = HEX_SIZE;
 
-// ============================================================================
 // WORLD & MAP CONSTANTS
-// ============================================================================
 
 /// Number of province columns in the world
 pub const PROVINCES_PER_ROW: u32 = 300;
@@ -41,9 +32,6 @@ pub const MAP_WIDTH_PIXELS: f32 = PROVINCES_PER_ROW as f32 * HEX_SIZE_PIXELS * 1
 /// Formula: rows * hex_radius * sqrt(3) (vertical spacing between rows)
 pub const MAP_HEIGHT_PIXELS: f32 = PROVINCES_PER_COL as f32 * HEX_SIZE_PIXELS * SQRT_3;
 
-// ============================================================================
-// OCEAN ELEVATION CONSTANTS
-// ============================================================================
 
 /// Ocean elevation threshold for shallow water
 /// Above 12% elevation = shallow coastal waters (light blue)
@@ -57,9 +45,6 @@ pub const OCEAN_ELEVATION_MEDIUM: f32 = 0.07;
 /// Below 2% elevation = abyssal depths (dark blue)
 pub const OCEAN_ELEVATION_DEEP: f32 = 0.02;
 
-// ============================================================================
-// CAMERA CONSTANTS
-// ============================================================================
 
 /// How fast the camera zooms with mouse wheel
 pub const CAMERA_ZOOM_SPEED: f32 = 0.1;
@@ -87,9 +72,6 @@ pub const CAMERA_EDGE_PAN_SPEED_BASE: f32 = 800.0;
 /// Padding factor when fitting map to screen (1.25 = 25% padding for better overview)
 pub const CAMERA_MAP_PADDING_FACTOR: f32 = 1.25;
 
-// ============================================================================
-// UI CONSTANTS
-// ============================================================================
 
 /// Font size for tile info panel
 pub const UI_TILE_INFO_TEXT_SIZE: f32 = 18.0;
@@ -100,9 +82,6 @@ pub const UI_PADDING_PERCENT: f32 = 1.0;
 /// UI margin from screen edges as percentage
 pub const UI_MARGIN_PERCENT: f32 = 2.0;
 
-// ============================================================================
-// SIMULATION CONSTANTS
-// ============================================================================
 
 /// Starting year for the simulation
 /// Year 1000 represents a medieval-like starting point
@@ -120,9 +99,6 @@ pub const SIMULATION_DEFAULT_SPEED: f32 = 1.0;
 /// Maximum simulation speed multiplier
 pub const SIMULATION_MAX_SPEED: f32 = 10.0;
 
-// ============================================================================
-// CLOUD GENERATION CONSTANTS
-// ============================================================================
 
 /// Minimum cloud sprite scale
 pub const CLOUD_MIN_SCALE: f32 = 3.0;
@@ -139,9 +115,6 @@ pub const CLOUD_BASE_SPEED: f32 = 10.0;
 /// Z-coordinate for off-screen positioning
 pub const OFF_SCREEN_Z: f32 = -1000.0;
 
-// ============================================================================
-// COLOR CONSTANTS
-// ============================================================================
 
 /// Deep ocean background color
 pub const COLOR_OCEAN_BACKGROUND: Color = Color::srgb(0.02, 0.08, 0.15);
@@ -152,9 +125,6 @@ pub const COLOR_UI_BACKGROUND: Color = Color::srgba(0.0, 0.0, 0.0, 0.9);  // Dar
 /// Tile info panel background color
 pub const COLOR_TILE_INFO_BACKGROUND: Color = Color::srgba(0.0, 0.0, 0.0, 0.7);  // Semi-transparent black
 
-// ============================================================================
-// PROVINCE GENERATION CONSTANTS
-// ============================================================================
 
 /// Minimum population for land provinces
 /// 1000 represents a small rural settlement
@@ -182,14 +152,52 @@ pub const ISLAND_CHAIN_COUNT: usize = 0;
 /// 2 creates strategic island chains like Indonesia/Caribbean
 pub const ARCHIPELAGO_COUNT: usize = 2;
 
-// All continent generation constants have been REMOVED!
-// Elevation is now generated from tectonic plates, not radial falloff.
-// See src/generation/elevation.rs for the new system.
+/// Continent size multiplier (reduced to prevent Voronoi patterns)
+pub const CONTINENT_SIZE_MULTIPLIER: f32 = 1.0;
 
+/// Massive continent base radius (Eurasia-sized)
+pub const CONTINENT_MASSIVE_BASE: f32 = 2500.0;
+pub const CONTINENT_MASSIVE_VARIATION: f32 = 1000.0;
+
+/// Medium continent base radius (Australia-sized)
+pub const CONTINENT_MEDIUM_BASE: f32 = 1600.0;
+pub const CONTINENT_MEDIUM_VARIATION: f32 = 600.0;
+
+/// Archipelago base radius (Indonesia-sized)
+pub const CONTINENT_ARCHIPELAGO_BASE: f32 = 800.0;
+pub const CONTINENT_ARCHIPELAGO_VARIATION: f32 = 300.0;
+
+/// Tiny island base radius (Hawaii-sized)
+pub const CONTINENT_TINY_BASE: f32 = 400.0;
+pub const CONTINENT_TINY_VARIATION: f32 = 200.0;
+
+/// Falloff power for continent edges
+/// 0.8 creates gentler slopes for more realistic coastlines
+pub const CONTINENT_FALLOFF_BASE: f32 = 0.8;
+pub const CONTINENT_FALLOFF_VARIATION: f32 = 0.3;
+
+/// Number of landmass seeds to generate (independent of tectonic plates)
+/// More seeds = more varied and natural continent distribution
+pub const LANDMASS_SEED_COUNT_MIN: u32 = 20;
+pub const LANDMASS_SEED_COUNT_MAX: u32 = 35;
+          
+/// Landmass shape irregularity (0.0 = circular, 1.0 = very irregular)
+pub const LANDMASS_SHAPE_IRREGULARITY: f32 = 0.6;
+          
+/// Number of noise octaves for continent shape complexity
+pub const LANDMASS_NOISE_OCTAVES: u32 = 4;
+          
+/// Coastline complexity factor (fractal dimension)
+pub const LANDMASS_COASTLINE_COMPLEXITY: f32 = 0.4;
+          
 /// Tectonic influence weight (reduced to prevent plate-defined continents)
 pub const TECTONIC_INFLUENCE_WEIGHT: f32 = 0.15;
-
-// Terrain weights removed - now handled by tectonic elevation system
+          
+/// Base terrain noise weight (increased for more variation)
+pub const BASE_TERRAIN_WEIGHT: f32 = 0.5;
+          
+/// Landmass influence weight (for continent vs ocean)
+pub const LANDMASS_INFLUENCE_WEIGHT: f32 = 0.35;
 
 /// Number of rivers to generate
 /// 200 rivers provides good coverage for large worlds
@@ -199,9 +207,6 @@ pub const RIVER_COUNT: usize = 200;
 /// 0.5 (50% elevation) ensures rivers start from highlands
 pub const RIVER_MIN_ELEVATION: f32 = 0.5;
 
-// ============================================================================
-// SPATIAL INDEX CONSTANTS
-// ============================================================================
 
 /// Grid cell size for spatial indexing (as multiple of hex size)
 pub const SPATIAL_INDEX_CELL_SIZE_MULTIPLIER: f32 = 2.0;
@@ -209,28 +214,12 @@ pub const SPATIAL_INDEX_CELL_SIZE_MULTIPLIER: f32 = 2.0;
 /// Grid cell size for ocean depth calculation (as multiple of hex size)
 pub const OCEAN_DEPTH_GRID_SIZE_MULTIPLIER: f32 = 3.0;
 
-// ============================================================================
-// HEXAGON GEOMETRY CONSTANTS (DEPRECATED - Use geometry::hexagon)
-// ============================================================================
-// These are re-exported for backward compatibility only
-// New code should import directly from crate::geometry::hexagon
-
-pub use crate::math::hexagon::{
-    CORNERS as HEXAGON_VERTICES,
-    DEGREES_PER_CORNER as DEGREES_PER_HEXAGON_VERTEX,
-    AA_WIDTH as HEXAGON_AA_WIDTH,
-    COLUMN_OFFSET_DIVISOR as HEXAGON_COLUMN_OFFSET_DIVISOR,
-};
-
 /// Full opacity value for texture pixels
 pub const TEXTURE_ALPHA_OPAQUE: u8 = 255;
 
 /// Full transparency value for texture pixels
 pub const TEXTURE_ALPHA_TRANSPARENT: u8 = 0;
 
-// ============================================================================
-// COMMON CONVERSION CONSTANTS
-// ============================================================================
 
 /// Milliseconds per second for time conversions
 pub const MS_PER_SECOND: f32 = 1000.0;
@@ -238,9 +227,7 @@ pub const MS_PER_SECOND: f32 = 1000.0;
 /// Degrees in a full circle
 pub const DEGREES_IN_CIRCLE: f32 = 360.0;
 
-// ============================================================================
 // COMPILE-TIME ASSERTIONS
-// ============================================================================
 
 // Validate camera zoom invariants
 const _: () = assert!(CAMERA_MIN_ZOOM > 0.0, "Minimum zoom must be positive");
@@ -260,6 +247,3 @@ const _: () = assert!(SIMULATION_MAX_SPEED >= SIMULATION_DEFAULT_SPEED, "Max spe
 
 // Validate population ranges
 const _: () = assert!(PROVINCE_MIN_POPULATION > 0, "Minimum population must be positive");
-
-// Note: The calculate_hex_position function has been moved to src/geometry.rs
-// as it represents logic rather than data constants

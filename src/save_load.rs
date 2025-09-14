@@ -1,4 +1,3 @@
-//! Save and Load functionality for Living Worlds
 //! 
 //! This module handles saving and loading game state with:
 //! - Compressed saves using zstd
@@ -27,9 +26,6 @@ use crate::colors::theme;
 use bevy_simple_text_input::TextInputValue;
 use crate::loading_screen::{LoadingState, start_save_loading, set_loading_progress};
 
-// ============================================================================
-// CONSTANTS
-// ============================================================================
 
 /// Directory where save files are stored
 const SAVE_DIRECTORY: &str = "saves";
@@ -43,9 +39,6 @@ const SAVE_VERSION: u32 = 1;
 /// Auto-save interval in seconds
 const AUTO_SAVE_INTERVAL: f32 = 300.0; // 5 minutes
 
-// ============================================================================
-// RESOURCES
-// ============================================================================
 
 /// Tracks available save files
 #[derive(Resource, Default)]
@@ -174,9 +167,6 @@ pub struct SaveDialogState {
     pub search_filter: String,
 }
 
-// ============================================================================
-// EVENTS
-// ============================================================================
 
 /// Event to trigger saving the game
 #[derive(Event)]
@@ -219,9 +209,6 @@ pub struct LoadCompleteEvent {
     pub message: String,
 }
 
-// ============================================================================
-// PLUGIN
-// ============================================================================
 
 pub struct SaveLoadPlugin;
 
@@ -246,7 +233,6 @@ impl Plugin for SaveLoadPlugin {
             .add_event::<OpenSaveDialogEvent>()
             .add_event::<CloseSaveDialogEvent>()
             
-            // Systems
             .add_systems(Update, (
                 handle_save_game,
                 handle_load_game,
@@ -280,9 +266,6 @@ impl Plugin for SaveLoadPlugin {
     }
 }
 
-// ============================================================================
-// SYSTEMS
-// ============================================================================
 
 /// Ensure the save directory exists
 fn ensure_save_directory() {
@@ -312,7 +295,6 @@ fn handle_save_load_shortcuts(
         // Scan for saves directly
         scan_save_files_internal(&mut save_list);
         
-        // Load the most recent save
         if let Some(latest) = save_list.saves.first() {
             load_events.write(LoadGameEvent {
                 save_path: latest.path.clone(),
@@ -366,7 +348,6 @@ fn handle_save_game(
                         let filename = format!("{}/{}_{}.{}", 
                             SAVE_DIRECTORY, event.slot_name, timestamp, SAVE_EXTENSION);
                         
-                        // Write compressed data asynchronously
                         let filename_clone = filename.clone();
                         let compressed_size = compressed.len() as u64;
                         
@@ -430,7 +411,6 @@ fn handle_load_game(
     for event in load_events.read() {
         println!("Loading game from: {:?}", event.save_path);
         
-        // Read the compressed save file
         match fs::read(&event.save_path) {
             Ok(compressed_data) => {
                 // Decompress
@@ -439,7 +419,6 @@ fn handle_load_game(
                         // Deserialize from RON
                         match ron::from_str::<SaveGameData>(&String::from_utf8_lossy(&decompressed)) {
                             Ok(save_data) => {
-                                // Check version compatibility
                                 if save_data.version > SAVE_VERSION {
                                     eprintln!("Save file version {} is newer than game version {}", 
                                         save_data.version, SAVE_VERSION);
@@ -534,7 +513,6 @@ fn check_for_pending_load(
         commands.insert_resource(load_data.0.resource_overlay);
         set_loading_progress(&mut loading_state, 0.4, "Resources restored...");
         
-        // Build the world mesh from loaded provinces
         use crate::world::mesh::{build_world_mesh, WorldMeshHandle};
         use bevy::render::mesh::Mesh2d;
         use bevy::sprite::MeshMaterial2d;
@@ -544,7 +522,6 @@ fn check_for_pending_load(
         let mesh_handle = build_world_mesh(&load_data.0.provinces, &mut meshes);
         set_loading_progress(&mut loading_state, 0.8, "Creating game entities...");
         
-        // Spawn the world mesh entity (just like in setup_world)
         commands.spawn((
             Mesh2d(mesh_handle.clone()),
             MeshMaterial2d(materials.add(ColorMaterial::from(Color::WHITE))),
@@ -566,7 +543,6 @@ fn check_for_pending_load(
             province_by_id,
         });
         
-        // Create the spatial index for fast province lookups
         use crate::resources::ProvincesSpatialIndex;
         let mut spatial_index = ProvincesSpatialIndex::default();
         for province in &load_data.0.provinces {
@@ -680,7 +656,6 @@ pub fn spawn_save_browser(
                 },
             ));
             
-            // Save list container with scrolling
             panel.spawn((
                 Node {
                     flex_direction: FlexDirection::Column,
@@ -709,7 +684,6 @@ pub fn spawn_save_browser(
                             save_info: save_info.clone(),
                         },
                     )).with_children(|slot| {
-                        // Create a row container for save info and delete button
                         slot.spawn(Node {
                             width: Val::Percent(100.0),
                             flex_direction: FlexDirection::Row,
@@ -723,7 +697,6 @@ pub fn spawn_save_browser(
                                 flex_grow: 1.0,
                                 ..default()
                             }).with_children(|info| {
-                                // Save name
                                 info.spawn((
                                     Text::new(&save_info.name),
                                     TextFont {
@@ -751,7 +724,6 @@ pub fn spawn_save_browser(
                                     },
                                 ));
                                 
-                                // Save details
                                 info.spawn((
                                     Text::new(format!("Date: {} | Size: {} | Game Time: {:.0} days",
                                         save_info.date_created.format("%Y-%m-%d %H:%M"),
@@ -784,14 +756,12 @@ pub fn spawn_save_browser(
                 }
             });
             
-            // Button row
             panel.spawn(Node {
                 flex_direction: FlexDirection::Row,
                 justify_content: JustifyContent::SpaceBetween,
                 margin: UiRect::top(Val::Px(20.0)),
                 ..default()
             }).with_children(|buttons| {
-                // Load button
                 ButtonBuilder::new("Load Selected")
                     .style(ButtonStyle::Primary)
                     .size(ButtonSize::Large)
@@ -836,7 +806,6 @@ fn handle_save_browser_interactions(
                 browser_state.selected_save = Some(slot.index);
                 println!("Selected save: {}", slot.save_info.name);
             } else if load_btn.is_some() {
-                // Load the selected save
                 if let Some(index) = browser_state.selected_save {
                     if let Some(save_info) = save_list.saves.get(index) {
                         load_events.write(LoadGameEvent {
@@ -899,11 +868,7 @@ pub fn scan_save_files(mut save_list: ResMut<SaveGameList>) {
     scan_save_files_internal(&mut save_list);
 }
 
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
 
-/// Create a quick save
 pub fn quick_save(world: &mut World) {
     world.send_event(SaveGameEvent {
         slot_name: "quicksave".to_string(),
@@ -931,7 +896,6 @@ pub fn load_latest_save(world: &mut World) {
 fn extract_save_metadata(path: &Path) -> Option<(String, f32, u32, String, u32)> {
     use std::io::{BufReader, Read as IoRead};
     
-    // Read only the first 8KB of the compressed file (should contain metadata)
     let file = File::open(path).ok()?;
     let mut reader = BufReader::new(file);
     let mut limited_reader = (&mut reader).take(8192); // 8KB should be enough for metadata
@@ -1131,9 +1095,6 @@ fn format_file_size(bytes: u64) -> String {
     }
 }
 
-// ============================================================================
-// DELETE FUNCTIONALITY
-// ============================================================================
 
 /// Handle delete button clicks - show confirmation dialog
 fn handle_delete_button_click(
@@ -1151,7 +1112,6 @@ fn handle_delete_button_click(
                 commands.entity(entity).despawn_recursive();
             }
             
-            // Spawn confirmation dialog
             spawn_delete_confirmation_dialog(
                 &mut commands,
                 delete_button.save_path.clone(),
@@ -1225,7 +1185,6 @@ fn spawn_delete_confirmation_dialog(
                 },
             ));
             
-            // Button row
             panel.spawn(Node {
                 flex_direction: FlexDirection::Row,
                 column_gap: Val::Px(20.0),
@@ -1295,9 +1254,6 @@ fn handle_delete_confirmation(
 }
 
 
-// ============================================================================
-// SAVE DIALOG SYSTEMS
-// ============================================================================
 
 /// Handle opening the save dialog
 fn handle_open_save_dialog(
@@ -1426,7 +1382,6 @@ fn spawn_save_dialog(
                 ));
             });
             
-            // Save name input section
             parent.spawn((
                 Node {
                     flex_direction: FlexDirection::Column,
@@ -1448,7 +1403,6 @@ fn spawn_save_dialog(
                     },
                 ));
                 
-                // Text input for save name (pre-populated with timestamp)
                 TextInputBuilder::new()
                     .with_value(default_name)
                     .with_placeholder("Enter save name...")
@@ -1468,7 +1422,6 @@ fn spawn_save_dialog(
                     ..default()
                 },
             )).with_children(|buttons| {
-                // Save button
                 ButtonBuilder::new("Save Game")
                     .style(ButtonStyle::Primary)
                     .size(ButtonSize::Large)
@@ -1499,7 +1452,6 @@ fn handle_save_dialog_interactions(
     for (interaction, (confirm, cancel)) in &mut interactions {
         if *interaction == Interaction::Pressed {
             if confirm.is_some() {
-                // Get the save name from the input
                 if let Ok(save_name_value) = save_name_query.get_single() {
                     let save_name = save_name_value.0.trim();
                     if !save_name.is_empty() {

@@ -8,9 +8,6 @@ use bevy::prelude::*;
 use crate::components::{ProvinceId, Abundance, Agriculture, Distance, MineralType};
 use crate::world::terrain::TerrainType;
 
-// ============================================================================
-// PROVINCE CHANGE EVENTS
-// ============================================================================
 
 /// Event fired when a province's population changes
 #[derive(Event, Debug, Clone)]
@@ -187,9 +184,7 @@ pub enum ProvinceChangeType {
     Other(String),
 }
 
-// ============================================================================
 // BATCH EVENTS - For bulk operations
-// ============================================================================
 
 /// Event for batch population updates (e.g., from simulation tick)
 #[derive(Event, Debug, Clone)]
@@ -204,9 +199,6 @@ pub struct BatchMineralDiscovery {
     pub discoveries: Vec<ProvinceMineralsChanged>,
 }
 
-// ============================================================================
-// PLUGIN
-// ============================================================================
 
 /// Plugin that registers all province event types
 pub struct ProvinceEventsPlugin;
@@ -233,9 +225,6 @@ impl Plugin for ProvinceEventsPlugin {
     }
 }
 
-// ============================================================================
-// DEBUG SYSTEMS
-// ============================================================================
 
 /// Resource to enable debug logging of province events
 #[derive(Resource, Default)]
@@ -336,9 +325,6 @@ fn log_province_changes(
     }
 }
 
-// ============================================================================
-// HELPER TRAITS
-// ============================================================================
 
 /// Trait for types that can emit province events
 pub trait ProvinceEventEmitter {

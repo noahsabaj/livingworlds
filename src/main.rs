@@ -94,10 +94,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Setup thread pool for world generation
     setup_thread_pool(args.threads)?;
     
-    // Build application configuration
     let config = build_config(&args);
     
-    // Build the application with our configuration
     let mut app = build_app_with_config(config)
         .map_err(|e| format!("Failed to initialize application: {}", e))?;
     
@@ -110,7 +108,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         info!("Starting in normal mode - main menu will handle world configuration");
     }
     
-    // Run the application
     info!("Launching Living Worlds...");
     app.run();
     
@@ -119,7 +116,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 /// Initialize the logging system
 fn initialize_logging(debug_mode: bool) {
-    // Set up env_logger for non-Bevy logs
     // Bevy will use these environment variables for its own logging
     if debug_mode {
         std::env::set_var("RUST_LOG", "debug,living_worlds=debug");
@@ -138,14 +134,12 @@ fn setup_thread_pool(requested_threads: usize) -> Result<(), Box<dyn std::error:
         calculate_optimal_threads()
     };
     
-    // Build the global thread pool
     rayon::ThreadPoolBuilder::new()
         .num_threads(num_threads)
         .thread_name(|i| format!("world-gen-{}", i))
         .build_global()
         .map_err(|e| format!("Failed to initialize thread pool: {}", e))?;
     
-    // Get actual core count for logging
     let total_cores = std::thread::available_parallelism()
         .map(|n| n.get())
         .unwrap_or(DEFAULT_WORKER_THREADS);
