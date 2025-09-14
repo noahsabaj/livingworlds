@@ -21,14 +21,14 @@
 //! and controlled exports. All functionality is in private submodules.
 
 // PRIVATE MODULES - Implementation details
-mod types;
-mod events;
-mod resources;
-mod plugin;
-mod io;
 mod core;
-mod ui;
+mod events;
 mod handlers;
+mod io;
+mod plugin;
+mod resources;
+mod types;
+mod ui;
 
 // CONTROLLED PUBLIC EXPORTS
 
@@ -37,36 +37,31 @@ pub use plugin::SaveLoadPlugin;
 
 // Types - data structures (selective exports)
 pub use types::{
-    SaveGameInfo,
     SaveGameData,
+    SaveGameInfo,
+    AUTO_SAVE_INTERVAL, // Needed by resources module
     SAVE_DIRECTORY,
     SAVE_EXTENSION,
-    SAVE_VERSION,        // Needed by core module
-    AUTO_SAVE_INTERVAL,  // Needed by resources module
+    SAVE_VERSION, // Needed by core module
 };
 
 // Events - all events are public for external triggering
 pub use events::{
-    SaveGameEvent,
-    LoadGameEvent,
-    SaveCompleteEvent,
-    LoadCompleteEvent,
-    DeleteSaveEvent,
-    OpenSaveDialogEvent,
-    CloseSaveDialogEvent,
+    CloseSaveDialogEvent, DeleteSaveEvent, LoadCompleteEvent, LoadGameEvent, OpenSaveDialogEvent,
+    SaveCompleteEvent, SaveGameEvent,
 };
 
 // Resources - selective exports for external access
 pub use resources::{
-    SaveGameList,
+    AutoSaveTimer,   // Needed for plugin
+    PendingLoadData, // Needed for load system
     SaveBrowserState,
     SaveDialogState,
-    PendingLoadData,  // Needed for load system
-    AutoSaveTimer,    // Needed for plugin
+    SaveGameList,
 };
 
 // Public utility functions
-pub use core::{quick_save, load_latest_save};
+pub use core::{load_latest_save, quick_save};
 pub use io::{scan_save_files, scan_save_files_internal};
 
 // Note: We do NOT export:

@@ -2,15 +2,17 @@
 //!
 //! This module handles the actual saving of game state, separated from UI and I/O.
 
+use super::{SaveCompleteEvent, SaveGameEvent};
+use super::{SaveGameData, SAVE_DIRECTORY, SAVE_EXTENSION, SAVE_VERSION};
+use crate::resources::{
+    GameTime, MapDimensions, ResourceOverlay, WorldName, WorldSeed, WorldSize, WorldTension,
+};
+use crate::world::ProvinceStorage;
 use bevy::prelude::*;
 use bevy::tasks::IoTaskPool;
 use chrono::Local;
 use std::fs::File;
 use std::io::Write;
-use crate::world::ProvinceStorage;
-use crate::resources::{WorldSeed, WorldName, WorldSize, MapDimensions, GameTime, WorldTension, ResourceOverlay};
-use super::{SaveGameData, SAVE_VERSION, SAVE_DIRECTORY, SAVE_EXTENSION};
-use super::{SaveGameEvent, SaveCompleteEvent};
 
 /// Handle save game requests with compression and versioning
 pub fn handle_save_game(
@@ -32,14 +34,18 @@ pub fn handle_save_game(
         let save_data = SaveGameData {
             version: SAVE_VERSION,
             timestamp: Local::now(),
-            world_name: world_name.as_ref().map(|n| n.0.clone()).unwrap_or_else(|| "Unnamed World".to_string()),
+            world_name: world_name
+                .as_ref()
+                .map(|n| n.0.clone())
+                .unwrap_or_else(|| "Unnamed World".to_string()),
             world_seed: world_seed.as_ref().map(|s| s.0).unwrap_or(0),
             world_size: world_size.as_deref().copied().unwrap_or(WorldSize::Medium),
             map_dimensions: map_dims.as_deref().copied().unwrap_or_default(),
             game_time: game_time.as_deref().cloned().unwrap_or_default(),
             world_tension: world_tension.as_deref().cloned().unwrap_or_default(),
             resource_overlay: resource_overlay.as_deref().copied().unwrap_or_default(),
-            provinces: province_storage.as_ref()
+            provinces: province_storage
+                .as_ref()
                 .map(|s| s.provinces.clone())
                 .unwrap_or_default(),
         };
@@ -51,8 +57,10 @@ pub fn handle_save_game(
                     Ok(compressed) => {
                         // Generate filename with timestamp
                         let timestamp = Local::now().format("%Y%m%d_%H%M%S");
-                        let filename = format!("{}/{}_{}.{}",
-                            SAVE_DIRECTORY, event.slot_name, timestamp, SAVE_EXTENSION);
+                        let filename = format!(
+                            "{}/{}_{}.{}",
+                            SAVE_DIRECTORY, event.slot_name, timestamp, SAVE_EXTENSION
+                        );
 
                         let filename_clone = filename.clone();
                         let compressed_size = compressed.len() as u64;
@@ -66,8 +74,11 @@ pub fn handle_save_game(
                                             eprintln!("Failed to write save file: {}", e);
                                             false
                                         } else {
-                                            println!("Game saved successfully to: {} ({}KB compressed)",
-                                                filename_clone, compressed_size / 1024);
+                                            println!(
+                                                "Game saved successfully to: {} ({}KB compressed)",
+                                                filename_clone,
+                                                compressed_size / 1024
+                                            );
                                             true
                                         }
                                     }
@@ -81,7 +92,11 @@ pub fn handle_save_game(
 
                         complete_events.write(SaveCompleteEvent {
                             success: true,
-                            message: format!("Game saved to {} ({}KB)", filename, compressed_size / 1024),
+                            message: format!(
+                                "Game saved to {} ({}KB)",
+                                filename,
+                                compressed_size / 1024
+                            ),
                         });
                     }
                     Err(e) => {

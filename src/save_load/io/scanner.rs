@@ -2,13 +2,13 @@
 //!
 //! This module handles directory operations and save file discovery.
 
+use super::metadata::extract_save_metadata;
+use super::SaveGameList;
+use super::{SaveGameInfo, SAVE_DIRECTORY, SAVE_EXTENSION};
 use bevy::prelude::*;
+use chrono::Local;
 use std::fs;
 use std::path::Path;
-use chrono::Local;
-use super::{SAVE_DIRECTORY, SAVE_EXTENSION, SaveGameInfo};
-use super::SaveGameList;
-use super::metadata::extract_save_metadata;
 
 /// Ensure the save directory exists
 pub fn ensure_save_directory() {
@@ -38,24 +38,36 @@ pub fn scan_save_files_internal(save_list: &mut SaveGameList) {
                     if let Some(extension) = entry.path().extension() {
                         if extension == SAVE_EXTENSION {
                             if let Some(file_name) = entry.file_name().to_str() {
-                                let name = file_name.trim_end_matches(&format!(".{}", SAVE_EXTENSION));
+                                let name =
+                                    file_name.trim_end_matches(&format!(".{}", SAVE_EXTENSION));
 
                                 // Try to parse date from filename
-                                let date_created = parse_date_from_filename(name).unwrap_or_else(|| {
-                                    metadata.modified()
-                                        .ok()
-                                        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
-                                        .and_then(|d| {
-                                            use chrono::{Local, TimeZone};
-                                            Local.timestamp_opt(d.as_secs() as i64, 0).single()
-                                        })
-                                        .unwrap_or_else(Local::now)
-                                });
+                                let date_created =
+                                    parse_date_from_filename(name).unwrap_or_else(|| {
+                                        metadata
+                                            .modified()
+                                            .ok()
+                                            .and_then(|t| {
+                                                t.duration_since(std::time::UNIX_EPOCH).ok()
+                                            })
+                                            .and_then(|d| {
+                                                use chrono::{Local, TimeZone};
+                                                Local.timestamp_opt(d.as_secs() as i64, 0).single()
+                                            })
+                                            .unwrap_or_else(Local::now)
+                                    });
 
                                 // Extract metadata from the save file
                                 let (world_size, game_time, version, world_name, world_seed) =
-                                    extract_save_metadata(&entry.path())
-                                        .unwrap_or_else(|| ("Unknown".to_string(), 0.0, 1, "Unnamed World".to_string(), 0));
+                                    extract_save_metadata(&entry.path()).unwrap_or_else(|| {
+                                        (
+                                            "Unknown".to_string(),
+                                            0.0,
+                                            1,
+                                            "Unnamed World".to_string(),
+                                            0,
+                                        )
+                                    });
 
                                 let save_info = SaveGameInfo {
                                     name: name.to_string(),
@@ -78,7 +90,9 @@ pub fn scan_save_files_internal(save_list: &mut SaveGameList) {
     }
 
     // Sort by date, newest first
-    save_list.saves.sort_by(|a, b| b.date_created.cmp(&a.date_created));
+    save_list
+        .saves
+        .sort_by(|a, b| b.date_created.cmp(&a.date_created));
 }
 
 fn parse_date_from_filename(name: &str) -> Option<chrono::DateTime<Local>> {

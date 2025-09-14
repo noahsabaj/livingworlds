@@ -2,12 +2,12 @@
 //!
 //! This module creates delete confirmation dialogs using our standard UI builders.
 
+use super::components::*;
+use super::SaveGameList;
+use crate::ui::{DialogBuilder, DialogType};
 use bevy::prelude::*;
 use std::fs;
 use std::path::PathBuf;
-use crate::ui::{DialogBuilder, DialogType};
-use super::components::*;
-use super::SaveGameList;
 
 /// Resource to store the path to delete upon confirmation
 #[derive(Resource)]
@@ -17,7 +17,7 @@ pub struct PendingDeletePath(pub PathBuf);
 pub fn handle_delete_button_click(
     mut interactions: Query<
         (&Interaction, &DeleteSaveButton),
-        (Changed<Interaction>, With<Button>)
+        (Changed<Interaction>, With<Button>),
     >,
     mut commands: Commands,
     existing_dialog: Query<Entity, With<DeleteConfirmationDialog>>,
@@ -41,7 +41,9 @@ pub fn handle_delete_button_click(
                 .build(&mut commands);
 
             // Add our markers to the dialog
-            commands.entity(dialog_entity).insert(DeleteConfirmationDialog);
+            commands
+                .entity(dialog_entity)
+                .insert(DeleteConfirmationDialog);
 
             // Store the save path for confirmation
             commands.insert_resource(PendingDeletePath(delete_button.save_path.clone()));
@@ -51,10 +53,7 @@ pub fn handle_delete_button_click(
 
 /// Handle delete confirmation dialog buttons
 pub fn handle_delete_confirmation(
-    mut interactions: Query<
-        (&Interaction, &Button),
-        Changed<Interaction>
-    >,
+    mut interactions: Query<(&Interaction, &Button), Changed<Interaction>>,
     mut commands: Commands,
     dialog_query: Query<Entity, With<DeleteConfirmationDialog>>,
     mut save_list: ResMut<SaveGameList>,

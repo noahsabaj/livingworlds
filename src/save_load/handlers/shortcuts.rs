@@ -2,9 +2,9 @@
 //!
 //! This module handles keyboard shortcuts for save and load operations.
 
-use bevy::prelude::*;
-use super::{SaveGameEvent, LoadGameEvent};
 use super::SaveGameList;
+use super::{LoadGameEvent, SaveGameEvent};
+use bevy::prelude::*;
 
 /// Handle keyboard shortcuts for save/load (F5 = quick save, F9 = quick load)
 pub fn handle_save_load_shortcuts(

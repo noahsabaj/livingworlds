@@ -3,9 +3,9 @@
 //! This module contains all the marker components used to identify
 //! UI elements in the save/load dialogs.
 
+use super::SaveGameInfo;
 use bevy::prelude::*;
 use std::path::PathBuf;
-use super::SaveGameInfo;
 
 // Browser components
 

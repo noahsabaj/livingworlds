@@ -2,9 +2,9 @@
 //!
 //! This module handles coordination between different save/load events and systems.
 
-use bevy::prelude::*;
+use super::{SaveBrowserState, SaveGameList};
 use crate::menus::SpawnSaveBrowserEvent;
-use super::{SaveGameList, SaveBrowserState};
+use bevy::prelude::*;
 
 /// System to handle the SpawnSaveBrowserEvent
 pub fn handle_spawn_save_browser_event(

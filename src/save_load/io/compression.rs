@@ -2,7 +2,7 @@
 //!
 //! This module handles zstd compression and decompression of save data.
 
-use zstd::stream::{encode_all, decode_all};
+use zstd::stream::{decode_all, encode_all};
 
 /// Compress data using zstd
 pub fn compress_data(data: &[u8]) -> Result<Vec<u8>, String> {

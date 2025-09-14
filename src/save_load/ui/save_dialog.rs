@@ -2,15 +2,15 @@
 //!
 //! This module creates the save dialog UI using our standard UI builders.
 
+use super::components::*;
+use super::{CloseSaveDialogEvent, OpenSaveDialogEvent, SaveGameEvent};
+use super::{SaveDialogState, SaveGameList};
+use crate::resources::{WorldName, WorldSeed};
+use crate::ui::{colors, TextInputBuilder};
+use crate::ui::{ButtonBuilder, ButtonSize, ButtonStyle, DialogBuilder, DialogType};
 use bevy::prelude::*;
 use bevy_simple_text_input::TextInputValue;
 use chrono::Local;
-use crate::ui::{DialogBuilder, DialogType, ButtonBuilder, ButtonStyle, ButtonSize};
-use crate::ui::{TextInputBuilder, colors};
-use crate::resources::{WorldSeed, WorldName};
-use super::{OpenSaveDialogEvent, CloseSaveDialogEvent, SaveGameEvent};
-use super::{SaveDialogState, SaveGameList};
-use super::components::*;
 
 /// Handle opening the save dialog
 pub fn handle_open_save_dialog(
@@ -34,133 +34,140 @@ pub fn handle_open_save_dialog(
             let timestamp = Local::now().format("%Y%m%d_%H%M%S");
             let default_name = format!("save_{}", timestamp);
 
-            let world_name_str = world_name.as_ref().map(|n| n.0.clone()).unwrap_or_else(|| "Unnamed World".to_string());
+            let world_name_str = world_name
+                .as_ref()
+                .map(|n| n.0.clone())
+                .unwrap_or_else(|| "Unnamed World".to_string());
             let world_seed_val = world_seed.as_ref().map(|s| s.0).unwrap_or(0);
 
             // Create save dialog manually (too complex for DialogBuilder)
-            commands.spawn((
-                Node {
-                    position_type: PositionType::Absolute,
-                    width: Val::Percent(100.0),
-                    height: Val::Percent(100.0),
-                    justify_content: JustifyContent::Center,
-                    align_items: AlignItems::Center,
-                    ..default()
-                },
-                BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.7)),
-                SaveDialogRoot,
-            )).with_children(|overlay| {
-                // Dialog container
-                overlay.spawn((
+            commands
+                .spawn((
                     Node {
-                        width: Val::Px(900.0),
-                        padding: UiRect::all(Val::Px(20.0)),
-                        flex_direction: FlexDirection::Column,
-                        row_gap: Val::Px(15.0),
+                        position_type: PositionType::Absolute,
+                        width: Val::Percent(100.0),
+                        height: Val::Percent(100.0),
+                        justify_content: JustifyContent::Center,
+                        align_items: AlignItems::Center,
                         ..default()
                     },
-                    BackgroundColor(colors::BACKGROUND_MEDIUM),
-                    BorderColor(colors::BORDER),
-                )).with_children(|parent| {
-                    // Title
-                    parent.spawn((
-                        Text::new("Save Game"),
-                        TextFont {
-                            font_size: 24.0,
-                            ..default()
-                        },
-                        TextColor(colors::TEXT_PRIMARY),
-                        Node {
-                            margin: UiRect::bottom(Val::Px(10.0)),
-                            ..default()
-                        },
-                    ));
-                    // World info row
-                    parent.spawn((
-                        Node {
-                            flex_direction: FlexDirection::Row,
-                            margin: UiRect::bottom(Val::Px(15.0)),
-                            column_gap: Val::Px(20.0),
-                            ..default()
-                        },
-                    )).with_children(|info_parent| {
-                        // World name
-                        info_parent.spawn((
-                            Text::new(format!("World: {}", world_name_str)),
-                            TextFont {
-                                font_size: 18.0,
-                                ..default()
-                            },
-                            TextColor(colors::TEXT_SECONDARY),
-                        ));
-
-                        // Seed
-                        info_parent.spawn((
-                            Text::new(format!("Seed: {}", world_seed_val)),
-                            TextFont {
-                                font_size: 18.0,
-                                ..default()
-                            },
-                            TextColor(colors::TEXT_SECONDARY),
-                        ));
-                    });
-
-                    // Save name input section
-                    parent.spawn((
-                        Node {
-                            flex_direction: FlexDirection::Column,
-                            margin: UiRect::bottom(Val::Px(20.0)),
-                            ..default()
-                        },
-                    )).with_children(|section| {
-                        // Label
-                        section.spawn((
-                            Text::new("Save Name:"),
-                            TextFont {
-                                font_size: 20.0,
-                                ..default()
-                            },
-                            TextColor(colors::TEXT_PRIMARY),
+                    BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.7)),
+                    SaveDialogRoot,
+                ))
+                .with_children(|overlay| {
+                    // Dialog container
+                    overlay
+                        .spawn((
                             Node {
-                                margin: UiRect::bottom(Val::Px(8.0)),
+                                width: Val::Px(900.0),
+                                padding: UiRect::all(Val::Px(20.0)),
+                                flex_direction: FlexDirection::Column,
+                                row_gap: Val::Px(15.0),
                                 ..default()
                             },
-                        ));
+                            BackgroundColor(colors::BACKGROUND_MEDIUM),
+                            BorderColor(colors::BORDER),
+                        ))
+                        .with_children(|parent| {
+                            // Title
+                            parent.spawn((
+                                Text::new("Save Game"),
+                                TextFont {
+                                    font_size: 24.0,
+                                    ..default()
+                                },
+                                TextColor(colors::TEXT_PRIMARY),
+                                Node {
+                                    margin: UiRect::bottom(Val::Px(10.0)),
+                                    ..default()
+                                },
+                            ));
+                            // World info row
+                            parent
+                                .spawn((Node {
+                                    flex_direction: FlexDirection::Row,
+                                    margin: UiRect::bottom(Val::Px(15.0)),
+                                    column_gap: Val::Px(20.0),
+                                    ..default()
+                                },))
+                                .with_children(|info_parent| {
+                                    // World name
+                                    info_parent.spawn((
+                                        Text::new(format!("World: {}", world_name_str)),
+                                        TextFont {
+                                            font_size: 18.0,
+                                            ..default()
+                                        },
+                                        TextColor(colors::TEXT_SECONDARY),
+                                    ));
 
-                        // Use our TextInputBuilder
-                        TextInputBuilder::new()
-                            .with_value(default_name)
-                            .with_placeholder("Enter save name...")
-                            .with_width(Val::Px(850.0))
-                            .with_font_size(18.0)
-                            .retain_on_submit(true)
-                            .with_marker(SaveNameInput)
-                            .build(section);
-                    });
+                                    // Seed
+                                    info_parent.spawn((
+                                        Text::new(format!("Seed: {}", world_seed_val)),
+                                        TextFont {
+                                            font_size: 18.0,
+                                            ..default()
+                                        },
+                                        TextColor(colors::TEXT_SECONDARY),
+                                    ));
+                                });
 
-                    // Bottom buttons
-                    parent.spawn((
-                        Node {
-                            width: Val::Percent(100.0),
-                            justify_content: JustifyContent::Center,
-                            column_gap: Val::Px(20.0),
-                            ..default()
-                        },
-                    )).with_children(|buttons| {
-                        ButtonBuilder::new("Save Game")
-                            .style(ButtonStyle::Primary)
-                            .size(ButtonSize::Large)
-                            .with_marker(SaveDialogConfirmButton)
-                            .build(buttons);
+                            // Save name input section
+                            parent
+                                .spawn((Node {
+                                    flex_direction: FlexDirection::Column,
+                                    margin: UiRect::bottom(Val::Px(20.0)),
+                                    ..default()
+                                },))
+                                .with_children(|section| {
+                                    // Label
+                                    section.spawn((
+                                        Text::new("Save Name:"),
+                                        TextFont {
+                                            font_size: 20.0,
+                                            ..default()
+                                        },
+                                        TextColor(colors::TEXT_PRIMARY),
+                                        Node {
+                                            margin: UiRect::bottom(Val::Px(8.0)),
+                                            ..default()
+                                        },
+                                    ));
 
-                        ButtonBuilder::new("Cancel")
-                            .style(ButtonStyle::Secondary)
-                            .size(ButtonSize::Large)
-                            .with_marker(SaveDialogCancelButton)
-                            .build(buttons);
-                    });
+                                    // Use our TextInputBuilder
+                                    TextInputBuilder::new()
+                                        .with_value(default_name)
+                                        .with_placeholder("Enter save name...")
+                                        .with_width(Val::Px(850.0))
+                                        .with_font_size(18.0)
+                                        .retain_on_submit(true)
+                                        .with_marker(SaveNameInput)
+                                        .build(section);
+                                });
+
+                            // Bottom buttons
+                            parent
+                                .spawn((Node {
+                                    width: Val::Percent(100.0),
+                                    justify_content: JustifyContent::Center,
+                                    column_gap: Val::Px(20.0),
+                                    ..default()
+                                },))
+                                .with_children(|buttons| {
+                                    ButtonBuilder::new("Save Game")
+                                        .style(ButtonStyle::Primary)
+                                        .size(ButtonSize::Large)
+                                        .with_marker(SaveDialogConfirmButton)
+                                        .build(buttons);
+
+                                    ButtonBuilder::new("Cancel")
+                                        .style(ButtonStyle::Secondary)
+                                        .size(ButtonSize::Large)
+                                        .with_marker(SaveDialogCancelButton)
+                                        .build(buttons);
+                                });
+                        });
                 });
-            });
         }
     }
 }
@@ -187,8 +194,11 @@ pub fn handle_close_save_dialog(
 /// Handle save dialog interactions
 pub fn handle_save_dialog_interactions(
     mut interactions: Query<
-        (&Interaction, AnyOf<(&SaveDialogConfirmButton, &SaveDialogCancelButton)>),
-        Changed<Interaction>
+        (
+            &Interaction,
+            AnyOf<(&SaveDialogConfirmButton, &SaveDialogCancelButton)>,
+        ),
+        Changed<Interaction>,
     >,
     mut save_events: EventWriter<SaveGameEvent>,
     mut close_events: EventWriter<CloseSaveDialogEvent>,

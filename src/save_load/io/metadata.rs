@@ -29,7 +29,9 @@ pub fn extract_save_metadata(path: &Path) -> Option<(String, f32, u32, String, u
             // But only decompress the first 64KB of content to keep it fast
             let mut decoder = Decoder::new(&compressed_data[..]).ok()?;
             let mut partial_decompressed = Vec::new();
-            let _ = (&mut decoder).take(65536).read_to_end(&mut partial_decompressed);
+            let _ = (&mut decoder)
+                .take(65536)
+                .read_to_end(&mut partial_decompressed);
             partial_decompressed
         }
     };

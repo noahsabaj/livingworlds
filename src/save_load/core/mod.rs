@@ -10,31 +10,29 @@
 
 // Re-export what our children need from parent gateway (for internal use only)
 pub(self) use super::{
-    SaveGameData, SaveGameInfo, SAVE_VERSION, SAVE_DIRECTORY, SAVE_EXTENSION,
-    SaveGameEvent, LoadGameEvent, SaveCompleteEvent, LoadCompleteEvent,
-    SaveGameList, PendingLoadData, AutoSaveTimer,
+    AutoSaveTimer, LoadCompleteEvent, LoadGameEvent, PendingLoadData, SaveCompleteEvent,
+    SaveGameData, SaveGameEvent, SaveGameInfo, SaveGameList, SAVE_DIRECTORY, SAVE_EXTENSION,
+    SAVE_VERSION,
 };
 
 // Re-export I/O functions our children need (for internal use only)
 pub(self) use super::io::{
-    compress_data, decompress_data,
-    serialize_save_data, deserialize_save_data,
-    extract_save_metadata, format_file_size,
-    scan_save_files_internal,
+    compress_data, decompress_data, deserialize_save_data, extract_save_metadata, format_file_size,
+    scan_save_files_internal, serialize_save_data,
 };
 
 // PRIVATE MODULES - Core logic implementation
-mod save;
-mod load;
 mod auto_save;
+mod load;
+mod save;
 
 // CONTROLLED EXPORTS - Core functionality
 
 // System functions (used by plugin)
-pub(super) use save::handle_save_game;
-pub(super) use load::{handle_load_game, check_for_pending_load};
 pub(super) use auto_save::handle_auto_save;
+pub(super) use load::{check_for_pending_load, handle_load_game};
+pub(super) use save::handle_save_game;
 
 // Public utility functions
-pub use save::quick_save;
 pub use load::load_latest_save;
+pub use save::quick_save;

@@ -2,8 +2,8 @@
 //!
 //! This module handles automatic saving at regular intervals.
 
+use super::{AutoSaveTimer, SaveGameEvent};
 use bevy::prelude::*;
-use super::{SaveGameEvent, AutoSaveTimer};
 
 /// Handle auto-save timer
 pub fn handle_auto_save(

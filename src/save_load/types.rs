@@ -2,10 +2,10 @@
 //!
 //! This module contains all the data structures used for saving and loading game state.
 
-use std::path::PathBuf;
+use crate::resources::{GameTime, MapDimensions, ResourceOverlay, WorldSize, WorldTension};
 use chrono::{DateTime, Local};
-use serde::{Serialize, Deserialize};
-use crate::resources::{WorldSize, MapDimensions, GameTime, WorldTension, ResourceOverlay};
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 
 /// Directory where save files are stored
 pub const SAVE_DIRECTORY: &str = "saves";

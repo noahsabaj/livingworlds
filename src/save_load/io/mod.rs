@@ -10,16 +10,13 @@
 //! and controlled exports. Internal modules handle their own logic.
 
 // Re-export what our children need from parent gateway (for internal use only)
-pub(self) use super::{
-    SaveGameData, SaveGameInfo, SAVE_DIRECTORY, SAVE_EXTENSION,
-    SaveGameList,
-};
+pub(self) use super::{SaveGameData, SaveGameInfo, SaveGameList, SAVE_DIRECTORY, SAVE_EXTENSION};
 
 // PRIVATE MODULES - I/O implementation
 mod compression;
-mod serialization;
 mod metadata;
 mod scanner;
+mod serialization;
 
 // CONTROLLED EXPORTS - Only what's needed externally
 
@@ -28,8 +25,8 @@ pub use scanner::{ensure_save_directory, scan_save_files, scan_save_files_intern
 
 // File operations (used by core module)
 pub(super) use compression::{compress_data, decompress_data};
-pub(super) use serialization::{serialize_save_data, deserialize_save_data};
 pub(super) use metadata::extract_save_metadata;
+pub(super) use serialization::{deserialize_save_data, serialize_save_data};
 
 // Utility functions
 pub use scanner::format_file_size;

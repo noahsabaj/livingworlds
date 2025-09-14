@@ -2,8 +2,8 @@
 //!
 //! This module defines resources used for managing save/load state.
 
+use super::{SaveGameData, SaveGameInfo, AUTO_SAVE_INTERVAL};
 use bevy::prelude::*;
-use super::{SaveGameInfo, SaveGameData, AUTO_SAVE_INTERVAL};
 
 /// Tracks available save files
 #[derive(Resource, Default)]

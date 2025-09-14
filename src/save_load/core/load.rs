@@ -2,18 +2,18 @@
 //!
 //! This module handles the actual loading of game state, separated from UI and I/O.
 
+use super::{LoadCompleteEvent, LoadGameEvent, SaveGameData};
+use super::{PendingLoadData, SaveGameList};
+use crate::loading_screen::{set_loading_progress, start_save_loading, LoadingState};
+use crate::resources::{ProvincesSpatialIndex, WorldName, WorldSeed};
+use crate::states::{GameState, RequestStateTransition};
+use crate::world::{build_world_mesh, CloudBuilder, ProvinceStorage, WorldMeshHandle};
 use bevy::prelude::*;
 use bevy::render::mesh::Mesh2d;
 use bevy::sprite::MeshMaterial2d;
-use std::fs;
+use rand::{rngs::StdRng, SeedableRng};
 use std::collections::HashMap;
-use rand::{SeedableRng, rngs::StdRng};
-use crate::states::{GameState, RequestStateTransition};
-use crate::resources::{WorldSeed, WorldName, ProvincesSpatialIndex};
-use crate::world::{ProvinceStorage, build_world_mesh, WorldMeshHandle, CloudBuilder};
-use crate::loading_screen::{LoadingState, start_save_loading, set_loading_progress};
-use super::{SaveGameData, LoadGameEvent, LoadCompleteEvent};
-use super::{SaveGameList, PendingLoadData};
+use std::fs;
 
 /// Handle load game requests with decompression and deserialization
 pub fn handle_load_game(
@@ -35,8 +35,11 @@ pub fn handle_load_game(
                         match super::deserialize_save_data(&data_str) {
                             Ok(save_data) => {
                                 if save_data.version > super::super::types::SAVE_VERSION {
-                                    eprintln!("Save file version {} is newer than game version {}",
-                                        save_data.version, super::super::types::SAVE_VERSION);
+                                    eprintln!(
+                                        "Save file version {} is newer than game version {}",
+                                        save_data.version,
+                                        super::super::types::SAVE_VERSION
+                                    );
                                     complete_events.write(LoadCompleteEvent {
                                         success: false,
                                         message: format!("Save file version {} incompatible with game version {}",
@@ -46,8 +49,10 @@ pub fn handle_load_game(
                                 }
 
                                 println!("Successfully loaded save from {}", save_data.timestamp);
-                                println!("Game time: {} days, World size: {:?}",
-                                    save_data.game_time.current_date, save_data.world_size);
+                                println!(
+                                    "Game time: {} days, World size: {:?}",
+                                    save_data.game_time.current_date, save_data.world_size
+                                );
 
                                 // Initialize loading screen
                                 let mut loading_state = LoadingState::default();
@@ -56,7 +61,9 @@ pub fn handle_load_game(
                                     .unwrap_or_else(|_| "Unknown".to_string());
                                 start_save_loading(
                                     &mut loading_state,
-                                    event.save_path.file_name()
+                                    event
+                                        .save_path
+                                        .file_name()
                                         .and_then(|n| n.to_str())
                                         .unwrap_or("Save")
                                         .to_string(),
@@ -126,7 +133,10 @@ pub fn check_for_pending_load(
         set_loading_progress(&mut loading_state, 0.4, "Resources restored...");
 
         // Rebuild world mesh
-        println!("Rebuilding world mesh from {} provinces...", load_data.0.provinces.len());
+        println!(
+            "Rebuilding world mesh from {} provinces...",
+            load_data.0.provinces.len()
+        );
         set_loading_progress(&mut loading_state, 0.5, "Rebuilding world mesh...");
         let mesh_handle = build_world_mesh(&load_data.0.provinces, &mut meshes);
         set_loading_progress(&mut loading_state, 0.8, "Creating game entities...");
