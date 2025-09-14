@@ -1,0 +1,74 @@
+//! Ancient culture names (Lost civilization style)
+//!
+//! Names inspired by mythical lost civilizations and ancient mysteries.
+//! Features forgotten empires, advanced technology, and timeless wisdom.
+
+/// Male first names
+pub const MALE_NAMES: &[&str] = &[
+    "Atlantus", "Murus", "Lemur", "Hyperion", "Thulian", "Agarthan",
+    "Ozymandias", "Gilgamesh", "Enkidu", "Utnapishtim", "Nimrod", "Enoch",
+    "Hermes", "Thoth", "Imhotep", "Ptah", "Osiris", "Anubis",
+    "Quetzal", "Kukulkan", "Itzamna", "Hunab", "Kinich", "Chaac",
+    "Viracocha", "Inti", "Manco", "Pachacuti", "Tupac", "Atahualpa",
+    "Zephyrus", "Chronos", "Aether", "Erebus", "Morpheus", "Thanatos",
+    "Merlin", "Taliesin", "Gwydion", "Bran", "Arawn", "Cernunnos",
+    "Aegis", "Primus", "Nexus", "Axiom", "Zenith", "Apex",
+];
+
+/// Female first names
+pub const FEMALE_NAMES: &[&str] = &[
+    "Atlantia", "Lemuria", "Hyperia", "Thulia", "Agartha", "Shambhala",
+    "Cassiopeia", "Andromeda", "Elektra", "Pandora", "Persephone", "Hecate",
+    "Isis", "Nephthys", "Sekhmet", "Bastet", "Hathor", "Maat",
+    "Ixchel", "Itzel", "Akna", "Ixtab", "Xochil", "Citlali",
+    "Pachamama", "Mama Killa", "Mama Cocha", "Chasca", "Urcuchillay",
+    "Gaia", "Rhea", "Hestia", "Demeter", "Hera", "Athena",
+    "Morgana", "Nimue", "Viviane", "Igraine", "Guinevere", "Isolde",
+    "Prima", "Nexia", "Axioma", "Zenitha", "Apexa", "Ultima",
+];
+
+/// Gender-neutral names
+pub const NEUTRAL_NAMES: &[&str] = &[
+    "Phoenix", "Sphinx", "Oracle", "Sage", "Cipher", "Echo",
+    "Prism", "Nexus", "Axis", "Zenith", "Meridian", "Equinox",
+];
+
+/// Dynasty/house names
+pub const DYNASTY_NAMES: &[&str] = &[
+    "Atlantean", "Lemurian", "Hyperborean", "Agarthan", "Shambhalan",
+    "Anunnaki", "Nephilim", "Elohim", "Seraphim", "Cherubim",
+    "Primordial", "Eternal", "Immortal", "Undying", "Timeless",
+    "Starborn", "Voidwalker", "Lightbringer", "Shadowweaver", "Gatekeeper",
+    "Crystalline", "Obsidian", "Adamantine", "Mithril", "Orichalcum",
+    "Ascendant", "Transcendent", "Enlightened", "Awakened", "Illuminated",
+    "Archon", "Hierophant", "Magister", "Arbiter", "Custodian",
+    "Firstborn", "Lastborn", "Onlyborn", "Trueborn", "Highborn",
+];
+
+/// Nation roots
+pub const NATION_ROOTS: &[&str] = &[
+    "Atlantis", "Lemuria", "Mu", "Hyperborea", "Thule", "Shambhala",
+    "El Dorado", "Xibalba", "Agartha", "Avalon", "Lyonesse",
+    "Babylon", "Sumeria", "Akkadia", "Assyria", "Chaldea",
+    "Khem", "Kemet", "Nubia", "Kush", "Axum", "Meroe",
+    "Tiahuanaco", "Chavín", "Nazca", "Moche", "Wari", "Chimú",
+    "Olmec", "Teotihuacan", "Toltec", "Zapotec", "Mixtec", "Maya",
+    "Dilmun", "Magan", "Meluhha", "Harappa", "Mohenjo", "Kalibangan",
+    "Tartessos", "Doggerland", "Zealandia", "Sundaland", "Beringia",
+];
+
+/// Place names
+pub const PLACE_NAMES: &[&str] = &[
+    "Temple of Ages", "Eternal City", "Forgotten Realm", "Lost Valley",
+    "Ancient Gates", "Timeless Spire", "Crystal Citadel", "Void Sanctum",
+    "Hall of Memories", "Archive of Souls", "Library of Babel", "Akashic Vault",
+    "Pyramid of Power", "Ziggurat of Wisdom", "Obelisk of Order", "Monolith of Mystery",
+    "Observatory of Orion", "Planetarium of Pleiades", "Astrolabe of Andromeda",
+    "Portal of Passages", "Gateway of Gods", "Bridge of Bifrost", "Nexus of Nodes",
+    "Fountain of Youth", "Well of Wisdom", "Pool of Prophecy", "Spring of Souls",
+    "Garden of Eden", "Grove of Enlightenment", "Forest of Forever", "Tree of Life",
+    "Mountain of Meru", "Peak of Perfection", "Summit of Serenity", "Plateau of Peace",
+    "Valley of Visions", "Canyon of Creation", "Gorge of Genesis", "Rift of Realms",
+    "Island of Isolation", "Atoll of Atlantis", "Key of Knowledge", "Cape of Consciousness",
+    "Desert of Dreams", "Oasis of Oneness", "Mirage of Meaning", "Sands of Silence",
+];

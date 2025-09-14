@@ -1,0 +1,65 @@
+//! Eastern culture names (Asian-inspired)
+//!
+//! Names inspired by East Asian cultures including Chinese, Japanese, Korean,
+//! and Southeast Asian traditions. Features dynasties, honor, and harmony.
+
+/// Male first names
+pub const MALE_NAMES: &[&str] = &[
+    "Akira", "Chen", "Jin", "Kenji", "Liu", "Ming", "Ryu", "Shin",
+    "Tao", "Wei", "Xian", "Yasuo", "Zhang", "Hiroshi", "Kazuki",
+    "Takeshi", "Haruto", "Ren", "Hiro", "Ichiro", "Jiro", "Saburo",
+    "Li", "Wang", "Feng", "Long", "Yang", "Zhao", "Sun", "Wu",
+    "Bao", "Chang", "Dong", "Fang", "Gang", "Hong", "Jiang", "Kang",
+    "Dao", "Duc", "Huu", "Minh", "Nam", "Phuoc", "Quang", "Thanh",
+];
+
+/// Female first names
+pub const FEMALE_NAMES: &[&str] = &[
+    "Mei", "Sakura", "Yuki", "Ling", "Xia", "Feng", "Ai", "Hana",
+    "Jade", "Li", "Ming-Yue", "Nami", "Rei", "Suki", "Yui",
+    "Ayame", "Chiyo", "Emi", "Fumiko", "Hanako", "Izumi", "Kaori",
+    "Lan", "Lian", "Lotus", "Orchid", "Pearl", "Plum", "Rose", "Willow",
+    "An", "Binh", "Cam", "Dao", "Hanh", "Hoa", "Kim", "Linh",
+    "Mai", "Ngoc", "Nhu", "Phuong", "Quy", "Tam", "Thao", "Xuan",
+];
+
+/// Gender-neutral names
+pub const NEUTRAL_NAMES: &[&str] = &[
+    "Ren", "Yu", "Aki", "Haru", "Kyo", "Sora", "Yuki",
+    "Min", "Jin", "Lei", "Qiu", "Shi", "Xin", "Zhi",
+    "An", "Binh", "Chi", "Duc", "Hoa", "Kim", "Linh",
+];
+
+/// Family surnames
+pub const SURNAMES: &[&str] = &[
+    "Tanaka", "Wang", "Chen", "Li", "Zhang", "Yamamoto", "Suzuki",
+    "Kim", "Park", "Lee", "Nakamura", "Fujiwara", "Minamoto",
+    "Takahashi", "Watanabe", "Ito", "Sato", "Kobayashi", "Yamaguchi",
+    "Liu", "Huang", "Zhou", "Wu", "Zhao", "Sun", "Ma", "Zhu",
+    "Nguyen", "Tran", "Le", "Pham", "Hoang", "Vo", "Dang", "Bui",
+    "Chang", "Choi", "Jung", "Kang", "Yoon", "Jang", "Lim", "Han",
+];
+
+/// Dynasty names
+pub const DYNASTY_NAMES: &[&str] = &[
+    "Ming", "Tang", "Song", "Han", "Jin", "Yuan", "Qing", "Zhou",
+    "Yamato", "Heian", "Kamakura", "Ashikaga", "Tokugawa",
+    "Silla", "Goguryeo", "Baekje", "Goryeo", "Joseon",
+    "Ayutthaya", "Sukhothai", "Lanna", "Srivijaya", "Majapahit",
+    "Shang", "Xia", "Qin", "Sui", "Liao", "Western Jin", "Eastern Jin",
+    "Northern Wei", "Southern Tang", "Later Zhou", "Five Dynasties",
+];
+
+/// Place names
+pub const PLACE_NAMES: &[&str] = &[
+    "Jade Harbor", "Dragon's Rest", "Phoenix Rise", "Lotus Valley",
+    "Bamboo Grove", "Cherry Blossom Hill", "Moon Lake", "Sun Temple",
+    "Cloud Mountain", "Silk Road", "Pearl River", "Golden Bridge",
+    "Tiger Gate", "Crane Tower", "Turtle Bay", "Serpent Pass",
+    "Imperial City", "Forbidden Palace", "Celestial Garden", "Harmony Hall",
+    "Tranquil Pond", "Whispering Bamboo", "Dancing Willow", "Singing Stream",
+    "Morning Mist", "Evening Star", "Spring Pavilion", "Autumn Terrace",
+    "Winter Palace", "Summer Garden", "Thunder Peak", "Lightning Valley",
+    "Wind Temple", "Rain Shrine", "Snow Monastery", "Ice Fortress",
+    "Fire Mountain", "Water City", "Earth Village", "Sky Tower",
+];

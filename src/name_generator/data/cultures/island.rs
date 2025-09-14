@@ -1,0 +1,73 @@
+//! Island culture names (Polynesian/Caribbean-inspired)
+//!
+//! Names inspired by Pacific Islander, Caribbean, and other island cultures.
+//! Features seafaring peoples, tropical paradises, and archipelago nations.
+
+/// Male first names
+pub const MALE_NAMES: &[&str] = &[
+    "Kai", "Koa", "Makoa", "Keanu", "Lono", "Maui", "Nalu", "Pono",
+    "Akamu", "Hoku", "Ikaika", "Kalani", "Kekoa", "Leilani", "Malo",
+    "Diego", "Carlos", "Miguel", "Rafael", "Santiago", "Fernando",
+    "Javier", "Roberto", "Emilio", "Alejandro", "Luis", "Pedro",
+    "Tane", "Rangi", "Aroha", "Hemi", "Wiremu", "Nikau", "Tama",
+    "Mateo", "Enzo", "Luca", "Marco", "Paolo", "Sergio", "Vito",
+    "Jean", "Pierre", "Claude", "Henri", "Jacques", "Michel", "Andre",
+    "Tobias", "Willem", "Dirk", "Pieter", "Johannes", "Hendrik", "Adriaan",
+];
+
+/// Female first names
+pub const FEMALE_NAMES: &[&str] = &[
+    "Moana", "Leilani", "Kailani", "Nalani", "Mahina", "Hina", "Kai",
+    "Aloha", "Kala", "Lilo", "Malia", "Nani", "Pua", "Tiare", "Ula",
+    "Isabella", "Sofia", "Carmen", "Elena", "Lucia", "Maria", "Nina",
+    "Rosa", "Teresa", "Valentina", "Esperanza", "Paloma", "Marisol",
+    "Aroha", "Kiri", "Maia", "Hine", "Tui", "Wai", "Anahera",
+    "Bella", "Chiara", "Giulia", "Luna", "Stella", "Viola", "Zara",
+    "Amelie", "Celeste", "Delphine", "Fleur", "Genevieve", "Helene",
+    "Annika", "Elsa", "Ilse", "Katja", "Lotte", "Marta", "Saskia",
+];
+
+/// Gender-neutral names
+pub const NEUTRAL_NAMES: &[&str] = &[
+    "Kai", "Lei", "Noa", "Koa", "Ari", "Rio", "Sol",
+    "Mar", "Coral", "Ocean", "Wave", "Storm", "Rain",
+];
+
+/// Family/clan names
+pub const CLAN_NAMES: &[&str] = &[
+    "Kahana", "Kamaka", "Kauai", "Kealoha", "Mahalo", "Ohana",
+    "Delgado", "Morales", "Rivera", "Santos", "Torres", "Vega",
+    "Baptiste", "Beaumont", "Dubois", "Fontaine", "Laurent", "Moreau",
+    "De Jong", "Van Der Berg", "Van Dijk", "Visser", "De Vries", "Bakker",
+    "Ngata", "Taimana", "Wharepapa", "Parata", "Hohepa", "Tipene",
+    "Coral", "Pearl", "Shell", "Reef", "Tide", "Wave",
+    "Sunset", "Sunrise", "Moonlight", "Starfish", "Dolphin", "Turtle",
+    "Palm", "Coconut", "Mango", "Papaya", "Hibiscus", "Plumeria",
+];
+
+/// Nation roots
+pub const NATION_ROOTS: &[&str] = &[
+    "Moana", "Tiki", "Samoa", "Tahiti", "Fiji", "Maui",
+    "Trinidad", "Jamaica", "Bermuda", "Nassau", "Havana",
+    "Barbados", "Antigua", "Grenada", "Martinique", "Dominica",
+    "Bali", "Java", "Sumatra", "Borneo", "Sulawesi", "Mindanao",
+    "Luzon", "Visayas", "Palawan", "Cebu", "Leyte", "Samar",
+    "Madagascar", "Mauritius", "Seychelles", "Comoros", "Reunion",
+    "Malta", "Cyprus", "Crete", "Rhodes", "Sicily", "Sardinia",
+    "Corsica", "Balearic", "Canary", "Azores", "Madeira", "Cape Verde",
+];
+
+/// Place names
+pub const PLACE_NAMES: &[&str] = &[
+    "Coral Bay", "Pearl Harbor", "Turtle Beach", "Paradise Cove",
+    "Sunset Shores", "Palm Grove", "Coconut Island", "Mermaid Lagoon",
+    "Crystal Waters", "Blue Lagoon", "Emerald Cove", "Sapphire Bay",
+    "Rainbow Beach", "Moonlight Bay", "Starfish Point", "Dolphin Cove",
+    "Volcano Peak", "Lava Fields", "Hot Springs", "Geyser Valley",
+    "Mangrove Swamp", "Tidal Pools", "Reef Gardens", "Kelp Forest",
+    "Trade Winds Port", "Hurricane Harbor", "Typhoon Bay", "Monsoon Market",
+    "Sugar Plantation", "Rum Distillery", "Spice Gardens", "Coffee Hills",
+    "Pineapple Fields", "Banana Grove", "Mango Orchard", "Papaya Plantation",
+    "Fishing Village", "Whaling Station", "Pearl Divers", "Salt Flats",
+    "Sacred Grove", "Temple Island", "Ancestor Bay", "Spirit Beach",
+];
