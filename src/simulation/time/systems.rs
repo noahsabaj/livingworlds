@@ -27,10 +27,10 @@ pub fn track_year_changes(
         SIMULATION_STARTING_YEAR + (game_time.current_date / SIMULATION_DAYS_PER_YEAR_F32) as u32;
 
     if current_year != *last_year && *last_year > 0 {
-        year_events.send(NewYearEvent { year: current_year });
+        year_events.write(NewYearEvent { year: current_year });
 
         #[cfg(feature = "debug-simulation")]
-        println!("Year {}", current_year);
+        info!("Year {}", current_year);
 
         *last_year = current_year;
     } else if *last_year == 0 {
@@ -49,12 +49,12 @@ pub fn resume_from_pause_menu(
         game_time.paused = false;
         game_time.speed = game_time.speed_before_pause;
 
-        speed_events.send(SimulationSpeedChanged {
+        speed_events.write(SimulationSpeedChanged {
             new_speed: game_time.speed,
             is_paused: false,
         });
 
         #[cfg(feature = "debug-simulation")]
-        println!("Resumed from pause menu at speed: {}x", game_time.speed);
+        info!("Resumed from pause menu at speed: {}x", game_time.speed);
     }
 }

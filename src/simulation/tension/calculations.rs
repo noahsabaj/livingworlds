@@ -1,5 +1,7 @@
 //! Tension calculation functions
 
+#![allow(dead_code)] // Preserve utility functions for future use
+
 /// Calculate tension from war percentage using exponential curve
 ///
 /// This uses a power function to make tension rise exponentially:

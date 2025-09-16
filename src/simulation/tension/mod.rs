@@ -8,8 +8,7 @@ mod calculations;
 mod systems;
 mod types;
 
-// Re-export for backward compatibility
+// Public exports
 pub use types::WorldTension;
 
 // Internal exports for future use
-pub(super) use calculations::calculate_from_war_percentage;

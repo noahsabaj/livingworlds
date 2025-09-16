@@ -1,5 +1,7 @@
 //! Speed mapping helpers to eliminate duplication
 
+#![allow(dead_code)] // Preserve utility functions for future use
+
 use bevy::prelude::*;
 // Speed constants - re-exported for use within input module
 pub const SPEED_PAUSED: f32 = 0.0;

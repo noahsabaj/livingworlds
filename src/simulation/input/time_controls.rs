@@ -4,9 +4,7 @@ use crate::resources::GameTime;
 use bevy::prelude::*;
 // Access sibling modules through parent gateway
 use super::speed_mapping::SPEED_PAUSED;
-use super::speed_mapping::{
-    get_next_speed_level, get_previous_speed_level, get_speed_name, handle_speed_keys,
-};
+use super::speed_mapping::{get_next_speed_level, get_previous_speed_level, handle_speed_keys};
 use crate::simulation::SimulationSpeedChanged;
 
 /// Handle keyboard input for time control
@@ -21,7 +19,7 @@ pub fn handle_time_controls(
     let mut speed_changed = false;
 
     // Handle direct speed selection (keys 1-5)
-    if let Some((new_speed, speed_name)) = handle_speed_keys(&keyboard) {
+    if let Some((new_speed, _speed_name)) = handle_speed_keys(&keyboard) {
         if new_speed == SPEED_PAUSED {
             if !game_time.paused {
                 game_time.speed_before_pause = game_time.speed;
@@ -35,7 +33,7 @@ pub fn handle_time_controls(
         speed_changed = true;
 
         #[cfg(feature = "debug-simulation")]
-        println!("Simulation speed: {}", speed_name);
+        debug!("Simulation speed: {}", speed_name);
     }
 
     // Handle speed increment (+ or numpad +)
@@ -49,7 +47,7 @@ pub fn handle_time_controls(
             speed_changed = true;
 
             #[cfg(feature = "debug-simulation")]
-            println!("Speed increased to: {}", get_speed_name(new_speed));
+            info!("Speed increased to: {}", get_speed_name(new_speed));
         }
     }
 
@@ -69,7 +67,7 @@ pub fn handle_time_controls(
             speed_changed = true;
 
             #[cfg(feature = "debug-simulation")]
-            println!("Speed decreased to: {}", get_speed_name(new_speed));
+            info!("Speed decreased to: {}", get_speed_name(new_speed));
         }
     }
 
@@ -86,7 +84,7 @@ pub fn handle_time_controls(
         speed_changed = true;
 
         #[cfg(feature = "debug-simulation")]
-        println!(
+        debug!(
             "Simulation {} (speed: {}x)",
             if game_time.paused {
                 "paused"
@@ -103,7 +101,7 @@ pub fn handle_time_controls(
 
     // Send event if speed changed
     if speed_changed && (old_speed != game_time.speed || was_paused != game_time.paused) {
-        speed_events.send(SimulationSpeedChanged {
+        speed_events.write(SimulationSpeedChanged {
             new_speed: game_time.speed,
             is_paused: game_time.paused,
         });

@@ -26,8 +26,7 @@ mod time;
 // Main plugin for Bevy app integration
 pub use plugin::SimulationPlugin;
 
-// World tension for backward compatibility
-// (was previously in resources.rs, then moved to simulation.rs)
+// World tension system
 pub use tension::WorldTension;
 
 // Time-related exports that other systems need
