@@ -4,20 +4,20 @@
 //! a new world or loading a saved game. Now using standardized UI builders
 //! for consistency and maintainability.
 
-use crate::states::GameState;
+use crate::states::{GameState, RequestStateTransition};
+use crate::ui::ProgressBarBuilder;
 use crate::ui::{
     colors,
-    dimensions,     // Re-exported from styles
-    get_random_tip, // Re-exported from tips
-    progress_bar,   // Re-exported from builders
+    dimensions,     // Style constants
+    get_random_tip, // Utility function
+    ButtonBuilder,
+    ButtonStyle,
     LabelBuilder,
     LabelStyle,
-    LoadingIndicatorBuilder,
-    LoadingSize, // Re-exported from loading
-    LoadingStyle,
     PanelBuilder,
-    PanelStyle, // Re-exported from components
+    PanelStyle,
 };
+use crate::ui::ProgressBar;
 use bevy::prelude::*;
 
 pub struct LoadingScreenPlugin;
@@ -25,12 +25,17 @@ pub struct LoadingScreenPlugin;
 impl Plugin for LoadingScreenPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<LoadingState>()
+            .add_event::<CancelWorldGeneration>()
             .add_systems(OnEnter(GameState::LoadingWorld), setup_loading_screen)
             .add_systems(OnExit(GameState::LoadingWorld), cleanup_loading_screen)
             .add_systems(
                 Update,
-                (update_loading_progress, update_loading_text)
-                    .run_if(in_state(GameState::LoadingWorld)),
+                (
+                    update_loading_progress,
+                    update_loading_text,
+                    handle_cancel_button,
+                    handle_cancel_generation,
+                ).run_if(in_state(GameState::LoadingWorld)),
             );
     }
 }
@@ -74,34 +79,38 @@ struct LoadingProgressBar;
 #[derive(Component)]
 struct LoadingStatusText;
 
+#[derive(Component)]
+struct CancelGenerationButton;
+
+/// Event to cancel world generation
+#[derive(Event)]
+pub struct CancelWorldGeneration;
+
 /// Setup the loading screen UI using builders
 fn setup_loading_screen(mut commands: Commands, loading_state: Res<LoadingState>) {
-    // Root container - full screen with dark background
-    let root = commands
-        .spawn((
-            Node {
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.0),
-                flex_direction: FlexDirection::Column,
-                justify_content: JustifyContent::SpaceBetween,
-                align_items: AlignItems::Center,
-                padding: UiRect::all(Val::Px(40.0)),
-                ..default()
-            },
-            BackgroundColor(Color::srgb(0.02, 0.02, 0.03)),
-            LoadingScreenRoot,
-        ))
-        .id();
+    // Root container with proper UI components to avoid B0004 warnings
+    commands.spawn((
+        Node {
+            width: Val::Percent(100.0),
+            height: Val::Percent(100.0),
+            position_type: PositionType::Absolute,
+            flex_direction: FlexDirection::Column,
+            justify_content: JustifyContent::SpaceBetween,
+            align_items: AlignItems::Center,
+            padding: UiRect::all(Val::Px(40.0)),
+            ..default()
+        },
+        BackgroundColor(Color::srgb(0.02, 0.02, 0.03)),
+        LoadingScreenRoot,
+    )).with_children(|root_panel| {
+                // ===== TOP SECTION: Title and Operation =====
+                spawn_top_section(root_panel, &loading_state);
 
-    commands.entity(root).with_children(|parent| {
-        // ===== TOP SECTION: Title and Operation =====
-        spawn_top_section(parent, &loading_state);
+                // ===== MIDDLE SECTION: Details Panel with Loading Indicator =====
+                spawn_details_panel(root_panel, &loading_state);
 
-        // ===== MIDDLE SECTION: Details Panel with Loading Indicator =====
-        spawn_details_panel(parent, &loading_state);
-
-        // ===== BOTTOM SECTION: Progress Bar and Tips =====
-        spawn_bottom_section(parent, &loading_state);
+                // ===== BOTTOM SECTION: Progress Bar and Tips =====
+                spawn_bottom_section(root_panel, &loading_state);
     });
 }
 
@@ -137,20 +146,16 @@ fn spawn_top_section(parent: &mut ChildSpawnerCommands, loading_state: &LoadingS
 
 /// Spawn the details panel with loading indicator
 fn spawn_details_panel(parent: &mut ChildSpawnerCommands, loading_state: &LoadingState) {
-    // Create panel with consistent styling using direct Bevy API
-    parent
-        .spawn((
-            Node {
-                width: Val::Px(600.0),
-                padding: UiRect::all(Val::Px(30.0)),
-                border: UiRect::all(Val::Px(2.0)),
-                flex_direction: FlexDirection::Column,
-                ..default()
-            },
-            BackgroundColor(colors::SURFACE),
-            BorderColor(colors::BORDER),
-        ))
-        .with_children(|panel| {
+    // Create panel with consistent styling using PanelBuilder
+    PanelBuilder::new()
+        .style(PanelStyle::Card)
+        .width(Val::Px(600.0))
+        .padding(UiRect::all(Val::Px(30.0)))
+        .border(UiRect::all(Val::Px(2.0)))
+        .flex_direction(FlexDirection::Column)
+        .background_color(colors::SURFACE)
+        .border_color(colors::BORDER)
+        .build_with_children(parent, |panel| {
             // Loading indicator using direct Bevy API
             panel.spawn((
                 Text::new("Loading..."),
@@ -269,7 +274,7 @@ fn spawn_bottom_section(parent: &mut ChildSpawnerCommands, loading_state: &Loadi
             ));
 
             // Progress bar using ProgressBarBuilder with custom label
-            let progress_entity = progress_bar(loading_state.progress)
+            let progress_entity = ProgressBarBuilder::new(loading_state.progress)
                 .width(Val::Percent(100.0))
                 .height(Val::Px(30.0))
                 .with_label_text(&loading_state.current_step)
@@ -288,32 +293,36 @@ fn spawn_bottom_section(parent: &mut ChildSpawnerCommands, loading_state: &Loadi
                 .style(LabelStyle::Caption)
                 .margin(UiRect::top(Val::Px(20.0)))
                 .build(bottom);
+
+            // Cancel button - only show during world generation
+            if loading_state.operation == LoadingOperation::GeneratingWorld {
+                ButtonBuilder::new("Cancel Generation")
+                    .style(ButtonStyle::Danger)
+                    .margin(UiRect::top(Val::Px(30.0)))
+                    .with_marker(CancelGenerationButton)
+                    .build(bottom);
+            }
         });
 }
 
 /// Cleanup the loading screen
 fn cleanup_loading_screen(mut commands: Commands, query: Query<Entity, With<LoadingScreenRoot>>) {
     for entity in &query {
-        commands.entity(entity).despawn_recursive();
+        commands.entity(entity).despawn();
     }
 }
 
 /// Update the progress bar value
 fn update_loading_progress(
     loading_state: Res<LoadingState>,
-    mut query: Query<(&Children, &mut Node), With<LoadingProgressBar>>,
+    mut query: Query<&mut ProgressBar, With<LoadingProgressBar>>,
 ) {
     if !loading_state.is_changed() {
         return;
     }
 
-    for (children, _parent_node) in &mut query {
-        // The fill is the first child of the progress bar
-        if let Some(&fill_entity) = children.first() {
-            // We need to query the fill entity directly
-            // This is handled by the ProgressBar component internally
-            // For now, we'll need to rebuild the progress bar on changes
-        }
+    for mut progress_bar in &mut query {
+        progress_bar.value = loading_state.progress.clamp(0.0, 1.0);
     }
 }
 
@@ -384,4 +393,45 @@ pub fn start_mod_application_loading(loading_state: &mut LoadingState) {
         game_days: None,
         file_size: None,
     };
+}
+
+/// Handle cancel button interactions
+fn handle_cancel_button(
+    interactions: Query<&Interaction, (Changed<Interaction>, With<CancelGenerationButton>)>,
+    mut cancel_events: EventWriter<CancelWorldGeneration>,
+) {
+    for interaction in &interactions {
+        if *interaction == Interaction::Pressed {
+            info!("Cancel Generation button pressed");
+            cancel_events.write(CancelWorldGeneration);
+        }
+    }
+}
+
+/// Handle cancel world generation events
+fn handle_cancel_generation(
+    mut cancel_events: EventReader<CancelWorldGeneration>,
+    mut state_events: EventWriter<RequestStateTransition>,
+    mut commands: Commands,
+) {
+    for _event in cancel_events.read() {
+        info!("Canceling world generation");
+
+        // Clean up any generation resources
+        commands.remove_resource::<crate::world::AsyncWorldGeneration>(); // Dropping this cancels the async task
+
+        // Reset pending world generation flag
+        commands.insert_resource(crate::states::PendingWorldGeneration {
+            pending: false,
+            delay_timer: 0.0,
+        });
+
+        // Transition back to world configuration
+        state_events.write(RequestStateTransition {
+            from: GameState::LoadingWorld,
+            to: GameState::WorldConfiguration,
+        });
+
+        info!("Returning to world configuration screen");
+    }
 }

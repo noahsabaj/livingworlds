@@ -14,12 +14,8 @@
 //! - World tension → simulation
 //! - UI interaction → ui::interaction
 
-// This module now serves as a pure re-export point for resources
-// No local imports needed as everything is re-exported from domain modules
-
-// ===== BACKWARD COMPATIBILITY RE-EXPORTS =====
-// These maintain the existing API surface while the actual implementations
-// live in their domain-specific modules
+// This module serves as a centralized gateway for commonly used resources
+// Resources are organized in their domain modules but re-exported here for convenience
 
 // World configuration types
 pub use crate::world::{MapBounds, MapDimensions, WorldName, WorldSeed, WorldSize};

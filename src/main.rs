@@ -81,8 +81,7 @@ fn parse_world_size(s: &str) -> Result<WorldSize, String> {
         "medium" | "m" => Ok(WorldSize::Medium),
         "large" | "l" => Ok(WorldSize::Large),
         _ => Err(format!(
-            "Invalid world size '{}'. Must be: small, medium, or large",
-            s
+            "Invalid world size '{s}'. Must be: small, medium, or large"
         )),
     }
 }
@@ -101,7 +100,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = build_config(&args);
 
     let mut app = build_app_with_config(config)
-        .map_err(|e| format!("Failed to initialize application: {}", e))?;
+        .map_err(|e| format!("Failed to initialize application: {e}"))?;
 
     // Add development resources if in quick-start mode
     if args.dev_quick_start {
@@ -122,9 +121,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 fn initialize_logging(debug_mode: bool) {
     // Bevy will use these environment variables for its own logging
     if debug_mode {
-        std::env::set_var("RUST_LOG", "debug,living_worlds=debug");
+        // TODO: Audit that the environment access only happens in single-threaded code.
+        unsafe { std::env::set_var("RUST_LOG", "debug,living_worlds=debug") };
     } else {
-        std::env::set_var("RUST_LOG", "info,living_worlds=info,wgpu=warn,naga=warn");
+        // TODO: Audit that the environment access only happens in single-threaded code.
+        unsafe { std::env::set_var("RUST_LOG", "info,living_worlds=info,wgpu=warn,naga=warn") };
     }
 }
 
@@ -140,12 +141,12 @@ fn setup_thread_pool(requested_threads: usize) -> Result<(), Box<dyn std::error:
 
     rayon::ThreadPoolBuilder::new()
         .num_threads(num_threads)
-        .thread_name(|i| format!("world-gen-{}", i))
+        .thread_name(|i| format!("world-gen-{i}"))
         .build_global()
-        .map_err(|e| format!("Failed to initialize thread pool: {}", e))?;
+        .map_err(|e| format!("Failed to initialize thread pool: {e}"))?;
 
     let total_cores = std::thread::available_parallelism()
-        .map(|n| n.get())
+        .map(std::num::NonZero::get)
         .unwrap_or(DEFAULT_WORKER_THREADS);
 
     info!(

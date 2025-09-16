@@ -4,6 +4,8 @@
 //! when the player pauses during gameplay. It provides options to
 //! resume, save, load, access settings, or return to the main menu.
 
+#![allow(elided_lifetimes_in_paths)]
+
 use super::types::{MenuAction, MenuButton, SpawnSaveBrowserEvent, SpawnSettingsMenuEvent};
 use crate::save_load::{scan_save_files_internal, SaveCompleteEvent, SaveGameEvent, SaveGameList};
 use crate::states::{GameState, RequestStateTransition};
@@ -27,6 +29,11 @@ impl Plugin for PauseMenuPlugin {
                     update_load_button_after_save,
                 )
                     .run_if(in_state(GameState::Paused)),
+            )
+            // Add ESC handler to open pause menu from InGame state
+            .add_systems(
+                Update,
+                handle_ingame_esc_key.run_if(in_state(GameState::InGame)),
             );
     }
 }
@@ -37,7 +44,7 @@ pub struct PauseMenuRoot;
 
 /// Spawns the pause menu UI
 fn spawn_pause_menu(mut commands: Commands, mut save_list: ResMut<SaveGameList>) {
-    println!("Spawning pause menu UI");
+    debug!("Spawning pause menu UI");
 
     // Scan for save files to determine if Load Game should be enabled
     scan_save_files_internal(&mut save_list);
@@ -112,9 +119,9 @@ fn spawn_pause_menu(mut commands: Commands, mut save_list: ResMut<SaveGameList>)
 
 /// Despawns the pause menu UI
 fn despawn_pause_menu(mut commands: Commands, query: Query<Entity, With<PauseMenuRoot>>) {
-    println!("Despawning pause menu UI");
+    debug!("Despawning pause menu UI");
     for entity in &query {
-        commands.entity(entity).despawn_recursive();
+        commands.entity(entity).despawn();
     }
 }
 
@@ -124,10 +131,24 @@ fn handle_pause_esc_key(
     mut state_events: EventWriter<RequestStateTransition>,
 ) {
     if keyboard.just_pressed(KeyCode::Escape) {
-        println!("ESC pressed in pause menu - resuming game");
+        debug!("ESC pressed in pause menu - resuming game");
         state_events.write(RequestStateTransition {
             from: GameState::Paused,
             to: GameState::InGame,
+        });
+    }
+}
+
+/// Handle ESC key to open pause menu from in-game
+fn handle_ingame_esc_key(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mut state_events: EventWriter<RequestStateTransition>,
+) {
+    if keyboard.just_pressed(KeyCode::Escape) {
+        debug!("ESC pressed in game - opening pause menu");
+        state_events.write(RequestStateTransition {
+            from: GameState::InGame,
+            to: GameState::Paused,
         });
     }
 }
@@ -149,7 +170,7 @@ fn update_load_button_after_save(
 ) {
     for event in save_complete_events.read() {
         if event.success {
-            println!("Save completed - updating Load Game button state");
+            info!("Save completed - updating Load Game button state");
 
             // Rescan saves to update the list
             scan_save_files_internal(&mut save_list);
@@ -169,7 +190,7 @@ fn update_load_button_after_save(
                         }
                     }
 
-                    println!("Load Game button enabled after save");
+                    info!("Load Game button enabled after save");
                 }
             }
         }
@@ -194,35 +215,35 @@ fn handle_pause_button_interactions(
         if *interaction == Interaction::Pressed {
             match button.action {
                 MenuAction::Resume => {
-                    println!("Resume button pressed");
+                    info!("Resume button pressed");
                     state_events.write(RequestStateTransition {
                         from: GameState::Paused,
                         to: GameState::InGame,
                     });
                 }
                 MenuAction::Settings => {
-                    println!("Settings button pressed from pause menu - opening settings menu");
+                    info!("Settings button pressed from pause menu - opening settings menu");
                     // Despawn pause menu first
-                    if let Ok(entity) = pause_menu_query.get_single() {
-                        commands.entity(entity).despawn_recursive();
+                    if let Ok(entity) = pause_menu_query.single() {
+                        commands.entity(entity).despawn();
                     }
                     settings_events.write(SpawnSettingsMenuEvent);
                 }
                 MenuAction::BackToMainMenu => {
-                    println!("Back to Main Menu pressed");
+                    info!("Back to Main Menu pressed");
                     state_events.write(RequestStateTransition {
                         from: GameState::Paused,
                         to: GameState::MainMenu,
                     });
                 }
                 MenuAction::Exit => {
-                    println!("Exit from pause menu - showing confirmation dialog");
+                    info!("Exit from pause menu - showing confirmation dialog");
                     use crate::ui::dialog_presets;
                     dialog_presets::exit_confirmation_dialog(commands);
                     return;
                 }
                 MenuAction::SaveGame => {
-                    println!("Save Game button pressed - saving game");
+                    info!("Save Game button pressed - saving game");
                     // Send save event with timestamp-based name
                     let timestamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
                     save_events.write(SaveGameEvent {
@@ -230,10 +251,10 @@ fn handle_pause_button_interactions(
                     });
                 }
                 MenuAction::LoadGame => {
-                    println!("Load Game button pressed from pause menu - opening save browser");
+                    info!("Load Game button pressed from pause menu - opening save browser");
                     // Close pause menu first
-                    if let Ok(entity) = pause_menu_query.get_single() {
-                        commands.entity(entity).despawn_recursive();
+                    if let Ok(entity) = pause_menu_query.single() {
+                        commands.entity(entity).despawn();
                     }
                     save_browser_events.write(SpawnSaveBrowserEvent);
                 }
@@ -259,15 +280,15 @@ fn handle_exit_confirmation_dialog(
     for (interaction, (confirm_button, cancel_button)) in &mut interactions {
         if *interaction == Interaction::Pressed {
             // Close the dialog first
-            if let Ok(dialog_entity) = dialog_query.get_single() {
-                commands.entity(dialog_entity).despawn_recursive();
+            if let Ok(dialog_entity) = dialog_query.single() {
+                commands.entity(dialog_entity).despawn();
             }
 
             if confirm_button.is_some() {
-                println!("Exit confirmed - closing application");
+                info!("Exit confirmed - closing application");
                 exit_events.write(AppExit::Success);
             } else if cancel_button.is_some() {
-                println!("Exit cancelled - returning to game");
+                info!("Exit cancelled - returning to game");
             }
         }
     }
