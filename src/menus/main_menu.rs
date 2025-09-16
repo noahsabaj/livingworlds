@@ -6,7 +6,7 @@
 use super::types::{MenuAction, MenuButton, SpawnSaveBrowserEvent, SpawnSettingsMenuEvent};
 use crate::save_load::{scan_save_files_internal, SaveGameList};
 use crate::states::{GameState, RequestStateTransition};
-use crate::ui::{ButtonBuilder, ButtonSize, ButtonStyle};
+use crate::ui::{ButtonBuilder, ButtonSize, ButtonStyle, PanelBuilder, PanelStyle};
 use bevy::app::AppExit;
 use bevy::prelude::*;
 
@@ -32,18 +32,19 @@ pub struct MainMenuRoot;
 
 /// Spawns the main menu UI
 fn spawn_main_menu(mut commands: Commands, mut save_list: ResMut<SaveGameList>) {
-    println!("Spawning main menu UI");
+    debug!("Spawning main menu UI");
 
     // Scan for save files to determine if Load Game should be enabled
     scan_save_files_internal(&mut save_list);
     let has_saves = !save_list.saves.is_empty();
 
-    // Root container - full screen with dark semi-transparent overlay
+    // Root container - full screen with dark semi-transparent overlay using proper UI components
     commands
         .spawn((
             Node {
                 width: Val::Percent(100.0),
                 height: Val::Percent(100.0),
+                position_type: PositionType::Absolute,
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
                 flex_direction: FlexDirection::Column,
@@ -52,15 +53,13 @@ fn spawn_main_menu(mut commands: Commands, mut save_list: ResMut<SaveGameList>) 
             BackgroundColor(Color::srgba(0.05, 0.05, 0.05, 0.98)),
             MainMenuRoot,
         ))
-        .with_children(|parent| {
-            // Title section
-            parent
-                .spawn(Node {
-                    flex_direction: FlexDirection::Column,
-                    align_items: AlignItems::Center,
-                    ..default()
-                })
-                .with_children(|title_parent| {
+        .with_children(|root_panel| {
+            // Title section using PanelBuilder
+            PanelBuilder::new()
+                .style(PanelStyle::Transparent)
+                .flex_direction(FlexDirection::Column)
+                .align_items(AlignItems::Center)
+                .build_with_children(root_panel, |title_parent| {
                     // Main title
                     title_parent.spawn((
                         Text::new("LIVING WORLDS"),
@@ -87,12 +86,12 @@ fn spawn_main_menu(mut commands: Commands, mut save_list: ResMut<SaveGameList>) 
                 });
 
             // Spacer
-            parent.spawn(Node {
+            root_panel.spawn(Node {
                 height: Val::Px(40.0),
                 ..default()
             });
 
-            parent
+            root_panel
                 .spawn(Node {
                     flex_direction: FlexDirection::Column,
                     align_items: AlignItems::Center,
@@ -119,8 +118,8 @@ fn spawn_main_menu(mut commands: Commands, mut save_list: ResMut<SaveGameList>) 
                 });
 
             // Version info at bottom
-            parent.spawn((
-                Text::new("v0.1.0 - Early Development"),
+            root_panel.spawn((
+                Text::new(crate::version::version_string()),
                 TextFont {
                     font_size: 14.0,
                     ..default()
@@ -138,9 +137,9 @@ fn spawn_main_menu(mut commands: Commands, mut save_list: ResMut<SaveGameList>) 
 
 /// Despawns the main menu UI
 fn despawn_main_menu(mut commands: Commands, query: Query<Entity, With<MainMenuRoot>>) {
-    println!("Despawning main menu UI");
+    debug!("Despawning main menu UI");
     for entity in &query {
-        commands.entity(entity).despawn_recursive();
+        commands.entity(entity).despawn();
     }
 }
 
@@ -152,7 +151,7 @@ fn handle_button_interactions(
     mut save_browser_events: EventWriter<SpawnSaveBrowserEvent>,
     mut mod_browser_events: EventWriter<crate::modding::OpenModBrowserEvent>,
     current_state: Res<State<GameState>>,
-    mut commands: Commands,
+    commands: Commands,
 ) {
     for (interaction, button) in &mut interactions {
         // Only respond to enabled buttons
@@ -163,26 +162,26 @@ fn handle_button_interactions(
         if *interaction == Interaction::Pressed {
             match button.action {
                 MenuAction::NewWorld => {
-                    println!("New World button pressed - transitioning to WorldConfiguration");
+                    debug!("New World button pressed - transitioning to WorldConfiguration");
                     state_events.write(RequestStateTransition {
                         from: **current_state,
                         to: GameState::WorldConfiguration,
                     });
                 }
                 MenuAction::LoadGame => {
-                    println!("Load Game button pressed - opening save browser");
+                    debug!("Load Game button pressed - opening save browser");
                     save_browser_events.write(SpawnSaveBrowserEvent);
                 }
                 MenuAction::Settings => {
-                    println!("Settings button pressed - opening settings menu");
-                    settings_events.send(SpawnSettingsMenuEvent);
+                    debug!("Settings button pressed - opening settings menu");
+                    settings_events.write(SpawnSettingsMenuEvent);
                 }
                 MenuAction::Mods => {
-                    println!("Opening Mods Browser");
-                    mod_browser_events.send(crate::modding::OpenModBrowserEvent);
+                    debug!("Opening Mods Browser");
+                    mod_browser_events.write(crate::modding::OpenModBrowserEvent);
                 }
                 MenuAction::Exit => {
-                    println!("Exit button pressed - showing confirmation dialog");
+                    debug!("Exit button pressed - showing confirmation dialog");
                     use crate::ui::dialog_presets;
                     dialog_presets::exit_confirmation_dialog(commands);
                     return;
@@ -209,15 +208,15 @@ fn handle_exit_confirmation_dialog(
     for (interaction, (confirm_button, cancel_button)) in &mut interactions {
         if *interaction == Interaction::Pressed {
             // Close the dialog first
-            if let Ok(dialog_entity) = dialog_query.get_single() {
-                commands.entity(dialog_entity).despawn_recursive();
+            if let Ok(dialog_entity) = dialog_query.single() {
+                commands.entity(dialog_entity).despawn();
             }
 
             if confirm_button.is_some() {
-                println!("Exit confirmed - closing application");
+                info!("Exit confirmed - closing application");
                 exit_events.write(AppExit::Success);
             } else if cancel_button.is_some() {
-                println!("Exit cancelled - returning to menu");
+                debug!("Exit cancelled - returning to menu");
             }
         }
     }

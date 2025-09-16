@@ -10,6 +10,7 @@ pub mod components;
 pub mod constants;
 pub mod resources;
 pub mod states;
+pub mod version;
 
 // World generation and representation
 pub mod math; // Single source of truth for spatial math and noise
@@ -121,7 +122,7 @@ impl Default for WindowConfig {
         Self {
             width: DEFAULT_WINDOW_WIDTH,
             height: DEFAULT_WINDOW_HEIGHT,
-            title: "Living Worlds".to_string(),
+            title: format!("Living Worlds - {}", crate::version::version_number()),
             resizable: true,
         }
     }
