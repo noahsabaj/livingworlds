@@ -16,7 +16,7 @@ pub fn handle_window_focus(
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
     mut focus_state: ResMut<WindowFocusState>,
 ) {
-    if let Ok(mut window) = windows.get_single_mut() {
+    if let Ok(mut window) = windows.single_mut() {
         let is_focused = window.focused;
 
         // Detect focus state changes

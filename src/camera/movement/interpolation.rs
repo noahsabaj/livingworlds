@@ -19,7 +19,7 @@ pub fn apply_smooth_movement(
         );
 
         // Smooth zoom interpolation using centralized function
-        if let Projection::Orthographic(ref mut ortho) = projection.as_mut() {
+        if let Projection::Orthographic(ortho) = projection.as_mut() {
             ortho.scale = lerp_exp(
                 ortho.scale,
                 controller.target_zoom,

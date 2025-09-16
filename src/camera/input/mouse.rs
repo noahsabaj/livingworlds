@@ -18,10 +18,10 @@ pub fn handle_mouse_wheel_zoom(
         return;
     }
 
-    let Ok(window) = windows.get_single() else {
+    let Ok(window) = windows.single() else {
         return;
     };
-    let Ok((mut controller, transform, projection)) = query.get_single_mut() else {
+    let Ok((mut controller, transform, projection)) = query.single_mut() else {
         return;
     };
 
@@ -84,10 +84,10 @@ pub fn handle_mouse_drag(
     mut mouse_motion: EventReader<MouseMotion>,
     windows: Query<&Window, With<PrimaryWindow>>,
 ) {
-    let Ok(mut controller) = query.get_single_mut() else {
+    let Ok(mut controller) = query.single_mut() else {
         return;
     };
-    let Ok(window) = windows.get_single() else {
+    let Ok(window) = windows.single() else {
         return;
     };
 

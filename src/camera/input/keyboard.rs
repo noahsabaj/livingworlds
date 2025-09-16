@@ -25,7 +25,7 @@ pub fn handle_keyboard_movement(
         return;
     }
 
-    let Ok(mut controller) = query.get_single_mut() else {
+    let Ok(mut controller) = query.single_mut() else {
         return;
     };
 
@@ -59,7 +59,7 @@ pub fn handle_camera_reset(
     keyboard: Res<ButtonInput<KeyCode>>,
 ) {
     if keyboard.just_pressed(KeyCode::Home) {
-        if let Ok(mut controller) = query.get_single_mut() {
+        if let Ok(mut controller) = query.single_mut() {
             controller.target_position = Vec3::ZERO;
             controller.target_zoom = 1.0;
         }
