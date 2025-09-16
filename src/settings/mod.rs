@@ -50,6 +50,7 @@ impl Plugin for SettingsPlugin {
                     handlers::handle_reset_button,
                     handlers::handle_unsaved_changes_dialog,
                     handlers::track_dirty_state,
+                    handlers::update_apply_button_state,        // FIX: Register the missing system!
                     handlers::update_apply_exit_button_hover,
                     handlers::update_ui_on_settings_change,
                     resolution::handle_resolution_confirm_request,
@@ -88,6 +89,6 @@ fn handle_spawn_settings_menu_event(
 /// Helper function to despawn the settings menu
 pub fn despawn_settings_menu(mut commands: Commands, query: Query<Entity, With<SettingsMenuRoot>>) {
     for entity in &query {
-        commands.entity(entity).despawn_recursive();
+        commands.entity(entity).despawn();
     }
 }

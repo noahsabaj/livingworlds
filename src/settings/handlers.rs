@@ -1,10 +1,13 @@
 //! Event handlers for settings menu interactions
 
+#![allow(elided_lifetimes_in_paths)]
+
 use super::components::*;
 use super::persistence::save_settings;
 use super::settings_ui::spawn_settings_menu;
 use super::types::*;
 use crate::states::CurrentSettingsTab;
+use crate::ui::styles::colors;
 use bevy::prelude::*;
 use bevy::window::{MonitorSelection, PresentMode, PrimaryWindow, VideoModeSelection, WindowMode};
 use bevy_pkv::PkvStore;
@@ -23,7 +26,7 @@ pub fn handle_tab_buttons(
 ) {
     for (interaction, tab_button) in &mut interactions {
         if *interaction == Interaction::Pressed {
-            println!("Switching to tab: {:?}", tab_button.tab);
+            debug!("Switching to tab: {:?}", tab_button.tab);
             current_tab.0 = tab_button.tab;
 
             // Respawn settings menu with new tab
@@ -130,9 +133,9 @@ pub fn handle_toggle_buttons(
             }
 
             *bg_color = BackgroundColor(if toggle.enabled {
-                Color::srgb(0.2, 0.4, 0.2)
+                colors::SUCCESS
             } else {
-                Color::srgb(0.15, 0.15, 0.18)
+                colors::SECONDARY
             });
 
             let mut found_text = false;
@@ -157,7 +160,7 @@ pub fn handle_toggle_buttons(
                             font_size: 20.0,
                             ..default()
                         },
-                        TextColor(Color::srgb(0.9, 0.9, 0.9)),
+                        TextColor(colors::TEXT_PRIMARY),
                     ));
                 });
             }
@@ -207,17 +210,13 @@ pub fn handle_apply_cancel_buttons(
     for (interaction, (apply_button, cancel_button)) in &interactions {
         if *interaction == Interaction::Pressed {
             if apply_button.is_some() {
-                // Apply button pressed
+                // Apply button pressed - but ignore if no changes
                 if !dirty_state.is_dirty {
-                    println!("No changes to apply");
-                    // Close menu even if no changes
-                    if let Ok(entity) = settings_root.single() {
-                        commands.entity(entity).despawn();
-                    }
+                    // Button is disabled when no changes - ignore the click completely
                     continue;
                 }
 
-                println!("Applying settings");
+                info!("Applying settings");
 
                 let resolution_changed = settings.graphics.resolution.width
                     != temp_settings.0.graphics.resolution.width
@@ -244,11 +243,11 @@ pub fn handle_apply_cancel_buttons(
                 // Exit button pressed
                 if dirty_state.is_dirty {
                     // Show unsaved changes dialog
-                    println!("Unsaved changes detected - spawning confirmation dialog");
+                    debug!("Unsaved changes detected - spawning confirmation dialog");
                     spawn_unsaved_changes_dialog(commands.reborrow());
                 } else {
                     // No changes, just close
-                    println!("Exiting settings (no changes)");
+                    debug!("Exiting settings (no changes)");
                     // Revert temp settings to match current settings
                     temp_settings.0 = settings.clone();
                     if let Ok(entity) = settings_root.single() {
@@ -300,7 +299,7 @@ pub fn handle_preset_buttons(
 
     // If a preset was pressed, apply it
     if let Some(pressed) = pressed_preset {
-        println!("Applying graphics preset: {:?}", pressed);
+        info!("Applying graphics preset: {:?}", pressed);
         temp_settings.0.graphics.apply_preset(pressed);
         dirty_state.is_dirty = true;
 
@@ -321,18 +320,18 @@ pub fn handle_preset_buttons(
             }
         }
 
-        for (entity, button_preset, mut bg_color, mut border_color) in
+        for (_entity, button_preset, mut bg_color, mut border_color) in
             preset_queries.p1().iter_mut()
         {
             let is_selected = button_preset.preset == pressed;
             if is_selected {
                 // This is the newly selected preset - make it green
-                *bg_color = BackgroundColor(Color::srgb(0.15, 0.3, 0.15));
-                *border_color = BorderColor(Color::srgb(0.3, 0.5, 0.3));
+                *bg_color = BackgroundColor(colors::SURFACE_SELECTED);
+                *border_color = BorderColor(colors::BORDER_SELECTED);
             } else {
                 // This is not selected - make it gray
-                *bg_color = BackgroundColor(Color::srgb(0.15, 0.15, 0.18));
-                *border_color = BorderColor(Color::srgb(0.3, 0.3, 0.35));
+                *bg_color = BackgroundColor(colors::SECONDARY);
+                *border_color = BorderColor(colors::BORDER_DEFAULT);
             }
         }
     }
@@ -343,8 +342,8 @@ pub fn handle_preset_buttons(
             // Only change hover color if not currently selected
             if let Ok((_, _, mut bg_color, mut border_color)) = preset_queries.p1().get_mut(entity)
             {
-                *bg_color = BackgroundColor(Color::srgb(0.2, 0.22, 0.25));
-                *border_color = BorderColor(Color::srgb(0.4, 0.45, 0.5));
+                *bg_color = BackgroundColor(colors::SURFACE_HOVER);
+                *border_color = BorderColor(colors::BORDER_HOVER);
             }
         }
     }
@@ -353,11 +352,11 @@ pub fn handle_preset_buttons(
         let is_selected = temp_settings.0.graphics.current_preset() == Some(preset);
         if let Ok((_, _, mut bg_color, mut border_color)) = preset_queries.p1().get_mut(entity) {
             if is_selected {
-                *bg_color = BackgroundColor(Color::srgb(0.15, 0.3, 0.15)); // Green for selected
-                *border_color = BorderColor(Color::srgb(0.3, 0.5, 0.3));
+                *bg_color = BackgroundColor(colors::SURFACE_SELECTED); // Green for selected
+                *border_color = BorderColor(colors::BORDER_SELECTED);
             } else {
-                *bg_color = BackgroundColor(Color::srgb(0.15, 0.15, 0.18));
-                *border_color = BorderColor(Color::srgb(0.3, 0.3, 0.35));
+                *bg_color = BackgroundColor(colors::SECONDARY);
+                *border_color = BorderColor(colors::BORDER_DEFAULT);
             }
         }
     }
@@ -372,7 +371,7 @@ pub fn handle_reset_button(
 ) {
     for (interaction, _reset_button) in &mut interactions {
         if *interaction == Interaction::Pressed {
-            println!("Resetting settings to defaults");
+            info!("Resetting settings to defaults");
 
             // Reset temp settings to defaults
             temp_settings.0 = GameSettings::default();
@@ -380,7 +379,7 @@ pub fn handle_reset_button(
             // Mark as dirty if different from current settings
             dirty_state.is_dirty = temp_settings.0 != *settings;
 
-            println!(
+            info!(
                 "Settings reset to defaults - dirty state: {}",
                 dirty_state.is_dirty
             );
@@ -402,11 +401,11 @@ pub fn update_ui_on_settings_change(
     for (preset_button, mut bg_color, mut border_color) in &mut preset_buttons {
         let is_selected = temp_settings.0.graphics.current_preset() == Some(preset_button.preset);
         if is_selected {
-            *bg_color = BackgroundColor(Color::srgb(0.15, 0.3, 0.15)); // Green for selected
-            *border_color = BorderColor(Color::srgb(0.3, 0.5, 0.3));
+            *bg_color = BackgroundColor(colors::SURFACE_SELECTED); // Green for selected
+            *border_color = BorderColor(colors::BORDER_SELECTED);
         } else {
-            *bg_color = BackgroundColor(Color::srgb(0.15, 0.15, 0.18));
-            *border_color = BorderColor(Color::srgb(0.3, 0.3, 0.35));
+            *bg_color = BackgroundColor(colors::SECONDARY);
+            *border_color = BorderColor(colors::BORDER_DEFAULT);
         }
     }
 
@@ -491,10 +490,10 @@ pub fn apply_settings_changes(
         return;
     }
 
-    println!("Applying settings changes");
+    info!("Applying settings changes");
 
     // Apply graphics settings
-    if let Ok(mut window) = windows.get_single_mut() {
+    if let Ok(mut window) = windows.single_mut() {
         // Apply window mode
         window.mode = match settings.graphics.window_mode {
             WindowModeOption::Windowed => WindowMode::Windowed,
@@ -525,26 +524,39 @@ pub fn apply_settings_changes(
     // Apply audio settings
 
     // Log the audio settings for now
-    println!(
+    info!(
         "  Master Volume: {:.0}%",
         settings.audio.master_volume * 100.0
     );
-    println!("  SFX Volume: {:.0}%", settings.audio.sfx_volume * 100.0);
+    info!("  SFX Volume: {:.0}%", settings.audio.sfx_volume * 100.0);
 }
 
 /// Update Apply button visual state based on dirty state
 pub fn update_apply_button_state(
     dirty_state: Res<SettingsDirtyState>,
-    mut apply_buttons: Query<&mut BackgroundColor, With<ApplyButton>>,
+    mut apply_buttons: Query<(&mut BackgroundColor, &Children), With<ApplyButton>>,
+    mut text_colors: Query<&mut TextColor>,
 ) {
     if dirty_state.is_changed() {
-        for mut bg_color in &mut apply_buttons {
+        for (mut bg_color, children) in &mut apply_buttons {
             if dirty_state.is_dirty {
-                // Enable button - green tint
-                *bg_color = BackgroundColor(Color::srgb(0.15, 0.25, 0.15));
+                // Enable button - green background
+                *bg_color = BackgroundColor(colors::SUCCESS);
+                // Enable text - bright white
+                for child in children.iter() {
+                    if let Ok(mut text_color) = text_colors.get_mut(child) {
+                        *text_color = TextColor(colors::TEXT_PRIMARY); // Bright white
+                    }
+                }
             } else {
-                // Disable button - grayed out
-                *bg_color = BackgroundColor(Color::srgb(0.1, 0.1, 0.1));
+                // Disable button - grayed out background
+                *bg_color = BackgroundColor(colors::DISABLED);
+                // Disable text - muted gray
+                for child in children.iter() {
+                    if let Ok(mut text_color) = text_colors.get_mut(child) {
+                        *text_color = TextColor(colors::TEXT_MUTED); // Gray text
+                    }
+                }
             }
         }
     }
@@ -596,9 +608,9 @@ pub fn update_slider_visuals(
 ) {
     for (interaction, mut bg_color) in &mut interactions {
         match *interaction {
-            Interaction::Hovered => *bg_color = BackgroundColor(Color::srgb(0.12, 0.12, 0.15)),
-            Interaction::Pressed => *bg_color = BackgroundColor(Color::srgb(0.15, 0.15, 0.18)),
-            Interaction::None => *bg_color = BackgroundColor(Color::srgb(0.1, 0.1, 0.12)),
+            Interaction::Hovered => *bg_color = BackgroundColor(colors::BACKGROUND_LIGHT),
+            Interaction::Pressed => *bg_color = BackgroundColor(colors::SECONDARY),
+            Interaction::None => *bg_color = BackgroundColor(colors::SURFACE),
         }
     }
 }
@@ -624,26 +636,26 @@ pub fn update_apply_exit_button_hover(
             match *interaction {
                 Interaction::Hovered => {
                     if dirty_state.is_dirty {
-                        *bg_color = BackgroundColor(Color::srgb(0.2, 0.35, 0.2));
-                        *border_color = BorderColor(Color::srgb(0.4, 0.6, 0.4));
+                        *bg_color = BackgroundColor(colors::SUCCESS_HOVER);
+                        *border_color = BorderColor(colors::BORDER_SELECTED_HOVER);
                     } else {
-                        *bg_color = BackgroundColor(Color::srgb(0.12, 0.12, 0.12));
-                        *border_color = BorderColor(Color::srgb(0.25, 0.25, 0.25));
+                        *bg_color = BackgroundColor(colors::DISABLED_HOVER);
+                        *border_color = BorderColor(colors::BORDER_DISABLED);
                     }
                 }
                 Interaction::Pressed => {
                     if dirty_state.is_dirty {
-                        *bg_color = BackgroundColor(Color::srgb(0.25, 0.4, 0.25));
-                        *border_color = BorderColor(Color::srgb(0.5, 0.7, 0.5));
+                        *bg_color = BackgroundColor(colors::SUCCESS_HOVER);
+                        *border_color = BorderColor(colors::BORDER_SELECTED_HOVER);
                     }
                 }
                 Interaction::None => {
                     if dirty_state.is_dirty {
-                        *bg_color = BackgroundColor(Color::srgb(0.15, 0.25, 0.15));
-                        *border_color = BorderColor(Color::srgb(0.3, 0.5, 0.3));
+                        *bg_color = BackgroundColor(colors::SUCCESS);
+                        *border_color = BorderColor(colors::BORDER_SELECTED);
                     } else {
-                        *bg_color = BackgroundColor(Color::srgb(0.1, 0.1, 0.1));
-                        *border_color = BorderColor(Color::srgb(0.2, 0.2, 0.2));
+                        *bg_color = BackgroundColor(colors::DISABLED);
+                        *border_color = BorderColor(colors::BORDER_DISABLED);
                     }
                 }
             }
@@ -651,16 +663,16 @@ pub fn update_apply_exit_button_hover(
             // Exit button
             match *interaction {
                 Interaction::Hovered => {
-                    *bg_color = BackgroundColor(Color::srgb(0.35, 0.2, 0.2));
-                    *border_color = BorderColor(Color::srgb(0.6, 0.4, 0.4));
+                    *bg_color = BackgroundColor(colors::DANGER_HOVER);
+                    *border_color = BorderColor(colors::BORDER_DANGER_HOVER);
                 }
                 Interaction::Pressed => {
-                    *bg_color = BackgroundColor(Color::srgb(0.4, 0.25, 0.25));
-                    *border_color = BorderColor(Color::srgb(0.7, 0.5, 0.5));
+                    *bg_color = BackgroundColor(colors::DANGER_PRESSED);
+                    *border_color = BorderColor(colors::BORDER_DANGER_HOVER);
                 }
                 Interaction::None => {
-                    *bg_color = BackgroundColor(Color::srgb(0.25, 0.15, 0.15));
-                    *border_color = BorderColor(Color::srgb(0.5, 0.3, 0.3));
+                    *bg_color = BackgroundColor(colors::DANGER);
+                    *border_color = BorderColor(colors::BORDER_DANGER);
                 }
             }
         }
@@ -698,12 +710,12 @@ pub fn handle_unsaved_changes_dialog(
     for (interaction, (save_button, discard_button, cancel_button)) in &interactions {
         if *interaction == Interaction::Pressed {
             // Close the dialog first
-            if let Ok(dialog_entity) = dialog_query.get_single() {
+            if let Ok(dialog_entity) = dialog_query.single() {
                 commands.entity(dialog_entity).despawn();
             }
 
             if save_button.is_some() {
-                println!("Saving changes and exiting");
+                info!("Saving changes and exiting");
                 *settings = temp_settings.0.clone();
                 save_settings(&*settings, &mut *pkv);
                 events.write(SettingsChanged);
@@ -714,7 +726,7 @@ pub fn handle_unsaved_changes_dialog(
                 }
             } else if discard_button.is_some() {
                 // Discard changes and exit
-                println!("Discarding changes and exiting");
+                info!("Discarding changes and exiting");
 
                 // Close settings menu without saving
                 if let Ok(entity) = settings_root.single() {
@@ -722,7 +734,7 @@ pub fn handle_unsaved_changes_dialog(
                 }
             } else if cancel_button.is_some() {
                 // Cancel - stay in settings
-                println!("Staying in settings menu");
+                debug!("Staying in settings menu");
                 // Dialog is already closed, do nothing else
             }
         }

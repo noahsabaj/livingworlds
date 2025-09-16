@@ -9,16 +9,16 @@ use bevy_pkv::PkvStore;
 
 /// Load settings from disk on startup
 pub fn load_settings(mut commands: Commands, pkv: Res<PkvStore>) {
-    println!("Loading settings from disk...");
+    info!("Loading settings from disk...");
 
     // Try to load saved settings, fall back to defaults if not found
     let settings = match pkv.get::<GameSettings>("game_settings") {
         Ok(loaded_settings) => {
-            println!("Settings loaded successfully from disk");
+            info!("Settings loaded successfully from disk");
             loaded_settings
         }
         Err(e) => {
-            println!("No saved settings found ({}), using defaults", e);
+            info!("No saved settings found ({}), using defaults", e);
             GameSettings::default()
         }
     };
@@ -29,10 +29,10 @@ pub fn load_settings(mut commands: Commands, pkv: Res<PkvStore>) {
 
 /// Save settings to disk
 pub fn save_settings(settings: &GameSettings, pkv: &mut PkvStore) {
-    println!("Saving settings to disk...");
+    info!("Saving settings to disk...");
 
     match pkv.set("game_settings", settings) {
-        Ok(_) => println!("Settings saved successfully"),
-        Err(e) => eprintln!("Failed to save settings: {}", e),
+        Ok(_) => info!("Settings saved successfully"),
+        Err(e) => error!("Failed to save settings: {}", e),
     }
 }

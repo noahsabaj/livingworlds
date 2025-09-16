@@ -15,7 +15,7 @@ pub fn handle_resolution_confirm_request(
             continue; // Already showing dialog
         }
 
-        println!("Spawning resolution confirmation dialog");
+        debug!("Spawning resolution confirmation dialog");
         confirmation.active = true;
         confirmation.timer.reset();
         confirmation.original_resolution = settings.graphics.resolution.clone();
@@ -50,7 +50,7 @@ pub fn update_resolution_countdown(
 
     // Auto-revert when timer expires
     if confirmation.timer.finished() {
-        println!("Resolution confirmation timed out - reverting");
+        info!("Resolution confirmation timed out - reverting");
 
         // Revert settings
         settings.graphics.resolution = confirmation.original_resolution.clone();
@@ -82,7 +82,7 @@ pub fn handle_resolution_confirm_buttons(
 
     for interaction in &keep_buttons {
         if *interaction == Interaction::Pressed {
-            println!("Resolution confirmed - keeping settings");
+            info!("Resolution confirmed - keeping settings");
 
             // Clean up dialog
             for entity in &dialog_query {
@@ -95,7 +95,7 @@ pub fn handle_resolution_confirm_buttons(
 
     for interaction in &revert_buttons {
         if *interaction == Interaction::Pressed {
-            println!("Resolution rejected - reverting");
+            info!("Resolution rejected - reverting");
 
             // Revert settings
             settings.graphics.resolution = confirmation.original_resolution.clone();

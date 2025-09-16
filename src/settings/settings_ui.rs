@@ -3,6 +3,7 @@
 use super::components::*;
 use super::types::*;
 use crate::states::{CurrentSettingsTab, SettingsTab};
+use crate::ui::styles::colors;
 use crate::ui::{slider, ButtonBuilder, ButtonSize, ButtonStyle, ValueFormat};
 use bevy::prelude::*;
 
@@ -14,7 +15,7 @@ pub fn spawn_settings_menu(
     current_tab: Res<CurrentSettingsTab>,
     mut dirty_state: ResMut<SettingsDirtyState>,
 ) {
-    println!("Spawning settings menu");
+    debug!("Spawning settings menu");
 
     // Copy current settings to temp for editing
     temp_settings.0 = settings.clone();
@@ -34,7 +35,7 @@ pub fn spawn_settings_menu(
                 align_items: AlignItems::Center,
                 ..default()
             },
-            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.85)),
+            BackgroundColor(colors::OVERLAY_DARK),
             SettingsMenuRoot,
             ZIndex(200), // Above other menus
         ))
@@ -43,15 +44,16 @@ pub fn spawn_settings_menu(
             parent
                 .spawn((
                     Node {
-                        width: Val::Px(800.0),
-                        height: Val::Px(650.0), // Increased from 600px to accommodate buttons
+                        width: Val::Px(800.0),                    // Width constraint for readability
+                        max_height: Val::Vh(90.0),               // Safety valve - never bigger than 90% viewport
                         flex_direction: FlexDirection::Column,
                         padding: UiRect::all(Val::Px(20.0)),
                         border: UiRect::all(Val::Px(2.0)),
+                        // NO HEIGHT SPECIFIED! Content determines it naturally
                         ..default()
                     },
-                    BackgroundColor(Color::srgb(0.1, 0.1, 0.12)),
-                    BorderColor(Color::srgb(0.4, 0.4, 0.45)),
+                    BackgroundColor(colors::SURFACE),
+                    BorderColor(colors::BORDER_HOVER),
                     ZIndex(10), // Above click blocker
                 ))
                 .with_children(|panel| {
@@ -71,7 +73,7 @@ pub fn spawn_settings_menu(
                                     font_size: 36.0,
                                     ..default()
                                 },
-                                TextColor(Color::srgb(0.9, 0.9, 0.9)),
+                                TextColor(colors::TEXT_PRIMARY),
                             ));
                         });
 
@@ -86,10 +88,11 @@ pub fn spawn_settings_menu(
                                 flex_grow: 1.0,
                                 padding: UiRect::all(Val::Px(10.0)),
                                 border: UiRect::all(Val::Px(1.0)),
+                                overflow: Overflow::scroll_y(),        // Handle overflow gracefully
                                 ..default()
                             },
-                            BackgroundColor(Color::srgb(0.08, 0.08, 0.08)),
-                            BorderColor(Color::srgb(0.3, 0.3, 0.35)),
+                            BackgroundColor(colors::BACKGROUND_MEDIUM),
+                            BorderColor(colors::BORDER_DEFAULT),
                         ))
                         .with_children(|content| match current_tab.0 {
                             SettingsTab::Graphics => {
@@ -184,7 +187,7 @@ fn spawn_apply_cancel_buttons(parent: &mut ChildSpawnerCommands) {
             ButtonBuilder::new("Exit")
                 .style(ButtonStyle::Danger)
                 .size(ButtonSize::Medium)
-                .with_marker(CancelButton) // Keep component name for compatibility
+                .with_marker(CancelButton)
                 .build(buttons);
         });
 }
@@ -258,7 +261,7 @@ fn spawn_graphics_presets(parent: &mut ChildSpawnerCommands, settings: &Graphics
                     font_size: 18.0,
                     ..default()
                 },
-                TextColor(Color::srgb(0.7, 0.7, 0.7)),
+                TextColor(colors::TEXT_SECONDARY),
                 Node {
                     margin: UiRect::right(Val::Px(15.0)),
                     ..default()
@@ -291,14 +294,14 @@ fn spawn_graphics_presets(parent: &mut ChildSpawnerCommands, settings: &Graphics
                         ..default()
                     },
                     BackgroundColor(if is_active {
-                        Color::srgb(0.15, 0.3, 0.15)
+                        colors::SURFACE_SELECTED
                     } else {
-                        Color::srgb(0.15, 0.15, 0.18)
+                        colors::SECONDARY
                     }),
                     BorderColor(if is_active {
-                        Color::srgb(0.3, 0.5, 0.3)
+                        colors::BORDER_SELECTED
                     } else {
-                        Color::srgb(0.3, 0.3, 0.35)
+                        colors::BORDER_DEFAULT
                     }),
                     PresetButton { preset },
                     Focusable {
@@ -313,7 +316,7 @@ fn spawn_graphics_presets(parent: &mut ChildSpawnerCommands, settings: &Graphics
                             font_size: 16.0,
                             ..default()
                         },
-                        TextColor(Color::srgb(0.9, 0.9, 0.9)),
+                        TextColor(colors::TEXT_PRIMARY),
                     ));
                 });
             }
@@ -326,7 +329,7 @@ fn spawn_graphics_presets(parent: &mut ChildSpawnerCommands, settings: &Graphics
                         font_size: 16.0,
                         ..default()
                     },
-                    TextColor(Color::srgb(0.8, 0.7, 0.3)),
+                    TextColor(colors::WARNING),
                     Node {
                         margin: UiRect::left(Val::Px(10.0)),
                         ..default()
@@ -408,7 +411,7 @@ fn spawn_performance_content(parent: &mut ChildSpawnerCommands) {
             font_size: 18.0,
             ..default()
         },
-        TextColor(Color::srgb(0.6, 0.6, 0.6)),
+        TextColor(colors::TEXT_TERTIARY),
     ));
 }
 
@@ -477,7 +480,7 @@ fn create_cycle_row(
                     font_size: 18.0,
                     ..default()
                 },
-                TextColor(Color::srgb(0.8, 0.8, 0.8)),
+                TextColor(colors::TEXT_PRIMARY),
             ));
 
             // Cycle button
@@ -515,12 +518,12 @@ fn create_toggle_row(
                     font_size: 18.0,
                     ..default()
                 },
-                TextColor(Color::srgb(0.8, 0.8, 0.8)),
+                TextColor(colors::TEXT_PRIMARY),
             ));
 
             // Toggle checkbox
-            let checkbox_text = if enabled { "✓" } else { "" };
-            let style = if enabled {
+            let _checkbox_text = if enabled { "✓" } else { "" };
+            let _style = if enabled {
                 ButtonStyle::Success
             } else {
                 ButtonStyle::Secondary
@@ -537,11 +540,11 @@ fn create_toggle_row(
                     ..default()
                 },
                 BackgroundColor(if enabled {
-                    Color::srgb(0.2, 0.4, 0.2)
+                    colors::SUCCESS
                 } else {
-                    Color::srgb(0.15, 0.15, 0.18)
+                    colors::SECONDARY
                 }),
-                BorderColor(Color::srgb(0.3, 0.3, 0.35)),
+                BorderColor(colors::BORDER_DEFAULT),
                 ToggleButton {
                     setting_type,
                     enabled,
@@ -556,7 +559,7 @@ fn create_toggle_row(
                             font_size: 20.0,
                             ..default()
                         },
-                        TextColor(Color::srgb(0.9, 0.9, 0.9)),
+                        TextColor(colors::TEXT_PRIMARY),
                     ));
                 });
             }

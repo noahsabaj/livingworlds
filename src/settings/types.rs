@@ -312,7 +312,6 @@ pub enum SettingType {
     InvertZoom,
     CameraSpeed,
     ZoomSpeed,
-    // Additional compatibility aliases
     SFXVolume,
     UIScale,
     ShowFPS,
