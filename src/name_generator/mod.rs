@@ -49,8 +49,9 @@ mod generator;
 mod types;
 mod utils; // Internal data module - not exposed externally
 
-#[cfg(test)]
-mod tests;
+// TODO: Create test module when needed
+// #[cfg(test)]
+// mod tests;
 
 // CONTROLLED PUBLIC API - This is the ONLY way in/out of name_generator
 // Re-export only what external code needs

@@ -9,7 +9,6 @@ use rand::{Rng, SeedableRng};
 use std::collections::HashSet;
 
 // Import through parent module gateway
-use super::data;
 use super::types::*;
 use super::utils::*;
 
