@@ -2,6 +2,8 @@
 //!
 //! This module handles loading configuration files and watching for changes.
 
+#![allow(dead_code)] // Preserve utility functions for future use
+
 use super::manager::ModManager;
 use super::types::*;
 use bevy::prelude::*;
@@ -107,7 +109,7 @@ pub fn handle_config_reload(
                 .find(|m| m.manifest.id == *mod_id)
             {
                 // Re-load the mod's configuration overrides
-                let config_dir = loaded_mod.path.join("config");
+                let _config_dir = loaded_mod.path.join("config");
 
                 if event.path.ends_with("balance.ron") {
                     if let Ok(contents) = std::fs::read_to_string(&event.path) {

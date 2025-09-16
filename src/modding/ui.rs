@@ -6,6 +6,8 @@
 //! - Active modset configuration
 //! - Soft-reset functionality
 
+#![allow(elided_lifetimes_in_paths)]
+
 use super::manager::ModManager;
 use crate::loading_screen::{start_mod_application_loading, LoadingState};
 use crate::states::{GameState, RequestStateTransition};
@@ -16,6 +18,8 @@ use crate::ui::{
     ButtonBuilder,
     ButtonSize,
     ButtonStyle,
+    PanelBuilder,
+    PanelStyle,
     StyledButton,
 };
 use bevy::prelude::*;
@@ -239,13 +243,11 @@ pub fn spawn_mod_browser(
                 ))
                 .with_children(|header| {
                     // Tab buttons container
-                    header
-                        .spawn((Node {
-                            flex_direction: FlexDirection::Row,
-                            column_gap: Val::Px(20.0),
-                            ..default()
-                        },))
-                        .with_children(|tabs| {
+                    PanelBuilder::new()
+                        .style(PanelStyle::Transparent)
+                        .flex_direction(FlexDirection::Row)
+                        .column_gap(Val::Px(20.0))
+                        .build_with_children(header, |tabs| {
                             // Installed tab
                             ButtonBuilder::new("Installed")
                                 .style(if browser_state.current_tab == ModBrowserTab::Installed {
@@ -301,13 +303,11 @@ pub fn spawn_mod_browser(
                         .build(header);
 
                     // User info
-                    header
-                        .spawn((Node {
-                            align_items: AlignItems::Center,
-                            column_gap: Val::Px(10.0),
-                            ..default()
-                        },))
-                        .with_children(|info| {
+                    PanelBuilder::new()
+                        .style(PanelStyle::Transparent)
+                        .align_items(AlignItems::Center)
+                        .column_gap(Val::Px(10.0))
+                        .build_with_children(header, |info| {
                             info.spawn((
                                 Text::new("Steam User"),
                                 TextFont {
@@ -382,15 +382,13 @@ pub fn spawn_mod_browser(
                             ] {
                                 let is_checked =
                                     browser_state.active_filters.contains(&filter_enum);
-                                sidebar
-                                    .spawn((Node {
-                                        flex_direction: FlexDirection::Row,
-                                        align_items: AlignItems::Center,
-                                        column_gap: Val::Px(10.0),
-                                        margin: UiRect::bottom(Val::Px(5.0)),
-                                        ..default()
-                                    },))
-                                    .with_children(|filter_row| {
+                                PanelBuilder::new()
+                                    .style(PanelStyle::Transparent)
+                                    .flex_direction(FlexDirection::Row)
+                                    .align_items(AlignItems::Center)
+                                    .column_gap(Val::Px(10.0))
+                                    .margin(UiRect::bottom(Val::Px(5.0)))
+                                    .build_with_children(sidebar, |filter_row| {
                                         // Checkbox
                                         ButtonBuilder::new(if is_checked { "[X]" } else { "[ ]" })
                                             .style(ButtonStyle::Ghost)
@@ -441,13 +439,13 @@ pub fn spawn_mod_browser(
                             // Status filter options
                             for filter_status in ["Enabled", "Disabled", "Update Available"] {
                                 sidebar
-                                    .spawn((Node {
+                                    .spawn(Node {
                                         flex_direction: FlexDirection::Row,
                                         align_items: AlignItems::Center,
                                         column_gap: Val::Px(10.0),
                                         margin: UiRect::bottom(Val::Px(5.0)),
                                         ..default()
-                                    },))
+                                    })
                                     .with_children(|filter_row| {
                                         // Checkbox
                                         ButtonBuilder::new("[ ]")
@@ -554,23 +552,23 @@ pub fn spawn_mod_browser(
                 ))
                 .with_children(|bar| {
                     // Left buttons
-                    bar.spawn((Node {
+                    bar.spawn(Node {
                         flex_direction: FlexDirection::Row,
                         column_gap: Val::Px(10.0),
                         ..default()
-                    },))
-                        .with_children(|left| {
-                            ButtonBuilder::new("Back to Main Menu")
-                                .style(ButtonStyle::Secondary)
-                                .size(ButtonSize::Medium)
-                                .with_marker(CloseModBrowserButton)
-                                .build(left);
+                    })
+                    .with_children(|left| {
+                        ButtonBuilder::new("Back to Main Menu")
+                            .style(ButtonStyle::Secondary)
+                            .size(ButtonSize::Medium)
+                            .with_marker(CloseModBrowserButton)
+                            .build(left);
 
-                            ButtonBuilder::new("Refresh")
-                                .style(ButtonStyle::Secondary)
-                                .size(ButtonSize::Medium)
-                                .build(left);
-                        });
+                        ButtonBuilder::new("Refresh")
+                            .style(ButtonStyle::Secondary)
+                            .size(ButtonSize::Medium)
+                            .build(left);
+                    });
 
                     // Right button - Confirm Modset
                     ButtonBuilder::new("CONFIRM MODSET")
@@ -592,78 +590,284 @@ fn spawn_tab_content(
     match tab {
         ModBrowserTab::Installed => {
             // Grid for mod cards
-            main.spawn((Node {
+            main.spawn(Node {
                 display: Display::Grid,
                 width: Val::Percent(100.0),
                 grid_template_columns: vec![GridTrack::fr(1.0); 3],
                 row_gap: Val::Px(20.0),
                 column_gap: Val::Px(20.0),
                 ..default()
-            },))
-                .with_children(|grid| {
-                    // Filter mods based on search query
-                    let filtered_mods: Vec<_> = mod_manager
-                        .available_mods
-                        .iter()
-                        .filter(|m| {
-                            if search_query.is_empty() {
-                                return true;
-                            }
-                            let query_lower = search_query.to_lowercase();
-                            m.manifest.name.to_lowercase().contains(&query_lower)
-                                || m.manifest.description.to_lowercase().contains(&query_lower)
-                                || m.manifest.author.to_lowercase().contains(&query_lower)
-                                || m.manifest.id.to_lowercase().contains(&query_lower)
-                        })
-                        .collect();
+            })
+            .with_children(|grid| {
+                // Filter mods based on search query
+                let filtered_mods: Vec<_> = mod_manager
+                    .available_mods
+                    .iter()
+                    .filter(|m| {
+                        if search_query.is_empty() {
+                            return true;
+                        }
+                        let query_lower = search_query.to_lowercase();
+                        m.manifest.name.to_lowercase().contains(&query_lower)
+                            || m.manifest.description.to_lowercase().contains(&query_lower)
+                            || m.manifest.author.to_lowercase().contains(&query_lower)
+                            || m.manifest.id.to_lowercase().contains(&query_lower)
+                    })
+                    .collect();
 
-                    // Generate mod cards for each filtered mod
-                    for loaded_mod in filtered_mods {
-                        // Mod card container
-                        grid.spawn((
+                // Generate mod cards for each filtered mod
+                for loaded_mod in filtered_mods {
+                    // Mod card container
+                    grid.spawn((
+                        Node {
+                            flex_direction: FlexDirection::Column,
+                            padding: UiRect::all(Val::Px(15.0)),
+                            border: UiRect::all(Val::Px(2.0)),
+                            ..default()
+                        },
+                        BackgroundColor(colors::BACKGROUND_MEDIUM),
+                        BorderColor(colors::BORDER_DEFAULT),
+                        ModCard {
+                            mod_id: loaded_mod.manifest.id.clone(),
+                            workshop_id: None,
+                        },
+                    ))
+                    .with_children(|card| {
+                        // Mod thumbnail placeholder
+                        card.spawn((
                             Node {
-                                flex_direction: FlexDirection::Column,
-                                padding: UiRect::all(Val::Px(15.0)),
-                                border: UiRect::all(Val::Px(2.0)),
+                                width: Val::Percent(100.0),
+                                height: Val::Px(120.0),
+                                margin: UiRect::bottom(Val::Px(10.0)),
+                                ..default()
+                            },
+                            BackgroundColor(colors::BACKGROUND_DARK),
+                        ))
+                        .with_children(|thumb| {
+                            thumb.spawn((
+                                Text::new("MOD ICON"),
+                                TextFont {
+                                    font_size: 24.0,
+                                    ..default()
+                                },
+                                TextColor(colors::TEXT_TERTIARY),
+                                Node {
+                                    position_type: PositionType::Absolute,
+                                    left: Val::Percent(50.0),
+                                    top: Val::Percent(50.0),
+                                    ..default()
+                                },
+                            ));
+                        });
+
+                        // Mod name
+                        card.spawn((
+                            Text::new(&loaded_mod.manifest.name),
+                            TextFont {
+                                font_size: 18.0,
+                                ..default()
+                            },
+                            TextColor(colors::TEXT_PRIMARY),
+                            Node {
+                                margin: UiRect::bottom(Val::Px(5.0)),
+                                ..default()
+                            },
+                        ));
+
+                        // Author
+                        card.spawn((
+                            Text::new(format!("by {}", loaded_mod.manifest.author)),
+                            TextFont {
+                                font_size: 14.0,
+                                ..default()
+                            },
+                            TextColor(colors::TEXT_SECONDARY),
+                            Node {
+                                margin: UiRect::bottom(Val::Px(5.0)),
+                                ..default()
+                            },
+                        ));
+
+                        // Version and compatibility
+                        card.spawn((
+                            Text::new(format!(
+                                "v{} | Game v{}",
+                                loaded_mod.manifest.version,
+                                loaded_mod.manifest.compatible_game_version
+                            )),
+                            TextFont {
+                                font_size: 12.0,
+                                ..default()
+                            },
+                            TextColor(colors::TEXT_TERTIARY),
+                            Node {
+                                margin: UiRect::bottom(Val::Px(10.0)),
+                                ..default()
+                            },
+                        ));
+
+                        // Description
+                        card.spawn((
+                            Text::new(&loaded_mod.manifest.description),
+                            TextFont {
+                                font_size: 14.0,
+                                ..default()
+                            },
+                            TextColor(colors::TEXT_SECONDARY),
+                            Node {
+                                margin: UiRect::bottom(Val::Px(10.0)),
+                                ..default()
+                            },
+                        ));
+
+                        // Enable/disable toggle
+                        card.spawn(Node {
+                            flex_direction: FlexDirection::Row,
+                            align_items: AlignItems::Center,
+                            column_gap: Val::Px(10.0),
+                            ..default()
+                        })
+                        .with_children(|toggle_row| {
+                            // Checkbox button
+                            ButtonBuilder::new(if loaded_mod.enabled { "[X]" } else { "[ ]" })
+                                .style(ButtonStyle::Secondary)
+                                .size(ButtonSize::Small)
+                                .with_marker(ModToggle {
+                                    mod_id: loaded_mod.manifest.id.clone(),
+                                })
+                                .build(toggle_row);
+
+                            // Label
+                            toggle_row.spawn((
+                                Text::new("Enabled"),
+                                TextFont {
+                                    font_size: 14.0,
+                                    ..default()
+                                },
+                                TextColor(colors::TEXT_PRIMARY),
+                            ));
+                        });
+                    });
+                }
+            });
+        }
+        ModBrowserTab::Workshop => {
+            // Workshop content placeholder
+            main.spawn(Node {
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::Center,
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                ..default()
+            })
+            .with_children(|workshop| {
+                workshop.spawn((
+                    Text::new("Steam Workshop"),
+                    TextFont {
+                        font_size: 32.0,
+                        ..default()
+                    },
+                    TextColor(colors::TEXT_PRIMARY),
+                    Node {
+                        margin: UiRect::bottom(Val::Px(20.0)),
+                        ..default()
+                    },
+                ));
+
+                workshop.spawn((
+                    Text::new("Browse and subscribe to community mods"),
+                    TextFont {
+                        font_size: 18.0,
+                        ..default()
+                    },
+                    TextColor(colors::TEXT_SECONDARY),
+                    Node {
+                        margin: UiRect::bottom(Val::Px(10.0)),
+                        ..default()
+                    },
+                ));
+
+                workshop.spawn((
+                    Text::new("(Steam Workshop integration coming soon)"),
+                    TextFont {
+                        font_size: 14.0,
+                        ..default()
+                    },
+                    TextColor(colors::TEXT_TERTIARY),
+                ));
+            });
+        }
+        ModBrowserTab::ActiveModset => {
+            // Active modset list
+            main.spawn(Node {
+                flex_direction: FlexDirection::Column,
+                width: Val::Percent(100.0),
+                ..default()
+            })
+            .with_children(|modset| {
+                // Header
+                modset.spawn((
+                    Text::new("Active Modset"),
+                    TextFont {
+                        font_size: 24.0,
+                        ..default()
+                    },
+                    TextColor(colors::TEXT_PRIMARY),
+                    Node {
+                        margin: UiRect::bottom(Val::Px(20.0)),
+                        ..default()
+                    },
+                ));
+
+                // List of active mods
+                for (index, loaded_mod) in mod_manager
+                    .available_mods
+                    .iter()
+                    .filter(|m| m.enabled)
+                    .enumerate()
+                {
+                    modset
+                        .spawn((
+                            Node {
+                                flex_direction: FlexDirection::Row,
+                                align_items: AlignItems::Center,
+                                width: Val::Percent(100.0),
+                                padding: UiRect::all(Val::Px(10.0)),
+                                margin: UiRect::bottom(Val::Px(5.0)),
+                                border: UiRect::all(Val::Px(1.0)),
+                                column_gap: Val::Px(15.0),
                                 ..default()
                             },
                             BackgroundColor(colors::BACKGROUND_MEDIUM),
                             BorderColor(colors::BORDER_DEFAULT),
-                            ModCard {
+                            ModListItem {
                                 mod_id: loaded_mod.manifest.id.clone(),
-                                workshop_id: None,
+                                load_order: index,
                             },
                         ))
-                        .with_children(|card| {
-                            // Mod thumbnail placeholder
-                            card.spawn((
-                                Node {
-                                    width: Val::Percent(100.0),
-                                    height: Val::Px(120.0),
-                                    margin: UiRect::bottom(Val::Px(10.0)),
+                        .with_children(|item| {
+                            // Drag handle placeholder
+                            item.spawn((
+                                Text::new("≡"),
+                                TextFont {
+                                    font_size: 20.0,
                                     ..default()
                                 },
-                                BackgroundColor(colors::BACKGROUND_DARK),
-                            ))
-                            .with_children(|thumb| {
-                                thumb.spawn((
-                                    Text::new("MOD ICON"),
-                                    TextFont {
-                                        font_size: 24.0,
-                                        ..default()
-                                    },
-                                    TextColor(colors::TEXT_TERTIARY),
-                                    Node {
-                                        position_type: PositionType::Absolute,
-                                        left: Val::Percent(50.0),
-                                        top: Val::Percent(50.0),
-                                        ..default()
-                                    },
-                                ));
-                            });
+                                TextColor(colors::TEXT_TERTIARY),
+                            ));
+
+                            item.spawn((
+                                Text::new(format!("#{}", index + 1)),
+                                TextFont {
+                                    font_size: 16.0,
+                                    ..default()
+                                },
+                                TextColor(colors::TEXT_SECONDARY),
+                            ));
 
                             // Mod name
-                            card.spawn((
+                            item.spawn((
                                 Text::new(&loaded_mod.manifest.name),
                                 TextFont {
                                     font_size: 18.0,
@@ -671,259 +875,49 @@ fn spawn_tab_content(
                                 },
                                 TextColor(colors::TEXT_PRIMARY),
                                 Node {
-                                    margin: UiRect::bottom(Val::Px(5.0)),
+                                    flex_grow: 1.0,
                                     ..default()
                                 },
                             ));
 
-                            // Author
-                            card.spawn((
-                                Text::new(format!("by {}", loaded_mod.manifest.author)),
+                            // Version
+                            item.spawn((
+                                Text::new(format!("v{}", loaded_mod.manifest.version)),
                                 TextFont {
                                     font_size: 14.0,
-                                    ..default()
-                                },
-                                TextColor(colors::TEXT_SECONDARY),
-                                Node {
-                                    margin: UiRect::bottom(Val::Px(5.0)),
-                                    ..default()
-                                },
-                            ));
-
-                            // Version and compatibility
-                            card.spawn((
-                                Text::new(format!(
-                                    "v{} | Game v{}",
-                                    loaded_mod.manifest.version,
-                                    loaded_mod.manifest.compatible_game_version
-                                )),
-                                TextFont {
-                                    font_size: 12.0,
                                     ..default()
                                 },
                                 TextColor(colors::TEXT_TERTIARY),
-                                Node {
-                                    margin: UiRect::bottom(Val::Px(10.0)),
-                                    ..default()
-                                },
                             ));
 
-                            // Description
-                            card.spawn((
-                                Text::new(&loaded_mod.manifest.description),
-                                TextFont {
-                                    font_size: 14.0,
-                                    ..default()
-                                },
-                                TextColor(colors::TEXT_SECONDARY),
-                                Node {
-                                    margin: UiRect::bottom(Val::Px(10.0)),
-                                    ..default()
-                                },
-                            ));
-
-                            // Enable/disable toggle
-                            card.spawn((Node {
-                                flex_direction: FlexDirection::Row,
-                                align_items: AlignItems::Center,
-                                column_gap: Val::Px(10.0),
-                                ..default()
-                            },))
-                                .with_children(|toggle_row| {
-                                    // Checkbox button
-                                    ButtonBuilder::new(if loaded_mod.enabled {
-                                        "[X]"
-                                    } else {
-                                        "[ ]"
-                                    })
-                                    .style(ButtonStyle::Secondary)
-                                    .size(ButtonSize::Small)
-                                    .with_marker(ModToggle {
-                                        mod_id: loaded_mod.manifest.id.clone(),
-                                    })
-                                    .build(toggle_row);
-
-                                    // Label
-                                    toggle_row.spawn((
-                                        Text::new("Enabled"),
-                                        TextFont {
-                                            font_size: 14.0,
-                                            ..default()
-                                        },
-                                        TextColor(colors::TEXT_PRIMARY),
-                                    ));
-                                });
+                            // Toggle button
+                            ButtonBuilder::new("Disable")
+                                .style(ButtonStyle::Danger)
+                                .size(ButtonSize::Small)
+                                .with_marker(ModToggle {
+                                    mod_id: loaded_mod.manifest.id.clone(),
+                                })
+                                .build(item);
                         });
-                    }
-                });
-        }
-        ModBrowserTab::Workshop => {
-            // Workshop content placeholder
-            main.spawn((Node {
-                flex_direction: FlexDirection::Column,
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.0),
-                ..default()
-            },))
-                .with_children(|workshop| {
-                    workshop.spawn((
-                        Text::new("Steam Workshop"),
-                        TextFont {
-                            font_size: 32.0,
-                            ..default()
-                        },
-                        TextColor(colors::TEXT_PRIMARY),
-                        Node {
-                            margin: UiRect::bottom(Val::Px(20.0)),
-                            ..default()
-                        },
-                    ));
+                }
 
-                    workshop.spawn((
-                        Text::new("Browse and subscribe to community mods"),
+                // Show message if no mods are active
+                if !mod_manager.available_mods.iter().any(|m| m.enabled) {
+                    modset.spawn((
+                        Text::new("No mods currently active"),
                         TextFont {
                             font_size: 18.0,
                             ..default()
                         },
-                        TextColor(colors::TEXT_SECONDARY),
-                        Node {
-                            margin: UiRect::bottom(Val::Px(10.0)),
-                            ..default()
-                        },
-                    ));
-
-                    workshop.spawn((
-                        Text::new("(Steam Workshop integration coming soon)"),
-                        TextFont {
-                            font_size: 14.0,
-                            ..default()
-                        },
                         TextColor(colors::TEXT_TERTIARY),
-                    ));
-                });
-        }
-        ModBrowserTab::ActiveModset => {
-            // Active modset list
-            main.spawn((Node {
-                flex_direction: FlexDirection::Column,
-                width: Val::Percent(100.0),
-                ..default()
-            },))
-                .with_children(|modset| {
-                    // Header
-                    modset.spawn((
-                        Text::new("Active Modset"),
-                        TextFont {
-                            font_size: 24.0,
-                            ..default()
-                        },
-                        TextColor(colors::TEXT_PRIMARY),
                         Node {
-                            margin: UiRect::bottom(Val::Px(20.0)),
+                            margin: UiRect::top(Val::Px(50.0)),
+                            align_self: AlignSelf::Center,
                             ..default()
                         },
                     ));
-
-                    // List of active mods
-                    for (index, loaded_mod) in mod_manager
-                        .available_mods
-                        .iter()
-                        .filter(|m| m.enabled)
-                        .enumerate()
-                    {
-                        modset
-                            .spawn((
-                                Node {
-                                    flex_direction: FlexDirection::Row,
-                                    align_items: AlignItems::Center,
-                                    width: Val::Percent(100.0),
-                                    padding: UiRect::all(Val::Px(10.0)),
-                                    margin: UiRect::bottom(Val::Px(5.0)),
-                                    border: UiRect::all(Val::Px(1.0)),
-                                    column_gap: Val::Px(15.0),
-                                    ..default()
-                                },
-                                BackgroundColor(colors::BACKGROUND_MEDIUM),
-                                BorderColor(colors::BORDER_DEFAULT),
-                                ModListItem {
-                                    mod_id: loaded_mod.manifest.id.clone(),
-                                    load_order: index,
-                                },
-                            ))
-                            .with_children(|item| {
-                                // Drag handle placeholder
-                                item.spawn((
-                                    Text::new("≡"),
-                                    TextFont {
-                                        font_size: 20.0,
-                                        ..default()
-                                    },
-                                    TextColor(colors::TEXT_TERTIARY),
-                                ));
-
-                                item.spawn((
-                                    Text::new(format!("#{}", index + 1)),
-                                    TextFont {
-                                        font_size: 16.0,
-                                        ..default()
-                                    },
-                                    TextColor(colors::TEXT_SECONDARY),
-                                ));
-
-                                // Mod name
-                                item.spawn((
-                                    Text::new(&loaded_mod.manifest.name),
-                                    TextFont {
-                                        font_size: 18.0,
-                                        ..default()
-                                    },
-                                    TextColor(colors::TEXT_PRIMARY),
-                                    Node {
-                                        flex_grow: 1.0,
-                                        ..default()
-                                    },
-                                ));
-
-                                // Version
-                                item.spawn((
-                                    Text::new(format!("v{}", loaded_mod.manifest.version)),
-                                    TextFont {
-                                        font_size: 14.0,
-                                        ..default()
-                                    },
-                                    TextColor(colors::TEXT_TERTIARY),
-                                ));
-
-                                // Toggle button
-                                ButtonBuilder::new("Disable")
-                                    .style(ButtonStyle::Danger)
-                                    .size(ButtonSize::Small)
-                                    .with_marker(ModToggle {
-                                        mod_id: loaded_mod.manifest.id.clone(),
-                                    })
-                                    .build(item);
-                            });
-                    }
-
-                    // Show message if no mods are active
-                    if !mod_manager.available_mods.iter().any(|m| m.enabled) {
-                        modset.spawn((
-                            Text::new("No mods currently active"),
-                            TextFont {
-                                font_size: 18.0,
-                                ..default()
-                            },
-                            TextColor(colors::TEXT_TERTIARY),
-                            Node {
-                                margin: UiRect::top(Val::Px(50.0)),
-                                align_self: AlignSelf::Center,
-                                ..default()
-                            },
-                        ));
-                    }
-                });
+                }
+            });
         }
     }
 }
@@ -939,7 +933,7 @@ fn handle_open_mod_browser(
     for _ in events.read() {
         // Remove existing browser if any
         for entity in &query {
-            commands.entity(entity).despawn_recursive();
+            commands.entity(entity).despawn();
         }
 
         spawn_mod_browser(&mut commands, &mod_manager, &state);
@@ -954,7 +948,7 @@ fn handle_close_mod_browser(
 ) {
     for _ in events.read() {
         for entity in &query {
-            commands.entity(entity).despawn_recursive();
+            commands.entity(entity).despawn();
         }
     }
 }
@@ -966,7 +960,7 @@ fn handle_close_button_clicks(
 ) {
     for interaction in &mut interaction_query {
         if *interaction == Interaction::Pressed {
-            close_events.send(CloseModBrowserEvent);
+            close_events.write(CloseModBrowserEvent);
         }
     }
 }
@@ -978,7 +972,7 @@ fn handle_tab_button_clicks(
 ) {
     for (interaction, tab_button) in &mut interaction_query {
         if *interaction == Interaction::Pressed {
-            switch_events.send(SwitchModTabEvent {
+            switch_events.write(SwitchModTabEvent {
                 tab: tab_button.tab,
             });
         }
@@ -992,7 +986,7 @@ fn handle_confirm_modset_clicks(
 ) {
     for interaction in &mut interaction_query {
         if *interaction == Interaction::Pressed {
-            apply_events.send(ApplyModChangesEvent);
+            apply_events.write(ApplyModChangesEvent);
         }
     }
 }
@@ -1074,7 +1068,7 @@ fn handle_apply_changes(
         start_mod_application_loading(&mut loading_state);
 
         // Transition to loading state
-        state_transition.send(RequestStateTransition {
+        state_transition.write(RequestStateTransition {
             from: GameState::InGame,
             to: GameState::LoadingWorld,
         });
@@ -1118,12 +1112,12 @@ fn handle_search_input_changes(
 fn handle_search_submit(
     mut submit_events: EventReader<TextInputSubmitEvent>,
     text_inputs: Query<&TextInputValue>,
-    browser_state: Res<ModBrowserState>,
+    _browser_state: Res<ModBrowserState>,
 ) {
     for event in submit_events.read() {
         if let Ok(text_value) = text_inputs.get(event.entity) {
             // For now, just log the search submission
-            println!("Search submitted: {}", text_value.0);
+            debug!("Search submitted: {}", text_value.0);
 
             // In the future, this could trigger more advanced search operations
             // like searching the Steam Workshop API

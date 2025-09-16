@@ -97,7 +97,7 @@ impl ModManager {
 
         let colors_path = base_path.join("colors.ron");
         if colors_path.exists() {
-            let contents = fs::read_to_string(&colors_path)?;
+            let _contents = fs::read_to_string(&colors_path)?;
             // Note: In production, we'd properly parse the colors.ron structure
             info!("Loaded colors configuration");
         }
@@ -313,5 +313,113 @@ impl ModManager {
         }
 
         missing
+    }
+
+    /// Refresh workshop mods by re-scanning the workshop directory
+    pub fn refresh_workshop_mods(&mut self) {
+        info!("Refreshing workshop mods...");
+
+        // Remove existing workshop mods
+        self.available_mods.retain(|m| !matches!(m.source, ModSource::Workshop(_)));
+
+        // Re-scan workshop directory
+        if let Ok(entries) = fs::read_dir(&self.mod_paths.workshop_mods) {
+            for entry in entries.flatten() {
+                if entry.path().is_dir() {
+                    if let Some(workshop_id) = entry.file_name().to_str() {
+                        if let Ok(id) = workshop_id.parse::<u64>() {
+                            info!("Found workshop mod: {}", workshop_id);
+                            let mut loaded_mod = LoadedMod {
+                                manifest: ModManifest {
+                                    id: workshop_id.to_string(),
+                                    name: format!("Workshop_{}", workshop_id),
+                                    version: "1.0.0".to_string(),
+                                    author: "Workshop".to_string(),
+                                    description: "".to_string(),
+                                    dependencies: Vec::new(),
+                                    compatible_game_version: "*".to_string(),
+                                    load_order: 200,
+                                },
+                                path: entry.path(),
+                                config_overrides: ModConfigOverrides::default(),
+                                source: ModSource::Workshop(id),
+                                enabled: false,
+                            };
+
+                            // Try to load manifest if it exists
+                            let manifest_path = entry.path().join("manifest.ron");
+                            if manifest_path.exists() {
+                                if let Ok(contents) = fs::read_to_string(&manifest_path) {
+                                    if let Ok(manifest) = ron::from_str::<ModManifest>(&contents) {
+                                        loaded_mod.manifest = manifest;
+                                    }
+                                }
+                            }
+
+                            // Load config overrides
+                            Self::load_mod_config_overrides(&mut loaded_mod);
+
+                            self.available_mods.push(loaded_mod);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Re-sort mods by load order
+        self.sort_mods_by_load_order();
+
+        info!("Workshop mods refresh completed");
+    }
+
+    /// Add a newly downloaded workshop mod
+    pub fn add_workshop_mod(&mut self, workshop_id: u64, install_path: String) {
+        let workshop_path = PathBuf::from(install_path);
+
+        // Check if this workshop mod already exists
+        if self.available_mods.iter().any(|m| matches!(m.source, ModSource::Workshop(id) if id == workshop_id)) {
+            info!("Workshop mod {} already exists", workshop_id);
+            return;
+        }
+
+        info!("Adding new workshop mod: {} at {}", workshop_id, workshop_path.display());
+
+        let mut loaded_mod = LoadedMod {
+            manifest: ModManifest {
+                id: workshop_id.to_string(),
+                name: format!("Workshop_{}", workshop_id),
+                version: "1.0.0".to_string(),
+                author: "Workshop".to_string(),
+                description: "".to_string(),
+                dependencies: Vec::new(),
+                compatible_game_version: "*".to_string(),
+                load_order: 200,
+            },
+            path: workshop_path.clone(),
+            config_overrides: ModConfigOverrides::default(),
+            source: ModSource::Workshop(workshop_id),
+            enabled: false,
+        };
+
+        // Try to load manifest if it exists
+        let manifest_path = workshop_path.join("manifest.ron");
+        if manifest_path.exists() {
+            if let Ok(contents) = fs::read_to_string(&manifest_path) {
+                if let Ok(manifest) = ron::from_str::<ModManifest>(&contents) {
+                    loaded_mod.manifest = manifest;
+                    info!("Loaded manifest for workshop mod: {}", loaded_mod.manifest.name);
+                }
+            }
+        }
+
+        // Load config overrides
+        Self::load_mod_config_overrides(&mut loaded_mod);
+
+        self.available_mods.push(loaded_mod);
+
+        // Re-sort mods by load order
+        self.sort_mods_by_load_order();
+
+        info!("Added workshop mod: {}", workshop_id);
     }
 }
