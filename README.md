@@ -28,14 +28,14 @@ Living Worlds is a fully procedural civilization OBSERVER - like Fantasy Map Sim
   - Shallow coastal waters
   - Medium depth continental shelves  
   - Deep ocean trenches
-- **🏔️ Procedural Terrain**: 12 terrain types including rivers and deltas
+- **🏔️ Procedural Terrain**: 22 terrain types including rivers
   - Dynamic biome distribution based on latitude
+  - Comprehensive biome system: Ocean, Beach, River, PolarDesert, Tundra, Taiga, BorealForest, TemperateRainforest, TemperateDeciduousForest, TemperateGrassland, ColdDesert, MediterraneanForest, Chaparral, SubtropicalDesert, TropicalRainforest, TropicalSeasonalForest, Savanna, TropicalDesert, Alpine, Wetlands, Mangrove
   - Rivers flowing from mountains to ocean with gameplay impact
   - Agriculture zones near water sources
-  - Forests, jungles, deserts, tundra, and ice caps
 - **☁️ Dynamic Weather**: Multi-layer procedural cloud system with wind
-- **⛏️ Mineral Resources**: 9 mineral types with realistic vein distribution
-  - Iron, Copper, Tin, Gold, Coal, Gems, Stone, Bronze, Steel
+- **⛏️ Mineral Resources**: 7 mineral types with realistic vein distribution
+  - Iron, Copper, Tin, Gold, Coal, Gems, Stone
   - Heat map overlays for resource visualization
   - Combined richness view for all minerals
 - **🏛️ Nations**: Territory-based civilizations with expansion mechanics
@@ -76,10 +76,11 @@ The project uses a **modular plugin architecture** with Bevy's ECS (Entity Compo
 ```
 livingworlds/
 ├── src/                    # Source code (modular architecture)
-│   ├── world/             # World systems with 11 subdirectories
+│   ├── world/             # World systems with 12 subdirectories
 │   │   ├── borders/       # Province border rendering
 │   │   ├── clouds/        # Cloud rendering and animation
 │   │   ├── colors/        # Terrain and mineral colors
+│   │   ├── generation/    # World generation systems
 │   │   ├── mesh/          # Mega-mesh generation
 │   │   ├── minerals/      # Resource generation
 │   │   ├── overlay/       # Map overlay modes
@@ -92,9 +93,18 @@ livingworlds/
 │   ├── ui/                # User interface system
 │   │   ├── hud/           # HUD components
 │   │   ├── overlay_display/ # Overlay display
+│   │   ├── tile_info/     # Tile information panel
+│   │   ├── interaction/   # UI interaction handling
 │   │   ├── components/    # UI components
+│   │   ├── builders.rs    # UI builder utilities
+│   │   ├── buttons.rs     # Button component system
+│   │   ├── dialogs.rs     # Dialog creation system
 │   │   ├── form.rs        # Form handling
 │   │   ├── loading.rs     # Loading UI
+│   │   ├── sliders.rs     # Slider components
+│   │   ├── styles.rs      # Centralized styling
+│   │   ├── text_inputs.rs # Text input system
+│   │   ├── tips.rs        # Loading tip system
 │   │   ├── toolbar.rs     # Toolbar system
 │   │   └── (gateway architecture)
 │   ├── simulation/        # Simulation systems (gateway architecture)
@@ -102,6 +112,11 @@ livingworlds/
 │   │   ├── input/         # Input handling (refactored from 137 to 91 lines)
 │   │   ├── tension/       # World tension subsystem
 │   │   └── (each subsystem has gateway mod.rs)
+│   ├── camera/            # Camera system (gateway architecture)
+│   │   ├── input/         # Camera input handling
+│   │   ├── movement/      # Camera movement systems
+│   │   ├── window/        # Window management
+│   │   └── (gateway architecture with CameraPlugin)
 │   ├── math/              # Mathematics module (single source of truth)
 │   │   ├── perlin.rs      # ALL noise generation
 │   │   ├── hexagon.rs     # ALL hex calculations
@@ -116,10 +131,18 @@ livingworlds/
 │   ├── menus/             # Menu systems
 │   │   ├── main_menu.rs   # Main menu
 │   │   └── pause_menu.rs  # Pause menu
-│   ├── save_load.rs       # Save/load functionality
+│   ├── save_load/         # Save/load system (directory)
+│   │   ├── core/          # Core save/load logic
+│   │   ├── handlers/      # Event handlers
+│   │   ├── io/            # File I/O operations
+│   │   ├── ui/            # Save/load UI components
+│   │   └── (gateway architecture)
+│   ├── components.rs      # Core ECS components (Nation, MineralType, etc.)
+│   ├── constants.rs       # Game constants
 │   ├── loading_screen.rs  # Loading UI
 │   ├── states.rs          # Game state management
 │   ├── resources.rs       # Global game resources
+│   ├── steam.rs           # Steam integration
 │   ├── lib.rs             # Library root, plugin orchestration
 │   └── main.rs            # Binary entry point
 ├── images/                 # Screenshots and documentation
@@ -145,7 +168,7 @@ NOTE: No assets/ directory - everything is procedurally generated!
 
 ### Prerequisites
 
-- Rust 1.75 or later
+- Rust (latest stable version recommended)
 - Cargo (comes with Rust)
 
 ### Building & Running
