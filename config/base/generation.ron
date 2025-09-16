@@ -85,10 +85,6 @@ GenerationConfig(
         flow_accumulation_threshold: 10,
         river_width_base: 1.0,
         river_width_per_flow: 0.1,
-        
-        // Delta formation
-        delta_flow_threshold: 50,
-        delta_fertility_bonus: 2.0,
     ),
     
     // ========================================================================
