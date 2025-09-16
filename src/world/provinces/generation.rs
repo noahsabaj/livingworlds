@@ -4,25 +4,24 @@
 //! terrain features using our centralized Perlin noise module.
 
 use bevy::prelude::Vec2;
+use log::info;
 use rand::rngs::StdRng;
-use rand::Rng;
 use rayon::prelude::*;
 use std::collections::HashMap;
 
-use crate::constants::*;
 use crate::math::{
-    calculate_grid_position, get_neighbor_positions, normalized_edge_distance, smooth_falloff,
-    PerlinNoise, TerrainPreset,
+    calculate_grid_position, euclidean_vec2, get_neighbor_positions, normalized_edge_distance,
+    random_range, sin_cos, smooth_falloff, smoothstep, PerlinNoise, TAU,
 };
 use crate::resources::MapDimensions;
-use crate::world::TerrainType;
-use crate::world::{Abundance, Agriculture, Distance, Elevation, Province, ProvinceId};
+use super::super::terrain::TerrainType;
+use super::{Abundance, Agriculture, Distance, Elevation, Province, ProvinceId};
 
 /// Default ocean coverage percentage (0.0 to 1.0)
 const DEFAULT_OCEAN_COVERAGE: f32 = 0.6;
 
 /// Beach/coast width in elevation units
-const BEACH_WIDTH: f32 = 0.02;
+const BEACH_WIDTH: f32 = 0.01;  // Reduced from 0.02 for thinner, more realistic beaches
 
 /// Province builder that creates hexagonal provinces with Perlin noise elevation
 pub struct ProvinceBuilder<'a> {
@@ -32,6 +31,7 @@ pub struct ProvinceBuilder<'a> {
     seed: u32,
     ocean_coverage: f32,
     continent_count: u32,
+    continent_seeds: Vec<(Vec2, f32, f32)>, // (position, strength, radius)
 }
 
 impl<'a> ProvinceBuilder<'a> {
@@ -46,6 +46,7 @@ impl<'a> ProvinceBuilder<'a> {
             seed,
             ocean_coverage: DEFAULT_OCEAN_COVERAGE,
             continent_count: 7,
+            continent_seeds: Vec::new(), // Will be generated in build()
         }
     }
 
@@ -61,27 +62,41 @@ impl<'a> ProvinceBuilder<'a> {
 
     pub fn build(mut self) -> Vec<Province> {
         let total_provinces = self.dimensions.provinces_per_row * self.dimensions.provinces_per_col;
-        println!("  Generating {} hexagonal provinces", total_provinces);
+        info!("  Generating {} hexagonal provinces", total_provinces);
+
+        // Generate continent seeds for more natural landmass distribution
+        self.generate_continent_seeds();
+        info!("  Generated {} continent seeds", self.continent_seeds.len());
 
         let sea_level = self.calculate_sea_level();
-        println!(
+        info!(
             "  Sea level set to {:.3} for {:.0}% ocean coverage",
             sea_level,
             self.ocean_coverage * 100.0
         );
 
         // Generate provinces in parallel for performance
-        let provinces: Vec<Province> = (0..total_provinces)
+        let mut provinces: Vec<Province> = (0..total_provinces)
             .into_par_iter()
             .map(|index| self.generate_province(index, sea_level))
             .collect();
+
+        // Filter out small islands to prevent "spaghetti islands"
+        let islands_removed = self.filter_small_islands(&mut provinces);
+        if islands_removed > 0 {
+            info!("  Removed {} small island provinces", islands_removed);
+        }
+
+        // Apply rain shadow effect for realistic desert placement
+        self.apply_rain_shadow(&mut provinces);
+        info!("  Applied rain shadow effect for desert placement");
 
         let ocean_count = provinces
             .iter()
             .filter(|p| p.terrain == TerrainType::Ocean)
             .count();
         let land_count = provinces.len() - ocean_count;
-        println!(
+        info!(
             "  Generated {} land provinces, {} ocean provinces",
             land_count, ocean_count
         );
@@ -132,26 +147,98 @@ impl<'a> ProvinceBuilder<'a> {
         }
     }
 
-    /// Generate elevation using our centralized Perlin noise module
+    /// Generate continent seeds for natural landmass distribution
+    fn generate_continent_seeds(&mut self) {
+        self.continent_seeds.clear();
+
+        // Vary continent count for more diverse worlds
+        let num_continents = random_range(self.rng, 3, self.continent_count + 1);
+
+        let map_width = self.dimensions.bounds.x_max - self.dimensions.bounds.x_min;
+        let map_height = self.dimensions.bounds.y_max - self.dimensions.bounds.y_min;
+        let center_x = self.dimensions.bounds.x_min + map_width / 2.0;
+        let center_y = self.dimensions.bounds.y_min + map_height / 2.0;
+
+        for i in 0..num_continents {
+            // Place some continents near center, others more randomly
+            let (x, y) = if i < 2 && num_continents > 4 {
+                // First couple continents closer to center for larger worlds
+                let angle = random_range(self.rng, 0.0, TAU);
+                let dist = random_range(self.rng, 0.2, 0.5) * map_width.min(map_height) / 2.0;
+                let (cos_angle, sin_angle) = sin_cos(angle);
+                (center_x + cos_angle * dist, center_y + sin_angle * dist)
+            } else {
+                // Others more randomly distributed
+                (
+                    random_range(
+                        self.rng,
+                        self.dimensions.bounds.x_min,
+                        self.dimensions.bounds.x_max,
+                    ),
+                    random_range(
+                        self.rng,
+                        self.dimensions.bounds.y_min,
+                        self.dimensions.bounds.y_max,
+                    ),
+                )
+            };
+
+            let position = Vec2::new(x, y);
+            let strength = random_range(self.rng, 0.6, 1.0);
+            let radius = random_range(self.rng, 0.15, 0.35) * map_width.min(map_height);
+
+            self.continent_seeds.push((position, strength, radius));
+        }
+    }
+
+    /// Generate elevation using our centralized Perlin noise module with continent seeds
     fn generate_elevation(&self, position: Vec2) -> f32 {
         // Scale position to noise space (important for proper sampling)
-        // Without this, adjacent hexagons might sample nearly identical noise values
         let scale = 1.0 / self.dimensions.hex_size;
         let x = (position.x * scale) as f64;
         let y = (position.y * scale) as f64;
 
-        // Use our ready-made terrain sampling that combines:
-        // - Continental shelf features
-        // - Multi-octave detail
-        // - Ridge noise for mountains
-        // All complexity handled internally!
-        let elevation = self.noise.sample_terrain(x, y) as f32;
+        // Use centralized noise module with preset
+        let base_elevation = self.noise.sample_terrain(x, y) as f32;
 
-        // Apply distance falloff from map edges for island-like worlds
+        // Apply continent influence with noise-warped distance for organic shapes
+        let mut continent_influence = 0.0_f32;
+        for (seed_pos, strength, radius) in &self.continent_seeds {
+            let distance = euclidean_vec2(position, *seed_pos);
+
+            // Add domain warping using noise to create irregular continent shapes
+            // Sample noise at a scale that creates interesting perturbations
+            let warp_x = self.noise.sample_scaled(
+                (position.x * 0.005) as f64,
+                (position.y * 0.005) as f64,
+                0.01
+            ) as f32;
+            let warp_y = self.noise.sample_scaled(
+                (position.x * 0.005 + 100.0) as f64,
+                (position.y * 0.005 + 100.0) as f64,
+                0.01
+            ) as f32;
+
+            // Apply warping to distance - creates irregular, organic continent shapes
+            let warp_strength = radius * 0.3; // Warp up to 30% of radius
+            let warped_distance = distance + (warp_x + warp_y) * warp_strength;
+
+            // Use smooth falloff with inner and outer radius for better control
+            let inner_radius = radius * 0.4;
+            let outer_radius = radius * 1.2;
+            let influence = crate::math::smooth_falloff(warped_distance, inner_radius, outer_radius) * strength;
+            continent_influence = continent_influence.max(influence);
+        }
+
+        // Apply edge distance falloff for more natural coastlines
         let distance_to_edge = self.calculate_edge_distance(position);
-        let falloff = self.calculate_falloff(distance_to_edge);
+        let edge_falloff = self.calculate_falloff(distance_to_edge);
 
-        (elevation * falloff).clamp(0.0, 1.0)
+        // Combine base noise, continent influence, and edge falloff
+        // Weight: 40% base noise, 40% continent influence, 20% edge falloff
+        let combined = base_elevation * 0.4 + continent_influence * 0.4 + edge_falloff * 0.2;
+
+        combined.clamp(0.0, 1.0)
     }
 
     /// Calculate distance from map edges for falloff
@@ -168,13 +255,21 @@ impl<'a> ProvinceBuilder<'a> {
 
     /// Calculate falloff based on distance from edge
     fn calculate_falloff(&self, distance: f32) -> f32 {
-        // Start falloff at 60% from center, smooth to edge
-        const FALLOFF_START: f32 = 0.6;
+        // Start falloff at 70% from center for more land area
+        const FALLOFF_START: f32 = 0.7;
+        const FALLOFF_END: f32 = 1.0;
 
-        // Use centralized smooth falloff function
-        // Returns 1.0 inside FALLOFF_START, smoothly transitions to 0.0 at edge (1.0)
-        smooth_falloff(distance, 0.0, FALLOFF_START)
-            .max(1.0 - smooth_falloff(distance, FALLOFF_START, 1.0))
+        // Use smooth falloff - full strength in center, gradual decrease to edges
+        if distance <= FALLOFF_START {
+            1.0
+        } else if distance >= FALLOFF_END {
+            0.0
+        } else {
+            // Smooth transition between FALLOFF_START and FALLOFF_END
+            let t = (distance - FALLOFF_START) / (FALLOFF_END - FALLOFF_START);
+            // Use smoothstep for natural transition
+            1.0 - smoothstep(0.0, 1.0, t)
+        }
     }
 
     /// Calculate sea level for desired ocean coverage
@@ -184,12 +279,16 @@ impl<'a> ProvinceBuilder<'a> {
         let mut elevations = Vec::with_capacity(SAMPLE_COUNT);
 
         for _ in 0..SAMPLE_COUNT {
-            let x = self
-                .rng
-                .gen_range(self.dimensions.bounds.x_min..self.dimensions.bounds.x_max);
-            let y = self
-                .rng
-                .gen_range(self.dimensions.bounds.y_min..self.dimensions.bounds.y_max);
+            let x = random_range(
+                self.rng,
+                self.dimensions.bounds.x_min,
+                self.dimensions.bounds.x_max,
+            );
+            let y = random_range(
+                self.rng,
+                self.dimensions.bounds.y_min,
+                self.dimensions.bounds.y_max,
+            );
             let elevation = self.generate_elevation(Vec2::new(x, y));
             elevations.push(elevation);
         }
@@ -202,20 +301,31 @@ impl<'a> ProvinceBuilder<'a> {
 
     /// Classify terrain based on elevation
     fn classify_terrain(&self, elevation: f32, sea_level: f32) -> TerrainType {
-        if elevation < sea_level {
+        // Apply smoothstep near sea level for cleaner coastlines
+        // This reduces tiny islands created by noise right at sea level
+        let smoothed_elevation = if (elevation - sea_level).abs() < 0.02 {
+            // Near sea level, apply smoothstep to reduce noise
+            let t = (elevation - (sea_level - 0.02)) / 0.04; // Normalize to 0-1 range
+            let smooth_t = smoothstep(0.0, 1.0, t);
+            (sea_level - 0.02) + smooth_t * 0.04
+        } else {
+            elevation
+        };
+
+        if smoothed_elevation < sea_level {
             TerrainType::Ocean
-        } else if elevation < sea_level + BEACH_WIDTH {
+        } else if smoothed_elevation < sea_level + BEACH_WIDTH {
             TerrainType::Beach
-        } else if elevation < sea_level + 0.1 {
+        } else if smoothed_elevation < sea_level + 0.05 {  // Reduced from 0.1 - coastal lowlands
             TerrainType::TemperateGrassland
-        } else if elevation < sea_level + 0.2 {
+        } else if smoothed_elevation < sea_level + 0.15 {  // Reduced from 0.2 - foothills
             TerrainType::TemperateDeciduousForest
-        } else if elevation < sea_level + 0.35 {
-            TerrainType::Chaparral
-        } else if elevation < sea_level + 0.5 {
+        } else if smoothed_elevation < sea_level + 0.25 {  // Reduced from 0.35 - mid-elevation
+            TerrainType::Chaparral  // This will become desert with rain shadow
+        } else if smoothed_elevation < sea_level + 0.4 {   // Reduced from 0.5 - highlands
             TerrainType::Alpine
         } else {
-            TerrainType::Tundra // Mountain peaks
+            TerrainType::Tundra // Mountain peaks above 0.4
         }
     }
 
@@ -240,11 +350,129 @@ impl<'a> ProvinceBuilder<'a> {
 
         neighbors
     }
+
+    /// Filter out small islands using flood-fill algorithm
+    ///
+    /// This prevents "spaghetti islands" by removing land masses smaller than a threshold.
+    /// Uses connected component analysis to identify and remove small isolated land provinces.
+    fn filter_small_islands(&self, provinces: &mut Vec<Province>) -> usize {
+        const MIN_ISLAND_SIZE: usize = 10; // Minimum provinces for a valid landmass
+
+        // Build a quick lookup map for province indices
+        let province_map: HashMap<u32, usize> = provinces
+            .iter()
+            .enumerate()
+            .map(|(idx, p)| (p.id.value(), idx))
+            .collect();
+
+        // Track which provinces have been visited
+        let mut visited = vec![false; provinces.len()];
+        let mut islands_to_remove = Vec::new();
+
+        // Find all connected land components
+        for (idx, province) in provinces.iter().enumerate() {
+            // Skip if already visited or if it's ocean
+            if visited[idx] || province.terrain == TerrainType::Ocean {
+                continue;
+            }
+
+            // Flood fill to find connected component size
+            let mut component = Vec::new();
+            let mut stack = vec![idx];
+
+            while let Some(current_idx) = stack.pop() {
+                if visited[current_idx] {
+                    continue;
+                }
+
+                visited[current_idx] = true;
+                component.push(current_idx);
+
+                // Check all neighbors
+                let current_province = &provinces[current_idx];
+                for neighbor_id_opt in &current_province.neighbors {
+                    if let Some(neighbor_id) = neighbor_id_opt {
+                        if let Some(&neighbor_idx) = province_map.get(&neighbor_id.value()) {
+                            // Only add land neighbors that haven't been visited
+                            if !visited[neighbor_idx] && provinces[neighbor_idx].terrain != TerrainType::Ocean {
+                                stack.push(neighbor_idx);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // If component is too small, mark for removal
+            if component.len() < MIN_ISLAND_SIZE {
+                islands_to_remove.extend(component);
+            }
+        }
+
+        // Convert small islands to ocean
+        let removed_count = islands_to_remove.len();
+        for idx in islands_to_remove {
+            provinces[idx].terrain = TerrainType::Ocean;
+            provinces[idx].elevation = Elevation::new(0.1); // Shallow ocean
+        }
+
+        removed_count
+    }
+
+    /// Apply rain shadow effect to create realistic desert placement
+    ///
+    /// Converts mid-elevation terrain (Chaparral) to desert when it's in the
+    /// "shadow" of mountains, simulating how mountains block moisture.
+    fn apply_rain_shadow(&self, provinces: &mut Vec<Province>) {
+        // Build a quick lookup map for province indices
+        let province_map: HashMap<u32, usize> = provinces
+            .iter()
+            .enumerate()
+            .map(|(idx, p)| (p.id.value(), idx))
+            .collect();
+
+        // Find provinces that should become deserts (in rain shadow)
+        let mut to_convert = Vec::new();
+
+        for (idx, province) in provinces.iter().enumerate() {
+            // Only consider Chaparral (mid-elevation dry areas)
+            if province.terrain != TerrainType::Chaparral {
+                continue;
+            }
+
+            // Check if there are mountains nearby (within 2 hex distance)
+            let mut mountain_count = 0;
+            let mut total_neighbors = 0;
+
+            // Check immediate neighbors
+            for neighbor_id_opt in &province.neighbors {
+                if let Some(neighbor_id) = neighbor_id_opt {
+                    if let Some(&neighbor_idx) = province_map.get(&neighbor_id.value()) {
+                        total_neighbors += 1;
+                        let neighbor = &provinces[neighbor_idx];
+                        if neighbor.terrain == TerrainType::Alpine || neighbor.terrain == TerrainType::Tundra {
+                            mountain_count += 1;
+                        }
+                    }
+                }
+            }
+
+            // If surrounded by mountains (rain shadow), convert to desert
+            // Also convert if isolated mid-elevation area (likely arid)
+            if mountain_count >= 2 || (mountain_count >= 1 && province.elevation.value() > 0.3) {
+                to_convert.push(idx);
+            }
+        }
+
+        // Convert appropriate provinces to desert
+        for idx in to_convert {
+            provinces[idx].terrain = TerrainType::SubtropicalDesert;
+        }
+    }
 }
 
 /// Calculate ocean depths based on distance from land
-pub fn calculate_ocean_depths(provinces: &mut [Province], dimensions: MapDimensions) {
-    println!("  Calculating ocean depths...");
+pub fn calculate_ocean_depths(provinces: &mut [Province], _dimensions: MapDimensions) {
+    info!("  Calculating ocean depths...");
 
     let mut province_by_id: HashMap<u32, usize> = HashMap::new();
     for (idx, province) in provinces.iter().enumerate() {
@@ -309,5 +537,5 @@ pub fn calculate_ocean_depths(provinces: &mut [Province], dimensions: MapDimensi
         }
     }
 
-    println!("  Ocean depths calculated");
+    info!("  Ocean depths calculated");
 }
