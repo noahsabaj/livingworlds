@@ -40,13 +40,13 @@
 //!     .build();
 //! ```
 
-use bevy::prelude::*;
 use noise::{NoiseFn, Perlin};
 
 // NOISE CONSTANTS - Centralized parameters for all noise generation
 
 /// Default number of octaves for terrain generation
-pub const DEFAULT_OCTAVES: u32 = 6;
+/// Increased to 8 for more detailed, fractal coastlines
+pub const DEFAULT_OCTAVES: u32 = 8;
 
 /// Base frequency for terrain noise - tuned for hexagon scale
 pub const TERRAIN_FREQUENCY: f64 = 0.015;
@@ -198,44 +198,89 @@ impl PerlinNoise {
     // ========================================================================
     // ========================================================================
 
-    /// Sample terrain with continental and detail layers
+    /// Sample terrain with multi-scale layers for realistic landmasses
     ///
     /// This is the main method for terrain generation. It combines:
-    /// - Continental shelf (large landmasses)
-    /// - Detail terrain (hills and valleys)
-    /// - Mountain ridges (sharp peaks)
+    /// - Continental shelf (massive landmasses) - 40% influence
+    /// - Major landmass features (large scale terrain) - 30% influence
+    /// - Island chains (medium scale features) - 15% influence
+    /// - Coastal detail (fine scale variations) - 10% influence
+    /// - Mountain ridges (sharp peaks) - 5% influence
     ///
     /// Returns elevation from 0.0 (ocean floor) to 1.0 (mountain peak).
     pub fn sample_terrain(&self, x: f64, y: f64) -> f64 {
-        // Continental shelf layer (40% influence)
-        let continental = self.sample_scaled(x, y, CONTINENTAL_FREQUENCY) * 0.4;
+        // Continental shelf layer - massive scale (40% influence, up from 25%)
+        // This creates the main continent shapes and should dominate
+        let continental = self.sample_fbm(
+            x, y,
+            FbmSettings {
+                octaves: 4,
+                frequency: 0.001,  // Very low frequency for continent-scale
+                persistence: 0.4,
+                lacunarity: 2.0,
+            }
+        ) * 0.40;  // Increased weight for more coherent continents
 
-        // Detail terrain layer (40% influence)
-        let detail = self.sample_fbm_default(x, y) * 0.4;
+        // Major landmass layer - large features (30% influence, up from 25%)
+        // This adds major terrain variations within continents
+        let landmass = self.sample_fbm(
+            x, y,
+            FbmSettings {
+                octaves: 6,
+                frequency: 0.005,  // Low frequency for major features
+                persistence: 0.5,
+                lacunarity: 2.1,
+            }
+        ) * 0.30;  // Increased weight for stronger landmass definition
 
-        // Mountain ridge layer (20% influence)
-        let ridge = self.sample_ridged(x, y, MOUNTAIN_FREQUENCY) * 0.2;
+        // Island chains layer - medium scale (15% influence, down from 20%)
+        // Reduced to prevent excessive fragmentation
+        let islands = self.sample_fbm(
+            x, y,
+            FbmSettings {
+                octaves: 6,  // Reduced from 8 for less complexity
+                frequency: 0.02,  // Medium frequency for island chains
+                persistence: 0.45,  // Reduced from 0.55 for gentler falloff
+                lacunarity: 2.2,
+            }
+        ) * 0.15;  // Reduced weight to minimize fragmentation
 
-        // Combine and ensure [0, 1] range
-        (continental + detail + ridge).clamp(0.0, 1.0)
+        // Coastal detail layer - fine features (10% influence, down from 15%)
+        // Significantly reduced to prevent "spaghetti islands"
+        let coastal = self.sample_fbm(
+            x, y,
+            FbmSettings {
+                octaves: 6,  // Reduced from 10 for less noise
+                frequency: 0.08,  // Reduced from 0.1 for larger coastal features
+                persistence: 0.4,  // Reduced from 0.6 for quicker falloff
+                lacunarity: 2.3,
+            }
+        ) * 0.10;  // Reduced weight to minimize small islands
+
+        // Mountain ridge layer (5% influence, down from 15%)
+        // Minimal influence to avoid creating isolated peaks
+        let ridge = self.sample_ridged(x, y, MOUNTAIN_FREQUENCY) * 0.05;
+
+        // Combine all layers and ensure [0, 1] range
+        (continental + landmass + islands + coastal + ridge).clamp(0.0, 1.0)
     }
 
     /// Sample terrain with preset configuration
     pub fn sample_terrain_preset(&self, x: f64, y: f64, preset: TerrainPreset) -> f64 {
         match preset {
             TerrainPreset::Continents => {
-                // Large continental masses with less detail
-                let continental = self.sample_scaled(x, y, CONTINENTAL_FREQUENCY * 0.5) * 0.6;
+                // Large continental masses with enhanced fractal detail
+                let continental = self.sample_scaled(x, y, CONTINENTAL_FREQUENCY * 0.5) * 0.5;
                 let detail = self.sample_fbm(
                     x,
                     y,
                     FbmSettings {
-                        octaves: 4,
-                        frequency: TERRAIN_FREQUENCY * 0.5,
-                        persistence: 0.4,
-                        lacunarity: 2.0,
+                        octaves: 8,  // Increased from 4 for realistic coastlines
+                        frequency: TERRAIN_FREQUENCY * 0.3,  // Lower frequency for larger features
+                        persistence: 0.55,  // Slightly higher for more detail retention
+                        lacunarity: 2.1,  // Slightly irregular scaling for organic look
                     },
-                ) * 0.4;
+                ) * 0.5;  // Increased detail influence
                 (continental + detail).clamp(0.0, 1.0)
             }
             TerrainPreset::Islands => {
@@ -424,7 +469,7 @@ impl PerlinBuilder {
     }
 
     pub fn build(self) -> PerlinNoise {
-        let seed = self.seed.unwrap_or(0);
+        let seed = self.seed.expect("PerlinBuilder requires a seed - call .seed(value) before .build()");
         let mut noise = PerlinNoise::new(seed);
 
         if let Some(octaves) = self.octaves {
