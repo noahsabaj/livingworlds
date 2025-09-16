@@ -236,7 +236,7 @@ fn trace_river_path(
 /// Apply terrain changes based on river flow
 fn apply_terrain_changes(
     provinces: &mut [Province],
-    _river_tiles: &[ProvinceId],
+    river_tiles: &[ProvinceId],
     delta_tiles: &[ProvinceId],
     flow_accumulation: &HashMap<u32, f32>,
 ) {
@@ -245,7 +245,7 @@ fn apply_terrain_changes(
         province_id_to_idx.insert(province.id.value(), idx);
     }
 
-    // Convert high-flow tiles to river terrain
+    // First pass: Apply base river terrain
     for (province_id, flow) in flow_accumulation {
         if *flow > MIN_VISIBLE_FLOW {
             if let Some(&idx) = province_id_to_idx.get(province_id) {
@@ -254,12 +254,11 @@ fn apply_terrain_changes(
         }
     }
 
-    // Convert delta tiles to delta terrain
-    for &delta_id in delta_tiles {
-        if let Some(&idx) = province_id_to_idx.get(&delta_id.value()) {
-            apply_terrain_if_not_ocean(&mut provinces[idx], TerrainType::Delta);
-        }
-    }
+    // Second pass: No widening - single-tile rivers look best on hex grids
+    // Previous attempts at widening created visual artifacts due to hex grid offset patterns
+
+    // Generate branching deltas instead of just marking single tiles
+    generate_delta_branches(delta_tiles, provinces, &province_id_to_idx, flow_accumulation);
 }
 
 /// Internal river generation implementation
@@ -363,4 +362,164 @@ fn generate_rivers_internal(
         flow_accumulation: flow_accumulation_vec,
         flow_direction: vec![None; provinces.len()], // Initialize as empty - not calculated in this version
     })
+}
+
+
+/// Generate branching delta distributaries
+fn generate_delta_branches(
+    delta_tiles: &[ProvinceId],
+    provinces: &mut [Province],
+    province_id_to_idx: &HashMap<u32, usize>,
+    flow_accumulation: &HashMap<u32, f32>,
+) {
+    for &delta_id in delta_tiles {
+        if let Some(&delta_idx) = province_id_to_idx.get(&delta_id.value()) {
+            // Get flow at delta point
+            let flow = flow_accumulation.get(&delta_id.value()).copied().unwrap_or(1.0);
+
+            // Number of distributary channels based on flow
+            let num_branches = if flow > 10.0 {
+                3  // Major delta - 3 branches
+            } else if flow > 5.0 {
+                2  // Medium delta - 2 branches
+            } else {
+                1  // Small delta - single channel
+            };
+
+            // Create distributary branches
+            create_delta_distributaries(
+                delta_idx,
+                num_branches,
+                provinces,
+                province_id_to_idx,
+            );
+        }
+    }
+}
+
+/// Create individual distributary channels for a delta
+fn create_delta_distributaries(
+    delta_idx: usize,
+    num_branches: usize,
+    provinces: &mut [Province],
+    province_id_to_idx: &HashMap<u32, usize>,
+) {
+    let provinces_per_row = (provinces.len() as f32).sqrt() as u32;
+
+    // Extract needed values before mutation
+    let delta_id = provinces[delta_idx].id;
+    let delta_elevation = provinces[delta_idx].elevation.value();
+    let (delta_col, delta_row) = id_to_grid_coords(delta_id, provinces_per_row);
+
+    // Apply River terrain to the delta tile (no more Delta type)
+    apply_terrain_if_not_ocean(&mut provinces[delta_idx], TerrainType::River);
+
+    // Get all neighbors
+    let neighbors = get_neighbor_positions(delta_col, delta_row, 50.0);
+
+    // Create branches radiating from delta
+    let mut branch_count = 0;
+    for (i, (neighbor_col, neighbor_row)) in neighbors.iter().enumerate() {
+        if branch_count >= num_branches {
+            break;
+        }
+
+        // Skip every other neighbor for spacing
+        if i % 2 != 0 && num_branches < 3 {
+            continue;
+        }
+
+        if *neighbor_col < 0 || *neighbor_row < 0 {
+            continue;
+        }
+        let neighbor_id = (*neighbor_row as u32) * provinces_per_row + (*neighbor_col as u32);
+
+        if let Some(&neighbor_idx) = province_id_to_idx.get(&neighbor_id) {
+            // Extract needed values before potential mutation
+            let neighbor_terrain = provinces[neighbor_idx].terrain;
+            let neighbor_elevation = provinces[neighbor_idx].elevation.value();
+
+            // Only create distributary if heading toward ocean
+            if neighbor_terrain == TerrainType::Ocean
+                || neighbor_elevation < delta_elevation {
+
+                // Create a short distributary channel
+                create_distributary_channel(
+                    neighbor_idx,
+                    3,  // Max length of 3 tiles
+                    provinces,
+                    province_id_to_idx,
+                    provinces_per_row,
+                );
+
+                branch_count += 1;
+            }
+        }
+    }
+}
+
+/// Create a single distributary channel
+fn create_distributary_channel(
+    start_idx: usize,
+    max_length: usize,
+    provinces: &mut [Province],
+    province_id_to_idx: &HashMap<u32, usize>,
+    provinces_per_row: u32,
+) {
+    let mut current_idx = start_idx;
+    let mut visited = HashSet::new();
+
+    for _ in 0..max_length {
+        // Extract needed values before mutation
+        let current_terrain = provinces[current_idx].terrain;
+        let current_id = provinces[current_idx].id;
+        let current_elevation = provinces[current_idx].elevation.value();
+
+        // Stop if we hit ocean
+        if current_terrain == TerrainType::Ocean {
+            break;
+        }
+
+        // Apply river terrain to create the distributary
+        apply_terrain_if_not_ocean(&mut provinces[current_idx], TerrainType::River);
+        visited.insert(current_id.value());
+
+        // Find lowest neighbor to continue channel
+        let (current_col, current_row) = id_to_grid_coords(current_id, provinces_per_row);
+        let neighbors = get_neighbor_positions(current_col, current_row, 50.0);
+
+        let mut lowest_neighbor: Option<usize> = None;
+        let mut lowest_elevation = current_elevation;
+
+        for (neighbor_col, neighbor_row) in neighbors {
+            if neighbor_col < 0 || neighbor_row < 0 {
+                continue;
+            }
+            let neighbor_id = (neighbor_row as u32) * provinces_per_row + (neighbor_col as u32);
+
+            if visited.contains(&neighbor_id) {
+                continue;
+            }
+
+            if let Some(&neighbor_idx) = province_id_to_idx.get(&neighbor_id) {
+                let neighbor_province = &provinces[neighbor_idx];
+
+                // Prefer ocean tiles, then lower elevation
+                if neighbor_province.terrain == TerrainType::Ocean {
+                    lowest_neighbor = Some(neighbor_idx);
+                    break;
+                } else if neighbor_province.elevation.value() < lowest_elevation {
+                    lowest_elevation = neighbor_province.elevation.value();
+                    lowest_neighbor = Some(neighbor_idx);
+                }
+            }
+        }
+
+        // Continue to the lowest neighbor if found
+        if let Some(next_idx) = lowest_neighbor {
+            current_idx = next_idx;
+        } else {
+            break;
+        }
+    }
 }
