@@ -3,7 +3,7 @@
 //! automatic value tracking, and built-in interaction handling.
 
 use super::buttons::{ButtonBuilder, ButtonSize, ButtonStyle};
-use super::styles::{colors, dimensions};
+use super::styles::colors;
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 
@@ -581,7 +581,7 @@ fn handle_slider_interaction(
         *dragged_slider = None;
     }
 
-    for (entity, interaction, mut slider, node, cursor_pos, children) in &mut sliders {
+    for (entity, interaction, mut slider, _node, cursor_pos, _children) in &mut sliders {
         // Start dragging on press - only if no other slider is being dragged
         if *interaction == Interaction::Pressed
             && mouse_button.pressed(MouseButton::Left)

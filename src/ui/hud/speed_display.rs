@@ -26,7 +26,7 @@ pub fn update_speed_display(
     game_time: Res<GameTime>,
     mut query: Query<&mut Text, With<GameSpeedDisplay>>,
 ) {
-    if let Ok(mut text) = query.get_single_mut() {
+    if let Ok(mut text) = query.single_mut() {
         if game_time.paused {
             **text = "PAUSED".to_string();
         } else {

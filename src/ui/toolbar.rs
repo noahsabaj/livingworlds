@@ -3,6 +3,8 @@
 //! ToolbarBuilder provides a flexible API for creating horizontal and vertical
 //! toolbars with buttons, separators, and custom controls.
 
+#![allow(dead_code)] // Preserve UI utility functions for future use
+
 use super::{colors, dimensions};
 use super::{ButtonBuilder, ButtonSize, ButtonStyle};
 use bevy::prelude::*;

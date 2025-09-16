@@ -3,6 +3,7 @@
 use super::super::{LabelBuilder, PanelBuilder, PanelStyle};
 use crate::components::MineralType;
 use crate::resources::MapMode;
+use crate::ui::styles::colors;
 use bevy::prelude::*;
 
 /// Marker component for the mineral legend container
@@ -19,7 +20,7 @@ pub fn spawn_mineral_legend(parent: &mut ChildSpawnerCommands) {
             // Title using LabelBuilder
             LabelBuilder::new("Mineral Legend:")
                 .font_size(14.0)
-                .color(Color::srgba(0.8, 0.8, 0.8, 1.0))
+                .color(colors::TEXT_PRIMARY)
                 .margin(UiRect::bottom(Val::Px(4.0)))
                 .build(container);
 
@@ -66,7 +67,7 @@ fn spawn_mineral_row(parent: &mut ChildSpawnerCommands, symbol: &str, color: &Co
                     ..default()
                 },
                 BackgroundColor(*color),
-                BorderColor(Color::srgba(0.3, 0.3, 0.3, 1.0)),
+                BorderColor(colors::BORDER_DEFAULT),
             ))
             .with_children(|square| {
                 // Chemical symbol using LabelBuilder
@@ -79,7 +80,7 @@ fn spawn_mineral_row(parent: &mut ChildSpawnerCommands, symbol: &str, color: &Co
             // Mineral name using LabelBuilder
             LabelBuilder::new(name)
                 .font_size(12.0)
-                .color(Color::srgba(0.7, 0.7, 0.7, 1.0))
+                .color(colors::TEXT_SECONDARY)
                 .build(row);
         });
 }
@@ -102,7 +103,7 @@ pub fn update_mineral_legend_visibility(
     map_mode: Res<MapMode>,
     mut legend_query: Query<&mut Node, With<MineralLegendContainer>>,
 ) {
-    if let Ok(mut node) = legend_query.get_single_mut() {
+    if let Ok(mut node) = legend_query.single_mut() {
         // Only show legend when viewing mineral overlays
         node.display = if map_mode.is_mineral_mode() {
             Display::Flex

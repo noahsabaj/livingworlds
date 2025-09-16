@@ -25,7 +25,7 @@ pub fn update_control_hints(
     game_time: Res<GameTime>,
     mut query: Query<&mut Text, With<ControlHintsText>>,
 ) {
-    if let Ok(mut text) = query.get_single_mut() {
+    if let Ok(mut text) = query.single_mut() {
         let pause_text = if game_time.paused { "Unpause" } else { "Pause" };
         **text = format!("[1-5] Speed | [Space] {}", pause_text);
     }

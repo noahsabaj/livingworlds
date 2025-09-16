@@ -3,6 +3,8 @@
 //! Provides standardized dialog creation with consistent styling,
 //! animations, and behavior across the entire game interface.
 
+#![allow(dead_code)] // Preserve UI utility functions for future use
+
 use super::buttons::{ButtonBuilder, ButtonSize, ButtonStyle};
 use super::styles::{colors, dimensions, helpers, layers};
 use bevy::prelude::*;
@@ -92,7 +94,12 @@ pub struct DialogBuilder {
     title: String,
     body: String,
     dialog_type: DialogType,
-    width: f32,
+    width: Val,
+    min_width: Val,
+    max_width: Val,
+    height: Val,
+    min_height: Val,
+    max_height: Val,
     buttons: Vec<DialogButton>,
     dismissible: bool,
     z_index: i32,
@@ -120,7 +127,12 @@ impl DialogBuilder {
             title: String::new(),
             body: String::new(),
             dialog_type,
-            width: dimensions::DIALOG_WIDTH_MEDIUM,
+            width: Val::Px(dimensions::DIALOG_WIDTH_MEDIUM),
+            min_width: Val::Auto,
+            max_width: Val::Auto,
+            height: Val::Auto,
+            min_height: Val::Auto,
+            max_height: Val::Auto,
             buttons: Vec::new(),
             dismissible: true,
             z_index: layers::MODAL_OVERLAY,
@@ -137,8 +149,33 @@ impl DialogBuilder {
         self
     }
 
-    pub fn width(mut self, width: f32) -> Self {
+    pub fn width(mut self, width: Val) -> Self {
         self.width = width;
+        self
+    }
+
+    pub fn min_width(mut self, min_width: Val) -> Self {
+        self.min_width = min_width;
+        self
+    }
+
+    pub fn max_width(mut self, max_width: Val) -> Self {
+        self.max_width = max_width;
+        self
+    }
+
+    pub fn height(mut self, height: Val) -> Self {
+        self.height = height;
+        self
+    }
+
+    pub fn min_height(mut self, min_height: Val) -> Self {
+        self.min_height = min_height;
+        self
+    }
+
+    pub fn max_height(mut self, max_height: Val) -> Self {
+        self.max_height = max_height;
         self
     }
 
@@ -245,7 +282,12 @@ impl DialogBuilder {
         let container_entity = commands
             .spawn((
                 Node {
-                    width: Val::Px(self.width),
+                    width: self.width,
+                    height: self.height,
+                    min_width: self.min_width,
+                    min_height: self.min_height,
+                    max_width: self.max_width,
+                    max_height: self.max_height,
                     padding: helpers::standard_padding(),
                     flex_direction: FlexDirection::Column,
                     align_items: AlignItems::Center,
@@ -375,7 +417,7 @@ pub mod presets {
         DialogBuilder::new(DialogType::ExitConfirmation)
             .title("Exit Game")
             .body("Are you sure you want to exit?")
-            .width(dimensions::DIALOG_WIDTH_MEDIUM)
+            .width(Val::Px(dimensions::DIALOG_WIDTH_MEDIUM))
             .dismissible(false)
             .z_index(layers::CRITICAL_DIALOG)
             .danger_button("Exit Game", DialogButtonMarker::Confirm)
@@ -387,7 +429,7 @@ pub mod presets {
         DialogBuilder::new(DialogType::UnsavedChanges)
             .title("Unsaved Changes")
             .body("You have unsaved changes. What would you like to do?")
-            .width(dimensions::DIALOG_WIDTH_MEDIUM)
+            .width(Val::Px(dimensions::DIALOG_WIDTH_MEDIUM))
             .dismissible(false)
             .save_button("Save & Exit")
             .danger_button("Discard Changes", DialogButtonMarker::Discard)
@@ -402,7 +444,7 @@ pub mod presets {
                 "Change resolution to {}x{}?",
                 new_resolution.0, new_resolution.1
             ))
-            .width(dimensions::DIALOG_WIDTH_SMALL)
+            .width(Val::Px(dimensions::DIALOG_WIDTH_SMALL))
             .confirm_button("Apply")
             .cancel_button("Cancel")
             .build(&mut commands)
@@ -412,7 +454,7 @@ pub mod presets {
         DialogBuilder::new(DialogType::WorldGenerationError)
             .title("World Generation Failed")
             .body(format!("Failed to generate world:\n\n{}\n\nWould you like to try again with different settings?", error_message))
-            .width(dimensions::DIALOG_WIDTH_MEDIUM)
+            .width(Val::Px(dimensions::DIALOG_WIDTH_MEDIUM))
             .dismissible(false)
             .z_index(layers::CRITICAL_DIALOG)
             .confirm_button("Try Again")
@@ -424,7 +466,7 @@ pub mod presets {
         DialogBuilder::new(DialogType::Info)
             .title(title)
             .body(message)
-            .width(dimensions::DIALOG_WIDTH_MEDIUM)
+            .width(Val::Px(dimensions::DIALOG_WIDTH_MEDIUM))
             .confirm_button("OK")
             .build(&mut commands)
     }
@@ -433,7 +475,7 @@ pub mod presets {
         DialogBuilder::new(DialogType::Error)
             .title("Error")
             .body(error_message)
-            .width(dimensions::DIALOG_WIDTH_MEDIUM)
+            .width(Val::Px(dimensions::DIALOG_WIDTH_MEDIUM))
             .z_index(layers::CRITICAL_DIALOG)
             .dismissible(false)
             .confirm_button("OK")

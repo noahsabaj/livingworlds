@@ -3,6 +3,8 @@
 //! This module provides a collection of helpful tips that can be displayed
 //! during loading screens and other waiting periods.
 
+#![allow(dead_code)] // Preserve utility functions for future use
+
 use rand::prelude::*;
 
 /// Categories of tips for filtering

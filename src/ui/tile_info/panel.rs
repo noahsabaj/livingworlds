@@ -4,6 +4,7 @@ use super::super::{LabelBuilder, PanelBuilder, PanelStyle};
 use crate::resources::SelectedProvinceInfo;
 use crate::world::{ProvinceId, ProvinceStorage};
 use bevy::prelude::*;
+use bevy::log::{debug, error};
 
 /// Marker component for the tile info panel
 #[derive(Component)]
@@ -37,14 +38,15 @@ pub fn update_tile_info_ui(
     province_storage: Res<ProvinceStorage>,
     mut text_query: Query<&mut Text, With<TileInfoText>>,
 ) {
-    if let Ok(mut text) = text_query.get_single_mut() {
+    if let Ok(mut text) = text_query.single_mut() {
         if let Some(province_id) = selected_info.province_id {
             // Use HashMap for O(1) lookup instead of O(n) linear search
             if let Some(&idx) = province_storage
                 .province_by_id
                 .get(&ProvinceId::new(province_id))
             {
-                let province = &province_storage.provinces[idx];
+                // Bounds check to prevent panic on invalid index
+                if let Some(province) = province_storage.provinces.get(idx) {
                 *text = Text::new(format!(
                     "Province #{}
 Terrain: {:?}
@@ -62,6 +64,21 @@ Position: ({:.0}, {:.0})",
                     province.position.x,
                     province.position.y,
                 ));
+                } else {
+                    // Handle invalid index gracefully with error reporting
+                    error!(
+                        "Invalid province index {} for province ID {}. Data structures may be out of sync.",
+                        idx, province_id
+                    );
+                    *text = Text::new(format!(
+                        "Error: Province #{} data corrupted\nPlease reload the world",
+                        province_id
+                    ));
+                }
+            } else {
+                // Handle missing province ID gracefully
+                debug!("Province ID {} not found in storage", province_id);
+                *text = Text::new("Province data not available");
             }
         } else {
             *text = Text::new("Click a tile to see info");

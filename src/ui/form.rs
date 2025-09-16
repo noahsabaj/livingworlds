@@ -3,6 +3,8 @@
 //! FormBuilder provides a high-level API for creating forms that automatically
 //! handles layout, spacing, and composition of other ui builders.
 
+#![allow(dead_code)] // Preserve UI utility functions for future use
+
 use super::components::{PanelBuilder, PanelStyle};
 use super::sliders::{Slider, SliderButtonAction};
 use super::styles::{colors, dimensions};
@@ -189,7 +191,7 @@ impl FormBuilder {
         }
 
         panel_builder.build_with_children(parent, |form_container| {
-            let focus_group = FocusGroupId::Custom(rand::random());
+            let _focus_group = FocusGroupId::Custom(rand::random());
 
             for (section_idx, section) in self.sections.into_iter().enumerate() {
                 // Add section separator if not first section

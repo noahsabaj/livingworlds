@@ -3,6 +3,8 @@
 //! Provides a standardized button component with consistent styling,
 //! hover effects, and behavior across the entire game interface.
 
+#![allow(dead_code)] // Preserve UI utility functions for future use
+
 use super::styles::{colors, dimensions, helpers};
 use bevy::prelude::*;
 
@@ -63,7 +65,7 @@ impl ButtonStyle {
             ButtonStyle::Danger => colors::DANGER_HOVER,
             ButtonStyle::Success => colors::SUCCESS_HOVER,
             ButtonStyle::Warning => colors::WARNING_HOVER,
-            ButtonStyle::Ghost => Color::srgba(1.0, 1.0, 1.0, 0.05),
+            ButtonStyle::Ghost => colors::GHOST_HOVER,
         }
     }
 
@@ -74,7 +76,7 @@ impl ButtonStyle {
             ButtonStyle::Danger => colors::DANGER_PRESSED,
             ButtonStyle::Success => colors::SUCCESS_PRESSED,
             ButtonStyle::Warning => colors::WARNING_PRESSED,
-            ButtonStyle::Ghost => Color::srgba(1.0, 1.0, 1.0, 0.1),
+            ButtonStyle::Ghost => colors::GHOST_PRESSED,
         }
     }
 
@@ -184,7 +186,7 @@ impl ButtonBuilder {
             let base_color = if self.enabled {
                 self.style.base_color()
             } else {
-                Color::srgb(0.1, 0.1, 0.1)
+                colors::DISABLED
             };
 
             let text_color = if self.enabled {
@@ -196,7 +198,7 @@ impl ButtonBuilder {
             let border_color = if self.enabled {
                 self.style.border_color()
             } else {
-                Color::srgb(0.2, 0.2, 0.2)
+                colors::DISABLED_HOVER
             };
 
             let mut entity_commands = parent.spawn((
@@ -247,9 +249,9 @@ impl ButtonBuilder {
                 )
             } else {
                 (
-                    Color::srgb(0.3, 0.3, 0.3),
-                    Color::srgb(0.2, 0.2, 0.2),
-                    Color::srgb(0.5, 0.5, 0.5),
+                    colors::BORDER_DEFAULT,
+                    colors::DISABLED_HOVER,
+                    colors::BORDER_ACTIVE,
                 )
             };
 

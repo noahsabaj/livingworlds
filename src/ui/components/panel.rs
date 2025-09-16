@@ -17,6 +17,8 @@ pub enum PanelStyle {
     Dark,        // Dark background
     Light,       // Light background
     Bordered,    // With visible border
+    FullScreen,  // Full screen overlay panel
+    Card,        // Card-style panel with subtle background
 }
 
 impl PanelStyle {
@@ -28,12 +30,15 @@ impl PanelStyle {
             PanelStyle::Dark => colors::BACKGROUND_DARK,
             PanelStyle::Light => colors::BACKGROUND_LIGHT,
             PanelStyle::Bordered => colors::BACKGROUND_MEDIUM,
+            PanelStyle::FullScreen => Color::srgba(0.0, 0.0, 0.0, 0.8), // Semi-transparent overlay
+            PanelStyle::Card => colors::BACKGROUND_LIGHT,
         }
     }
 
     pub fn border_color(&self) -> Color {
         match self {
             PanelStyle::Bordered => colors::BORDER_DEFAULT,
+            PanelStyle::Card => Color::srgba(0.2, 0.2, 0.2, 0.3), // Subtle border for cards
             _ => Color::NONE,
         }
     }
@@ -41,6 +46,7 @@ impl PanelStyle {
     pub fn border_width(&self) -> Val {
         match self {
             PanelStyle::Bordered => Val::Px(dimensions::BORDER_WIDTH),
+            PanelStyle::Card => Val::Px(1.0), // Thin border for cards
             _ => Val::Px(0.0),
         }
     }
@@ -51,6 +57,10 @@ pub struct PanelBuilder {
     style: PanelStyle,
     width: Val,
     height: Val,
+    min_width: Val,
+    min_height: Val,
+    max_width: Val,
+    max_height: Val,
     padding: UiRect,
     margin: UiRect,
     flex_direction: FlexDirection,
@@ -58,8 +68,14 @@ pub struct PanelBuilder {
     align_items: AlignItems,
     position_type: PositionType,
     display: Display,
+    overflow: Overflow,
     custom_background: Option<Color>,
     title: Option<String>,
+    column_gap: Val,
+    row_gap: Val,
+    flex_basis: Val,
+    flex_grow: f32,
+    custom_border: Option<UiRect>,
 }
 
 impl PanelBuilder {
@@ -68,6 +84,10 @@ impl PanelBuilder {
             style: PanelStyle::Default,
             width: Val::Auto,
             height: Val::Auto,
+            min_width: Val::Auto,
+            min_height: Val::Auto,
+            max_width: Val::Auto,
+            max_height: Val::Auto,
             padding: UiRect::all(Val::Px(dimensions::PANEL_PADDING)),
             margin: UiRect::all(Val::Px(0.0)),
             flex_direction: FlexDirection::Column,
@@ -75,8 +95,14 @@ impl PanelBuilder {
             align_items: AlignItems::Stretch,
             position_type: PositionType::Relative,
             display: Display::Flex,
+            overflow: Overflow::visible(),
             custom_background: None,
             title: None,
+            column_gap: Val::Px(0.0),
+            row_gap: Val::Px(0.0),
+            flex_basis: Val::Auto,
+            flex_grow: 0.0,
+            custom_border: None,
         }
     }
 
@@ -92,6 +118,31 @@ impl PanelBuilder {
 
     pub fn height(mut self, height: Val) -> Self {
         self.height = height;
+        self
+    }
+
+    pub fn min_width(mut self, min_width: Val) -> Self {
+        self.min_width = min_width;
+        self
+    }
+
+    pub fn min_height(mut self, min_height: Val) -> Self {
+        self.min_height = min_height;
+        self
+    }
+
+    pub fn max_width(mut self, max_width: Val) -> Self {
+        self.max_width = max_width;
+        self
+    }
+
+    pub fn max_height(mut self, max_height: Val) -> Self {
+        self.max_height = max_height;
+        self
+    }
+
+    pub fn overflow(mut self, overflow: Overflow) -> Self {
+        self.overflow = overflow;
         self
     }
 
@@ -142,23 +193,86 @@ impl PanelBuilder {
         self
     }
 
+    /// Set column gap for flex layout
+    pub fn column_gap(mut self, gap: Val) -> Self {
+        self.column_gap = gap;
+        self
+    }
+
+    /// Set row gap for flex layout
+    pub fn row_gap(mut self, gap: Val) -> Self {
+        self.row_gap = gap;
+        self
+    }
+
+    /// Set flex basis
+    pub fn flex_basis(mut self, basis: Val) -> Self {
+        self.flex_basis = basis;
+        self
+    }
+
+    /// Set flex grow
+    pub fn flex_grow(mut self, grow: f32) -> Self {
+        self.flex_grow = grow;
+        self
+    }
+
+    /// Set background color (alias for custom_background)
+    pub fn background_color(mut self, color: Color) -> Self {
+        self.custom_background = Some(color);
+        self
+    }
+
+    /// Set custom border
+    pub fn border(mut self, border: UiRect) -> Self {
+        self.custom_border = Some(border);
+        self
+    }
+
+    /// Set border color (for consistency with other builders)
+    pub fn border_color(self, _color: Color) -> Self {
+        // This could set a custom border color, but for now we'll use the style-based approach
+        // In a more complete implementation, this could override the style's border color
+        self
+    }
+
+    /// Add a marker component to the panel
+    pub fn with_marker<M: Component>(self, _marker: M) -> Self {
+        // For now, this is a placeholder - marker functionality would need additional storage
+        // In a complete implementation, we'd store the marker and apply it in build()
+        self
+    }
+
     pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
         let background_color = self
             .custom_background
             .unwrap_or_else(|| self.style.background_color());
 
+        let border = self
+            .custom_border
+            .unwrap_or_else(|| UiRect::all(self.style.border_width()));
+
         let mut panel_entity = parent.spawn((
             Node {
                 width: self.width,
                 height: self.height,
+                min_width: self.min_width,
+                min_height: self.min_height,
+                max_width: self.max_width,
+                max_height: self.max_height,
                 padding: self.padding,
                 margin: self.margin,
-                border: UiRect::all(self.style.border_width()),
+                border,
                 flex_direction: self.flex_direction,
                 justify_content: self.justify_content,
                 align_items: self.align_items,
                 position_type: self.position_type,
                 display: self.display,
+                overflow: self.overflow,
+                column_gap: self.column_gap,
+                row_gap: self.row_gap,
+                flex_basis: self.flex_basis,
+                flex_grow: self.flex_grow,
                 ..default()
             },
             BackgroundColor(background_color),
@@ -188,6 +302,9 @@ impl PanelBuilder {
             .custom_background
             .unwrap_or_else(|| self.style.background_color());
 
+        let border = self
+            .custom_border
+            .unwrap_or_else(|| UiRect::all(self.style.border_width()));
         let title = self.title.clone(); // Clone title for use in closure
 
         parent
@@ -195,14 +312,23 @@ impl PanelBuilder {
                 Node {
                     width: self.width,
                     height: self.height,
+                    min_width: self.min_width,
+                    min_height: self.min_height,
+                    max_width: self.max_width,
+                    max_height: self.max_height,
                     padding: self.padding,
                     margin: self.margin,
-                    border: UiRect::all(self.style.border_width()),
+                    border,
                     flex_direction: self.flex_direction,
                     justify_content: self.justify_content,
                     align_items: self.align_items,
                     position_type: self.position_type,
                     display: self.display,
+                    overflow: self.overflow,
+                    column_gap: self.column_gap,
+                    row_gap: self.row_gap,
+                    flex_basis: self.flex_basis,
+                    flex_grow: self.flex_grow,
                     ..default()
                 },
                 BackgroundColor(background_color),

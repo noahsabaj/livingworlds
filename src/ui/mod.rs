@@ -1,141 +1,82 @@
 //! User Interface Module - Pure Gateway Architecture
 //!
-//! This module orchestrates all UI subsystems without containing any
-//! implementation logic. Each UI concern is delegated to focused submodules.
-//!
-//! ## Architecture
-//!
-//! - **components/**: Reusable UI components (panels, labels, etc.)
-//! - **hud/**: Heads-up display (time, speed, controls)
-//! - **overlay_display/**: Map overlay and mineral legend
-//! - **tile_info/**: Province selection information panel
-//! - **Other UI modules**: Buttons, dialogs, forms, etc.
+//! This is a PURE GATEWAY - no implementation code, only module organization.
+//! External modules should handle their own UI creation internally.
 
 use bevy::prelude::*;
 
-// SUBMODULES - ALL PRIVATE for gateway architecture
-
-// Core UI components (directory with gateway)
-mod components;
-
-// UI subsystems (directories with gateways)
-mod hud;
-mod interaction;
-mod overlay_display;
-mod tile_info;
-
-// Other UI modules (single files) - ALL PRIVATE
+// PRIVATE MODULES - All implementation hidden
 mod builders;
 mod buttons;
+mod components;
 mod dialogs;
 mod form;
+mod hud;
+mod interaction;
 mod loading;
+mod overlay_display;
+mod plugin;
 mod sliders;
-mod styles;
+pub mod styles;
 mod text_inputs;
+mod tile_info;
 mod tips;
 mod toolbar;
 
-// PUBLIC EXPORTS - Gateway for All UI Types
+// ESSENTIAL EXPORTS - Minimal public API
 
-// Re-export builder types for external use
-// This is the ONLY way external code should access UI internals
-
-// From buttons module
-pub use buttons::{
-    presets as button_presets, ButtonBuilder, ButtonSize, ButtonStyle, StyledButton,
+// Marker components for queries
+pub use dialogs::{
+    CancelButton, ConfirmButton, DiscardButton, KeepButton, RevertButton, SaveButton,
 };
 
-// From dialogs module
+// State markers
 pub use dialogs::{
-    presets as dialog_presets,
-    CancelButton,
-    ConfirmButton,
-    CountdownText, // Additional markers
-    DialogBody,
-    DialogBuilder,
-    DialogButton,
-    DialogButtonRow,
-    DialogContainer,
-    // Dialog component types
-    DialogOverlay,
-    DialogTitle,
-    DialogType,
-    DiscardButton, // Button markers
-    ExitConfirmationDialog,
-    KeepButton,
-    ResolutionConfirmDialog,
-    ResolutionDialog,
-    RevertButton,
-    SaveButton,
-    UnsavedChangesDialog,
+    ExitConfirmationDialog, ResolutionConfirmDialog, ResolutionDialog, UnsavedChangesDialog,
     WorldGenerationErrorDialog,
 };
 
-// From sliders module
-pub use sliders::{slider, Slider, SliderBuilder, ValueFormat};
-
-// From text_inputs module
-pub use text_inputs::{text_input, FocusGroupId, InputFilter, InputTransform, TextInputBuilder};
-
-// From components directory (already has its own gateway)
-pub use components::{
-    LabelBuilder, LabelStyle, Orientation, PanelBuilder, PanelStyle, ProgressBarBuilder,
-    ProgressBarFill, ProgressBarLabel, ProgressBarStyle, ProgressBarTrack, SeparatorBuilder,
-    SeparatorStyle,
-};
-
-// From form module
-pub use form::{form, presets as form_presets, FormBuilder};
-
-// From toolbar module
-pub use toolbar::{
-    presets as toolbar_presets, toolbar, ToolbarBuilder, ToolbarOrientation, ToolbarStyle,
-};
-
-// From loading module
-pub use loading::{
-    loading_dots, loading_pulse, loading_spinner, LabelPosition, LoadingIndicatorBuilder,
-    LoadingSize, LoadingStyle,
-};
-
-// From HUD subsystem
-pub use hud::{HudPlugin, HudRoot};
-
-// From overlay display subsystem
-pub use overlay_display::{MapModeText, MineralLegendContainer, OverlayDisplayPlugin};
-
-// From tile info subsystem
-pub use tile_info::{TileInfoPanel, TileInfoPlugin, TileInfoText};
-
-// From interaction subsystem
+// HUD/Display markers
+pub use hud::HudRoot;
 pub use interaction::SelectedProvinceInfo;
+pub use overlay_display::{MapModeText, MineralLegendContainer};
+pub use tile_info::{TileInfoPanel, TileInfoText};
 
-// From styles module (commonly needed)
+// Builder components and types
+pub use buttons::{ButtonBuilder, ButtonSize, ButtonStyle, StyledButton};
+pub use components::{
+    // Label system
+    LabelBuilder,
+    LabelStyle,
+    Orientation,
+    // Panel system
+    PanelBuilder,
+    PanelStyle,
+    // Progress bar system
+    ProgressBar,
+    ProgressBarBuilder,
+    ProgressBarPlugin,
+    // Separator system
+    SeparatorBuilder,
+};
+pub use dialogs::{DialogBuilder, DialogOverlay, DialogType};
+pub use loading::{LoadingIndicatorBuilder, LoadingSize, LoadingStyle};
+pub use sliders::{Slider, SliderBuilder, ValueFormat};
+pub use text_inputs::{FocusGroupId, TextInputBuilder};
+
+// CountdownText comes from dialogs module, not components
+pub use dialogs::CountdownText;
+
+// Essential preset functions
+pub use dialogs::presets as dialog_presets;
+pub use tips::get_random_tip;
+
+// Style constants and helpers (essential utilities)
 pub use styles::{colors, dimensions, helpers, layers};
 
-// From tips module
-pub use tips::{get_random_tip, LoadingTip, TipCategory};
+// Convenience functions from individual modules
+pub use sliders::slider;
+pub use text_inputs::text_input;
 
-// Builders convenience module - re-export its public interface
-pub use builders::{button, danger_button, dialog, primary_button, progress_bar};
-
-/// Main UI Plugin that coordinates all UI subsystems
-pub struct UIPlugin;
-
-impl Plugin for UIPlugin {
-    fn build(&self, app: &mut App) {
-        // Add all UI subsystem plugins
-        app
-            // Core systems
-            .add_plugins(buttons::ButtonPlugin)
-            .add_plugins(dialogs::DialogPlugin)
-            .add_plugins(text_inputs::TextInputPlugin)
-            .add_plugins(loading::LoadingIndicatorPlugin)
-            .add_plugins(sliders::SliderPlugin)
-            // Game UI systems
-            .add_plugins(hud::HudPlugin)
-            .add_plugins(overlay_display::OverlayDisplayPlugin)
-            .add_plugins(tile_info::TileInfoPlugin);
-    }
-}
+// Main plugin (implementation in plugin.rs)
+pub use plugin::UIPlugin;

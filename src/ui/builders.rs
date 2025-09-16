@@ -7,6 +7,8 @@
 //! The actual builder types are exported directly by ui/mod.rs from their
 //! source modules, maintaining clean gateway architecture.
 
+#![allow(dead_code)] // Preserve UI utility functions for future use
+
 // IMPORTS - From parent module's public exports
 
 use super::{ButtonBuilder, ButtonStyle, DialogBuilder, DialogType, ProgressBarBuilder};

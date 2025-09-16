@@ -32,12 +32,27 @@ pub mod colors {
     pub const WARNING_HOVER: Color = Color::srgb(0.55, 0.45, 0.25);
     pub const WARNING_PRESSED: Color = Color::srgb(0.45, 0.35, 0.15);
 
+    // Ghost colors (transparent theme for subtle actions)
+    pub const GHOST: Color = Color::srgba(1.0, 1.0, 1.0, 0.02);
+    pub const GHOST_HOVER: Color = Color::srgba(1.0, 1.0, 1.0, 0.05);
+    pub const GHOST_PRESSED: Color = Color::srgba(1.0, 1.0, 1.0, 0.1);
+
+    // Disabled colors (grayed out for inactive elements)
+    pub const DISABLED: Color = Color::srgb(0.1, 0.1, 0.1);
+    pub const DISABLED_HOVER: Color = Color::srgb(0.12, 0.12, 0.12);
+    pub const DISABLED_PRESSED: Color = Color::srgb(0.08, 0.08, 0.08);
+
     // UI background colors
     pub const BACKGROUND_DARK: Color = Color::srgb(0.05, 0.05, 0.05);
     pub const BACKGROUND_DARKER: Color = Color::srgb(0.03, 0.03, 0.03); // Even darker than DARK
     pub const BACKGROUND_MEDIUM: Color = Color::srgb(0.08, 0.08, 0.1);
     pub const BACKGROUND_LIGHT: Color = Color::srgb(0.12, 0.12, 0.15);
     pub const SURFACE: Color = Color::srgb(0.1, 0.1, 0.12); // Surface color for panels
+
+    // Additional surface colors commonly used in UI
+    pub const SURFACE_HOVER: Color = Color::srgb(0.2, 0.22, 0.25);
+    pub const SURFACE_SELECTED: Color = Color::srgb(0.15, 0.3, 0.15); // Green for selected items
+    pub const SURFACE_PRESSED: Color = Color::srgb(0.15, 0.15, 0.18);
 
     // Overlay colors
     pub const OVERLAY_DARK: Color = Color::srgba(0.0, 0.0, 0.0, 0.7);
@@ -55,6 +70,13 @@ pub mod colors {
     pub const BORDER: Color = Color::srgb(0.3, 0.3, 0.35); // Alias for BORDER_DEFAULT
     pub const BORDER_HOVER: Color = Color::srgb(0.4, 0.4, 0.45);
     pub const BORDER_ACTIVE: Color = Color::srgb(0.5, 0.5, 0.55);
+
+    // Additional border colors for selection and interaction states
+    pub const BORDER_SELECTED: Color = Color::srgb(0.3, 0.5, 0.3); // Green for selected items
+    pub const BORDER_SELECTED_HOVER: Color = Color::srgb(0.4, 0.6, 0.4);
+    pub const BORDER_DISABLED: Color = Color::srgb(0.2, 0.2, 0.2);
+    pub const BORDER_DANGER: Color = Color::srgb(0.5, 0.3, 0.3); // Red for dangerous actions
+    pub const BORDER_DANGER_HOVER: Color = Color::srgb(0.6, 0.4, 0.4);
 }
 
 /// Standardized dimensions for UI elements

@@ -19,18 +19,14 @@ pub fn setup_hud(mut commands: Commands) {
             HudRoot,
         ))
         .with_children(|parent| {
-            // Create panel with consistent styling using direct Bevy API
-            parent
-                .spawn((
-                    Node {
-                        flex_direction: FlexDirection::Column,
-                        align_items: AlignItems::End,
-                        padding: UiRect::all(Val::Px(8.0)),
-                        ..default()
-                    },
-                    BackgroundColor(Color::srgba(0.05, 0.05, 0.05, 0.85)),
-                ))
-                .with_children(|panel| {
+            // Create panel with consistent styling using PanelBuilder
+            PanelBuilder::new()
+                .style(PanelStyle::Transparent)
+                .flex_direction(FlexDirection::Column)
+                .align_items(AlignItems::End)
+                .padding(UiRect::all(Val::Px(8.0)))
+                .background_color(Color::srgba(0.05, 0.05, 0.05, 0.85))
+                .build_with_children(parent, |panel| {
                     // Add time display
                     time_display::spawn_time_display(panel);
 
@@ -46,6 +42,6 @@ pub fn setup_hud(mut commands: Commands) {
 /// Cleanup all HUD elements
 pub fn cleanup_hud(mut commands: Commands, query: Query<Entity, With<HudRoot>>) {
     for entity in &query {
-        commands.entity(entity).despawn_recursive();
+        commands.entity(entity).despawn();
     }
 }

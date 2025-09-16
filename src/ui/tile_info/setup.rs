@@ -27,6 +27,6 @@ pub fn setup_tile_info(mut commands: Commands) {
 /// Cleanup the tile info panel
 pub fn cleanup_tile_info(mut commands: Commands, query: Query<Entity, With<TileInfoRoot>>) {
     for entity in &query {
-        commands.entity(entity).despawn_recursive();
+        commands.entity(entity).despawn();
     }
 }

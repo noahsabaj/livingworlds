@@ -39,18 +39,15 @@ mod types;
 // PUBLIC RE-EXPORTS - The Gateway's Public API
 
 // Shared types used across components
-pub use types::{ComponentMarker, Orientation};
+pub use types::Orientation;
 
-pub use panel::{Panel, PanelBuilder, PanelStyle};
+pub use panel::{PanelBuilder, PanelStyle};
 
 // Label component and builder
-pub use label::{Label, LabelBuilder, LabelStyle};
+pub use label::{LabelBuilder, LabelStyle};
 
 // Separator component and builder
-pub use separator::{Separator, SeparatorBuilder, SeparatorStyle};
+pub use separator::SeparatorBuilder;
 
 // Progress bar component and builder
-pub use progress_bar::{
-    ProgressBar, ProgressBarBuilder, ProgressBarFill, ProgressBarLabel, ProgressBarStyle,
-    ProgressBarTrack,
-};
+pub use progress_bar::{ProgressBar, ProgressBarBuilder, ProgressBarPlugin};

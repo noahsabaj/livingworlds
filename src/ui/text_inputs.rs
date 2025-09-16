@@ -6,7 +6,7 @@
 //! and extensibility for future features.
 
 use super::buttons::{ButtonBuilder, ButtonSize, ButtonStyle};
-use super::styles::{colors, dimensions};
+use super::styles::colors;
 use bevy::prelude::*;
 use bevy_simple_text_input::{
     TextInput, TextInputInactive, TextInputSettings, TextInputTextColor, TextInputTextFont,
@@ -82,7 +82,7 @@ impl InputFilter {
             InputFilter::Alphabetic => ch.is_alphabetic(),
             InputFilter::Alphanumeric => ch.is_alphanumeric(),
             InputFilter::Hexadecimal => ch.is_ascii_hexdigit(),
-            InputFilter::Regex(pattern) => {
+            InputFilter::Regex(_pattern) => {
                 // For regex, we'd need to check the entire string
                 // This is a simplified check
                 true // Will be validated in the full string check
@@ -118,7 +118,7 @@ impl InputFilter {
                     return true;
                 }
                 let mut has_decimal = false;
-                let mut chars = text.chars().enumerate();
+                let chars = text.chars().enumerate();
 
                 for (i, ch) in chars {
                     if ch == '-' && i != 0 {
@@ -137,7 +137,7 @@ impl InputFilter {
             InputFilter::Alphabetic => text.chars().all(|c| c.is_alphabetic()),
             InputFilter::Alphanumeric => text.chars().all(|c| c.is_alphanumeric()),
             InputFilter::Hexadecimal => text.chars().all(|c| c.is_ascii_hexdigit()),
-            InputFilter::Regex(pattern) => {
+            InputFilter::Regex(_pattern) => {
                 // Would need regex crate for full support
                 true // Simplified for now
             }

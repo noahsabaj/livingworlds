@@ -9,37 +9,18 @@ use bevy::prelude::*;
 // Submodules - all private
 mod mineral_legend;
 mod overlay_text;
+mod plugin;
 mod setup;
 
-/// Plugin that manages overlay display UI
-pub struct OverlayDisplayPlugin;
+// CONTROLLED EXPORTS - Gateway Interface
 
 /// Marker for the overlay display root
 #[derive(Component)]
 pub struct OverlayDisplayRoot;
 
+/// Plugin that manages overlay display UI (implementation in plugin.rs)
+pub use plugin::OverlayDisplayPlugin;
+
 // Re-export marker components for external use
 pub use mineral_legend::MineralLegendContainer;
 pub use overlay_text::MapModeText;
-
-// PLUGIN IMPLEMENTATION - Pure Orchestration
-
-impl Plugin for OverlayDisplayPlugin {
-    fn build(&self, app: &mut App) {
-        use crate::states::GameState;
-
-        app
-            // Systems from submodules
-            .add_systems(OnEnter(GameState::InGame), setup::setup_overlay_display)
-            .add_systems(OnExit(GameState::InGame), setup::cleanup_overlay_display)
-            .add_systems(
-                Update,
-                (
-                    overlay_text::update_overlay_display,
-                    mineral_legend::update_mineral_legend_visibility
-                        .run_if(resource_changed::<crate::resources::MapMode>),
-                )
-                    .run_if(in_state(GameState::InGame)),
-            );
-    }
-}

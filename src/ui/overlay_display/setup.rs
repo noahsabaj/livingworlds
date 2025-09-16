@@ -40,6 +40,6 @@ pub fn cleanup_overlay_display(
     query: Query<Entity, With<OverlayDisplayRoot>>,
 ) {
     for entity in &query {
-        commands.entity(entity).despawn_recursive();
+        commands.entity(entity).despawn();
     }
 }

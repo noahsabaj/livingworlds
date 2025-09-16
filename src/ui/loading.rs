@@ -4,6 +4,8 @@
 //! throughout the application for async operations, loading screens,
 //! and progress indication.
 
+#![allow(dead_code)] // Preserve UI utility functions for future use
+
 use super::{colors, dimensions};
 use crate::math::fast_sin;
 use bevy::prelude::*;
@@ -138,7 +140,7 @@ impl LoadingIndicatorBuilder {
     }
 
     pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
-        let container_size = self.size.container_size();
+        let _container_size = self.size.container_size();
         let flex_direction = match self.label_position {
             LabelPosition::Below => FlexDirection::Column,
             LabelPosition::Above => FlexDirection::ColumnReverse,
