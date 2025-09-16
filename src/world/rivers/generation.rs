@@ -9,16 +9,16 @@ use std::collections::{HashMap, HashSet};
 use crate::constants::*;
 use crate::math::get_neighbor_positions;
 use crate::resources::MapDimensions;
-use crate::world::RiverSystem;
-use crate::world::TerrainType;
-use crate::world::{Province, ProvinceId};
+use super::RiverSystem;
+use super::super::terrain::TerrainType;
+use super::super::provinces::{Province, ProvinceId};
 
 // River generation constants
 const DEFAULT_RIVER_DENSITY: f32 = 1.0;
 const RIVER_SOURCE_DIVISOR: usize = 4; // Use 1/4 of potential sources
 const MAX_RIVER_LENGTH: usize = 1000; // Maximum tiles a river can traverse
 const FLOW_INCREMENT: f32 = 0.1; // Flow increase per tile downstream
-const MIN_VISIBLE_FLOW: f32 = 0.5; // Minimum flow to show as river terrain
+const MIN_VISIBLE_FLOW: f32 = 0.3; // Minimum flow to show as river terrain (reduced for better visibility)
 const MEANDER_CHANCE: f32 = 0.3; // Chance to pick non-optimal path for natural meandering
 
 /// Error types for river generation
@@ -149,7 +149,8 @@ fn find_river_sources(
     }
 
     // Sort by elevation (highest first) for better river flow
-    potential_sources.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
+    // Use total_cmp to handle NaN values deterministically
+    potential_sources.sort_by(|a, b| b.2.total_cmp(&a.2));
 
     Ok(potential_sources)
 }
@@ -205,16 +206,14 @@ fn trace_river_path(
         }
 
         // Sort neighbors by elevation (lowest first)
+        // Use total_cmp to handle NaN values deterministically
         valid_neighbors.sort_by(|a, b| {
-            a.0.elevation
-                .value()
-                .partial_cmp(&b.0.elevation.value())
-                .unwrap_or(std::cmp::Ordering::Equal)
+            a.0.elevation.value().total_cmp(&b.0.elevation.value())
         });
 
         // Add randomization for natural meandering
         let next = if !valid_neighbors.is_empty()
-            && rng.gen::<f32>() < MEANDER_CHANCE
+            && rng.r#gen::<f32>() < MEANDER_CHANCE
             && valid_neighbors.len() > 1
         {
             // Sometimes pick a suboptimal path for more natural rivers
@@ -237,7 +236,7 @@ fn trace_river_path(
 /// Apply terrain changes based on river flow
 fn apply_terrain_changes(
     provinces: &mut [Province],
-    river_tiles: &[ProvinceId],
+    _river_tiles: &[ProvinceId],
     delta_tiles: &[ProvinceId],
     flow_accumulation: &HashMap<u32, f32>,
 ) {
@@ -301,7 +300,7 @@ fn generate_rivers_internal(
 
     info!("Selected {} river sources to trace", selected_sources.len());
 
-    let base_seed = rng.gen::<u64>();
+    let base_seed = rng.r#gen::<u64>();
 
     // Trace rivers in parallel for better performance
     let river_results: Vec<(Vec<ProvinceId>, Vec<ProvinceId>, HashMap<u32, f32>)> =

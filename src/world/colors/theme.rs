@@ -7,12 +7,11 @@
 use bevy::prelude::Color;
 
 // WATER COLORS
-
 pub const OCEAN_DEEP: Color = Color::srgb(0.02, 0.15, 0.35);
 pub const OCEAN_MEDIUM: Color = Color::srgb(0.08, 0.25, 0.45);
 pub const OCEAN_SHALLOW: Color = Color::srgb(0.15, 0.35, 0.55);
 pub const BEACH: Color = Color::srgb(0.9, 0.85, 0.65);
-pub const RIVER: Color = Color::srgb(0.2, 0.45, 0.55);
+pub const RIVER: Color = Color::srgb(0.15, 0.4, 0.6);  // Slightly bluer and more visible
 pub const DELTA: Color = Color::srgb(0.35, 0.5, 0.25);
 
 // POLAR BIOME COLORS
