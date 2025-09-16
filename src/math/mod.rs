@@ -323,6 +323,17 @@ mod interpolation;
 mod perlin;
 mod random;
 
+// Test modules - only compiled in test mode
+// TODO: Create these test modules when needed
+// #[cfg(test)]
+// mod distance_tests;
+// #[cfg(test)]
+// mod hexagon_tests;
+// #[cfg(test)]
+// mod interpolation_tests;
+// #[cfg(test)]
+// mod test_utils;
+
 // Only these carefully selected exports are available to external code.
 // This enforces our "single source of truth" principle - all math operations
 // must go through this gateway module.

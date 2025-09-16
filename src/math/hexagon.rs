@@ -213,7 +213,7 @@ pub fn world_to_grid(
 
 ///
 /// Returns positions of all 6 neighbors in the odd-q offset system.
-pub fn get_neighbor_positions(col: i32, row: i32, hex_size: f32) -> [(i32, i32); 6] {
+pub fn get_neighbor_positions(col: i32, row: i32, _hex_size: f32) -> [(i32, i32); 6] {
     // Neighbor offsets depend on whether column is odd or even
     if col % 2 == 0 {
         // Even column

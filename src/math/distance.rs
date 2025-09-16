@@ -25,6 +25,8 @@
 
 use bevy::prelude::*;
 
+use super::hexagon::SQRT_3;
+
 // EUCLIDEAN DISTANCE - Standard geometric distance
 
 /// Euclidean distance between two 2D points
@@ -76,6 +78,7 @@ pub fn euclidean_squared_vec2(a: Vec2, b: Vec2) -> f32 {
 }
 
 /// Euclidean distance between two 3D points
+#[allow(dead_code)]
 #[inline]
 pub fn euclidean_3d(x1: f32, y1: f32, z1: f32, x2: f32, y2: f32, z2: f32) -> f32 {
     let dx = x2 - x1;
@@ -186,7 +189,7 @@ pub fn hex_distance(col1: u32, row1: u32, col2: u32, row2: u32) -> u32 {
 pub fn hex_distance_world(pos1: Vec2, pos2: Vec2, hex_size: f32) -> f32 {
     // Approximate hex distance using Euclidean distance
     // divided by the average hex-to-hex spacing
-    let spacing = hex_size * 1.732050808; // hex_size * sqrt(3)
+    let spacing = hex_size * SQRT_3; // hex_size * sqrt(3)
     euclidean_vec2(pos1, pos2) / spacing
 }
 
@@ -218,6 +221,7 @@ pub fn distance_from_rect_edge(
 /// Calculate normalized distance from map center to edge
 ///
 /// Returns 0.0 at center, 1.0 at edge. Useful for island falloff.
+/// Uses Euclidean distance for natural circular falloff patterns.
 #[inline]
 pub fn normalized_edge_distance(
     position: Vec2,
@@ -225,9 +229,10 @@ pub fn normalized_edge_distance(
     map_half_width: f32,
     map_half_height: f32,
 ) -> f32 {
-    let dx = (position.x - map_center.x).abs() / map_half_width;
-    let dy = (position.y - map_center.y).abs() / map_half_height;
-    dx.max(dy).clamp(0.0, 1.0)
+    // Use Euclidean distance for natural circular/elliptical falloff
+    let dx = (position.x - map_center.x) / map_half_width;
+    let dy = (position.y - map_center.y) / map_half_height;
+    (dx * dx + dy * dy).sqrt().clamp(0.0, 1.0)
 }
 
 // WRAPPING DISTANCE - For toroidal/cylindrical maps

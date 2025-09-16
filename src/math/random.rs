@@ -57,17 +57,17 @@ where
 /// ```
 #[inline]
 pub fn random_bool(rng: &mut StdRng, probability: f32) -> bool {
-    rng.gen::<f32>() < probability
+    rng.r#gen::<f32>() < probability
 }
 
 #[inline]
 pub fn random_01(rng: &mut StdRng) -> f32 {
-    rng.gen()
+    rng.r#gen()
 }
 
 #[inline]
 pub fn random_11(rng: &mut StdRng) -> f32 {
-    rng.gen::<f32>() * 2.0 - 1.0
+    rng.r#gen::<f32>() * 2.0 - 1.0
 }
 
 ///

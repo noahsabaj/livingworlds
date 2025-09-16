@@ -3,6 +3,8 @@
 //! This module is the SINGLE SOURCE OF TRUTH for all interpolation, smoothing,
 //! and blending operations. No other module should implement their own versions
 //! of lerp, smoothstep, or similar functions.
+
+#![allow(dead_code)] // Preserve utility functions for future use
 //!
 //! # Usage
 //!
