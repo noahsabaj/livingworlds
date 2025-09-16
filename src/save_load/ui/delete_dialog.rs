@@ -26,7 +26,7 @@ pub fn handle_delete_button_click(
         if *interaction == Interaction::Pressed {
             // Close any existing dialog first
             for entity in &existing_dialog {
-                commands.entity(entity).despawn_recursive();
+                commands.entity(entity).despawn();
             }
 
             // Create delete confirmation dialog
@@ -53,7 +53,7 @@ pub fn handle_delete_button_click(
 
 /// Handle delete confirmation dialog buttons
 pub fn handle_delete_confirmation(
-    mut interactions: Query<(&Interaction, &Button), Changed<Interaction>>,
+    interactions: Query<(&Interaction, &Button), Changed<Interaction>>,
     mut commands: Commands,
     dialog_query: Query<Entity, With<DeleteConfirmationDialog>>,
     mut save_list: ResMut<SaveGameList>,
@@ -62,29 +62,29 @@ pub fn handle_delete_confirmation(
     pending_delete: Option<Res<PendingDeletePath>>,
 ) {
     // Check if a button in the dialog was pressed
-    if let Ok(dialog_entity) = dialog_query.get_single() {
+    if let Ok(dialog_entity) = dialog_query.single() {
         for (interaction, _) in &interactions {
             if *interaction == Interaction::Pressed {
                 // Close the dialog
-                commands.entity(dialog_entity).despawn_recursive();
+                commands.entity(dialog_entity).despawn();
 
                 // If we have a pending delete path, perform the deletion
                 if let Some(pending) = pending_delete {
                     // Delete the save file
                     if let Err(e) = fs::remove_file(&pending.0) {
-                        eprintln!("Failed to delete save file: {}", e);
+                        error!("Failed to delete save file: {}", e);
                     } else {
-                        println!("Deleted save file: {:?}", pending.0);
+                        info!("Deleted save file: {:?}", pending.0);
 
                         // Refresh the save list
                         super::scan_save_files_internal(&mut save_list);
 
                         // Refresh the save browser UI
-                        if let Ok(browser_entity) = browser_root.get_single() {
-                            commands.entity(browser_entity).despawn_recursive();
+                        if let Ok(browser_entity) = browser_root.single() {
+                            commands.entity(browser_entity).despawn();
 
                             // Trigger respawn of the browser
-                            spawn_browser_events.send(crate::menus::SpawnSaveBrowserEvent);
+                            spawn_browser_events.write(crate::menus::SpawnSaveBrowserEvent);
                         }
                     }
 

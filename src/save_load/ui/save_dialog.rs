@@ -7,7 +7,7 @@ use super::{CloseSaveDialogEvent, OpenSaveDialogEvent, SaveGameEvent};
 use super::{SaveDialogState, SaveGameList};
 use crate::resources::{WorldName, WorldSeed};
 use crate::ui::{colors, TextInputBuilder};
-use crate::ui::{ButtonBuilder, ButtonSize, ButtonStyle, DialogBuilder, DialogType};
+use crate::ui::{ButtonBuilder, ButtonSize, ButtonStyle, PanelBuilder, PanelStyle};
 use bevy::prelude::*;
 use bevy_simple_text_input::TextInputValue;
 use chrono::Local;
@@ -83,14 +83,12 @@ pub fn handle_open_save_dialog(
                                 },
                             ));
                             // World info row
-                            parent
-                                .spawn((Node {
-                                    flex_direction: FlexDirection::Row,
-                                    margin: UiRect::bottom(Val::Px(15.0)),
-                                    column_gap: Val::Px(20.0),
-                                    ..default()
-                                },))
-                                .with_children(|info_parent| {
+                            PanelBuilder::new()
+                                .style(PanelStyle::Transparent)
+                                .flex_direction(FlexDirection::Row)
+                                .margin(UiRect::bottom(Val::Px(15.0)))
+                                .column_gap(Val::Px(20.0))
+                                .build_with_children(parent, |info_parent| {
                                     // World name
                                     info_parent.spawn((
                                         Text::new(format!("World: {}", world_name_str)),
@@ -113,13 +111,11 @@ pub fn handle_open_save_dialog(
                                 });
 
                             // Save name input section
-                            parent
-                                .spawn((Node {
-                                    flex_direction: FlexDirection::Column,
-                                    margin: UiRect::bottom(Val::Px(20.0)),
-                                    ..default()
-                                },))
-                                .with_children(|section| {
+                            PanelBuilder::new()
+                                .style(PanelStyle::Transparent)
+                                .flex_direction(FlexDirection::Column)
+                                .margin(UiRect::bottom(Val::Px(20.0)))
+                                .build_with_children(parent, |section| {
                                     // Label
                                     section.spawn((
                                         Text::new("Save Name:"),
@@ -146,14 +142,12 @@ pub fn handle_open_save_dialog(
                                 });
 
                             // Bottom buttons
-                            parent
-                                .spawn((Node {
-                                    width: Val::Percent(100.0),
-                                    justify_content: JustifyContent::Center,
-                                    column_gap: Val::Px(20.0),
-                                    ..default()
-                                },))
-                                .with_children(|buttons| {
+                            PanelBuilder::new()
+                                .style(PanelStyle::Transparent)
+                                .width(Val::Percent(100.0))
+                                .justify_content(JustifyContent::Center)
+                                .column_gap(Val::Px(20.0))
+                                .build_with_children(parent, |buttons| {
                                     ButtonBuilder::new("Save Game")
                                         .style(ButtonStyle::Primary)
                                         .size(ButtonSize::Large)
@@ -184,8 +178,8 @@ pub fn handle_close_save_dialog(
             dialog_state.is_open = false;
 
             // Despawn the dialog
-            if let Ok(dialog_entity) = dialog_query.get_single() {
-                commands.entity(dialog_entity).despawn_recursive();
+            if let Ok(dialog_entity) = dialog_query.single() {
+                commands.entity(dialog_entity).despawn();
             }
         }
     }
@@ -207,21 +201,21 @@ pub fn handle_save_dialog_interactions(
     for (interaction, (confirm, cancel)) in &mut interactions {
         if *interaction == Interaction::Pressed {
             if confirm.is_some() {
-                if let Ok(save_name_value) = save_name_query.get_single() {
+                if let Ok(save_name_value) = save_name_query.single() {
                     let save_name = save_name_value.0.trim();
                     if !save_name.is_empty() {
                         // Trigger save
-                        save_events.send(SaveGameEvent {
+                        save_events.write(SaveGameEvent {
                             slot_name: save_name.to_string(),
                         });
 
                         // Close dialog
-                        close_events.send(CloseSaveDialogEvent);
+                        close_events.write(CloseSaveDialogEvent);
                     }
                 }
             } else if cancel.is_some() {
                 // Just close the dialog
-                close_events.send(CloseSaveDialogEvent);
+                close_events.write(CloseSaveDialogEvent);
             }
         }
     }

@@ -11,7 +11,7 @@
 // Re-export what our children need from parent gateway (for internal use only)
 pub(self) use super::{
     CloseSaveDialogEvent, LoadGameEvent, OpenSaveDialogEvent, SaveBrowserState, SaveDialogState,
-    SaveGameData, SaveGameEvent, SaveGameInfo, SaveGameList,
+    SaveGameEvent, SaveGameInfo, SaveGameList,
 };
 
 // Re-export I/O functions our children might need

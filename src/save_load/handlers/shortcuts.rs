@@ -15,7 +15,7 @@ pub fn handle_save_load_shortcuts(
 ) {
     // F5 for quick save
     if keyboard.just_pressed(KeyCode::F5) {
-        println!("F5 pressed - Quick saving...");
+        debug!("F5 pressed - Quick saving...");
         save_events.write(SaveGameEvent {
             slot_name: "quicksave".to_string(),
         });
@@ -23,7 +23,7 @@ pub fn handle_save_load_shortcuts(
 
     // F9 for quick load
     if keyboard.just_pressed(KeyCode::F9) {
-        println!("F9 pressed - Quick loading...");
+        debug!("F9 pressed - Quick loading...");
         // Scan for saves directly
         super::scan_save_files_internal(&mut save_list);
 
@@ -32,7 +32,7 @@ pub fn handle_save_load_shortcuts(
                 save_path: latest.path.clone(),
             });
         } else {
-            println!("No save files found to load");
+            warn!("No save files found to load");
         }
     }
 }

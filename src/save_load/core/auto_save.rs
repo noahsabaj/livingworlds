@@ -18,7 +18,7 @@ pub fn handle_auto_save(
     timer.timer.tick(time.delta());
 
     if timer.timer.just_finished() {
-        println!("Auto-saving game...");
+        info!("Auto-saving game...");
         save_events.write(SaveGameEvent {
             slot_name: "autosave".to_string(),
         });

@@ -13,7 +13,7 @@ use std::path::Path;
 /// Ensure the save directory exists
 pub fn ensure_save_directory() {
     if let Err(e) = fs::create_dir_all(SAVE_DIRECTORY) {
-        eprintln!("Failed to create save directory: {}", e);
+        error!("Failed to create save directory: {}", e);
     }
 }
 

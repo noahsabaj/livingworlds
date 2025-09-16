@@ -2,7 +2,7 @@
 //!
 //! This module handles the actual loading of game state, separated from UI and I/O.
 
-use super::{LoadCompleteEvent, LoadGameEvent, SaveGameData};
+use super::{LoadCompleteEvent, LoadGameEvent};
 use super::{PendingLoadData, SaveGameList};
 use crate::loading_screen::{set_loading_progress, start_save_loading, LoadingState};
 use crate::resources::{ProvincesSpatialIndex, WorldName, WorldSeed};
@@ -23,7 +23,7 @@ pub fn handle_load_game(
     mut next_state: ResMut<NextState<GameState>>,
 ) {
     for event in load_events.read() {
-        println!("Loading game from: {:?}", event.save_path);
+        info!("Loading game from: {:?}", event.save_path);
 
         match fs::read(&event.save_path) {
             Ok(compressed_data) => {
@@ -35,7 +35,7 @@ pub fn handle_load_game(
                         match super::deserialize_save_data(&data_str) {
                             Ok(save_data) => {
                                 if save_data.version > super::super::types::SAVE_VERSION {
-                                    eprintln!(
+                                    error!(
                                         "Save file version {} is newer than game version {}",
                                         save_data.version,
                                         super::super::types::SAVE_VERSION
@@ -48,8 +48,8 @@ pub fn handle_load_game(
                                     continue;
                                 }
 
-                                println!("Successfully loaded save from {}", save_data.timestamp);
-                                println!(
+                                info!("Successfully loaded save from {}", save_data.timestamp);
+                                info!(
                                     "Game time: {} days, World size: {:?}",
                                     save_data.game_time.current_date, save_data.world_size
                                 );
@@ -119,7 +119,7 @@ pub fn check_for_pending_load(
     mut loading_state: ResMut<LoadingState>,
 ) {
     if let Some(load_data) = pending_load {
-        println!("Restoring game state from save...");
+        info!("Restoring game state from save...");
         set_loading_progress(&mut loading_state, 0.2, "Restoring game state...");
 
         // Insert all the loaded resources
@@ -133,12 +133,12 @@ pub fn check_for_pending_load(
         set_loading_progress(&mut loading_state, 0.4, "Resources restored...");
 
         // Rebuild world mesh
-        println!(
+        info!(
             "Rebuilding world mesh from {} provinces...",
             load_data.0.provinces.len()
         );
         set_loading_progress(&mut loading_state, 0.5, "Rebuilding world mesh...");
-        let mesh_handle = build_world_mesh(&load_data.0.provinces, &mut meshes);
+        let mesh_handle = build_world_mesh(&load_data.0.provinces, &mut meshes, load_data.0.world_seed);
         set_loading_progress(&mut loading_state, 0.8, "Creating game entities...");
 
         commands.spawn((

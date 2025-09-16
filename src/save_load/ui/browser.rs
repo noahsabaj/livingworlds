@@ -5,7 +5,7 @@
 use super::components::*;
 use super::{LoadGameEvent, SaveBrowserState, SaveGameList};
 use crate::menus::SpawnSaveBrowserEvent;
-use crate::ui::{colors, ButtonBuilder, ButtonSize, ButtonStyle, DialogBuilder, DialogType};
+use crate::ui::{colors, ButtonBuilder, ButtonSize, ButtonStyle, PanelBuilder, PanelStyle};
 use bevy::prelude::*;
 
 /// System to handle the SpawnSaveBrowserEvent
@@ -33,7 +33,7 @@ pub fn spawn_save_browser(
                     align_items: AlignItems::Center,
                     ..default()
                 },
-                BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.7)),
+                BackgroundColor(colors::OVERLAY_DARK),
                 SaveBrowserRoot,
             ))
             .with_children(|overlay| {
@@ -41,10 +41,11 @@ pub fn spawn_save_browser(
                 overlay
                     .spawn((
                         Node {
-                            width: Val::Px(800.0),
-                            height: Val::Px(600.0),
+                            width: Val::Px(800.0),                    // Width constraint for readability
+                            max_height: Val::Vh(90.0),               // Safety valve - never bigger than 90% viewport
                             padding: UiRect::all(Val::Px(20.0)),
                             flex_direction: FlexDirection::Column,
+                            // NO HEIGHT SPECIFIED! Content determines it naturally
                             ..default()
                         },
                         BackgroundColor(colors::BACKGROUND_MEDIUM),
@@ -75,7 +76,7 @@ pub fn spawn_save_browser(
                                     margin: UiRect::bottom(Val::Px(20.0)),
                                     ..default()
                                 },
-                                BackgroundColor(Color::srgb(0.05, 0.05, 0.06)),
+                                BackgroundColor(colors::BACKGROUND_DARK),
                             ))
                             .with_children(|list| {
                                 // Add save slots
@@ -85,14 +86,12 @@ pub fn spawn_save_browser(
                             });
 
                         // Bottom buttons
-                        parent
-                            .spawn(Node {
-                                flex_direction: FlexDirection::Row,
-                                justify_content: JustifyContent::SpaceBetween,
-                                width: Val::Percent(100.0),
-                                ..default()
-                            })
-                            .with_children(|buttons| {
+                        PanelBuilder::new()
+                            .style(PanelStyle::Transparent)
+                            .flex_direction(FlexDirection::Row)
+                            .justify_content(JustifyContent::SpaceBetween)
+                            .width(Val::Percent(100.0))
+                            .build_with_children(parent, |buttons| {
                                 ButtonBuilder::new("Load Selected")
                                     .style(ButtonStyle::Primary)
                                     .size(ButtonSize::Large)
@@ -126,85 +125,85 @@ fn spawn_save_slot(
                 align_items: AlignItems::Start,
                 ..default()
             },
-            BackgroundColor(Color::srgb(0.15, 0.15, 0.17)),
+            BackgroundColor(colors::SECONDARY),
             SaveSlotButton {
                 index,
                 save_info: save_info.clone(),
             },
         ))
         .with_children(|slot| {
-            slot.spawn(Node {
-                width: Val::Percent(100.0),
-                flex_direction: FlexDirection::Row,
-                justify_content: JustifyContent::SpaceBetween,
-                align_items: AlignItems::Start,
-                ..default()
-            })
-            .with_children(|row| {
-                // Left side: Save info
-                row.spawn(Node {
-                    flex_direction: FlexDirection::Column,
-                    flex_grow: 1.0,
-                    ..default()
-                })
-                .with_children(|info| {
-                    // Save name
-                    info.spawn((
-                        Text::new(&save_info.name),
-                        TextFont {
-                            font_size: 20.0,
-                            ..default()
-                        },
-                        TextColor(Color::srgb(0.9, 0.9, 0.9)),
-                    ));
+            PanelBuilder::new()
+                .style(PanelStyle::Transparent)
+                .width(Val::Percent(100.0))
+                .flex_direction(FlexDirection::Row)
+                .justify_content(JustifyContent::SpaceBetween)
+                .align_items(AlignItems::Start)
+                .build_with_children(slot, |row| {
+                    // Left side: Save info
+                    PanelBuilder::new()
+                        .style(PanelStyle::Transparent)
+                        .flex_direction(FlexDirection::Column)
+                        .flex_grow(1.0)
+                        .build_with_children(row, |info| {
+                            // Save name
+                            info.spawn((
+                                Text::new(&save_info.name),
+                                TextFont {
+                                    font_size: 20.0,
+                                    ..default()
+                                },
+                                TextColor(colors::TEXT_PRIMARY),
+                            ));
 
-                    // World info
-                    info.spawn((
-                        Text::new(format!(
-                            "World: {} | Seed: {} | Size: {}",
-                            save_info.world_name, save_info.world_seed, save_info.world_size
-                        )),
-                        TextFont {
-                            font_size: 16.0,
-                            ..default()
-                        },
-                        TextColor(Color::srgb(0.7, 0.8, 0.9)),
-                        Node {
-                            margin: UiRect::top(Val::Px(3.0)),
-                            ..default()
-                        },
-                    ));
+                            // World info
+                            info.spawn((
+                                Text::new(format!(
+                                    "World: {} | Seed: {} | Size: {}",
+                                    save_info.world_name,
+                                    save_info.world_seed,
+                                    save_info.world_size
+                                )),
+                                TextFont {
+                                    font_size: 16.0,
+                                    ..default()
+                                },
+                                TextColor(colors::TEXT_SECONDARY),
+                                Node {
+                                    margin: UiRect::top(Val::Px(3.0)),
+                                    ..default()
+                                },
+                            ));
 
-                    // Date and size info
-                    info.spawn((
-                        Text::new(format!(
-                            "Date: {} | Size: {} | Game Time: {:.0} days",
-                            save_info.date_created.format("%Y-%m-%d %H:%M"),
-                            super::format_file_size(save_info.compressed_size),
-                            save_info.game_time
-                        )),
-                        TextFont {
-                            font_size: 14.0,
-                            ..default()
-                        },
-                        TextColor(Color::srgb(0.6, 0.6, 0.6)),
-                        Node {
-                            margin: UiRect::top(Val::Px(5.0)),
-                            ..default()
-                        },
-                    ));
+                            // Date and size info
+                            info.spawn((
+                                Text::new(format!(
+                                    "Date: {} | Size: {} | Game Time: {:.0} days",
+                                    save_info.date_created.format("%Y-%m-%d %H:%M"),
+                                    super::format_file_size(save_info.compressed_size),
+                                    save_info.game_time
+                                )),
+                                TextFont {
+                                    font_size: 14.0,
+                                    ..default()
+                                },
+                                TextColor(colors::TEXT_TERTIARY),
+                                Node {
+                                    margin: UiRect::top(Val::Px(5.0)),
+                                    ..default()
+                                },
+                            ));
+                        });
+
+                    // Right side: Delete button
+                    ButtonBuilder::new("Delete")
+                        .style(ButtonStyle::Danger)
+                        .size(ButtonSize::Small)
+                        .with_marker(DeleteSaveButton {
+                            save_path: save_info.path.clone(),
+                            save_name: save_info.name.clone(),
+                        })
+                        .build(row);
                 });
-
-                // Right side: Delete button
-                ButtonBuilder::new("Delete")
-                    .style(ButtonStyle::Danger)
-                    .size(ButtonSize::Small)
-                    .with_marker(DeleteSaveButton {
-                        save_path: save_info.path.clone(),
-                        save_name: save_info.name.clone(),
-                    })
-                    .build(row);
-            });
         });
 }
 
@@ -230,7 +229,7 @@ pub fn handle_save_browser_interactions(
             if let Some(slot) = save_slot {
                 // Select this save
                 browser_state.selected_save = Some(slot.index);
-                println!("Selected save: {}", slot.save_info.name);
+                debug!("Selected save: {}", slot.save_info.name);
             } else if load_btn.is_some() {
                 if let Some(index) = browser_state.selected_save {
                     if let Some(save_info) = save_list.saves.get(index) {
@@ -265,9 +264,9 @@ pub fn update_save_browser(
 
     for (slot, mut bg_color) in &mut save_slots {
         if Some(slot.index) == browser_state.selected_save {
-            *bg_color = BackgroundColor(Color::srgb(0.25, 0.25, 0.3));
+            *bg_color = BackgroundColor(colors::SURFACE_HOVER);
         } else {
-            *bg_color = BackgroundColor(Color::srgb(0.15, 0.15, 0.17));
+            *bg_color = BackgroundColor(colors::SECONDARY);
         }
     }
 }
@@ -287,7 +286,7 @@ fn close_save_browser_internal(
     browser_state: &mut SaveBrowserState,
 ) {
     for entity in browser_query {
-        commands.entity(entity).despawn_recursive();
+        commands.entity(entity).despawn();
     }
     browser_state.is_open = false;
     browser_state.selected_save = None;

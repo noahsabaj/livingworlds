@@ -28,7 +28,7 @@ pub fn handle_save_game(
     province_storage: Option<Res<ProvinceStorage>>,
 ) {
     for event in save_events.read() {
-        println!("Saving game to slot: {}", event.slot_name);
+        info!("Saving game to slot: {}", event.slot_name);
 
         // Gather all game state into SaveGameData
         let save_data = SaveGameData {
@@ -71,10 +71,10 @@ pub fn handle_save_game(
                                 match File::create(&filename_clone) {
                                     Ok(mut file) => {
                                         if let Err(e) = file.write_all(&compressed) {
-                                            eprintln!("Failed to write save file: {}", e);
+                                            error!("Failed to write save file: {}", e);
                                             false
                                         } else {
-                                            println!(
+                                            info!(
                                                 "Game saved successfully to: {} ({}KB compressed)",
                                                 filename_clone,
                                                 compressed_size / 1024
@@ -83,7 +83,7 @@ pub fn handle_save_game(
                                         }
                                     }
                                     Err(e) => {
-                                        eprintln!("Failed to create save file: {}", e);
+                                        error!("Failed to create save file: {}", e);
                                         false
                                     }
                                 }

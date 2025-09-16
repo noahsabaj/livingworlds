@@ -25,7 +25,6 @@ pub use scanner::{ensure_save_directory, scan_save_files, scan_save_files_intern
 
 // File operations (used by core module)
 pub(super) use compression::{compress_data, decompress_data};
-pub(super) use metadata::extract_save_metadata;
 pub(super) use serialization::{deserialize_save_data, serialize_save_data};
 
 // Utility functions

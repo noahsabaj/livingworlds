@@ -11,13 +11,12 @@
 // Re-export what our children need from parent gateway (for internal use only)
 pub(self) use super::{
     AutoSaveTimer, LoadCompleteEvent, LoadGameEvent, PendingLoadData, SaveCompleteEvent,
-    SaveGameData, SaveGameEvent, SaveGameInfo, SaveGameList, SAVE_DIRECTORY, SAVE_EXTENSION,
-    SAVE_VERSION,
+    SaveGameData, SaveGameEvent, SaveGameList, SAVE_DIRECTORY, SAVE_EXTENSION, SAVE_VERSION,
 };
 
 // Re-export I/O functions our children need (for internal use only)
 pub(self) use super::io::{
-    compress_data, decompress_data, deserialize_save_data, extract_save_metadata, format_file_size,
+    compress_data, decompress_data, deserialize_save_data, format_file_size,
     scan_save_files_internal, serialize_save_data,
 };
 
