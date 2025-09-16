@@ -6,18 +6,17 @@ use super::super::components::*;
 use crate::resources::WorldSize;
 use crate::ui::{colors, dimensions};
 use crate::ui::{text_input, FocusGroupId};
-use crate::ui::{ButtonBuilder, ButtonSize, ButtonStyle};
+use crate::ui::{ButtonBuilder, ButtonSize, ButtonStyle, PanelBuilder, PanelStyle};
 use bevy::prelude::*;
 
 pub fn spawn_world_name_section(parent: &mut ChildSpawnerCommands) {
-    parent
-        .spawn((Node {
-            width: Val::Percent(100.0),
-            flex_direction: FlexDirection::Column,
-            row_gap: Val::Px(5.0),
-            ..default()
-        },))
-        .with_children(|section| {
+    PanelBuilder::new()
+        .style(PanelStyle::Transparent)
+        .width(Val::Percent(100.0))
+        .flex_direction(FlexDirection::Column)
+        .row_gap(Val::Px(5.0))
+        .padding(UiRect::all(Val::Px(0.0)))  // Zero padding to align with other sections
+        .build_with_children(parent, |section| {
             // Label
             section.spawn((
                 Text::new("World Name"),
@@ -28,15 +27,14 @@ pub fn spawn_world_name_section(parent: &mut ChildSpawnerCommands) {
                 TextColor(colors::TEXT_SECONDARY),
             ));
 
-            section
-                .spawn((Node {
-                    width: Val::Percent(100.0),
-                    flex_direction: FlexDirection::Row,
-                    justify_content: JustifyContent::SpaceBetween,
-                    column_gap: Val::Px(10.0),
-                    ..default()
-                },))
-                .with_children(|row| {
+            PanelBuilder::new()
+                .style(PanelStyle::Transparent)
+                .width(Val::Percent(100.0))
+                .flex_direction(FlexDirection::Row)
+                .justify_content(JustifyContent::SpaceBetween)
+                .column_gap(Val::Px(10.0))
+                .padding(UiRect::all(Val::Px(0.0)))  // Zero padding to align with other sections
+                .build_with_children(section, |row| {
                     // Use our text input builder
                     text_input()
                         .with_value("Aetheria Prime")

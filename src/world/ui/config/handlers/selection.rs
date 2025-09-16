@@ -2,6 +2,8 @@
 //!
 //! This module handles all selection button interactions using a generic approach.
 
+#![allow(elided_lifetimes_in_paths)]
+
 use super::super::components::*;
 use super::super::types::*;
 use crate::ui::colors;
@@ -11,7 +13,7 @@ use bevy::prelude::*;
 macro_rules! create_selection_handler {
     ($handler_name:ident, $button_type:ty, $field:ident, $value_type:ty) => {
         pub fn $handler_name(
-            mut interactions: Query<(&Interaction, &$button_type), Changed<Interaction>>,
+            interactions: Query<(&Interaction, &$button_type), Changed<Interaction>>,
             mut all_buttons: Query<(
                 Entity,
                 &$button_type,
@@ -26,7 +28,7 @@ macro_rules! create_selection_handler {
                 match *interaction {
                     Interaction::Pressed => {
                         settings.$field = button.0;
-                        println!("Selected {}: {:?}", stringify!($field), button.0);
+                        debug!("Selected {}: {:?}", stringify!($field), button.0);
 
                         for (entity, btn, mut bg_color, mut border_color) in &mut all_buttons {
                             if btn.0 == button.0 {
@@ -82,7 +84,7 @@ macro_rules! create_selection_handler {
 
 // Special handler for preset selection (includes apply_preset logic)
 pub fn handle_preset_selection(
-    mut interactions: Query<(&Interaction, &PresetButton), Changed<Interaction>>,
+    interactions: Query<(&Interaction, &PresetButton), Changed<Interaction>>,
     mut all_preset_buttons: Query<(
         Entity,
         &PresetButton,
@@ -98,7 +100,7 @@ pub fn handle_preset_selection(
             Interaction::Pressed => {
                 settings.preset = preset_button.0;
                 settings.apply_preset(); // Apply preset settings
-                println!("Selected preset: {:?}", preset_button.0);
+                debug!("Selected preset: {:?}", preset_button.0);
 
                 for (entity, button, mut bg_color, mut border_color) in &mut all_preset_buttons {
                     if button.0 == preset_button.0 {
@@ -176,7 +178,7 @@ pub fn handle_climate_selection(
             *bg_color = BackgroundColor(colors::PRIMARY);
         }
 
-        println!("Selected climate type: {:?}", climate_type);
+        debug!("Selected climate type: {:?}", climate_type);
     }
 }
 
@@ -206,7 +208,7 @@ pub fn handle_island_selection(
             *bg_color = BackgroundColor(colors::PRIMARY);
         }
 
-        println!("Selected island frequency: {:?}", island_freq);
+        debug!("Selected island frequency: {:?}", island_freq);
     }
 }
 
@@ -236,7 +238,7 @@ pub fn handle_aggression_selection(
             *bg_color = BackgroundColor(colors::PRIMARY);
         }
 
-        println!("Selected aggression level: {:?}", aggression_level);
+        debug!("Selected aggression level: {:?}", aggression_level);
     }
 }
 
@@ -266,6 +268,6 @@ pub fn handle_resource_selection(
             *bg_color = BackgroundColor(colors::PRIMARY);
         }
 
-        println!("Selected resource abundance: {:?}", resource_abundance);
+        debug!("Selected resource abundance: {:?}", resource_abundance);
     }
 }

@@ -6,13 +6,12 @@ use super::super::components::{
     AdvancedToggle, AdvancedToggleText, BackButton, GenerateButton, WorldConfigRoot,
 };
 use super::super::types::WorldGenerationSettings;
-use crate::states::GameState;
-use crate::ui::{colors, dimensions};
+use crate::ui::colors;
 use crate::ui::{ButtonBuilder, ButtonSize, ButtonStyle, PanelBuilder, PanelStyle};
 use bevy::prelude::*;
 
 pub fn spawn_world_config_ui(mut commands: Commands, settings: Res<WorldGenerationSettings>) {
-    println!(
+    debug!(
         "Spawning world configuration UI with seed: {}",
         settings.seed
     );
@@ -31,12 +30,14 @@ pub fn spawn_world_config_ui(mut commands: Commands, settings: Res<WorldGenerati
         BackgroundColor(colors::OVERLAY_DARK),
         WorldConfigRoot,
     )).with_children(|parent| {
-        // Use PanelBuilder for the main configuration panel
+        // Use PanelBuilder with intrinsic sizing - no fixed height!
         PanelBuilder::new()
             .style(PanelStyle::Elevated)
-            .width(Val::Px(1000.0))
-            .height(Val::Px(700.0))
-            .padding(UiRect::all(Val::Px(40.0)))
+            .width(Val::Px(900.0))              // Width constraint for readability
+            .max_height(Val::Vh(90.0))          // Safety valve - never bigger than 90% viewport
+            .padding(UiRect::all(Val::Px(24.0))) // Reduced from 40px for space efficiency
+            .flex_direction(FlexDirection::Column)
+            // NO HEIGHT SPECIFIED! Content determines it naturally
             .build_with_children(parent, |panel| {
                 // Title
                 panel.spawn((
@@ -46,87 +47,93 @@ pub fn spawn_world_config_ui(mut commands: Commands, settings: Res<WorldGenerati
                         ..default()
                     },
                     TextColor(colors::TEXT_PRIMARY),
-                    Node {
-                        margin: UiRect::bottom(Val::Px(10.0)),
-                        ..default()
-                    },
                 ));
 
-                // World Preview Info Section - using PanelBuilder
-                PanelBuilder::new()
-                    .style(PanelStyle::Light)
-                    .width(Val::Percent(100.0))
-                    .padding(UiRect::all(Val::Px(15.0)))
-                    .margin(UiRect::bottom(Val::Px(15.0)))
-                    .build_with_children(panel, |info| {
-                        info.spawn((
-                            Text::new("World Preview"),
-                            TextFont {
-                                font_size: 14.0,
-                                ..default()
-                            },
-                            TextColor(colors::TEXT_SECONDARY),
-                        ));
-                        info.spawn((
-                            Text::new("• Estimated land coverage: ~40%\n• Starting civilizations: 8 nations\n• World complexity: Moderate"),
-                            TextFont {
-                                font_size: 16.0,
-                                ..default()
-                            },
-                            TextColor(colors::TEXT_PRIMARY),
-                            super::super::components::WorldPreviewText,
-                        ));
-                    });
+                // Scrollable content container with consistent spacing
+                panel.spawn((
+                    Node {
+                        width: Val::Percent(100.0),
+                        flex_direction: FlexDirection::Column,
+                        row_gap: Val::Px(16.0),          // Consistent spacing between sections
+                        overflow: Overflow::scroll_y(),   // Handle overflow gracefully
+                        flex_grow: 1.0,                  // Take available space
+                        margin: UiRect::vertical(Val::Px(16.0)), // Top/bottom spacing from title/buttons
+                        padding: UiRect::bottom(Val::Px(20.0)),   // Extra bottom padding for last item
+                        ..default()
+                    },
+                )).with_children(|content| {
+                    // World Preview Info Section - using PanelBuilder
+                    PanelBuilder::new()
+                        .style(PanelStyle::Light)
+                        .width(Val::Percent(100.0))
+                        .padding(UiRect::all(Val::Px(12.0))) // Reduced padding
+                        .build_with_children(content, |info| {
+                            info.spawn((
+                                Text::new("World Preview"),
+                                TextFont {
+                                    font_size: 14.0,
+                                    ..default()
+                                },
+                                TextColor(colors::TEXT_SECONDARY),
+                            ));
+                            info.spawn((
+                                Text::new("• Estimated land coverage: ~40%\n• Starting civilizations: 8 nations\n• World complexity: Moderate"),
+                                TextFont {
+                                    font_size: 16.0,
+                                    ..default()
+                                },
+                                TextColor(colors::TEXT_PRIMARY),
+                                super::super::components::WorldPreviewText,
+                            ));
+                        });
 
-                // World Name Section
-                super::spawn_world_name_section(panel);
+                    // World Name Section
+                    super::spawn_world_name_section(content);
 
-                // World Size Section
-                super::spawn_world_size_section(panel);
+                    // World Size Section
+                    super::spawn_world_size_section(content);
 
-                // Seed Section
-                super::spawn_seed_section(panel, settings.seed);
+                    // Seed Section
+                    super::spawn_seed_section(content, settings.seed);
 
-                // Preset Section
-                super::spawn_preset_section(panel);
+                    // Preset Section
+                    super::spawn_preset_section(content);
 
-                // Advanced Settings Toggle - using ButtonBuilder properly
-                ButtonBuilder::new("Show Advanced Settings")
-                    .style(ButtonStyle::Secondary)
-                    .size(ButtonSize::Large)
-                    .with_marker(AdvancedToggle)
-                    .with_marker(AdvancedToggleText)
-                    .margin(UiRect::vertical(Val::Px(10.0)))
-                    .build(panel);
+                    // Advanced Settings Toggle - using ButtonBuilder properly
+                    ButtonBuilder::new("Show Advanced Settings")
+                        .style(ButtonStyle::Secondary)
+                        .size(ButtonSize::Large)
+                        .with_marker(AdvancedToggle)  // Only use the marker needed for interaction
+                        .build(content);
 
-                // Advanced Settings Panel
-                super::spawn_advanced_panel(panel);
+                    // Advanced Settings Panel
+                    super::spawn_advanced_panel(content);
 
-                // Generation time estimate - using PanelBuilder
-                PanelBuilder::new()
-                    .style(PanelStyle::Light)
-                    .width(Val::Percent(100.0))
-                    .padding(UiRect::all(Val::Px(10.0)))
-                    .margin(UiRect::top(Val::Px(20.0)))
-                    .build_with_children(panel, |estimate| {
-                        estimate.spawn((
-                            Text::new("Estimated generation time: ~3-7 seconds"),
-                            TextFont {
-                                font_size: 14.0,
-                                ..default()
-                            },
-                            TextColor(colors::TEXT_MUTED),
-                            super::super::components::GenerationTimeEstimate,
-                        ));
-                    });
+                    // Generation time estimate - using PanelBuilder
+                    PanelBuilder::new()
+                        .style(PanelStyle::Light)
+                        .width(Val::Percent(100.0))
+                        .padding(UiRect::all(Val::Px(8.0))) // Reduced padding
+                        .build_with_children(content, |estimate| {
+                            estimate.spawn((
+                                Text::new("Estimated generation time: ~3-7 seconds"),
+                                TextFont {
+                                    font_size: 14.0,
+                                    ..default()
+                                },
+                                TextColor(colors::TEXT_MUTED),
+                                super::super::components::GenerationTimeEstimate,
+                            ));
+                        });
+                });
 
-                // Bottom buttons
+                // Fixed bottom buttons (always visible)
                 panel.spawn((
                     Node {
                         width: Val::Percent(100.0),
                         flex_direction: FlexDirection::Row,
                         justify_content: JustifyContent::SpaceBetween,
-                        margin: UiRect::top(Val::Px(15.0)),
+                        // No margin - spacing handled by parent gap
                         ..default()
                     },
                 )).with_children(|buttons| {
@@ -153,7 +160,7 @@ pub fn despawn_world_config_ui(
     query: Query<Entity, With<WorldConfigRoot>>,
 ) {
     for entity in &query {
-        commands.entity(entity).despawn_recursive();
+        commands.entity(entity).despawn();
     }
-    println!("Despawned world configuration UI");
+    debug!("Despawned world configuration UI");
 }

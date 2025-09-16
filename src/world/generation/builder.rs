@@ -4,14 +4,12 @@
 //! to create a complete World data structure.
 
 use rand::{rngs::StdRng, SeedableRng};
-use std::collections::HashMap;
 
-use crate::constants::*;
 use crate::resources::{MapDimensions, WorldSize};
 use crate::world::World;
+use super::errors::{WorldGenerationError, WorldGenerationErrorType};
 
 // Import utilities
-use super::utils;
 
 /// World builder that orchestrates all generation steps
 ///
@@ -49,8 +47,8 @@ impl WorldBuilder {
         }
     }
 
-    pub fn build(mut self) -> World {
-        let start = std::time::Instant::now();
+    pub fn build(mut self) -> Result<World, WorldGenerationError> {
+        let _start = std::time::Instant::now();
 
         // Step 1: Generate provinces with Perlin noise elevation
         let mut provinces =
@@ -58,6 +56,9 @@ impl WorldBuilder {
                 .with_ocean_coverage(self.ocean_coverage)
                 .with_continent_count(self.continent_count)
                 .build();
+
+        // Step 1b: Precompute neighbor indices for O(1) lookups
+        // (This is already done in ProvinceBuilder::build() now)
 
         // Step 2: Apply erosion simulation for realistic terrain
         let erosion_iterations =
@@ -69,7 +70,7 @@ impl WorldBuilder {
         crate::world::apply_erosion_to_provinces(
             &mut provinces,
             self.dimensions,
-            self.rng.clone(),
+            &mut self.rng,
             erosion_iterations,
         );
 
@@ -84,20 +85,26 @@ impl WorldBuilder {
             crate::world::RiverBuilder::new(&mut provinces, self.dimensions, &mut self.rng)
                 .with_density(self.river_density)
                 .build()
-                .expect("Failed to generate rivers");
+                .map_err(|e| WorldGenerationError {
+                    error_message: format!("Failed to generate rivers: {}", e),
+                    error_type: WorldGenerationErrorType::GenerationFailed,
+                })?;
 
         // Step 6: Calculate agriculture values
         crate::world::calculate_agriculture_values(&mut provinces, &river_system, self.dimensions)
-            .expect("Failed to calculate agriculture");
+            .map_err(|e| WorldGenerationError {
+                error_message: format!("Failed to calculate agriculture: {}", e),
+                error_type: WorldGenerationErrorType::GenerationFailed,
+            })?;
 
         // Step 7: Generate cloud system
         let cloud_system = crate::world::CloudBuilder::new(&mut self.rng, &self.dimensions).build();
 
-        World {
+        Ok(World {
             provinces,
             rivers: river_system,
             clouds: cloud_system,
             seed: self.seed,
-        }
+        })
     }
 }

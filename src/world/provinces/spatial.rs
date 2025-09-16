@@ -3,7 +3,10 @@
 //! This module provides O(1) spatial lookups for provinces using grid-based indexing.
 //! Essential for mouse picking, neighbor queries, and other spatial operations.
 
+#![allow(dead_code)] // Preserve utility functions for future use
+
 use super::types::ProvinceId;
+use crate::math::{euclidean_vec2, HEX_SIZE, SQRT_3};
 use bevy::prelude::*;
 use std::collections::HashMap;
 
@@ -34,7 +37,7 @@ impl ProvincesSpatialIndex {
     ) -> Self {
         let mut index = Self::new();
 
-        let half_width = (dimensions.provinces_per_row as f32 * dimensions.hex_size * 1.732) / 2.0;
+        let half_width = (dimensions.provinces_per_row as f32 * dimensions.hex_size * SQRT_3) / 2.0;
         let half_height = (dimensions.provinces_per_col as f32 * dimensions.hex_size * 1.5) / 2.0;
 
         index.bounds = WorldBounds {
@@ -91,8 +94,8 @@ impl ProvincesSpatialIndex {
 
         // Insert into position-based lookup for mouse picking
         let pos_key = (
-            (position.x / 50.0) as i32, // TODO: Pass hex_size parameter instead of hardcoding
-            (position.y / 50.0) as i32,
+            (position.x / HEX_SIZE) as i32,
+            (position.y / HEX_SIZE) as i32,
         );
         self.position_to_province.insert(pos_key, province_id);
     }
@@ -101,7 +104,7 @@ impl ProvincesSpatialIndex {
     /// Returns all provinces within search_radius of the given position
     pub fn query_near(&self, world_pos: Vec2, search_radius: f32) -> Vec<(Vec2, u32)> {
         let mut results = Vec::new();
-        let cell_size = 50.0; // TODO: Make this configurable
+        let cell_size = HEX_SIZE;
 
         let min_x = ((world_pos.x - search_radius) / cell_size).floor() as i32;
         let max_x = ((world_pos.x + search_radius) / cell_size).floor() as i32;
@@ -114,7 +117,7 @@ impl ProvincesSpatialIndex {
                     // For now, return the grid position as the province position
                     // TODO: Store actual positions in the spatial index
                     let pos = Vec2::new(x as f32 * cell_size, y as f32 * cell_size);
-                    let dist = (world_pos - pos).length();
+                    let dist = euclidean_vec2(world_pos, pos);
                     if dist <= search_radius {
                         results.push((pos, province_id.value()));
                     }

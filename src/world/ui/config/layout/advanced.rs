@@ -4,7 +4,7 @@
 
 use super::super::components::*;
 use super::super::types::*;
-use crate::ui::{colors, dimensions, helpers};
+use crate::ui::{colors, dimensions};
 use crate::ui::{slider, ValueFormat};
 use crate::ui::{PanelBuilder, PanelStyle};
 use bevy::prelude::*;
@@ -46,14 +46,12 @@ pub fn spawn_advanced_panel(parent: &mut ChildSpawnerCommands) {
             ));
 
             // Two columns
-            panel
-                .spawn((Node {
-                    width: Val::Percent(100.0),
-                    flex_direction: FlexDirection::Row,
-                    column_gap: Val::Px(40.0),
-                    ..default()
-                },))
-                .with_children(|columns| {
+            PanelBuilder::new()
+                .style(PanelStyle::Transparent)
+                .width(Val::Percent(100.0))
+                .flex_direction(FlexDirection::Row)
+                .column_gap(Val::Px(40.0))
+                .build_with_children(panel, |columns| {
                     // Left column: World Geography
                     spawn_geography_column(columns);
 
@@ -67,14 +65,12 @@ pub fn spawn_advanced_panel(parent: &mut ChildSpawnerCommands) {
 }
 
 fn spawn_geography_column(parent: &mut ChildSpawnerCommands) {
-    parent
-        .spawn((Node {
-            flex_basis: Val::Percent(50.0),
-            flex_direction: FlexDirection::Column,
-            row_gap: Val::Px(dimensions::MARGIN_MEDIUM),
-            ..default()
-        },))
-        .with_children(|column| {
+    PanelBuilder::new()
+        .style(PanelStyle::Transparent)
+        .flex_basis(Val::Percent(50.0))
+        .flex_direction(FlexDirection::Column)
+        .row_gap(Val::Px(dimensions::MARGIN_MEDIUM))
+        .build_with_children(parent, |column| {
             // Section header using PanelBuilder
             PanelBuilder::new()
                 .style(PanelStyle::Elevated)
@@ -129,14 +125,12 @@ fn spawn_geography_column(parent: &mut ChildSpawnerCommands) {
                 .build(column);
 
             // Climate Type Selection
-            column
-                .spawn((Node {
-                    width: Val::Percent(100.0),
-                    flex_direction: FlexDirection::Column,
-                    row_gap: Val::Px(3.0),
-                    ..default()
-                },))
-                .with_children(|climate_section| {
+            PanelBuilder::new()
+                .style(PanelStyle::Transparent)
+                .width(Val::Percent(100.0))
+                .flex_direction(FlexDirection::Column)
+                .row_gap(Val::Px(3.0))
+                .build_with_children(column, |climate_section| {
                     spawn_selection_row(
                         climate_section,
                         "Climate Type",

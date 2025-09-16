@@ -329,8 +329,8 @@ pub trait ProvinceEventEmitter {
 /// Implementation for EventWriter (used in systems)
 impl<'w> ProvinceEventEmitter for EventWriter<'w, ProvincePopulationChanged> {
     fn emit_population_changed(&self, event: ProvincePopulationChanged) {
-        // Note: In newer Bevy versions, use .write() instead of .send()
-        // For now, keeping .send() to match the codebase's current usage
+        // Note: In newer Bevy versions, use .write() instead of .write()
+        // For now, keeping .write() to match the codebase's current usage
         unsafe {
             (*(self as *const _ as *mut EventWriter<ProvincePopulationChanged>)).write(event);
         }

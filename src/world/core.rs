@@ -2,9 +2,9 @@
 //!
 //! These types don't belong to any single feature but coordinate between them.
 
-use crate::world::clouds::CloudSystem;
-use crate::world::provinces::Province;
-use crate::world::rivers::RiverSystem;
+use super::clouds::CloudSystem;
+use super::provinces::Province;
+use super::rivers::RiverSystem;
 use bevy::prelude::*;
 use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};

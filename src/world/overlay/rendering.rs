@@ -5,8 +5,8 @@
 //! Now optimized with Arc-based zero-copy architecture for instant mode switching.
 
 use crate::constants::MS_PER_SECOND;
-use crate::world::mesh::ProvinceStorage;
-use crate::world::overlay::types::MapMode;
+use crate::world::ProvinceStorage;
+use super::MapMode;
 use bevy::log::{debug, trace, warn};
 use bevy::prelude::*;
 use bevy::render::mesh::Mesh;
@@ -21,7 +21,8 @@ pub fn update_province_colors(
     overlay: Res<MapMode>,
     mut cached_colors: ResMut<crate::resources::CachedOverlayColors>,
     province_storage: Res<ProvinceStorage>,
-    mesh_handle: Res<crate::world::mesh::WorldMeshHandle>,
+    world_seed: Res<crate::world::WorldSeed>,
+    mesh_handle: Res<crate::world::WorldMeshHandle>,
     mut meshes: ResMut<Assets<Mesh>>,
     time: Res<Time>,
 ) {
@@ -42,16 +43,23 @@ pub fn update_province_colors(
     let mesh_lookup_time = start.elapsed();
 
     // Get Arc to colors - NO CLONING, just reference counting!
-    let colors_arc = cached_colors.get_or_calculate(*overlay, &province_storage);
+    let colors_arc = cached_colors.get_or_calculate(*overlay, &province_storage, world_seed.0);
 
-    let selection_time = start.elapsed() - mesh_lookup_time;
+    let _selection_time = start.elapsed() - mesh_lookup_time;
 
     let buffer_size_mb = (colors_arc.len() * std::mem::size_of::<[f32; 4]>()) as f32 / BYTES_PER_MB;
 
     // Only clone here if mesh requires ownership (Bevy's requirement)
     // This is the ONLY clone now, down from 3 clones before
     let insert_start = std::time::Instant::now();
-    mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors_arc.as_ref().clone());
+
+    // OPTIMIZATION: Use into_owned() to avoid clone if Arc has single reference
+    let colors_owned = match Arc::try_unwrap(colors_arc.clone()) {
+        Ok(vec) => vec,                   // We got ownership without cloning!
+        Err(arc) => arc.as_ref().clone(), // Multiple references, must clone
+    };
+
+    mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors_owned);
     let insert_time = insert_start.elapsed();
 
     let total_time = start.elapsed();
@@ -100,7 +108,7 @@ impl Plugin for OverlayPlugin {
 pub fn handle_overlay_input(
     keyboard: Res<ButtonInput<KeyCode>>,
     mut overlay_res: ResMut<MapMode>,
-    time: Res<Time>,
+    _time: Res<Time>,
 ) {
     // M key to cycle through all map modes
     if keyboard.just_pressed(KeyCode::KeyM) {
@@ -118,10 +126,22 @@ pub fn handle_overlay_input(
 }
 
 /// Initialize the overlay system with default terrain and pre-calculate common modes
+/// If ProvinceStorage doesn't exist (cancelled generation), skip initialization
 pub fn initialize_overlay_colors(
-    province_storage: Res<ProvinceStorage>,
+    province_storage: Option<Res<ProvinceStorage>>,
+    world_seed: Option<Res<crate::world::WorldSeed>>,
     mut cached_colors: ResMut<crate::resources::CachedOverlayColors>,
 ) {
+    let Some(province_storage) = province_storage else {
+        debug!("Skipping overlay initialization - world generation was cancelled");
+        return;
+    };
+
+    let Some(world_seed) = world_seed else {
+        debug!("Skipping overlay initialization - world seed not available");
+        return;
+    };
+
     info!(
         "Initializing overlay system for {} provinces",
         province_storage.provinces.len()
@@ -130,10 +150,10 @@ pub fn initialize_overlay_colors(
 
     // Calculate the default terrain overlay
     let default_mode = MapMode::Terrain;
-    cached_colors.get_or_calculate(default_mode, &province_storage);
+    cached_colors.get_or_calculate(default_mode, &province_storage, world_seed.0);
 
     // Pre-calculate common overlays for instant switching
-    cached_colors.pre_calculate_common_modes(&province_storage);
+    cached_colors.pre_calculate_common_modes(&province_storage, world_seed.0);
 
     let elapsed = start.elapsed();
     let memory_mb = cached_colors.memory_usage_mb();

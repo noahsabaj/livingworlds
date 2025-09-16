@@ -39,12 +39,12 @@ pub struct WorldGenerationSettings {
 
 impl Default for WorldGenerationSettings {
     fn default() -> Self {
-        let mut gen = NameGenerator::new();
+        let mut name_gen = NameGenerator::new();
         Self {
-            world_name: gen.generate(NameType::World),
+            world_name: name_gen.generate(NameType::World),
             world_size: WorldSize::Medium,
             custom_dimensions: None,
-            seed: rand::thread_rng().gen(),
+            seed: rand::thread_rng().r#gen(),
             preset: WorldPreset::Balanced,
 
             continent_count: 7,

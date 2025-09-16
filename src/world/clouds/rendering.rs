@@ -5,10 +5,7 @@
 
 use super::types::{CloudLayer, CloudSystem};
 use crate::constants::*;
-use crate::math::{
-    fast_sin, random_point_in_circle, random_point_in_rect, random_range, sin_cos, smoothstep,
-    PerlinNoise, PI, TAU,
-};
+use crate::math::{fast_sin, random_01, random_range, sin_cos, smoothstep, PerlinNoise, PI, TAU};
 use crate::resources::{WeatherState, WeatherSystem};
 use bevy::prelude::*;
 use rand::prelude::*;
@@ -50,7 +47,7 @@ pub fn generate_cloud_formation(
             let cluster_radius = spread * 0.5;
             for _ in 0..count {
                 let angle = random_range(rng, 0.0, TAU);
-                let distance = random_range(rng, 0.0, cluster_radius) * rng.gen::<f32>().sqrt();
+                let distance = random_range(rng, 0.0, cluster_radius) * random_01(rng).sqrt();
                 let (cos_angle, sin_angle) = sin_cos(angle);
                 let offset = Vec2::new(cos_angle * distance, sin_angle * distance);
                 positions.push(center + offset);
@@ -120,7 +117,7 @@ impl Default for CloudTextureParams {
     fn default() -> Self {
         Self {
             size: 256,
-            seed: 0,
+            seed: 0xDEADBEEF, // Placeholder - should be overridden with proper seed
             octaves: 4,
             coverage: 0.5,
             turbulence: 0.0,
@@ -285,7 +282,7 @@ pub fn update_weather_system(
     weather.time_since_change += time.delta_secs();
 
     if weather.time_since_change > weather.min_weather_duration {
-        let change_roll = rng.gen::<f32>();
+        let change_roll = random_01(rng);
         if change_roll < weather.weather_change_chance {
             // Pick a new weather state
             let states = [
@@ -301,7 +298,7 @@ pub fn update_weather_system(
                 weather.target_state = new_state;
                 weather.transition_progress = 0.0;
                 weather.time_since_change = 0.0;
-                println!(
+                debug!(
                     "☁️ Weather changing from {:?} to {:?}",
                     weather.current_state.description(),
                     weather.target_state.description()
@@ -375,7 +372,7 @@ pub fn dynamic_cloud_spawn_system(
     if current_count < target_count {
         // Need to spawn more clouds
         let to_spawn = target_count - current_count;
-        println!(
+        info!(
             "🌤️ Spawning {} new clouds for {:?} weather",
             to_spawn, weather.current_state
         );
@@ -436,14 +433,52 @@ pub struct CloudPlugin;
 /// Spawn cloud entities from generated cloud data
 fn spawn_clouds_from_data(
     mut commands: Commands,
-    cloud_system: Res<CloudSystem>,
+    mut cloud_system: ResMut<CloudSystem>,
     mut images: ResMut<Assets<Image>>,
     mut clouds_spawned: Local<bool>,
 ) {
-    // Only spawn if we have cloud data and haven't spawned yet
+    // Only spawn if we haven't spawned yet
     if !*clouds_spawned {
-        println!(
-            "Spawning {} clouds from generated data...",
+        // If CloudSystem is empty, generate procedural clouds
+        if cloud_system.clouds.is_empty() {
+            use super::types::{CloudData, CloudLayer};
+            use crate::math::random_range;
+            use rand::{Rng, SeedableRng};
+
+            let mut rng = rand::rngs::StdRng::seed_from_u64(12345); // Fixed seed for consistency
+
+            // Generate clouds for each layer
+            for &layer in CloudLayer::all() {
+                let cloud_count = match layer {
+                    CloudLayer::High => 15,
+                    CloudLayer::Medium => 25,
+                    CloudLayer::Low => 35,
+                };
+
+                for _ in 0..cloud_count {
+                    let position = Vec2::new(
+                        random_range(&mut rng, -2000.0, 2000.0),
+                        random_range(&mut rng, -1500.0, 1500.0),
+                    );
+
+                    let cloud = CloudData::new(position, layer)
+                        .with_size(random_range(&mut rng, 200.0, 600.0))
+                        .with_alpha(layer.default_alpha())
+                        .with_velocity(Vec2::new(
+                            random_range(&mut rng, -20.0, 20.0),
+                            random_range(&mut rng, -5.0, 5.0),
+                        ))
+                        .with_texture(rng.gen_range(0..5));
+
+                    cloud_system.add_cloud(cloud);
+                }
+            }
+
+            info!("Generated {} procedural clouds", cloud_system.clouds.len());
+        }
+
+        info!(
+            "Spawning {} clouds from cloud system...",
             cloud_system.clouds.len()
         );
 
@@ -509,7 +544,7 @@ fn spawn_clouds_from_data(
         // Mark clouds as spawned to prevent re-spawning
         *clouds_spawned = true;
 
-        println!("Cloud entities spawned successfully");
+        info!("Cloud entities spawned successfully");
     }
 }
 
@@ -518,6 +553,7 @@ impl Plugin for CloudPlugin {
         use crate::states::GameState;
 
         app.init_resource::<WeatherSystem>()
+            .init_resource::<CloudSystem>()  // Initialize CloudSystem resource
             .add_systems(OnEnter(GameState::InGame), spawn_clouds_from_data)
             .add_systems(
                 Update,

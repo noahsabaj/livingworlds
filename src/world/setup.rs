@@ -1,8 +1,7 @@
-//! World Setup - Bevy Integration Layer for World Generation
+//! World Setup - Async World Generation Systems
 //!
-//! This module provides the Bevy integration layer for world generation.
-//! It uses WorldBuilder (pure generation logic) and integrates the result
-//! with Bevy's ECS, rendering, and resource systems.
+//! This module provides async world generation systems that integrate
+//! WorldBuilder with Bevy's task pool system for non-blocking generation.
 //!
 //! # Architecture
 //!
@@ -11,43 +10,260 @@
 //!   - No Bevy dependencies, could work in any context
 //!   - Handles: terrain, rivers, climate, erosion, agriculture
 //!
-//! - **setup_world**: Bevy integration system (this file)
-//!   - Uses WorldBuilder internally for generation
+//! - **Async Generation** (this file):
+//!   - Uses WorldBuilder on background threads via AsyncComputeTaskPool
 //!   - Handles: progress tracking, error handling, state transitions
-//!   - Creates: rendering mesh, ECS resources, world entity
-//!   - Manages: loading screens, error dialogs
+//!   - Creates: rendering mesh, ECS resources when generation completes
+//!   - Manages: loading screens, async progress updates
 //!
 //! This separation allows the core generation to be reused in tests,
 //! tools, or other contexts while keeping Bevy-specific concerns isolated.
 
 use super::{build_world_mesh, ProvinceStorage, WorldBuilder, WorldMeshHandle};
-use super::{BorderPlugin, CloudPlugin, OverlayPlugin, TerrainPlugin, WorldConfigPlugin};
-use super::{ProvinceId, TerrainEntity, TerrainType, World};
+use super::World;
 use super::{ProvincesSpatialIndex, WorldGenerationSettings};
 use crate::loading_screen::{set_loading_progress, LoadingState};
-use crate::resources::{WorldGenerationError, WorldGenerationErrorType, WorldName, WorldSeed};
-use crate::states::GameState;
+use crate::states::{GameState, RequestStateTransition};
 use bevy::log::{debug, error, info};
-use bevy::prelude::Vec2;
 use bevy::prelude::*;
-use bevy::render::mesh::Mesh2d;
-use bevy::sprite::MeshMaterial2d;
-use std::collections::HashMap;
+use bevy::tasks::{AsyncComputeTaskPool, Task};
 use std::fmt;
+use async_channel::{Receiver, Sender};
 
-/// Loading progress milestones
-const PROGRESS_TERRAIN: f32 = 0.1;
-const PROGRESS_MESH: f32 = 0.6;
-const PROGRESS_ENTITIES: f32 = 0.8;
+/// Loading progress milestones - more granular for better user feedback
+const PROGRESS_START: f32 = 0.0;
+const PROGRESS_PROVINCES: f32 = 0.1;
+const PROGRESS_EROSION: f32 = 0.25;
+const PROGRESS_CLIMATE: f32 = 0.4;
+const PROGRESS_RIVERS: f32 = 0.5;
+const PROGRESS_MESH: f32 = 0.7;
+const PROGRESS_ENTITIES: f32 = 0.85;
+const PROGRESS_OVERLAYS: f32 = 0.95;
 const PROGRESS_COMPLETE: f32 = 1.0;
 
 /// Validation bounds
 const MAX_CONTINENTS: u32 = 100;
+
+/// Frame budget - maximum time to spend on world generation per frame (in milliseconds)
+/// This allows UI interactions to remain responsive during generation
+const FRAME_BUDGET_MS: f32 = 16.0; // ~60fps budget, leaves time for UI
+
+/// Progress update from background world generation
+#[derive(Debug, Clone)]
+pub struct GenerationProgress {
+    pub step: String,
+    pub progress: f32, // 0.0 to 1.0
+    pub completed: bool,
+    pub world_data: Option<World>, // Only present when completed
+}
+
+/// Async world generation resource - manages background world generation task
+#[derive(Resource)]
+pub struct AsyncWorldGeneration {
+    /// Handle to the background generation task - dropping this cancels the task
+    pub task: Task<()>,
+    /// Receiver for progress updates from the background task
+    pub progress_receiver: Receiver<GenerationProgress>,
+    /// Settings used for generation (for display purposes)
+    pub settings: WorldGenerationSettings,
+}
+
 const MIN_CONTINENTS: u32 = 1;
 const MAX_OCEAN_COVERAGE: f32 = 0.95;
 const MIN_OCEAN_COVERAGE: f32 = 0.05;
 const MAX_RIVER_DENSITY: f32 = 1.0;
 const MIN_RIVER_DENSITY: f32 = 0.0;
+
+/// Background world generation function - runs on AsyncComputeTaskPool
+async fn generate_world_async(
+    settings: WorldGenerationSettings,
+    progress_sender: Sender<GenerationProgress>,
+) {
+    info!("Starting async world generation with settings: {:?}", settings);
+
+    // Helper to send progress updates
+    let send_progress = |step: &str, progress: f32| {
+        let _ = progress_sender.try_send(GenerationProgress {
+            step: step.to_string(),
+            progress,
+            completed: false,
+            world_data: None,
+        });
+    };
+
+    // Validate settings
+    send_progress("Validating settings...", 0.0);
+    if let Err(e) = validate_settings(&settings) {
+        error!("World generation validation failed: {}", e);
+        let _ = progress_sender.try_send(GenerationProgress {
+            step: format!("Error: {}", e),
+            progress: 0.0,
+            completed: true,
+            world_data: None,
+        });
+        return;
+    }
+
+    // Generate world data with progress reporting
+    send_progress("Generating terrain...", 0.1);
+
+    let start_time = std::time::Instant::now();
+    let world_result = WorldBuilder::new(
+        settings.seed,
+        settings.world_size,
+        settings.continent_count,
+        settings.ocean_coverage,
+        settings.river_density,
+    ).build();
+
+    let generation_time = start_time.elapsed().as_millis() as f32;
+
+    // Handle generation result
+    match world_result {
+        Ok(world) => {
+            info!("World generation completed in {:.1}ms", generation_time);
+            // Send completion
+            let _ = progress_sender.try_send(GenerationProgress {
+                step: "World generation completed".to_string(),
+                progress: 1.0,
+                completed: true,
+                world_data: Some(world),
+            });
+        }
+        Err(e) => {
+            error!("World generation failed: {}", e);
+            let _ = progress_sender.try_send(GenerationProgress {
+                step: format!("Error: {}", e),
+                progress: 0.0,
+                completed: true,
+                world_data: None,
+            });
+            return;
+        }
+    }
+
+    info!("Async world generation finished");
+}
+
+/// Start async world generation - replaces the old blocking setup_world
+pub fn start_async_world_generation(
+    mut commands: Commands,
+    _meshes: ResMut<Assets<Mesh>>,
+    _materials: ResMut<Assets<ColorMaterial>>,
+    settings: Res<WorldGenerationSettings>,
+    _state_events: EventWriter<RequestStateTransition>,
+    mut loading_state: ResMut<LoadingState>,
+) {
+    info!("Starting async world generation");
+
+    // Create progress channel
+    let (progress_sender, progress_receiver) = async_channel::unbounded::<GenerationProgress>();
+
+    // Spawn background generation task
+    let task_pool = AsyncComputeTaskPool::get();
+    let generation_settings = settings.clone();
+
+    let task = task_pool.spawn(async move {
+        generate_world_async(generation_settings, progress_sender).await;
+    });
+
+    // Store task handle and progress receiver
+    commands.insert_resource(AsyncWorldGeneration {
+        task,
+        progress_receiver,
+        settings: settings.clone(),
+    });
+
+    // Initialize loading state
+    set_loading_progress(&mut loading_state, PROGRESS_START, "Starting world generation...");
+
+    info!("Async world generation task spawned");
+}
+
+/// Poll async world generation progress and handle completion
+pub fn poll_async_world_generation(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut loading_state: ResMut<LoadingState>,
+    mut state_events: EventWriter<RequestStateTransition>,
+    async_generation: Option<ResMut<AsyncWorldGeneration>>,
+) {
+    let Some(mut generation) = async_generation else {
+        return;
+    };
+
+    // Check for progress updates (non-blocking)
+    while let Ok(progress) = generation.progress_receiver.try_recv() {
+        if progress.completed {
+            if let Some(world) = progress.world_data {
+                info!("Async world generation completed, building mesh...");
+
+                // Build mesh and add to assets
+                let mesh_handle = build_world_mesh(&world.provinces, &mut meshes, world.seed);
+                commands.insert_resource(WorldMeshHandle(mesh_handle));
+
+                // Create province storage
+                let province_storage = ProvinceStorage::from_provinces(world.provinces.clone());
+                commands.insert_resource(province_storage);
+
+                // Create map dimensions resource (required by camera system)
+                let map_dimensions = crate::resources::MapDimensions::from_world_size(&generation.settings.world_size);
+                commands.insert_resource(map_dimensions);
+
+                // Create spatial index
+                let spatial_index = ProvincesSpatialIndex::build(&world.provinces, &map_dimensions);
+                commands.insert_resource(spatial_index);
+
+                // Update loading state to completion
+                set_loading_progress(&mut loading_state, PROGRESS_COMPLETE, "World ready!");
+
+                // Transition to game
+                state_events.write(RequestStateTransition {
+                    from: GameState::LoadingWorld,
+                    to: GameState::InGame,
+                });
+
+                // Clean up async generation resource
+                commands.remove_resource::<AsyncWorldGeneration>();
+
+                info!("Async world generation fully completed");
+                return;
+            } else {
+                // Generation failed
+                error!("Async world generation failed");
+                set_loading_progress(&mut loading_state, 0.0, "Generation failed");
+
+                // Clean up
+                commands.remove_resource::<AsyncWorldGeneration>();
+
+                // Transition back to main menu
+                state_events.write(RequestStateTransition {
+                    from: GameState::LoadingWorld,
+                    to: GameState::MainMenu,
+                });
+                return;
+            }
+        } else {
+            // Progress update
+            set_loading_progress(&mut loading_state, progress.progress, &progress.step);
+            debug!("World generation progress: {:.1}% - {}", progress.progress * 100.0, progress.step);
+        }
+    }
+
+    // Check if task is still running (if we can't poll it, it might be done)
+    if generation.task.is_finished() {
+        warn!("Async world generation task finished without sending completion message");
+
+        // Clean up
+        commands.remove_resource::<AsyncWorldGeneration>();
+
+        // Transition back to main menu
+        state_events.write(RequestStateTransition {
+            from: GameState::LoadingWorld,
+            to: GameState::MainMenu,
+        });
+    }
+}
 
 /// Custom error type for world setup failures
 #[derive(Debug)]
@@ -78,129 +294,9 @@ impl fmt::Display for WorldSetupError {
 
 impl std::error::Error for WorldSetupError {}
 
-// === EVENTS ===
 
-/// Event fired when world generation completes
-#[derive(Event)]
-pub struct WorldGeneratedEvent {
-    pub world: World,
-    pub generation_time: std::time::Duration,
-}
 
-/// Event fired when a province is selected
-#[derive(Event)]
-pub struct ProvinceSelectedEvent {
-    pub province_id: Option<ProvinceId>,
-    pub position: Vec2,
-}
 
-// === INTERNAL STATE ===
-
-/// Internal world state resource
-#[derive(Resource, Default)]
-struct WorldState {
-    initialized: bool,
-    selected_province: Option<ProvinceId>,
-}
-
-/// Bevy system that integrates WorldBuilder with ECS, rendering, and resources
-///
-/// This function serves as the bridge between pure world generation (WorldBuilder)
-/// and Bevy's game engine systems. It:
-///
-/// 1. **Generation**: Uses WorldBuilder to create World data
-/// 2. **Rendering**: Builds mega-mesh from world data
-/// 3. **Resources**: Converts World into Bevy resources (ProvinceStorage, spatial index)
-/// 4. **Entities**: Spawns the world mesh entity
-/// 5. **Integration**: Handles progress tracking, error dialogs, state transitions
-///
-/// # Role Separation
-/// - Pure generation logic → WorldBuilder (world/generation/builder.rs)
-/// - Bevy integration → This function (setup_world)
-pub fn setup_world(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-    settings: Res<WorldGenerationSettings>,
-    mut next_state: ResMut<NextState<GameState>>,
-    mut loading_state: ResMut<LoadingState>,
-) {
-    let start_time = std::time::Instant::now();
-
-    match setup_world_internal(
-        &mut commands,
-        &mut meshes,
-        &mut materials,
-        &settings,
-        &mut loading_state,
-    ) {
-        Ok(()) => {
-            let total_time = start_time.elapsed().as_secs_f32();
-            info!("World setup completed successfully in {:.2}s", total_time);
-
-            // Clear the pending generation flag
-            commands.insert_resource(crate::states::PendingWorldGeneration {
-                pending: false,
-                delay_timer: 0.0,
-            });
-
-            // Transition to InGame
-            next_state.set(GameState::InGame);
-        }
-        Err(e) => {
-            error!("World setup failed: {}", e);
-
-            // Store the error information for the error dialog
-            let error_type = match &e {
-                WorldSetupError::InvalidSettings(_) => WorldGenerationErrorType::InvalidSettings,
-                WorldSetupError::GenerationFailed(_) => WorldGenerationErrorType::GenerationFailed,
-                WorldSetupError::MeshBuildingFailed(_) => {
-                    WorldGenerationErrorType::MeshBuildingFailed
-                }
-                WorldSetupError::EmptyWorld => WorldGenerationErrorType::EmptyWorld,
-                WorldSetupError::ResourceError(_) => WorldGenerationErrorType::ResourceError,
-            };
-
-            commands.insert_resource(WorldGenerationError {
-                error_message: e.to_string(),
-                error_type,
-            });
-
-            // Transition to error state to show dialog
-            next_state.set(GameState::WorldGenerationFailed);
-        }
-    }
-}
-
-/// Internal setup implementation with Result return type
-fn setup_world_internal(
-    commands: &mut Commands,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    materials: &mut ResMut<Assets<ColorMaterial>>,
-    settings: &WorldGenerationSettings,
-    loading_state: &mut LoadingState,
-) -> Result<(), WorldSetupError> {
-    // Validate settings first
-    validate_settings(settings)?;
-
-    // Generate world data
-    let world = generate_world_data(settings, loading_state)?;
-
-    // Validate generated world
-    if world.provinces.is_empty() {
-        return Err(WorldSetupError::EmptyWorld);
-    }
-
-    let mesh_handle = build_rendering_mesh(&world, meshes, loading_state)?;
-
-    // Setup all resources
-    setup_world_resources(commands, world, mesh_handle, materials, settings)?;
-
-    // Finalize setup
-    finalize_setup(loading_state);
-
-    Ok(())
-}
 
 /// Validates world generation settings
 fn validate_settings(settings: &WorldGenerationSettings) -> Result<(), WorldSetupError> {
@@ -238,223 +334,4 @@ fn validate_settings(settings: &WorldGenerationSettings) -> Result<(), WorldSetu
     Ok(())
 }
 
-/// Delegates to WorldBuilder for pure generation logic
-///
-/// This function wraps WorldBuilder.build() with Bevy-specific concerns
-/// like progress tracking. The actual generation is handled by WorldBuilder.
-fn generate_world_data(
-    settings: &WorldGenerationSettings,
-    loading_state: &mut LoadingState,
-) -> Result<World, WorldSetupError> {
-    info!(
-        "Generating world '{}' with seed {} and size {:?}",
-        settings.world_name, settings.seed, settings.world_size
-    );
-    debug!(
-        "Advanced settings: {} continents, {:.0}% ocean, {:?} climate",
-        settings.continent_count,
-        settings.ocean_coverage * 100.0,
-        settings.climate_type
-    );
 
-    let builder = WorldBuilder::new(
-        settings.seed,
-        settings.world_size.clone(),
-        settings.continent_count,
-        settings.ocean_coverage,
-        settings.river_density,
-    );
-
-    set_loading_progress(
-        loading_state,
-        PROGRESS_TERRAIN,
-        "Generating terrain and climate...",
-    );
-
-    // WorldBuilder now handles: provinces, erosion, ocean depths, climate, rivers, agriculture, clouds
-    // It's silent - all progress reporting happens here in the Bevy integration layer
-    let generation_start = std::time::Instant::now();
-    let world = builder.build();
-    let generation_time = generation_start.elapsed().as_secs_f32();
-
-    info!(
-        "World generation completed in {:.2}s - {} provinces, {} rivers",
-        generation_time,
-        world.provinces.len(),
-        world.rivers.len()
-    );
-
-    Ok(world)
-}
-
-/// Builds the mega-mesh for rendering
-fn build_rendering_mesh(
-    world: &World,
-    meshes: &mut ResMut<Assets<Mesh>>,
-    loading_state: &mut LoadingState,
-) -> Result<Handle<Mesh>, WorldSetupError> {
-    info!(
-        "Building mega-mesh with {} hexagons...",
-        world.provinces.len()
-    );
-    let mesh_start = std::time::Instant::now();
-
-    set_loading_progress(loading_state, PROGRESS_MESH, "Building world mesh...");
-
-    // Delegate mesh building to the mesh module
-    let mesh_handle = build_world_mesh(&world.provinces, meshes);
-
-    debug!(
-        "Mega-mesh built in {:.2}s - ONE entity instead of {}!",
-        mesh_start.elapsed().as_secs_f32(),
-        world.provinces.len()
-    );
-
-    Ok(mesh_handle)
-}
-
-/// Sets up all world resources
-fn setup_world_resources(
-    commands: &mut Commands,
-    world: World,
-    mesh_handle: Handle<Mesh>,
-    materials: &mut ResMut<Assets<ColorMaterial>>,
-    settings: &WorldGenerationSettings,
-) -> Result<(), WorldSetupError> {
-    set_loading_progress(
-        &mut LoadingState::default(),
-        PROGRESS_ENTITIES,
-        "Setting up world resources...",
-    );
-
-    // Store world seed and name as resources
-    commands.insert_resource(WorldSeed(settings.seed));
-    commands.insert_resource(WorldName(settings.world_name.clone()));
-
-    // Store map dimensions based on world size
-    let map_dimensions = crate::resources::MapDimensions::from_world_size(&settings.world_size);
-    commands.insert_resource(map_dimensions);
-
-    let total_provinces = world.provinces.len();
-    let land_count = world
-        .provinces
-        .iter()
-        .filter(|p| p.terrain != TerrainType::Ocean)
-        .count();
-
-    info!(
-        "Generated world with {} provinces, {} land tiles",
-        total_provinces, land_count
-    );
-
-    // Now simplified - no Entity needed since provinces are data, not entities
-    let mut spatial_index = ProvincesSpatialIndex::default();
-    for province in &world.provinces {
-        spatial_index.insert(province.position, province.id.value());
-    }
-    commands.insert_resource(spatial_index);
-
-    let province_by_id: HashMap<ProvinceId, usize> = world
-        .provinces
-        .iter()
-        .enumerate()
-        .map(|(idx, p)| (p.id, idx))
-        .collect();
-
-    // Store provinces (move ownership, no clone)
-    commands.insert_resource(ProvinceStorage {
-        provinces: world.provinces,
-        province_by_id,
-    });
-
-    // Store cloud data (move, not clone)
-    commands.insert_resource(world.clouds);
-
-    // Store mesh handle for overlay system
-    commands.insert_resource(WorldMeshHandle(mesh_handle.clone()));
-
-    commands.spawn((
-        Mesh2d(mesh_handle),
-        MeshMaterial2d(materials.add(ColorMaterial::from(Color::WHITE))),
-        Transform::from_xyz(0.0, 0.0, 0.0),
-        Visibility::default(),
-        ViewVisibility::default(),
-        InheritedVisibility::default(),
-        Name::new("World Mega-Mesh"),
-        TerrainEntity,
-    ));
-
-    Ok(())
-}
-
-/// Finalizes the setup process
-fn finalize_setup(loading_state: &mut LoadingState) {
-    set_loading_progress(
-        loading_state,
-        PROGRESS_COMPLETE,
-        "World generation complete!",
-    );
-}
-
-// === WORLD PLUGIN - Main Bevy integration ===
-
-/// Main world plugin that registers all world-related systems
-///
-/// This plugin aggregates all world functionality into Bevy.
-/// It's the ONLY place where world systems are registered with the app.
-pub struct WorldPlugin;
-
-impl Plugin for WorldPlugin {
-    fn build(&self, app: &mut App) {
-        app
-            // Add feature plugins
-            .add_plugins(CloudPlugin)
-            .add_plugins(TerrainPlugin)
-            .add_plugins(BorderPlugin)
-            .add_plugins(OverlayPlugin)
-            .add_plugins(WorldConfigPlugin)
-            // Register world resources
-            .init_resource::<ProvincesSpatialIndex>()
-            .init_resource::<WorldState>()
-            // Register world events
-            .add_event::<WorldGeneratedEvent>()
-            .add_event::<ProvinceSelectedEvent>()
-            // Add world systems
-            .add_systems(Startup, initialize_world_systems)
-            .add_systems(
-                Update,
-                (handle_province_selection, update_world_bounds_camera).chain(),
-            );
-    }
-}
-
-// === WORLD SYSTEMS - Internal Bevy systems ===
-
-/// Initialize world systems on startup
-fn initialize_world_systems(mut commands: Commands) {
-    info!("World systems initialized");
-
-    // Initialize any world-specific resources
-    commands.insert_resource(WorldState::default());
-}
-
-/// Handle province selection from mouse input
-fn handle_province_selection(
-    mouse_button: Res<ButtonInput<MouseButton>>,
-    camera_query: Query<(&Camera, &GlobalTransform)>,
-    windows: Query<&Window>,
-    spatial_index: Res<ProvincesSpatialIndex>,
-    mut selection_events: EventWriter<ProvinceSelectedEvent>,
-) {
-    // This is where mouse picking and province selection would be implemented
-    // Keeping it internal to the setup module as it's Bevy-specific
-}
-
-/// Update camera bounds based on world size
-fn update_world_bounds_camera(
-    spatial_index: Res<ProvincesSpatialIndex>,
-    mut camera_query: Query<&mut Transform, With<Camera2d>>,
-) {
-    // This would constrain camera to world bounds
-    // Keeping it internal to the setup module as it's Bevy-specific
-}

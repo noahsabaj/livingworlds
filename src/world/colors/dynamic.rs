@@ -3,7 +3,10 @@
 //! This module provides functions to modify colors based on game state,
 //! including time of day and weather effects.
 
+#![allow(dead_code)] // Preserve utility functions for future use
+
 use super::utils::SafeColor;
+use crate::math::lerp;
 use crate::resources::{GameTime, WeatherSystem};
 use bevy::prelude::Color;
 
@@ -59,11 +62,12 @@ pub fn apply_weather(base_color: Color, weather: &WeatherSystem) -> Color {
     let coverage = weather.cloud_coverage;
     let rgba = base_color.to_srgba();
 
-    // Reduce saturation
+    // Reduce saturation using math module
     let luminance = rgba.red * 0.299 + rgba.green * 0.587 + rgba.blue * 0.114;
-    let r = rgba.red * (1.0 - coverage * 0.3) + luminance * coverage * 0.3;
-    let g = rgba.green * (1.0 - coverage * 0.3) + luminance * coverage * 0.3;
-    let b = rgba.blue * (1.0 - coverage * 0.3) + luminance * coverage * 0.3;
+    let desaturation_factor = coverage * 0.3;
+    let r = lerp(rgba.red, luminance, desaturation_factor);
+    let g = lerp(rgba.green, luminance, desaturation_factor);
+    let b = lerp(rgba.blue, luminance, desaturation_factor);
 
     // Darken
     let darkness = coverage * 0.2;

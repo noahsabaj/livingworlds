@@ -25,7 +25,7 @@ pub fn handle_text_input_changes(
     for value in &name_inputs {
         if !value.0.is_empty() {
             settings.world_name = value.0.clone();
-            println!("World name changed to: {}", settings.world_name);
+            debug!("World name changed to: {}", settings.world_name);
         }
     }
 
@@ -33,7 +33,7 @@ pub fn handle_text_input_changes(
         if !value.0.is_empty() {
             if let Ok(seed) = value.0.parse::<u32>() {
                 settings.seed = seed;
-                println!("Seed changed to: {}", settings.seed);
+                debug!("Seed changed to: {}", settings.seed);
             }
         }
     }
@@ -42,12 +42,12 @@ pub fn handle_text_input_changes(
     for event in name_events.read() {
         if let Ok(value) = name_inputs.get(event.entity) {
             settings.world_name = value.0.clone();
-            println!("World name submitted: {}", settings.world_name);
+            debug!("World name submitted: {}", settings.world_name);
         }
         if let Ok(value) = seed_inputs.get(event.entity) {
             if let Ok(seed) = value.0.parse::<u32>() {
                 settings.seed = seed;
-                println!("Seed submitted: {}", settings.seed);
+                debug!("Seed submitted: {}", settings.seed);
             }
         }
     }
@@ -70,23 +70,23 @@ pub fn handle_random_buttons(
     // Random name button
     for interaction in &name_interactions {
         if *interaction == Interaction::Pressed {
-            let mut gen = NameGenerator::new();
-            settings.world_name = gen.generate(NameType::World);
+            let mut name_gen = NameGenerator::new();
+            settings.world_name = name_gen.generate(NameType::World);
             for mut input_value in &mut name_inputs {
                 input_value.0 = settings.world_name.clone();
             }
-            println!("Generated random name: {}", settings.world_name);
+            debug!("Generated random name: {}", settings.world_name);
         }
     }
 
     // Random seed button
     for interaction in &seed_interactions {
         if *interaction == Interaction::Pressed {
-            settings.seed = rand::thread_rng().gen();
+            settings.seed = rand::thread_rng().r#gen();
             for mut input_value in &mut seed_inputs {
                 input_value.0 = settings.seed.to_string();
             }
-            println!("Generated random seed: {}", settings.seed);
+            debug!("Generated random seed: {}", settings.seed);
         }
     }
 }

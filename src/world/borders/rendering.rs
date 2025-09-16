@@ -9,12 +9,13 @@
 //! not individual entities. This dramatically improves performance by reducing
 
 use bevy::prelude::*;
+use bevy::log::error;
 use bevy::render::mesh::PrimitiveTopology;
 use bevy::render::render_asset::RenderAssetUsages;
 use bevy::sprite::MeshMaterial2d;
 use bevy::window::PrimaryWindow;
 
-use crate::math::{euclidean_vec2, find_closest, Hexagon, HEX_SIZE as HEX_SIZE_PIXELS};
+use crate::math::{euclidean_vec2, Hexagon, HEX_SIZE as HEX_SIZE_PIXELS};
 use crate::resources::{ProvincesSpatialIndex, SelectedProvinceInfo};
 use crate::world::ProvinceId;
 use crate::world::ProvinceStorage;
@@ -146,7 +147,8 @@ fn update_selection_border(
             .province_by_id
             .get(&ProvinceId::new(province_id))
         {
-            let province = &province_storage.provinces[idx];
+            // Bounds check to prevent panic on invalid index
+            if let Some(province) = province_storage.provinces.get(idx) {
             trace!(
                 "Showing selection border for province {} at ({:.0}, {:.0})",
                 province_id,
@@ -164,6 +166,17 @@ fn update_selection_border(
             // Show the border by mutating visibility
             if let Ok(mut visibility) = visibilities.get_mut(border_entity) {
                 *visibility = Visibility::Inherited;
+            }
+            } else {
+                // Handle invalid index gracefully with error reporting
+                error!(
+                    "Invalid province index {} for province ID {} in border rendering. Data structures may be out of sync.",
+                    idx, province_id
+                );
+                // Hide border when data is corrupted
+                if let Ok(mut visibility) = visibilities.get_mut(border_entity) {
+                    *visibility = Visibility::Hidden;
+                }
             }
         }
     } else {
@@ -243,14 +256,22 @@ fn handle_tile_selection(
             .province_by_id
             .get(&ProvinceId::new(province_id))
         {
-            let province = &province_storage.provinces[idx];
-            trace!(
-                "Selected province {} at ({:.0}, {:.0}), terrain: {:?}",
-                province_id,
-                province.position.x,
-                province.position.y,
-                province.terrain
-            );
+            // Bounds check to prevent panic on invalid index
+            if let Some(province) = province_storage.provinces.get(idx) {
+                trace!(
+                    "Selected province {} at ({:.0}, {:.0}), terrain: {:?}",
+                    province_id,
+                    province.position.x,
+                    province.position.y,
+                    province.terrain
+                );
+            } else {
+                // Handle invalid index gracefully with error reporting
+                error!(
+                    "Invalid province index {} for province ID {} during selection. Data structures may be out of sync.",
+                    idx, province_id
+                );
+            }
         }
     }
 }

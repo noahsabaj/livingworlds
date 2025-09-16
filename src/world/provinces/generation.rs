@@ -87,7 +87,10 @@ impl<'a> ProvinceBuilder<'a> {
             info!("  Removed {} small island provinces", islands_removed);
         }
 
-        // Apply rain shadow effect for realistic desert placement
+        // Precompute neighbor indices for O(1) neighbor access BEFORE rain shadow
+        precompute_neighbor_indices(&mut provinces);
+
+        // Apply rain shadow effect for realistic desert placement - now uses indices!
         self.apply_rain_shadow(&mut provinces);
         info!("  Applied rain shadow effect for desert placement");
 
@@ -142,6 +145,7 @@ impl<'a> ProvinceBuilder<'a> {
             stone: Abundance::default(),
             gems: Abundance::default(),
             neighbors,
+            neighbor_indices: [None; 6], // Will be populated in a second pass
             version: 0,
             dirty: false,
         }
@@ -274,8 +278,8 @@ impl<'a> ProvinceBuilder<'a> {
 
     /// Calculate sea level for desired ocean coverage
     fn calculate_sea_level(&mut self) -> f32 {
-        // Sample elevation at many points to determine distribution
-        const SAMPLE_COUNT: usize = 10000;
+        // Reduced sampling for faster calculation (10000 -> 2000)
+        const SAMPLE_COUNT: usize = 2000;
         let mut elevations = Vec::with_capacity(SAMPLE_COUNT);
 
         for _ in 0..SAMPLE_COUNT {
@@ -423,12 +427,7 @@ impl<'a> ProvinceBuilder<'a> {
     /// Converts mid-elevation terrain (Chaparral) to desert when it's in the
     /// "shadow" of mountains, simulating how mountains block moisture.
     fn apply_rain_shadow(&self, provinces: &mut Vec<Province>) {
-        // Build a quick lookup map for province indices
-        let province_map: HashMap<u32, usize> = provinces
-            .iter()
-            .enumerate()
-            .map(|(idx, p)| (p.id.value(), idx))
-            .collect();
+        // No need for HashMap - we have neighbor indices now!
 
         // Find provinces that should become deserts (in rain shadow)
         let mut to_convert = Vec::new();
@@ -443,15 +442,13 @@ impl<'a> ProvinceBuilder<'a> {
             let mut mountain_count = 0;
             let mut total_neighbors = 0;
 
-            // Check immediate neighbors
-            for neighbor_id_opt in &province.neighbors {
-                if let Some(neighbor_id) = neighbor_id_opt {
-                    if let Some(&neighbor_idx) = province_map.get(&neighbor_id.value()) {
-                        total_neighbors += 1;
-                        let neighbor = &provinces[neighbor_idx];
-                        if neighbor.terrain == TerrainType::Alpine || neighbor.terrain == TerrainType::Tundra {
-                            mountain_count += 1;
-                        }
+            // Check immediate neighbors using precomputed indices!
+            for &neighbor_idx_opt in &province.neighbor_indices {
+                if let Some(neighbor_idx) = neighbor_idx_opt {
+                    total_neighbors += 1;
+                    let neighbor = &provinces[neighbor_idx];
+                    if neighbor.terrain == TerrainType::Alpine || neighbor.terrain == TerrainType::Tundra {
+                        mountain_count += 1;
                     }
                 }
             }
@@ -474,45 +471,36 @@ impl<'a> ProvinceBuilder<'a> {
 pub fn calculate_ocean_depths(provinces: &mut [Province], _dimensions: MapDimensions) {
     info!("  Calculating ocean depths...");
 
-    let mut province_by_id: HashMap<u32, usize> = HashMap::new();
-    for (idx, province) in provinces.iter().enumerate() {
-        province_by_id.insert(province.id.value(), idx);
-    }
-
     // Use BFS to calculate distance from land
     let mut ocean_distances: HashMap<u32, u32> = HashMap::new();
     let mut queue = std::collections::VecDeque::new();
 
-    // Initialize with coastal provinces (distance 0)
+    // Initialize with coastal provinces - use precomputed indices!
     for province in provinces.iter() {
         if province.terrain != TerrainType::Ocean {
-            // This is land, check neighbors for ocean
-            for neighbor_opt in &province.neighbors {
-                if let Some(neighbor_id) = neighbor_opt {
-                    if let Some(&neighbor_idx) = province_by_id.get(&neighbor_id.value()) {
-                        if provinces[neighbor_idx].terrain == TerrainType::Ocean {
-                            ocean_distances.insert(neighbor_id.value(), 1);
-                            queue.push_back((neighbor_id.value(), 1));
-                        }
+            // This is land, check neighbors for ocean using precomputed indices
+            for &neighbor_idx_opt in &province.neighbor_indices {
+                if let Some(neighbor_idx) = neighbor_idx_opt {
+                    if provinces[neighbor_idx].terrain == TerrainType::Ocean {
+                        let neighbor_id = provinces[neighbor_idx].id.value();
+                        ocean_distances.insert(neighbor_id, 1);
+                        queue.push_back((neighbor_idx, 1));
                     }
                 }
             }
         }
     }
 
-    // BFS to calculate distances
-    while let Some((current_id, distance)) = queue.pop_front() {
-        if let Some(&current_idx) = province_by_id.get(&current_id) {
-            for neighbor_opt in &provinces[current_idx].neighbors {
-                if let Some(neighbor_id) = neighbor_opt {
-                    if let Some(&neighbor_idx) = province_by_id.get(&neighbor_id.value()) {
-                        if provinces[neighbor_idx].terrain == TerrainType::Ocean
-                            && !ocean_distances.contains_key(&neighbor_id.value())
-                        {
-                            ocean_distances.insert(neighbor_id.value(), distance + 1);
-                            queue.push_back((neighbor_id.value(), distance + 1));
-                        }
-                    }
+    // BFS to calculate distances - now using indices directly!
+    while let Some((current_idx, distance)) = queue.pop_front() {
+        for &neighbor_idx_opt in &provinces[current_idx].neighbor_indices {
+            if let Some(neighbor_idx) = neighbor_idx_opt {
+                let neighbor_id = provinces[neighbor_idx].id.value();
+                if provinces[neighbor_idx].terrain == TerrainType::Ocean
+                    && !ocean_distances.contains_key(&neighbor_id)
+                {
+                    ocean_distances.insert(neighbor_id, distance + 1);
+                    queue.push_back((neighbor_idx, distance + 1));
                 }
             }
         }
@@ -538,4 +526,27 @@ pub fn calculate_ocean_depths(provinces: &mut [Province], _dimensions: MapDimens
     }
 
     info!("  Ocean depths calculated");
+}
+
+/// Precompute neighbor indices for O(1) neighbor access
+/// This eliminates HashMap lookups during world generation
+pub fn precompute_neighbor_indices(provinces: &mut Vec<Province>) {
+    // Since province IDs are sequential (0, 1, 2, ...), we can use direct indexing
+    // This eliminates the HashMap entirely for a huge speedup
+
+    let province_count = provinces.len();
+
+    // Populate neighbor indices for each province
+    for province in provinces.iter_mut() {
+        for (i, neighbor_id_opt) in province.neighbors.iter().enumerate() {
+            if let Some(neighbor_id) = neighbor_id_opt {
+                // Province IDs are sequential, so ID == index
+                let neighbor_idx = neighbor_id.value() as usize;
+                // Bounds check for safety
+                if neighbor_idx < province_count {
+                    province.neighbor_indices[i] = Some(neighbor_idx);
+                }
+            }
+        }
+    }
 }

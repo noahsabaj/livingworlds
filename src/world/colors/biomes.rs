@@ -4,7 +4,9 @@
 //! layer to maintain proper separation of concerns between data generation
 //! and visual rendering.
 
-use crate::world::terrain::Biome;
+#![allow(dead_code)] // Preserve utility functions for future use
+
+use crate::world::Biome;
 use bevy::prelude::Color;
 
 /// Get base color for a biome type
@@ -60,9 +62,11 @@ pub fn get_biome_color_varied(biome: Biome, variation: f32) -> Color {
     let base = get_biome_color(biome);
     let var = variation * 0.1; // Max 10% variation
 
+    // Convert to linear RGB for modification
+    let linear = base.to_linear();
     Color::srgb(
-        (base.to_linear().red + var).clamp(0.0, 1.0),
-        (base.to_linear().green + var).clamp(0.0, 1.0),
-        (base.to_linear().blue + var).clamp(0.0, 1.0),
+        (linear.red + var).clamp(0.0, 1.0),
+        (linear.green + var).clamp(0.0, 1.0),
+        (linear.blue + var).clamp(0.0, 1.0),
     )
 }

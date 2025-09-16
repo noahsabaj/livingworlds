@@ -121,16 +121,16 @@ pub enum Biome {
 
 /// Main climate simulation system
 pub struct ClimateSystem {
-    /// Climate data for each province
-    pub climates: HashMap<u32, Climate>,
+    /// Climate data for each province - Vec for O(1) indexed access
+    pub climates: Vec<Climate>,
     /// World dimensions
     dimensions: crate::resources::MapDimensions,
 }
 
 impl ClimateSystem {
-    pub fn new(dimensions: crate::resources::MapDimensions) -> Self {
+    pub fn new(dimensions: crate::resources::MapDimensions, province_count: usize) -> Self {
         Self {
-            climates: HashMap::new(),
+            climates: vec![Climate::default(); province_count],
             dimensions,
         }
     }
@@ -164,74 +164,45 @@ impl ClimateSystem {
     fn calculate_ocean_distances(&mut self, provinces: &[Province]) {
         debug!("Calculating ocean distances...");
 
-        // BFS from ocean provinces
+        // Use Vec for O(1) indexed access instead of HashMap!
+        let mut distances: Vec<Option<f32>> = vec![None; provinces.len()];
         let mut queue = VecDeque::new();
-        let mut distances = HashMap::new();
-
-        let province_lookup: HashMap<u32, usize> = provinces
-            .iter()
-            .enumerate()
-            .map(|(idx, p)| (p.id.value(), idx))
-            .collect();
 
         // Initialize with ocean provinces
         let mut ocean_count = 0;
-        for province in provinces {
+        for (idx, province) in provinces.iter().enumerate() {
             if province.terrain == TerrainType::Ocean {
-                queue.push_back((province.id.value(), 0.0));
-                distances.insert(province.id.value(), 0.0);
+                queue.push_back((idx, 0.0));
+                distances[idx] = Some(0.0);
                 ocean_count += 1;
             }
         }
         debug!("Found {} ocean provinces", ocean_count);
 
-        // BFS to find ocean distances using pre-computed neighbors
-        let mut processed = 0;
-        while let Some((province_id, distance)) = queue.pop_front() {
-            processed += 1;
+        // BFS using direct array indexing - no HashMap operations!
+        while let Some((province_idx, distance)) = queue.pop_front() {
+            let province = &provinces[province_idx];
 
-            // Report progress periodically
-            if processed % 10000 == 0 {
-                print!(
-                    "\r      Processing province {} of approximately {}...",
-                    processed,
-                    provinces.len()
-                );
-            }
+            // Use precomputed neighbor indices for O(1) neighbor access
+            for &neighbor_idx_opt in &province.neighbor_indices {
+                if let Some(neighbor_idx) = neighbor_idx_opt {
+                    // Direct array access - no hashing!
+                    if distances[neighbor_idx].is_none() {
+                        let new_distance = distance + self.dimensions.hex_size / 1000.0;
+                        distances[neighbor_idx] = Some(new_distance);
 
-            if let Some(&province_idx) = province_lookup.get(&province_id) {
-                let province = &provinces[province_idx];
-
-                for neighbor_opt in &province.neighbors {
-                    if let Some(neighbor_id) = neighbor_opt {
-                        let neighbor_id_val = neighbor_id.value();
-
-                        // If we haven't visited this neighbor yet
-                        if !distances.contains_key(&neighbor_id_val) {
-                            let new_distance = distance + self.dimensions.hex_size / 1000.0; // Convert to km
-                            distances.insert(neighbor_id_val, new_distance);
-
-                            // Only continue BFS if within influence distance
-                            if new_distance < OCEAN_INFLUENCE_DISTANCE {
-                                queue.push_back((neighbor_id_val, new_distance));
-                            }
+                        // Only continue BFS if within influence distance
+                        if new_distance < OCEAN_INFLUENCE_DISTANCE {
+                            queue.push_back((neighbor_idx, new_distance));
                         }
                     }
                 }
             }
         }
 
-        debug!("Processed {} provinces for ocean distances", processed);
-
-        // Store distances in climate data
-        for province in provinces {
-            let climate = self
-                .climates
-                .entry(province.id.value())
-                .or_insert_with(Climate::default);
-            climate.ocean_distance = *distances
-                .get(&province.id.value())
-                .unwrap_or(&f32::INFINITY);
+        // Store distances in climate data - single pass using direct indexing
+        for idx in 0..provinces.len() {
+            self.climates[idx].ocean_distance = distances[idx].unwrap_or(f32::INFINITY);
         }
     }
 
@@ -239,14 +210,11 @@ impl ClimateSystem {
     fn calculate_temperatures(&mut self, provinces: &[Province]) {
         debug!("Calculating temperatures...");
 
-        let temps: Vec<(u32, f32)> = provinces
+        let temps: Vec<(usize, f32)> = provinces
             .par_iter()
-            .map(|province| {
-                let ocean_distance = self
-                    .climates
-                    .get(&province.id.value())
-                    .map(|c| c.ocean_distance)
-                    .unwrap_or(f32::INFINITY);
+            .enumerate()
+            .map(|(idx, province)| {
+                let ocean_distance = self.climates[idx].ocean_distance;
 
                 let latitude = (province.position.y - self.dimensions.bounds.y_min)
                     / (self.dimensions.bounds.y_max - self.dimensions.bounds.y_min);
@@ -267,15 +235,12 @@ impl ClimateSystem {
                 };
 
                 let temperature = base_temp - elevation_cooling + ocean_moderation;
-                (province.id.value(), temperature)
+                (idx, temperature)
             })
             .collect();
 
-        for (id, temp) in temps {
-            self.climates
-                .entry(id)
-                .or_insert_with(Climate::default)
-                .temperature = temp;
+        for (idx, temp) in temps {
+            self.climates[idx].temperature = temp;
         }
     }
 
@@ -283,11 +248,8 @@ impl ClimateSystem {
     fn calculate_winds(&mut self, provinces: &[Province]) {
         debug!("Calculating wind patterns...");
 
-        for province in provinces {
-            let climate = self
-                .climates
-                .entry(province.id.value())
-                .or_insert_with(Climate::default);
+        for (idx, province) in provinces.iter().enumerate() {
+            let climate = &mut self.climates[idx];
 
             let latitude = (province.position.y - self.dimensions.bounds.y_min)
                 / (self.dimensions.bounds.y_max - self.dimensions.bounds.y_min);
@@ -331,18 +293,20 @@ impl ClimateSystem {
                 .push(idx);
         }
 
-        // Reduced iterations and parallelized processing
-        const MOISTURE_ITERATIONS: usize = 3; // Reduced from 10
+        // Reduced iterations for better performance
+        const MOISTURE_ITERATIONS: usize = 2; // Further reduced from 3
 
         for iteration in 0..MOISTURE_ITERATIONS {
-            info!(
+            debug!(
                 "      Moisture propagation iteration {}/{}",
                 iteration + 1,
                 MOISTURE_ITERATIONS
             );
 
-            // Clone current climate data for parallel read access
-            let current_climates = self.climates.clone();
+            // Clone rainfall data only (not entire Climate structs!) for parallel read
+            let current_rainfall: Vec<f32> = self.climates.iter()
+                .map(|c| c.rainfall)
+                .collect();
 
             let batch_size = 10000;
             let num_batches = (provinces.len() + batch_size - 1) / batch_size;
@@ -351,14 +315,11 @@ impl ClimateSystem {
                 let start_idx = batch_idx * batch_size;
                 let end_idx = (start_idx + batch_size).min(provinces.len());
 
-                let batch_rainfall: Vec<(u32, f32)> = (start_idx..end_idx)
+                let batch_rainfall: Vec<(usize, f32)> = (start_idx..end_idx)
                     .into_par_iter()
                     .map(|idx| {
                         let province = &provinces[idx];
-                        let climate = current_climates
-                            .get(&province.id.value())
-                            .cloned()
-                            .unwrap_or_default();
+                        let climate = &self.climates[idx];
 
                         // Start with base rainfall
                         let mut rainfall = if province.terrain == TerrainType::Ocean {
@@ -370,43 +331,36 @@ impl ClimateSystem {
                             OCEAN_RAINFALL * decay
                         };
 
-                        // Only check immediate neighbors using the pre-computed neighbor array
-                        for neighbor_opt in &province.neighbors {
-                            if let Some(neighbor_id) = neighbor_opt {
-                                if let Some(neighbor_climate) =
-                                    current_climates.get(&neighbor_id.value())
-                                {
-                                    let transfer =
-                                        neighbor_climate.rainfall * 0.05 * climate.wind_strength;
-                                    rainfall += transfer;
-                                }
+                        // Use precomputed neighbor indices for O(1) access!
+                        for &neighbor_idx_opt in &province.neighbor_indices {
+                            if let Some(neighbor_idx) = neighbor_idx_opt {
+                                let neighbor_rainfall = current_rainfall[neighbor_idx];
+                                let transfer = neighbor_rainfall * 0.05 * climate.wind_strength;
+                                rainfall += transfer;
                             }
                         }
 
                         // Cap rainfall at reasonable maximum
                         rainfall = rainfall.min(3000.0);
 
-                        (province.id.value(), rainfall)
+                        (idx, rainfall)
                     })
                     .collect();
 
-                for (id, rainfall) in batch_rainfall {
-                    if let Some(climate) = self.climates.get_mut(&id) {
-                        // Blend with existing value for smoother propagation
-                        climate.rainfall = exponential_smooth(climate.rainfall, rainfall, 0.3);
-                    }
+                for (idx, rainfall) in batch_rainfall {
+                    // Blend with existing value for smoother propagation
+                    self.climates[idx].rainfall = exponential_smooth(self.climates[idx].rainfall, rainfall, 0.3);
                 }
 
-                // Progress report
-                if batch_idx % 10 == 0 {
-                    print!(
-                        "\r        Processing batch {}/{}",
+                // Progress report - reduced frequency
+                if batch_idx % 50 == 0 {
+                    debug!(
+                        "Processing batch {}/{}",
                         batch_idx + 1,
                         num_batches
                     );
                 }
             }
-            info!(""); // New line after progress
         }
 
         info!("      Moisture propagation complete");
@@ -428,16 +382,19 @@ impl ClimateSystem {
                 .push(idx);
         }
 
-        // Clone for parallel access
-        let current_climates = self.climates.clone();
+        // Extract wind data only for parallel access (not cloning entire climates!)
+        let wind_data: Vec<(f32, f32)> = self.climates.iter()
+            .map(|c| (c.wind_direction, c.wind_strength))
+            .collect();
         let hex_size = self.dimensions.hex_size;
 
-        let rain_shadows: Vec<u32> = provinces
+        let rain_shadows: Vec<usize> = provinces
             .par_iter()
-            .filter_map(|province| {
-                let climate = current_climates.get(&province.id.value())?;
+            .enumerate()
+            .filter_map(|(idx, province)| {
+                let (wind_dir, _wind_strength) = wind_data[idx];
 
-                let (cos_wind, sin_wind) = sin_cos(climate.wind_direction);
+                let (cos_wind, sin_wind) = sin_cos(wind_dir);
                 let wind_source = Vec2::new(-cos_wind, -sin_wind);
 
                 // Sample fewer points for performance
@@ -447,11 +404,11 @@ impl ClimateSystem {
                     let grid_y = (check_pos.y / grid_size).floor() as i32;
 
                     if let Some(indices) = spatial_grid.get(&(grid_x, grid_y)) {
-                        for &idx in indices {
-                            let other = &provinces[idx];
+                        for &other_idx in indices {
+                            let other = &provinces[other_idx];
                             if euclidean_vec2(other.position, check_pos) < hex_size * 1.5 {
                                 if other.elevation.value() > 0.6 {
-                                    return Some(province.id.value());
+                                    return Some(idx);
                                 }
                             }
                         }
@@ -463,10 +420,8 @@ impl ClimateSystem {
 
         // Apply rain shadow reduction
         let shadow_count = rain_shadows.len();
-        for id in rain_shadows {
-            if let Some(climate) = self.climates.get_mut(&id) {
-                climate.rainfall *= RAIN_SHADOW_FACTOR;
-            }
+        for idx in rain_shadows {
+            self.climates[idx].rainfall *= RAIN_SHADOW_FACTOR;
         }
 
         debug!("Applied rain shadow to {} provinces", shadow_count);
@@ -476,10 +431,11 @@ impl ClimateSystem {
     fn calculate_humidity(&mut self, provinces: &[Province]) {
         info!("    Calculating humidity levels...");
 
-        let humidity_values: Vec<(u32, f32, f32)> = provinces
+        let humidity_values: Vec<(usize, f32, f32)> = provinces
             .par_iter()
-            .filter_map(|province| {
-                let climate = self.climates.get(&province.id.value())?;
+            .enumerate()
+            .filter_map(|(idx, _province)| {
+                let climate = &self.climates[idx];
                 // Humidity based on rainfall and temperature
                 let base_humidity = (climate.rainfall / 2000.0).min(1.0);
 
@@ -497,21 +453,19 @@ impl ClimateSystem {
 
                 let continentality = (climate.ocean_distance / 1000.0).min(1.0);
 
-                Some((province.id.value(), humidity, continentality))
+                Some((idx, humidity, continentality))
             })
             .collect();
 
-        for (id, humidity, continentality) in humidity_values {
-            if let Some(climate) = self.climates.get_mut(&id) {
-                climate.humidity = humidity;
-                climate.continentality = continentality;
-            }
+        for (idx, humidity, continentality) in humidity_values {
+            self.climates[idx].humidity = humidity;
+            self.climates[idx].continentality = continentality;
         }
     }
 
     /// Determine biome from climate data
-    pub fn get_biome(&self, province_id: u32, elevation: f32) -> Biome {
-        let climate = self.climates.get(&province_id).cloned().unwrap_or_default();
+    pub fn get_biome(&self, idx: usize, elevation: f32) -> Biome {
+        let climate = &self.climates[idx];
 
         let temp = climate.temperature;
         let rainfall = climate.rainfall;
@@ -598,15 +552,27 @@ pub fn apply_climate_to_provinces(
     provinces: &mut [crate::world::Province],
     dimensions: crate::resources::MapDimensions,
 ) {
-    let mut climate_system = ClimateSystem::new(dimensions);
+    // Count how many provinces actually need climate calculations
+    let land_provinces = provinces.iter()
+        .filter(|p| p.terrain != crate::world::TerrainType::Ocean)
+        .count();
+    info!("    Calculating climate for {} land provinces (skipping {} ocean provinces)",
+          land_provinces, provinces.len() - land_provinces);
+
+    let mut climate_system = ClimateSystem::new(dimensions, provinces.len());
     climate_system.simulate(provinces);
 
     // Apply climate results to provinces by setting terrain types based on biomes
-    for (_i, province) in provinces.iter_mut().enumerate() {
-        let biome = climate_system.get_biome(province.id.value(), province.elevation.value());
-        // Update terrain based on biome for land provinces only (preserve Ocean/River/Beach)
-        if province.terrain != crate::world::TerrainType::Ocean
-            && province.terrain != crate::world::TerrainType::River
+    // LAZY: Skip ocean provinces entirely for biome calculations
+    for (idx, province) in provinces.iter_mut().enumerate() {
+        // Skip expensive biome calculations for ocean provinces
+        if province.terrain == crate::world::TerrainType::Ocean {
+            continue;
+        }
+
+        let biome = climate_system.get_biome(idx, province.elevation.value());
+        // Update terrain based on biome for land provinces only (preserve River/Beach)
+        if province.terrain != crate::world::TerrainType::River
             && province.terrain != crate::world::TerrainType::Beach {
             province.terrain = biome_to_terrain(biome, province.elevation.value());
         }

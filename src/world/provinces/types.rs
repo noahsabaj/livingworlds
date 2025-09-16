@@ -294,10 +294,14 @@ pub struct Province {
     /// Gems abundance - Very rare, luxury goods
     pub gems: Abundance,
 
-    // === Spatial Relationships (48 bytes) ===
+    // === Spatial Relationships (96 bytes total) ===
     /// IDs of the 6 neighboring hexagons (NE, E, SE, SW, W, NW)
     /// None if neighbor is off-map or doesn't exist
     pub neighbors: [Option<ProvinceId>; 6],
+
+    /// Direct indices into the provinces array for O(1) neighbor access
+    /// Precomputed during generation to avoid HashMap lookups
+    pub neighbor_indices: [Option<usize>; 6],
 
     // === Change Tracking (8 bytes) ===
     /// Version number incremented on each change
@@ -326,6 +330,7 @@ impl Default for Province {
             stone: Abundance::default(),
             gems: Abundance::default(),
             neighbors: [None; 6],
+            neighbor_indices: [None; 6],
             version: 0,
             dirty: false,
         }

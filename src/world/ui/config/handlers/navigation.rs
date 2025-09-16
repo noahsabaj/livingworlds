@@ -9,19 +9,20 @@ use bevy::prelude::*;
 
 pub fn init_default_settings(mut commands: Commands) {
     commands.insert_resource(WorldGenerationSettings::default());
-    println!("Initialized default world generation settings");
+    debug!("Initialized default world generation settings");
 }
 
 pub fn handle_generate_button(
     mut commands: Commands,
     interactions: Query<&Interaction, (Changed<Interaction>, With<GenerateButton>)>,
-    settings: Res<WorldGenerationSettings>,
+    mut settings: ResMut<WorldGenerationSettings>,
     mut state_events: EventWriter<RequestStateTransition>,
 ) {
     for interaction in &interactions {
         if *interaction == Interaction::Pressed {
-            println!("Generate World button pressed");
-            println!("Settings: {:?}", *settings);
+            debug!("Generate World button pressed");
+            debug!("Using seed: {}", settings.seed);
+            debug!("Settings: {:?}", *settings);
 
             // Signal that we need to generate a world
             commands.insert_resource(crate::states::PendingWorldGeneration {
@@ -53,7 +54,7 @@ pub fn handle_back_button(
 ) {
     for interaction in &interactions {
         if *interaction == Interaction::Pressed {
-            println!("Back button pressed");
+            debug!("Back button pressed");
             state_events.write(RequestStateTransition {
                 from: GameState::WorldConfiguration,
                 to: GameState::MainMenu,

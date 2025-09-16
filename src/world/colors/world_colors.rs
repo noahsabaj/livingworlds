@@ -11,7 +11,7 @@ use bevy::prelude::*;
 
 use super::providers::{ColorProvider, StandardColorProvider};
 use super::utils::StoneAbundance;
-use super::{dynamic, minerals, terrain, theme};
+use super::{dynamic, minerals, theme};
 
 /// Main API for getting colors throughout the game
 pub struct WorldColors {

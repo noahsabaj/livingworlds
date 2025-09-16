@@ -19,7 +19,7 @@ pub fn update_seed_display(
             input_value.0 = settings.seed.to_string();
         }
 
-        if let Ok(mut estimate_text) = time_estimate.get_single_mut() {
+        if let Ok(mut estimate_text) = time_estimate.single_mut() {
             let time_range = match settings.world_size {
                 WorldSize::Small => "~1-2 seconds",
                 WorldSize::Medium => "~2-4 seconds",

@@ -33,9 +33,10 @@ mod terrain; // Terrain types, climate, erosion // Overlay rendering modes
 // Non-feature modules
 mod core; // Core world data structures (World)
 mod generation; // World generation orchestrator
-mod setup;
+mod plugin; // Main world plugin (Bevy integration)
+mod setup; // World setup and generation systems
 mod simulation; // Simulation events
-mod ui; // World configuration UI // Bevy integration layer (Plugin, systems, resources)
+mod ui; // World configuration UI
 
 // SELECTIVE PUBLIC EXPORTS - The controlled API surface
 
@@ -92,11 +93,18 @@ pub use generation::{WorldBuilder, WorldGenerationError, WorldGenerationErrorTyp
 // === World Simulation ===
 pub use simulation::*; // Events and simulation systems
 
-// === Bevy Integration (from setup.rs) ===
-pub use setup::{
-    setup_world,
+// === Bevy Plugin and Events ===
+pub use plugin::{
     ProvinceSelectedEvent,
     WorldGeneratedEvent,
     WorldPlugin, // Main plugin that registers everything
+};
+
+// === World Generation (from setup.rs) ===
+pub use setup::{
+    AsyncWorldGeneration, // Async world generation resource
+    GenerationProgress, // Progress update structure
+    start_async_world_generation, // Async generation starter
+    poll_async_world_generation, // Progress polling system
     WorldSetupError,
 };

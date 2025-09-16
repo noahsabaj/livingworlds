@@ -1,5 +1,7 @@
 //! Utility functions for world generation
 
+#![allow(dead_code)] // Preserve utility functions for future use
+
 pub fn hex_neighbors(col: i32, row: i32) -> Vec<(i32, i32)> {
     if col % 2 == 0 {
         // Even column neighbors

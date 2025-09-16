@@ -15,7 +15,7 @@ pub fn handle_preset_hover(
 ) {
     for (interaction, preset_desc) in &interactions {
         if *interaction == Interaction::Hovered {
-            if let Ok(mut text) = description_text.get_single_mut() {
+            if let Ok(mut text) = description_text.single_mut() {
                 text.0 = preset_desc.0.clone();
             }
         }
@@ -25,12 +25,10 @@ pub fn handle_preset_hover(
 pub fn handle_advanced_toggle(
     interactions: Query<&Interaction, (Changed<Interaction>, With<AdvancedToggle>)>,
     mut advanced_panel: Query<&mut Node, With<AdvancedPanel>>,
-    mut toggle_text: Query<&mut Text, With<AdvancedToggleText>>,
-    mut chevron_text: Query<&mut Text, (With<AdvancedToggleChevron>, Without<AdvancedToggleText>)>,
 ) {
     for interaction in &interactions {
         if *interaction == Interaction::Pressed {
-            if let Ok(mut panel_style) = advanced_panel.get_single_mut() {
+            if let Ok(mut panel_style) = advanced_panel.single_mut() {
                 let is_showing = panel_style.display == Display::Flex;
                 panel_style.display = if is_showing {
                     Display::None
@@ -38,28 +36,12 @@ pub fn handle_advanced_toggle(
                     Display::Flex
                 };
 
-                // Update toggle text
-                for mut text in &mut toggle_text {
-                    text.0 = if is_showing {
-                        "Show Advanced Settings".to_string()
-                    } else {
-                        "Hide Advanced Settings".to_string()
-                    };
-                }
-
-                // Update chevron
-                for mut text in &mut chevron_text {
-                    text.0 = if is_showing {
-                        "▶".to_string()
-                    } else {
-                        "▼".to_string()
-                    };
-                }
-
-                println!(
+                debug!(
                     "Advanced settings toggled: {}",
                     if is_showing { "hidden" } else { "shown" }
                 );
+            } else {
+                warn!("Could not find AdvancedPanel entity for toggling");
             }
         }
     }

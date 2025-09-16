@@ -567,7 +567,7 @@ fn calculate_abundance_with_index(
 
     let (closest_idx, min_distance) = nearby_veins
         .iter()
-        .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
+        .min_by(|a, b| a.1.total_cmp(&b.1))
         .copied()
         .unwrap_or((0, f32::MAX));
 

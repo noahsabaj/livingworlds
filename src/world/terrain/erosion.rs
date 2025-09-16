@@ -4,13 +4,12 @@
 //! that transform tectonic heightmaps into realistic terrain with
 //! river valleys, sediment deposits, and natural drainage patterns.
 
-use crate::math::{euclidean_vec2, linear_falloff};
-use crate::world::{Elevation, Province};
+use crate::math::{euclidean_vec2, lerp, linear_falloff};
+use super::super::provinces::{Elevation, Province};
 use bevy::prelude::Vec2;
+use log::info;
 use rand::{rngs::StdRng, Rng, SeedableRng};
 use rayon::prelude::*;
-use std::collections::HashMap;
-use std::sync::Mutex;
 
 // CONSTANTS - Erosion parameters tuned for realism
 
@@ -135,10 +134,10 @@ impl HeightMap {
         let h01 = self.get(x0, y1);
         let h11 = self.get(x1, y1);
 
-        // Bilinear interpolation
-        let h0 = h00 * (1.0 - fx) + h10 * fx;
-        let h1 = h01 * (1.0 - fx) + h11 * fx;
-        h0 * (1.0 - fy) + h1 * fy
+        // Bilinear interpolation using math module
+        let h0 = lerp(h00, h10, fx);
+        let h1 = lerp(h01, h11, fx);
+        lerp(h0, h1, fy)
     }
 
     /// Calculate gradient at position
@@ -182,21 +181,20 @@ impl HeightMap {
 /// Main erosion system that combines all erosion types
 pub struct ErosionSystem {
     heightmap: HeightMap,
-    rng: StdRng,
 }
 
 impl ErosionSystem {
-    pub fn new(heightmap: HeightMap, rng: StdRng) -> Self {
-        Self { heightmap, rng }
+    pub fn new(heightmap: HeightMap) -> Self {
+        Self { heightmap }
     }
 
     /// Run full erosion simulation
-    pub fn erode(&mut self, iterations: usize) {
-        println!(
+    pub fn erode(&mut self, rng: &mut StdRng, iterations: usize) {
+        info!(
             "  Starting erosion simulation ({} iterations)...",
             iterations
         );
-        println!(
+        info!(
             "  Heightmap dimensions: {}x{} ({} total cells)",
             self.heightmap.width,
             self.heightmap.height,
@@ -211,34 +209,34 @@ impl ErosionSystem {
         };
 
         for pass in 0..num_passes {
-            println!("    Erosion pass {}/{}", pass + 1, num_passes);
+            info!("    Erosion pass {}/{}", pass + 1, num_passes);
 
             // Hydraulic erosion - water carving channels
-            self.hydraulic_erosion(iterations / num_passes);
+            self.hydraulic_erosion(rng, iterations / num_passes);
 
             // Thermal erosion - material sliding down slopes
-            println!(
+            info!(
                 "      Starting thermal erosion ({} iterations)...",
                 THERMAL_ITERATIONS
             );
             self.thermal_erosion(THERMAL_ITERATIONS);
-            println!("      Thermal erosion complete");
+            info!("      Thermal erosion complete");
 
             // Smooth to remove artifacts
-            println!("      Smoothing terrain...");
+            info!("      Smoothing terrain...");
             self.smooth(1);
-            println!("      Smoothing complete");
+            info!("      Smoothing complete");
         }
 
-        println!("  Erosion simulation complete");
+        info!("  Erosion simulation complete");
     }
 
     /// Hydraulic erosion - water flowing and carving terrain (PARALLELIZED)
-    fn hydraulic_erosion(&mut self, droplets: usize) {
+    fn hydraulic_erosion(&mut self, rng: &mut StdRng, droplets: usize) {
         let batch_size = 500; // Process 500 droplets at a time
         let num_batches = (droplets + batch_size - 1) / batch_size;
 
-        let base_seed = self.rng.gen::<u64>();
+        let base_seed = rng.r#gen::<u64>();
 
         for batch in 0..num_batches {
             let batch_start = batch * batch_size;
@@ -356,7 +354,7 @@ impl ErosionSystem {
             }
         }
 
-        println!("\r      Hydraulic erosion: 100%");
+        info!("\r      Hydraulic erosion: 100%");
     }
 
     /// Thread-safe static version of get_interpolated
@@ -380,27 +378,31 @@ impl ErosionSystem {
         let fy = y - y0 as f32;
 
         // Ensure indices are valid before access
-        let idx00 = y0 * width + x0;
-        let idx10 = y1 * width + x0;
-        let idx01 = y0 * width + x1;
-        let idx11 = y1 * width + x1;
+        // Correct bilinear interpolation indexing:
+        // (x0,y0) -> top-left,    (x1,y0) -> top-right
+        // (x0,y1) -> bottom-left, (x1,y1) -> bottom-right
+        let idx_top_left = y0 * width + x0;      // (x0, y0)
+        let idx_top_right = y0 * width + x1;     // (x1, y0)
+        let idx_bottom_left = y1 * width + x0;   // (x0, y1)
+        let idx_bottom_right = y1 * width + x1;  // (x1, y1)
 
         // Extra safety check
         let max_idx = width * height - 1;
-        if idx00 > max_idx || idx10 > max_idx || idx01 > max_idx || idx11 > max_idx {
+        if idx_top_left > max_idx || idx_top_right > max_idx ||
+           idx_bottom_left > max_idx || idx_bottom_right > max_idx {
             // Fallback to nearest valid cell
             return data[y0.min(height - 1) * width + x0.min(width - 1)];
         }
 
-        let h00 = data[idx00];
-        let h10 = data[idx10];
-        let h01 = data[idx01];
-        let h11 = data[idx11];
+        let h_top_left = data[idx_top_left];
+        let h_top_right = data[idx_top_right];
+        let h_bottom_left = data[idx_bottom_left];
+        let h_bottom_right = data[idx_bottom_right];
 
-        // Bilinear interpolation
-        let h0 = h00 * (1.0 - fx) + h01 * fx;
-        let h1 = h10 * (1.0 - fx) + h11 * fx;
-        h0 * (1.0 - fy) + h1 * fy
+        // Bilinear interpolation: interpolate horizontally, then vertically
+        let h_top = lerp(h_top_left, h_top_right, fx);      // Top edge interpolation
+        let h_bottom = lerp(h_bottom_left, h_bottom_right, fx); // Bottom edge interpolation
+        lerp(h_top, h_bottom, fy)  // Final vertical interpolation
     }
 
     /// Thread-safe static version of calculate_gradient
@@ -528,7 +530,7 @@ impl ErosionSystem {
         }
 
         if iterations > 5 {
-            println!();
+            info!("");
         }
     }
 
@@ -579,10 +581,10 @@ impl ErosionSystem {
 pub fn apply_erosion_to_provinces(
     provinces: &mut [Province],
     dimensions: crate::resources::MapDimensions,
-    rng: StdRng,
+    rng: &mut StdRng,
     iterations: usize,
 ) {
-    println!("  Applying erosion simulation to terrain...");
+    info!("  Applying erosion simulation to terrain...");
 
     // Create heightmap from provinces - use much coarser grid for performance
     // Instead of dividing by 20, use a larger cell size based on world size
@@ -592,10 +594,18 @@ pub fn apply_erosion_to_provinces(
         _ => 200.0,                // Large worlds: 200 pixel cells
     };
 
-    let grid_width = (dimensions.width_pixels / cell_size).max(50.0) as usize;
-    let grid_height = (dimensions.height_pixels / cell_size).max(50.0) as usize;
+    // Apply safety limits to prevent memory bombs
+    const MIN_GRID_SIZE: f32 = 50.0;
+    const MAX_GRID_SIZE: f32 = 2000.0; // Max 2000x2000 = 4M cells (~16MB for f32 grid)
 
-    println!(
+    let grid_width = (dimensions.width_pixels / cell_size)
+        .max(MIN_GRID_SIZE)
+        .min(MAX_GRID_SIZE) as usize;
+    let grid_height = (dimensions.height_pixels / cell_size)
+        .max(MIN_GRID_SIZE)
+        .min(MAX_GRID_SIZE) as usize;
+
+    info!(
         "  Creating erosion heightmap: {}x{} grid (cell size: {})",
         grid_width, grid_height, cell_size
     );
@@ -612,8 +622,8 @@ pub fn apply_erosion_to_provinces(
         }
     }
 
-    let mut erosion = ErosionSystem::new(heightmap, rng);
-    erosion.erode(iterations);
+    let mut erosion = ErosionSystem::new(heightmap);
+    erosion.erode(rng, iterations);
     let eroded = erosion.get_heightmap();
 
     // Apply eroded elevations back to provinces
@@ -626,5 +636,5 @@ pub fn apply_erosion_to_provinces(
         province.elevation = Elevation::new(new_elevation);
     }
 
-    println!("  Erosion complete - terrain now has realistic valleys and drainage");
+    info!("  Erosion complete - terrain now has realistic valleys and drainage");
 }

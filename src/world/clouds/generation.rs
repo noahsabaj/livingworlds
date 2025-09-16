@@ -1,9 +1,10 @@
 //! Cloud generation for atmospheric effects
 
 use super::types::{CloudData, CloudLayer, CloudSystem};
+use crate::math::{random_11, random_range};
 use crate::resources::MapDimensions;
 use bevy::prelude::Vec2;
-use rand::{rngs::StdRng, Rng};
+use rand::rngs::StdRng;
 
 /// Builder for generating cloud systems following the builder pattern
 ///
@@ -87,20 +88,20 @@ fn generate_clouds_internal(rng: &mut StdRng, dimensions: &MapDimensions) -> Clo
             let base_y = (grid_y as f32 / grid_rows as f32 - 0.5) * map_height * 0.95;
 
             // Add random offset
-            let offset_x = (rng.gen::<f32>() - 0.5) * map_width * 0.1;
-            let offset_y = (rng.gen::<f32>() - 0.5) * map_height * 0.1;
+            let offset_x = random_11(rng) * map_width * 0.05;
+            let offset_y = random_11(rng) * map_height * 0.05;
 
             let position = Vec2::new(base_x + offset_x, base_y + offset_y);
 
             // Random size variation
-            let size = 100.0 + rng.gen::<f32>() * 200.0;
+            let size = random_range(rng, 100.0, 300.0);
 
             // Wind velocity based on layer
-            let wind_speed = speed_mult * (0.5 + rng.gen::<f32>() * 0.5);
+            let wind_speed = speed_mult * random_range(rng, 0.5, 1.0);
             let velocity = Vec2::new(wind_speed, 0.0);
 
             // Alpha variation
-            let alpha = base_alpha * (0.7 + rng.gen::<f32>() * 0.3);
+            let alpha = base_alpha * random_range(rng, 0.7, 1.0);
 
             all_clouds.push(CloudData {
                 position,
@@ -108,7 +109,7 @@ fn generate_clouds_internal(rng: &mut StdRng, dimensions: &MapDimensions) -> Clo
                 size,
                 alpha,
                 velocity,
-                texture_index: rng.gen::<usize>() % 5, // 5 textures per layer
+                texture_index: random_range(rng, 0, 5), // 5 textures per layer
             });
         }
     }

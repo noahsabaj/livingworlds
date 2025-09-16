@@ -4,7 +4,6 @@ use bevy::log::info;
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use crate::math::get_neighbor_positions;
 use crate::resources::MapDimensions;
 use super::super::rivers::RiverSystem;
 use super::super::terrain::TerrainType;
@@ -92,23 +91,16 @@ pub fn calculate(
         .enumerate()
         .map(|(idx, province)| {
             let base_agriculture = get_base_agriculture(province.terrain);
+            let water_dist = water_distances[idx].unwrap_or(MAX_WATER_DISTANCE);
             let water_bonus = calculate_water_bonus(
                 province,
                 &river_set,
                 &delta_set,
-                water_distances
-                    .get(&province.id)
-                    .copied()
-                    .unwrap_or(MAX_WATER_DISTANCE),
+                water_dist,
             );
 
             let agriculture = Agriculture::new(base_agriculture * water_bonus);
-            let fresh_water_distance = Distance::new(
-                water_distances
-                    .get(&province.id)
-                    .copied()
-                    .unwrap_or(MAX_WATER_DISTANCE),
-            );
+            let fresh_water_distance = Distance::new(water_dist);
 
             (idx, agriculture, fresh_water_distance)
         })
@@ -171,53 +163,41 @@ fn calculate_water_distances(
     provinces: &[Province],
     river_set: &HashSet<ProvinceId>,
     delta_set: &HashSet<ProvinceId>,
-    dimensions: &MapDimensions,
-) -> Result<HashMap<ProvinceId, f32>, AgricultureError> {
-    let mut grid_to_province: HashMap<(i32, i32), ProvinceId> = HashMap::new();
-    let mut province_to_grid: HashMap<ProvinceId, (i32, i32)> = HashMap::new();
-
-    for province in provinces {
-        let col = (province.id.value() % dimensions.provinces_per_row) as i32;
-        let row = (province.id.value() / dimensions.provinces_per_row) as i32;
-        grid_to_province.insert((col, row), province.id);
-        province_to_grid.insert(province.id, (col, row));
-    }
-
-    // Initialize BFS queue with all water sources
+    _dimensions: &MapDimensions,
+) -> Result<Vec<Option<f32>>, AgricultureError> {
+    // Use Vec for O(1) indexed access instead of HashMap!
+    let mut distances: Vec<Option<f32>> = vec![None; provinces.len()];
     let mut queue = VecDeque::new();
-    let mut distances = HashMap::new();
 
     // Add all water sources to queue with distance 0
-    for province in provinces {
+    for (idx, province) in provinces.iter().enumerate() {
         if province.terrain == TerrainType::Ocean
             || province.terrain == TerrainType::River
             || river_set.contains(&province.id)
             || delta_set.contains(&province.id)
         {
-            queue.push_back((province.id, 0.0));
-            distances.insert(province.id, 0.0);
+            queue.push_back((idx, 0.0));
+            distances[idx] = Some(0.0);
         }
     }
 
-    // BFS to calculate distances
-    while let Some((current_id, current_dist)) = queue.pop_front() {
+    // BFS using direct array indexing - no HashMap operations!
+    while let Some((current_idx, current_dist)) = queue.pop_front() {
         // Stop if we've reached maximum distance
         if current_dist >= MAX_WATER_DISTANCE {
             continue;
         }
 
-        let (col, row) = province_to_grid
-            .get(&current_id)
-            .ok_or_else(|| AgricultureError::InvalidProvinceId(current_id.value()))?;
+        let current_province = &provinces[current_idx];
 
-        for (neighbor_col, neighbor_row) in get_neighbor_positions(*col, *row, dimensions.hex_size)
-        {
-            if let Some(&neighbor_id) = grid_to_province.get(&(neighbor_col, neighbor_row)) {
-                // Only process if not already visited
-                if !distances.contains_key(&neighbor_id) {
+        // Use precomputed neighbor indices for O(1) access
+        for &neighbor_idx_opt in &current_province.neighbor_indices {
+            if let Some(neighbor_idx) = neighbor_idx_opt {
+                // Direct array check - no hashing!
+                if distances[neighbor_idx].is_none() {
                     let new_dist = current_dist + 1.0;
-                    distances.insert(neighbor_id, new_dist);
-                    queue.push_back((neighbor_id, new_dist));
+                    distances[neighbor_idx] = Some(new_dist);
+                    queue.push_back((neighbor_idx, new_dist));
                 }
             }
         }
