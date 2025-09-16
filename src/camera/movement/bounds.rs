@@ -21,7 +21,7 @@ pub fn calculate_camera_bounds(
     map_dimensions: Res<MapDimensions>,
     windows: Query<&Window, With<PrimaryWindow>>,
 ) {
-    let Ok(window) = windows.get_single() else {
+    let Ok(window) = windows.single() else {
         return;
     };
 
@@ -39,36 +39,22 @@ pub fn calculate_camera_bounds(
 pub fn apply_camera_bounds(
     mut query: Query<(&mut Transform, &mut CameraController, &Projection)>,
     bounds: Res<CameraBounds>,
-    windows: Query<&Window, With<PrimaryWindow>>,
-    map_dimensions: Res<MapDimensions>,
+    _windows: Query<&Window, With<PrimaryWindow>>,
+    _map_dimensions: Res<MapDimensions>,
 ) {
-    let Ok(window) = windows.get_single() else {
-        return;
-    };
+    for (mut transform, mut controller, _projection) in query.iter_mut() {
+        // Simple center-only constraints
+        // Allow camera center to go 50% beyond map edges for better panning when zoomed out
+        let margin_factor = 0.5;
+        let max_x = bounds.half_map_width * (1.0 + margin_factor);
+        let max_y = bounds.max_y * (1.0 + margin_factor);
 
-    for (mut transform, mut controller, projection) in query.iter_mut() {
-        let Projection::Orthographic(ortho) = projection else {
-            continue;
-        };
-
-        let visible_width = window.width() * ortho.scale;
-        let visible_height = window.height() * ortho.scale;
-
-        // Y-axis clamping with margin
-        let margin_factor = 0.3;
-        let max_y = (bounds.max_y - visible_height / 2.0
-            + map_dimensions.height_pixels * margin_factor)
-            .max(0.0);
-
-        transform.translation.y = transform.translation.y.clamp(-max_y, max_y);
-        controller.target_position.y = controller.target_position.y.clamp(-max_y, max_y);
-
-        // X-axis clamping (same as Y-axis, no wrapping)
-        let max_x = (bounds.half_map_width - visible_width / 2.0
-            + map_dimensions.width_pixels * margin_factor)
-            .max(0.0);
-
+        // Clamp camera center position
         transform.translation.x = transform.translation.x.clamp(-max_x, max_x);
+        transform.translation.y = transform.translation.y.clamp(-max_y, max_y);
+
+        // Also clamp target position for smooth interpolation
         controller.target_position.x = controller.target_position.x.clamp(-max_x, max_x);
+        controller.target_position.y = controller.target_position.y.clamp(-max_y, max_y);
     }
 }
