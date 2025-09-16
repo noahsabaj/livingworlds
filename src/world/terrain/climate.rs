@@ -4,9 +4,10 @@
 //! rain shadows, and other climate phenomena to create realistic
 //! biome distributions based on physical principles.
 
-use crate::math::{euclidean_vec2, exponential_smooth, sin_cos, PI};
-use crate::world::TerrainType;
-use crate::world::{Elevation, Province};
+use crate::math::{euclidean_vec2, exponential_smooth, lerp, sin_cos, PI};
+use super::super::provinces::Province;
+use super::types::TerrainType;
+use bevy::log::{debug, info};
 use bevy::prelude::Vec2;
 use rayon::prelude::*;
 use std::collections::{HashMap, VecDeque};
@@ -136,7 +137,7 @@ impl ClimateSystem {
 
     /// Run full climate simulation
     pub fn simulate(&mut self, provinces: &[Province]) {
-        println!("  Starting climate simulation...");
+        info!("Starting climate simulation...");
 
         // Step 1: Calculate ocean distances
         self.calculate_ocean_distances(provinces);
@@ -156,12 +157,12 @@ impl ClimateSystem {
         // Step 6: Calculate final humidity
         self.calculate_humidity(provinces);
 
-        println!("  Climate simulation complete");
+        info!("Climate simulation complete");
     }
 
     /// Calculate distance to ocean for each province
     fn calculate_ocean_distances(&mut self, provinces: &[Province]) {
-        println!("    Calculating ocean distances...");
+        debug!("Calculating ocean distances...");
 
         // BFS from ocean provinces
         let mut queue = VecDeque::new();
@@ -182,7 +183,7 @@ impl ClimateSystem {
                 ocean_count += 1;
             }
         }
-        println!("      Found {} ocean provinces", ocean_count);
+        debug!("Found {} ocean provinces", ocean_count);
 
         // BFS to find ocean distances using pre-computed neighbors
         let mut processed = 0;
@@ -220,10 +221,7 @@ impl ClimateSystem {
             }
         }
 
-        println!(
-            "\r      Processed {} provinces for ocean distances",
-            processed
-        );
+        debug!("Processed {} provinces for ocean distances", processed);
 
         // Store distances in climate data
         for province in provinces {
@@ -239,7 +237,7 @@ impl ClimateSystem {
 
     /// Calculate temperature based on latitude and elevation (PARALLELIZED)
     fn calculate_temperatures(&mut self, provinces: &[Province]) {
-        println!("    Calculating temperatures...");
+        debug!("Calculating temperatures...");
 
         let temps: Vec<(u32, f32)> = provinces
             .par_iter()
@@ -254,8 +252,7 @@ impl ClimateSystem {
                     / (self.dimensions.bounds.y_max - self.dimensions.bounds.y_min);
 
                 let lat_from_equator = (latitude - 0.5).abs() * 2.0;
-                let base_temp =
-                    EQUATOR_TEMP * (1.0 - lat_from_equator) + POLE_TEMP * lat_from_equator;
+                let base_temp = lerp(EQUATOR_TEMP, POLE_TEMP, lat_from_equator);
 
                 // Apply elevation cooling
                 let elevation_m = province.elevation.value() * 5000.0;
@@ -284,7 +281,7 @@ impl ClimateSystem {
 
     /// Calculate prevailing wind patterns
     fn calculate_winds(&mut self, provinces: &[Province]) {
-        println!("    Calculating wind patterns...");
+        debug!("Calculating wind patterns...");
 
         for province in provinces {
             let climate = self
@@ -321,7 +318,7 @@ impl ClimateSystem {
 
     /// Propagate moisture from oceans inland
     fn propagate_moisture(&mut self, provinces: &[Province]) {
-        println!("    Propagating moisture from oceans...");
+        debug!("Propagating moisture from oceans...");
 
         let mut grid: HashMap<(i32, i32), Vec<usize>> = HashMap::new();
         let grid_size = self.dimensions.hex_size * 5.0;
@@ -338,7 +335,7 @@ impl ClimateSystem {
         const MOISTURE_ITERATIONS: usize = 3; // Reduced from 10
 
         for iteration in 0..MOISTURE_ITERATIONS {
-            println!(
+            info!(
                 "      Moisture propagation iteration {}/{}",
                 iteration + 1,
                 MOISTURE_ITERATIONS
@@ -409,15 +406,15 @@ impl ClimateSystem {
                     );
                 }
             }
-            println!(); // New line after progress
+            info!(""); // New line after progress
         }
 
-        println!("      Moisture propagation complete");
+        info!("      Moisture propagation complete");
     }
 
     /// Apply rain shadow effects from mountains (PARALLELIZED)
     fn apply_rain_shadows(&mut self, provinces: &[Province]) {
-        println!("    Applying rain shadow effects...");
+        info!("    Applying rain shadow effects...");
 
         let mut spatial_grid: HashMap<(i32, i32), Vec<usize>> = HashMap::new();
         let grid_size = self.dimensions.hex_size * 2.0;
@@ -472,12 +469,12 @@ impl ClimateSystem {
             }
         }
 
-        println!("      Applied rain shadow to {} provinces", shadow_count);
+        debug!("Applied rain shadow to {} provinces", shadow_count);
     }
 
     /// Calculate humidity from rainfall and temperature (PARALLELIZED)
     fn calculate_humidity(&mut self, provinces: &[Province]) {
-        println!("    Calculating humidity levels...");
+        info!("    Calculating humidity levels...");
 
         let humidity_values: Vec<(u32, f32, f32)> = provinces
             .par_iter()
@@ -605,17 +602,19 @@ pub fn apply_climate_to_provinces(
     climate_system.simulate(provinces);
 
     // Apply climate results to provinces by setting terrain types based on biomes
-    for (i, province) in provinces.iter_mut().enumerate() {
+    for (_i, province) in provinces.iter_mut().enumerate() {
         let biome = climate_system.get_biome(province.id.value(), province.elevation.value());
-        // Update terrain based on biome if not already set by other systems
-        if province.terrain == crate::world::TerrainType::Ocean {
+        // Update terrain based on biome for land provinces only (preserve Ocean/River/Beach)
+        if province.terrain != crate::world::TerrainType::Ocean
+            && province.terrain != crate::world::TerrainType::River
+            && province.terrain != crate::world::TerrainType::Beach {
             province.terrain = biome_to_terrain(biome, province.elevation.value());
         }
     }
 }
 
 fn biome_to_terrain(biome: Biome, elevation: f32) -> crate::world::TerrainType {
-    use crate::world::TerrainType;
+    use super::types::TerrainType;
     match biome {
         // Polar biomes
         Biome::PolarDesert => TerrainType::PolarDesert,

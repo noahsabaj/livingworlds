@@ -29,7 +29,7 @@ use crate::math::{
     INDICES_PER_HEX as INDICES_PER_HEXAGON, TRIANGLES_PER_HEX as TRIANGLES_PER_HEXAGON,
     VERTICES_PER_HEX as VERTICES_PER_HEXAGON,
 };
-use crate::world::colors::WorldColors;
+use crate::world::WorldColors;
 use crate::world::{Province, ProvinceId};
 
 /// Minimum number of provinces to trigger parallel processing
@@ -153,12 +153,14 @@ impl ProvinceStorage {
 /// Mesh builder with configuration options
 pub struct MeshBuilder {
     geometry: HexagonGeometry,
+    world_seed: u32,
 }
 
 impl Default for MeshBuilder {
     fn default() -> Self {
         Self {
             geometry: HexagonGeometry::new(HEX_SIZE_PIXELS),
+            world_seed: 0, // Default seed - should be overridden by with_seed()
         }
     }
 }
@@ -167,7 +169,13 @@ impl MeshBuilder {
     pub fn new(hex_size: f32) -> Self {
         Self {
             geometry: HexagonGeometry::new(hex_size),
+            world_seed: 0, // Default seed - should be overridden by with_seed()
         }
+    }
+
+    pub fn with_seed(mut self, seed: u32) -> Self {
+        self.world_seed = seed;
+        self
     }
 
     pub fn build(
@@ -270,12 +278,14 @@ impl MeshBuilder {
                     }
 
                     // Generate colors
-                    let world_colors = WorldColors::new(0);
+                    let world_colors = WorldColors::new(self.world_seed);
                     let color = world_colors.terrain(
                         province.terrain,
                         province.elevation.value(),
-                        Vec2::ZERO,
+                        province.position,
                     );
+
+                    // Use proper linear sRGB conversion as per Bevy 0.16 docs
                     let rgba = color.to_linear().to_f32_array();
                     for _ in 0..VERTICES_PER_HEXAGON {
                         chunk_colors.push(rgba);
@@ -325,9 +335,10 @@ impl MeshBuilder {
             }
 
             // Generate colors
-            let world_colors = WorldColors::new(0);
+            let world_colors = WorldColors::new(self.world_seed);
             let color =
-                world_colors.terrain(province.terrain, province.elevation.value(), Vec2::ZERO);
+                world_colors.terrain(province.terrain, province.elevation.value(), province.position);
+            // Use proper linear sRGB conversion as per Bevy 0.16 docs
             let rgba = color.to_linear().to_f32_array();
             for _ in 0..VERTICES_PER_HEXAGON {
                 colors.push(rgba);
@@ -349,8 +360,8 @@ impl MeshBuilder {
     }
 }
 
-pub fn build_world_mesh(provinces: &[Province], meshes: &mut Assets<Mesh>) -> Handle<Mesh> {
-    match MeshBuilder::default().build(provinces, meshes) {
+pub fn build_world_mesh(provinces: &[Province], meshes: &mut Assets<Mesh>, world_seed: u32) -> Handle<Mesh> {
+    match MeshBuilder::default().with_seed(world_seed).build(provinces, meshes) {
         Ok((handle, _stats)) => handle,
         Err(e) => {
             error!("Failed to build world mesh: {}", e);

@@ -8,7 +8,7 @@ use super::minerals::{
     combined_richness_color, infrastructure_level_color, mineral_abundance_color,
 };
 use super::terrain::get_terrain_color;
-use super::utils::{position_hash, SafeColor};
+use super::utils::position_hash;
 use crate::components::MineralType;
 use crate::world::TerrainType;
 use bevy::prelude::{Color, Vec2};
@@ -36,13 +36,28 @@ impl ColorProvider for StandardColorProvider {
     fn terrain_color(&self, terrain: TerrainType, elevation: f32, world_pos: Vec2) -> Color {
         let base = get_terrain_color(terrain, elevation);
 
-        // Add position-based variation for organic look
-        let variation = position_hash(world_pos.x, world_pos.y, self.seed) * 0.02;
-        let r = (base.to_srgba().red + variation).clamp(0.0, 1.0);
-        let g = (base.to_srgba().green + variation).clamp(0.0, 1.0);
-        let b = (base.to_srgba().blue + variation).clamp(0.0, 1.0);
+        // Skip color variation for water tiles - they should be uniform
+        if matches!(terrain, TerrainType::Ocean | TerrainType::River) {
+            return base;
+        }
 
-        SafeColor::srgb(r, g, b)
+        // Use HSL color space for natural variation that avoids RGB ceiling artifacts
+        // This prevents blue channel from hitting 1.0 while red/green keep growing
+        let base_srgba = base.to_srgba();
+        let base_hsl = bevy::color::Hsla::from(base_srgba);
+
+        // Apply very subtle lightness variation only (preserves hue and saturation)
+        let lightness_variation = position_hash(world_pos.x, world_pos.y, self.seed) * 0.005; // ±0.5%
+        let new_lightness = (base_hsl.lightness + lightness_variation).clamp(0.0, 1.0);
+
+        let varied_hsl = bevy::color::Hsla::new(
+            base_hsl.hue,
+            base_hsl.saturation,
+            new_lightness,
+            base_hsl.alpha
+        );
+
+        Color::from(varied_hsl)
     }
 
     fn mineral_abundance_color(&self, abundance: u8) -> Color {
