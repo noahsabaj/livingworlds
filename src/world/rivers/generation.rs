@@ -4,7 +4,7 @@ use bevy::log::info;
 use bevy::prelude::Vec2;
 use rand::{rngs::StdRng, seq::SliceRandom, Rng};
 use rayon::prelude::*;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use crate::constants::*;
 use crate::math::get_neighbor_positions;
@@ -107,17 +107,24 @@ fn apply_terrain_if_not_ocean(province: &mut Province, terrain: TerrainType) {
     }
 }
 
-/// Build spatial index for O(1) province lookups by grid position
-fn build_spatial_index<'a>(
-    provinces: &'a [Province],
-    dimensions: &MapDimensions,
-) -> HashMap<(i32, i32), &'a Province> {
-    let mut position_to_province = HashMap::new();
-    for province in provinces.iter() {
-        let (col, row) = id_to_grid_coords(province.id, dimensions.provinces_per_row);
-        position_to_province.insert((col, row), province);
+/// Get province at grid position using direct array indexing (no HashMap needed)
+#[inline]
+fn get_province_at_grid(provinces: &[Province], col: i32, row: i32, provinces_per_row: u32) -> Option<&Province> {
+    // Bounds check
+    if col < 0 || row < 0 {
+        return None;
     }
-    position_to_province
+
+    // Calculate province ID from grid coordinates (sequential IDs)
+    let province_id = (row as u32) * provinces_per_row + (col as u32);
+    let province_idx = province_id as usize;
+
+    // Direct array access (O(1) with no HashMap overhead)
+    if province_idx < provinces.len() {
+        Some(&provinces[province_idx])
+    } else {
+        None
+    }
 }
 
 /// Find potential river sources from mountains and high hills
@@ -155,10 +162,10 @@ fn find_river_sources(
     Ok(potential_sources)
 }
 
-/// Trace a single river from source to ocean
+/// Trace a single river from source to ocean using direct array indexing
 fn trace_river_path(
     source_id: ProvinceId,
-    position_to_province: &HashMap<(i32, i32), &Province>,
+    provinces: &[Province],
     dimensions: &MapDimensions,
     rng_seed: u64,
 ) -> (Vec<ProvinceId>, Vec<ProvinceId>, f32) {
@@ -180,11 +187,11 @@ fn trace_river_path(
             id_to_grid_coords(current_id, dimensions.provinces_per_row);
         let neighbors = get_neighbor_positions(current_col, current_row, dimensions.hex_size);
 
-        // Collect valid unvisited neighbors
+        // Collect valid unvisited neighbors using direct array access
         let mut valid_neighbors: Vec<(&Province, (i32, i32))> = Vec::new();
 
         for (neighbor_col, neighbor_row) in neighbors {
-            if let Some(province) = position_to_province.get(&(neighbor_col, neighbor_row)) {
+            if let Some(province) = get_province_at_grid(provinces, neighbor_col, neighbor_row, dimensions.provinces_per_row) {
                 if visited.contains(&(neighbor_col, neighbor_row)) {
                     continue;
                 }
@@ -233,32 +240,26 @@ fn trace_river_path(
     (river_path, delta_tiles, flow)
 }
 
-/// Apply terrain changes based on river flow
+/// Apply terrain changes based on river flow using direct array indexing
 fn apply_terrain_changes(
     provinces: &mut [Province],
     river_tiles: &[ProvinceId],
     delta_tiles: &[ProvinceId],
-    flow_accumulation: &HashMap<u32, f32>,
+    flow_accumulation: &[f32],  // Now a Vec indexed by province ID
 ) {
-    let mut province_id_to_idx: HashMap<u32, usize> = HashMap::new();
-    for (idx, province) in provinces.iter().enumerate() {
-        province_id_to_idx.insert(province.id.value(), idx);
-    }
-
-    // First pass: Apply base river terrain
-    for (province_id, flow) in flow_accumulation {
+    // First pass: Apply base river terrain using direct indexing
+    for (province_idx, flow) in flow_accumulation.iter().enumerate() {
         if *flow > MIN_VISIBLE_FLOW {
-            if let Some(&idx) = province_id_to_idx.get(province_id) {
-                apply_terrain_if_not_ocean(&mut provinces[idx], TerrainType::River);
-            }
+            // Direct array access - no HashMap needed!
+            apply_terrain_if_not_ocean(&mut provinces[province_idx], TerrainType::River);
         }
     }
 
     // Second pass: No widening - single-tile rivers look best on hex grids
     // Previous attempts at widening created visual artifacts due to hex grid offset patterns
 
-    // Generate branching deltas instead of just marking single tiles
-    generate_delta_branches(delta_tiles, provinces, &province_id_to_idx, flow_accumulation);
+    // Generate branching deltas
+    generate_delta_branches(delta_tiles, provinces, flow_accumulation);
 }
 
 /// Internal river generation implementation
@@ -281,7 +282,7 @@ fn generate_rivers_internal(
         ));
     }
 
-    let position_to_province = build_spatial_index(provinces, &dimensions);
+    // No spatial index needed - we'll use direct array indexing
 
     let potential_sources = find_river_sources(provinces, min_elevation)?;
 
@@ -301,44 +302,47 @@ fn generate_rivers_internal(
 
     let base_seed = rng.r#gen::<u64>();
 
-    // Trace rivers in parallel for better performance
-    let river_results: Vec<(Vec<ProvinceId>, Vec<ProvinceId>, HashMap<u32, f32>)> =
+    // Trace rivers in parallel for better performance using direct indexing
+    let river_results: Vec<(Vec<ProvinceId>, Vec<ProvinceId>, Vec<(u32, f32)>)> =
         selected_sources
             .par_iter()
             .map(|(source_id, _source_pos, _elevation)| {
                 let (river_path, delta_tiles, flow) =
-                    trace_river_path(*source_id, &position_to_province, &dimensions, base_seed);
+                    trace_river_path(*source_id, provinces, &dimensions, base_seed);
 
-                let mut river_flow_map = HashMap::new();
+                // Build flow list without HashMap overhead
+                let mut river_flow_list = Vec::new();
                 for &tile_id in &river_path {
-                    *river_flow_map.entry(tile_id.value()).or_insert(0.0) += flow;
+                    river_flow_list.push((tile_id.value(), flow));
                 }
 
-                (river_path, delta_tiles, river_flow_map)
+                (river_path, delta_tiles, river_flow_list)
             })
             .collect();
 
-    // Merge results from parallel execution
+    // Merge results from parallel execution into Vec for O(1) access
     let mut all_river_tiles = Vec::new();
     let mut all_delta_tiles = Vec::new();
-    let mut flow_accumulation: HashMap<u32, f32> = HashMap::new();
+    let mut flow_accumulation_vec = vec![0.0; provinces.len()];  // Direct indexing!
 
-    for (river_path, delta_tiles, river_flow) in river_results {
+    for (river_path, delta_tiles, river_flow_list) in river_results {
         all_river_tiles.extend(river_path);
         all_delta_tiles.extend(delta_tiles);
 
-        // Merge flow accumulation maps
-        for (tile_id, flow) in river_flow {
-            *flow_accumulation.entry(tile_id).or_insert(0.0) += flow;
+        // Accumulate flow using direct array indexing
+        for (tile_id, flow) in river_flow_list {
+            if (tile_id as usize) < provinces.len() {
+                flow_accumulation_vec[tile_id as usize] += flow;
+            }
         }
     }
 
-    // Apply terrain changes based on flow
+    // Apply terrain changes based on flow using Vec
     apply_terrain_changes(
         provinces,
         &all_river_tiles,
         &all_delta_tiles,
-        &flow_accumulation,
+        &flow_accumulation_vec,
     );
 
     info!(
@@ -348,13 +352,7 @@ fn generate_rivers_internal(
         all_delta_tiles.len()
     );
 
-    // Convert HashMap to Vec indexed by province ID
-    let mut flow_accumulation_vec = vec![0.0; provinces.len()];
-    for (province_id, flow) in flow_accumulation {
-        if (province_id as usize) < provinces.len() {
-            flow_accumulation_vec[province_id as usize] = flow;
-        }
-    }
+    // Flow accumulation is already a Vec - no conversion needed!
 
     Ok(RiverSystem {
         river_tiles: all_river_tiles.into_iter().map(|id| id.value()).collect(),
@@ -369,13 +367,15 @@ fn generate_rivers_internal(
 fn generate_delta_branches(
     delta_tiles: &[ProvinceId],
     provinces: &mut [Province],
-    province_id_to_idx: &HashMap<u32, usize>,
-    flow_accumulation: &HashMap<u32, f32>,
+    flow_accumulation: &[f32],  // Now a Vec indexed by province ID
 ) {
     for &delta_id in delta_tiles {
-        if let Some(&delta_idx) = province_id_to_idx.get(&delta_id.value()) {
-            // Get flow at delta point
-            let flow = flow_accumulation.get(&delta_id.value()).copied().unwrap_or(1.0);
+        let delta_idx = delta_id.value() as usize;
+
+        // Bounds check and direct array access
+        if delta_idx < provinces.len() && delta_idx < flow_accumulation.len() {
+            // Get flow at delta point with direct indexing
+            let flow = flow_accumulation[delta_idx].max(1.0);
 
             // Number of distributary channels based on flow
             let num_branches = if flow > 10.0 {
@@ -391,7 +391,6 @@ fn generate_delta_branches(
                 delta_idx,
                 num_branches,
                 provinces,
-                province_id_to_idx,
             );
         }
     }
@@ -402,7 +401,6 @@ fn create_delta_distributaries(
     delta_idx: usize,
     num_branches: usize,
     provinces: &mut [Province],
-    province_id_to_idx: &HashMap<u32, usize>,
 ) {
     let provinces_per_row = (provinces.len() as f32).sqrt() as u32;
 
@@ -434,7 +432,8 @@ fn create_delta_distributaries(
         }
         let neighbor_id = (*neighbor_row as u32) * provinces_per_row + (*neighbor_col as u32);
 
-        if let Some(&neighbor_idx) = province_id_to_idx.get(&neighbor_id) {
+        let neighbor_idx = neighbor_id as usize;
+        if neighbor_idx < provinces.len() {
             // Extract needed values before potential mutation
             let neighbor_terrain = provinces[neighbor_idx].terrain;
             let neighbor_elevation = provinces[neighbor_idx].elevation.value();
@@ -448,7 +447,6 @@ fn create_delta_distributaries(
                     neighbor_idx,
                     3,  // Max length of 3 tiles
                     provinces,
-                    province_id_to_idx,
                     provinces_per_row,
                 );
 
@@ -463,7 +461,6 @@ fn create_distributary_channel(
     start_idx: usize,
     max_length: usize,
     provinces: &mut [Province],
-    province_id_to_idx: &HashMap<u32, usize>,
     provinces_per_row: u32,
 ) {
     let mut current_idx = start_idx;
@@ -501,7 +498,8 @@ fn create_distributary_channel(
                 continue;
             }
 
-            if let Some(&neighbor_idx) = province_id_to_idx.get(&neighbor_id) {
+            let neighbor_idx = neighbor_id as usize;
+        if neighbor_idx < provinces.len() {
                 let neighbor_province = &provinces[neighbor_idx];
 
                 // Prefer ocean tiles, then lower elevation
