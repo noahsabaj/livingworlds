@@ -5,7 +5,7 @@
 
 use crate::components::MineralType;
 use crate::constants::PROVINCE_MIN_POPULATION;
-use crate::world::TerrainType;
+use super::super::terrain::TerrainType;
 use bevy::prelude::*;
 use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
@@ -373,15 +373,13 @@ impl Province {
     /// Check if this province has fresh water access
     pub fn has_fresh_water(&self) -> bool {
         self.terrain == TerrainType::River
-            || self.terrain == TerrainType::Delta
             || self.fresh_water_distance.within(2.0)
     }
 
     /// Calculate population growth multiplier based on terrain and resources
     pub fn growth_multiplier(&self) -> f32 {
         let base = match self.terrain {
-            TerrainType::Delta => 3.0,
-            TerrainType::River => 2.0,
+            TerrainType::River => 2.5,
             TerrainType::TropicalRainforest | TerrainType::TemperateRainforest => 1.5,
             TerrainType::TemperateGrassland | TerrainType::Savanna => 1.2,
             TerrainType::Ocean => 0.0,
@@ -411,67 +409,5 @@ impl Province {
         } else {
             None
         }
-    }
-}
-
-/// Builder for creating provinces with a fluent API
-pub struct ProvinceBuilder {
-    province: Province,
-}
-
-impl ProvinceBuilder {
-    pub fn new(id: ProvinceId) -> Self {
-        Self {
-            province: Province {
-                id,
-                ..Default::default()
-            },
-        }
-    }
-
-    pub fn position(mut self, position: Vec2) -> Self {
-        self.province.position = position;
-        self
-    }
-
-    pub fn terrain(mut self, terrain: TerrainType) -> Self {
-        self.province.terrain = terrain;
-        self
-    }
-
-    pub fn elevation(mut self, elevation: f32) -> Self {
-        self.province.elevation = Elevation::new(elevation);
-        self
-    }
-
-    pub fn agriculture(mut self, agriculture: f32) -> Self {
-        self.province.agriculture = Agriculture::new(agriculture);
-        self
-    }
-
-    pub fn population(mut self, population: u32) -> Self {
-        self.province.population = population;
-        self
-    }
-
-    pub fn max_population(mut self, max_population: u32) -> Self {
-        self.province.max_population = max_population;
-        self
-    }
-
-    /// Set a neighbor in the given direction
-    pub fn neighbor(mut self, direction: HexDirection, neighbor: ProvinceId) -> Self {
-        self.province.neighbors[direction as usize] = Some(neighbor);
-        self
-    }
-
-    /// Set all neighbors at once
-    pub fn neighbors(mut self, neighbors: [Option<ProvinceId>; 6]) -> Self {
-        self.province.neighbors = neighbors;
-        self
-    }
-
-    pub fn build(self) -> Province {
-        self.province
     }
 }

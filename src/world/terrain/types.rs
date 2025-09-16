@@ -3,7 +3,8 @@
 //! This module defines terrain types and classification logic.
 //! Elevation generation has been moved to generation/elevation.rs
 
-use crate::constants::*;
+#![allow(dead_code)] // Preserve utility functions for future use
+
 use bevy::prelude::*;
 
 /// Marker component for the main terrain/world mesh entity
@@ -31,7 +32,6 @@ pub enum TerrainType {
     Ocean, // Deep water
     Beach, // Coastal areas
     River, // River tiles
-    Delta, // River deltas (very fertile)
 
     // Polar biomes
     PolarDesert, // Extremely cold and dry
@@ -103,7 +103,7 @@ pub fn classify_terrain_with_climate(
 
 pub fn classify_terrain_with_sea_level(
     elevation: f32,
-    x: f32,
+    _x: f32,
     y: f32,
     map_height: f32,
     sea_level: f32,
@@ -177,24 +177,6 @@ pub fn classify_terrain_with_sea_level(
     }
 }
 
-/// Simple terrain classification without climate considerations
-fn classify_terrain_with_sea_level_simple(elevation: f32, sea_level: f32) -> TerrainType {
-    // NOTE: This is deprecated - use biome_to_terrain instead
-    if elevation < sea_level {
-        TerrainType::Ocean
-    } else if elevation < sea_level + 0.02 {
-        TerrainType::Beach
-    } else if elevation < sea_level + 0.25 {
-        TerrainType::TemperateGrassland
-    } else if elevation < sea_level + 0.5 {
-        TerrainType::TemperateDeciduousForest
-    } else if elevation < sea_level + 0.65 {
-        TerrainType::TemperateRainforest
-    } else {
-        TerrainType::Alpine
-    }
-}
-
 /// Get terrain population multiplier - uses centralized properties
 pub fn get_terrain_population_multiplier(terrain: TerrainType) -> f32 {
     terrain.properties().population_multiplier
@@ -263,7 +245,7 @@ impl TerrainType {
     /// Get ALL properties for this terrain type in one place!
     /// This is the SINGLE SOURCE OF TRUTH for terrain properties.
     pub fn properties(&self) -> TerrainProperties {
-        use crate::constants::*; // For agriculture constants
+        // For agriculture constants
 
         match self {
             // Water features
@@ -296,17 +278,6 @@ impl TerrainType {
                 extraction_difficulty: 1.0,
                 agriculture_base: 2.0, // RIVER_BASE_AGRICULTURE
                 is_water: true,
-                is_desert: false,
-                is_forest: false,
-                allows_rivers: true,
-            },
-            TerrainType::Delta => TerrainProperties {
-                population_multiplier: 3.0,
-                max_population_capacity: 50_000,
-                stone_abundance: 25,
-                extraction_difficulty: 1.0,
-                agriculture_base: 3.0, // DELTA_BASE_AGRICULTURE
-                is_water: false,
                 is_desert: false,
                 is_forest: false,
                 allows_rivers: true,

@@ -32,7 +32,6 @@ impl TerrainColorPalettes {
             TerrainType::Ocean,
             TerrainType::Beach,
             TerrainType::River,
-            TerrainType::Delta,
             // Polar biomes
             TerrainType::PolarDesert,
             TerrainType::Tundra,
@@ -102,7 +101,6 @@ pub(super) fn compute_terrain_color(terrain: TerrainType, elevation: f32) -> Col
             SafeColor::srgb(0.9 + sand_var * 0.5, 0.85 + sand_var * 0.5, 0.65 + sand_var)
         }
         TerrainType::River => theme::RIVER,
-        TerrainType::Delta => theme::DELTA,
 
         // Polar biomes
         TerrainType::PolarDesert => {

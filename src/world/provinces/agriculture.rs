@@ -1,18 +1,16 @@
 //! Agriculture and fresh water distance calculation
 
 use bevy::log::info;
-use bevy::prelude::Vec2;
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use crate::math::get_neighbor_positions;
 use crate::resources::MapDimensions;
-use crate::world::RiverSystem;
-use crate::world::TerrainType;
-use crate::world::{Agriculture, Distance, Elevation, Province, ProvinceId};
+use super::super::rivers::RiverSystem;
+use super::super::terrain::TerrainType;
+use super::{Agriculture, Distance, Province, ProvinceId};
 
 // Agriculture base values by terrain type
-const DELTA_BASE_AGRICULTURE: f32 = 3.0; // River deltas are extremely fertile
 const RIVER_BASE_AGRICULTURE: f32 = 2.5; // River tiles are very fertile
 const PLAINS_BASE_AGRICULTURE: f32 = 1.0; // Good farmland
 const FOREST_BASE_AGRICULTURE: f32 = 0.8; // Can be cleared for farming
@@ -149,7 +147,6 @@ fn calculate_water_bonus(
 ) -> f32 {
     // Special handling for water terrain - they don't get extra bonus
     if province.terrain == TerrainType::River
-        || province.terrain == TerrainType::Delta
         || province.terrain == TerrainType::Ocean
     {
         return 1.0; // Base agriculture already accounts for water
@@ -194,7 +191,6 @@ fn calculate_water_distances(
     for province in provinces {
         if province.terrain == TerrainType::Ocean
             || province.terrain == TerrainType::River
-            || province.terrain == TerrainType::Delta
             || river_set.contains(&province.id)
             || delta_set.contains(&province.id)
         {
@@ -237,8 +233,8 @@ mod tests {
     #[test]
     fn test_base_agriculture_values() {
         assert_eq!(
-            get_base_agriculture(TerrainType::Delta),
-            DELTA_BASE_AGRICULTURE
+            get_base_agriculture(TerrainType::River),
+            RIVER_BASE_AGRICULTURE
         );
         assert_eq!(
             get_base_agriculture(TerrainType::River),

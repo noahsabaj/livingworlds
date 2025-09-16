@@ -9,7 +9,7 @@ use crate::components::MineralType;
 use crate::math::VERTICES_PER_HEX;
 use crate::world::minerals::calculate_total_richness;
 use crate::world::{Province, ProvinceStorage, StoneAbundance, TerrainType, WorldColors};
-use bevy::log::{debug, info, trace};
+use bevy::log::{debug, info};
 use bevy::prelude::*;
 use rayon::prelude::*;
 use std::collections::HashMap;
@@ -25,7 +25,7 @@ pub struct CachedOverlayColors {
     pub current_type: MapMode,
     /// LRU cache with Arc for zero-copy retrieval
     pub cache: HashMap<MapMode, Arc<Vec<[f32; 4]>>>,
-    /// Maximum cache entries (default: 4 for common modes)
+    /// Maximum cache entries (increased to 10 for smoother switching)
     pub max_cache_size: usize,
 }
 
@@ -35,7 +35,7 @@ impl Default for CachedOverlayColors {
             current: Arc::new(Vec::new()),
             current_type: MapMode::Terrain,
             cache: HashMap::new(),
-            max_cache_size: 4, // Keep current + 3 recent overlays
+            max_cache_size: 10, // Increased to keep more overlays in memory
         }
     }
 }
@@ -47,6 +47,7 @@ impl CachedOverlayColors {
         &mut self,
         mode: MapMode,
         province_storage: &ProvinceStorage,
+        world_seed: u32,
     ) -> Arc<Vec<[f32; 4]>> {
         // If requesting current overlay, return Arc clone (just increments refcount)
         if mode == self.current_type {
@@ -68,7 +69,7 @@ impl CachedOverlayColors {
         let start = std::time::Instant::now();
 
         // Calculate colors in parallel for better performance
-        let colors = Arc::new(self.calculate_colors_parallel(mode, province_storage));
+        let colors = Arc::new(self.calculate_colors_parallel(mode, province_storage, world_seed));
 
         debug!(
             "Calculated {} overlay in {:.2}ms ({} vertices, {:.1}MB)",
@@ -109,33 +110,42 @@ impl CachedOverlayColors {
         &self,
         mode: MapMode,
         province_storage: &ProvinceStorage,
+        world_seed: u32,
     ) -> Vec<[f32; 4]> {
-        let world_colors = WorldColors::new(0); // Seed doesn't matter for these calculations
+        // Use actual world seed for deterministic color generation
+        let world_colors = WorldColors::new(world_seed);
 
-        // Pre-calculate ocean color to avoid redundant calculations
-        let ocean_color = world_colors.terrain(TerrainType::Ocean, 0.0, Vec2::ZERO);
-        let ocean_linear = ocean_color.to_linear().to_f32_array();
+        // Pre-allocate exact size to avoid reallocations
+        let total_vertices = province_storage.provinces.len() * VERTICES_PER_HEX;
+        let mut colors = Vec::with_capacity(total_vertices);
+
+        // Convert to LinearRgba and use its to_f32_array() method like Bevy examples
+        use bevy::color::LinearRgba;
 
         // Process provinces in parallel chunks for 4-8x speedup
-        let colors: Vec<[f32; 4]> = province_storage
+        let chunk_colors: Vec<Vec<[f32; 4]>> = province_storage
             .provinces
-            .par_chunks(5000) // Optimal chunk size for cache locality
-            .flat_map(|chunk| {
-                chunk
-                    .iter()
-                    .flat_map(|province| {
-                        // Fast path for ocean tiles
-                        if province.terrain == TerrainType::Ocean {
-                            return vec![ocean_linear; VERTICES_PER_HEX];
-                        }
+            .par_chunks(10000) // Increased chunk size for better CPU utilization
+            .map(|chunk| {
+                let mut chunk_colors = Vec::with_capacity(chunk.len() * VERTICES_PER_HEX);
+                for province in chunk {
+                    // Calculate color for each province individually (no fast path shortcuts)
+                    let color = self.calculate_province_color(mode, province, &world_colors);
+                    let color_array = LinearRgba::from(color).to_f32_array();
 
-                        let color = self.calculate_province_color(mode, province, &world_colors);
-                        let linear = color.to_linear().to_f32_array();
-                        vec![linear; VERTICES_PER_HEX]
-                    })
-                    .collect::<Vec<_>>()
+                    // Unroll loop for better performance
+                    for _ in 0..VERTICES_PER_HEX {
+                        chunk_colors.push(color_array);
+                    }
+                }
+                chunk_colors
             })
             .collect();
+
+        // Combine chunks efficiently
+        for chunk in chunk_colors {
+            colors.extend(chunk);
+        }
 
         colors
     }
@@ -148,9 +158,9 @@ impl CachedOverlayColors {
         world_colors: &WorldColors,
     ) -> Color {
         match mode {
-            // Terrain mode - natural terrain colors
+            // Terrain mode - natural terrain colors with proper position for variation
             MapMode::Terrain => {
-                world_colors.terrain(province.terrain, province.elevation.value(), Vec2::ZERO)
+                world_colors.terrain(province.terrain, province.elevation.value(), province.position)
             }
 
             // Political mode - nation colors (placeholder for now)
@@ -165,7 +175,7 @@ impl CachedOverlayColors {
             MapMode::Climate => {
                 // TODO: Implement climate zones when climate system is ready
                 // For now, use terrain colors as placeholder
-                world_colors.terrain(province.terrain, province.elevation.value(), Vec2::ZERO)
+                world_colors.terrain(province.terrain, province.elevation.value(), province.position)
             }
 
             // Population density heat map
@@ -184,17 +194,17 @@ impl CachedOverlayColors {
             // River systems
             MapMode::Rivers => {
                 // Check if this is a river or delta terrain type
-                if matches!(province.terrain, TerrainType::River | TerrainType::Delta) {
+                if matches!(province.terrain, TerrainType::River) {
                     Color::srgb(0.0, 0.3, 0.8)
                 } else {
-                    world_colors.terrain(province.terrain, province.elevation.value(), Vec2::ZERO)
+                    world_colors.terrain(province.terrain, province.elevation.value(), province.position)
                 }
             }
 
             // Infrastructure development
             MapMode::Infrastructure => {
                 // TODO: Implement when infrastructure system is ready
-                world_colors.terrain(province.terrain, province.elevation.value(), Vec2::ZERO)
+                world_colors.terrain(province.terrain, province.elevation.value(), province.position)
             }
 
             // Mineral-specific modes
@@ -216,11 +226,11 @@ impl CachedOverlayColors {
                         world_colors.terrain(
                             province.terrain,
                             province.elevation.value(),
-                            Vec2::ZERO,
+                            province.position,
                         )
                     }
                 } else {
-                    world_colors.terrain(province.terrain, province.elevation.value(), Vec2::ZERO)
+                    world_colors.terrain(province.terrain, province.elevation.value(), province.position)
                 }
             }
 
@@ -233,8 +243,20 @@ impl CachedOverlayColors {
     }
 
     /// Pre-calculate common overlays for instant switching
-    pub fn pre_calculate_common_modes(&mut self, province_storage: &ProvinceStorage) {
-        let modes = vec![MapMode::Political, MapMode::Climate];
+    pub fn pre_calculate_common_modes(&mut self, province_storage: &ProvinceStorage, world_seed: u32) {
+        // Pre-calculate ALL frequently used modes during loading
+        // This uses more memory but eliminates lag when switching
+        let modes = vec![
+            MapMode::Political,
+            MapMode::Climate,
+            MapMode::Population,
+            MapMode::Agriculture,
+            MapMode::Rivers,
+            MapMode::AllMinerals,
+            // Add individual minerals too if memory allows
+            MapMode::MineralIron,
+            MapMode::MineralGold,
+        ];
 
         info!("Pre-calculating {} common map modes", modes.len());
         let start = std::time::Instant::now();
@@ -243,7 +265,7 @@ impl CachedOverlayColors {
         let pre_calculated: Vec<_> = modes
             .par_iter()
             .map(|&mode| {
-                let colors = self.calculate_colors_parallel(mode, province_storage);
+                let colors = self.calculate_colors_parallel(mode, province_storage, world_seed);
                 (mode, Arc::new(colors))
             })
             .collect();
