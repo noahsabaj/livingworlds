@@ -145,6 +145,32 @@ pub const SURNAMES: &[&str] = &[
     "Normandy",
 ];
 
+/// Noble house/dynasty names (Western tradition uses location-based or virtue-based names)
+pub const HOUSE_NAMES: &[&str] = &[
+    // Historic inspired
+    "Blackwater", "Ironhold", "Goldmane", "Stormshield", "Wolfsbane",
+    "Lionheart", "Dragonsbane", "Ravencrest", "Eaglewing", "Falconmere",
+    "Greystone", "Whitehall", "Redkeep", "Greenfield", "Bluehaven",
+    "Northwind", "Southgate", "Eastwood", "Westbrook", "Highgarden",
+
+    // Virtue/characteristic based
+    "Brightblade", "Strongarm", "Swiftarrow", "Trueheart", "Boldspear",
+    "Fairhand", "Wisemane", "Greatshield", "Longstride", "Keeneye",
+
+    // Location based
+    "Riverstone", "Mountainhall", "Valleyforge", "Hillcrest", "Lakeshore",
+    "Forestgate", "Cliffside", "Bridgewater", "Crossroads", "Harborview",
+
+    // Royal/noble sounding
+    "Crownguard", "Thronekeeper", "Scepterhold", "Royalton", "Kingsworth",
+    "Queensmere", "Princehall", "Dukeshire", "Lordsbane", "Knightfall",
+
+    // Historical European inspired
+    "Brandenburg", "Habsburg", "Hohenzollern", "Wittelsbach", "Bourbon",
+    "Lancaster", "Tudor", "Plantagenet", "York", "Valois",
+    "Capet", "Anjou", "Burgundy", "Lorraine", "Medici",
+];
+
 /// Place name prefixes
 pub const PLACE_PREFIXES: &[&str] = &[
     "New", "Old", "North", "South", "East", "West", "Upper", "Lower", "Great", "Little", "Saint",
@@ -198,4 +224,125 @@ pub const NATION_ROOTS: &[&str] = &[
     "Navarra",
     "Portugal",
     "Flanders",
+];
+
+// ========================================================================
+// COMPOUND PATTERN SYSTEM DATA - For multi-variable name generation
+// ========================================================================
+
+/// Adjectives for compound patterns (Western theme: Noble, Royal, Classical, Free)
+pub const WESTERN_ADJECTIVES: &[&str] = &[
+    // Royal/Noble adjectives
+    "Royal", "Imperial", "Noble", "Grand", "Great", "High", "Supreme", "Sovereign", "Majestic", "Regal",
+    "Crowned", "Sceptered", "Throned", "Princely", "Kingly", "Queenly", "Ducal", "Baronial", "Lordly", "Courtly",
+
+    // Classical/Historical adjectives
+    "Holy", "Sacred", "Blessed", "Divine", "Righteous", "Glorious", "Victorious", "Triumphant", "Heroic", "Legendary",
+    "Ancient", "Eternal", "Timeless", "Historic", "Classical", "Traditional", "Ancestral", "Hereditary", "Dynastic", "Lineage",
+
+    // Freedom/Unity adjectives
+    "Free", "United", "Allied", "Confederated", "Federated", "Republican", "Democratic", "Independent", "Liberated", "Autonomous",
+    "Sovereign", "Self-Governing", "Parliamentary", "Constitutional", "Progressive", "Enlightened", "Reformed", "Modern", "New", "Young",
+
+    // Geographic/Scale adjectives
+    "Northern", "Southern", "Eastern", "Western", "Central", "Upper", "Lower", "Greater", "Lesser", "Outer",
+    "Inner", "Coastal", "Highland", "Lowland", "Mountain", "Valley", "River", "Island", "Continental", "Maritime",
+];
+
+/// Political structures for compound patterns
+pub const POLITICAL_STRUCTURES: &[&str] = &[
+    // Classical Western structures
+    "Kingdom", "Empire", "Republic", "Commonwealth", "Federation", "Confederation", "Union", "Alliance", "Coalition", "League",
+    "Duchy", "Principality", "Marquisate", "County", "Barony", "Lordship", "Earldom", "Viscounty", "Dukedom", "Realm",
+
+    // Democratic structures
+    "Democracy", "Parliament", "Senate", "Congress", "Assembly", "Council", "Diet", "Convention", "Chamber", "House",
+    "State", "Nation", "Country", "Territory", "Province", "Region", "District", "Canton", "Prefecture", "Shire",
+
+    // Traditional structures
+    "Crown", "Throne", "Court", "Palace", "Castle", "Keep", "Hold", "Fortress", "Citadel", "Stronghold",
+    "Order", "Guild", "Brotherhood", "Fellowship", "Society", "Company", "Corporation", "Institution", "Foundation", "Academy",
+];
+
+/// Geographic modifiers for compound patterns
+pub const GEOGRAPHIC_MODIFIERS: &[&str] = &[
+    // Cardinal directions
+    "Northern", "Southern", "Eastern", "Western", "Central", "Middle", "Inner", "Outer", "Upper", "Lower",
+    "High", "Deep", "Far", "Near", "Remote", "Distant", "Adjacent", "Neighboring", "Border", "Frontier",
+
+    // Terrain modifiers
+    "Highland", "Lowland", "Coastal", "Inland", "Mountain", "Valley", "River", "Lake", "Forest", "Plain",
+    "Island", "Peninsula", "Continental", "Archipelago", "Plateau", "Canyon", "Mesa", "Ridge", "Hill", "Moor",
+
+    // Settlement modifiers
+    "Royal", "Imperial", "Noble", "Grand", "Great", "Old", "New", "Ancient", "Modern", "Historic",
+    "Free", "United", "Allied", "Independent", "Sovereign", "Autonomous", "Federal", "Confederate", "Parliamentary", "Democratic",
+];
+
+/// Simple patterns for basic generation (expanded from original 12)
+pub const SIMPLE_NATION_PATTERNS: &[&str] = &[
+    // Classical patterns (original)
+    "Kingdom of {}", "{} Empire", "Republic of {}", "{} Federation",
+    "Commonwealth of {}", "{} Union", "Principality of {}", "{} Dominion",
+    "Duchy of {}", "{} Confederation", "Free State of {}", "{} Alliance",
+
+    // NEW: Royal variants
+    "Royal Kingdom of {}", "Imperial {} Empire", "Grand Duchy of {}", "Noble Republic of {}",
+    "Sovereign {} State", "Crowned {} Realm", "Majestic {} Kingdom", "Regal {} Dominion",
+
+    // NEW: Democratic variants
+    "United {} Republic", "Free {} Federation", "Democratic {} Union", "Parliamentary {} Kingdom",
+    "Constitutional {} Monarchy", "Federal {} Republic", "Allied {} States", "Independent {} Nation",
+
+    // NEW: Geographic variants
+    "Northern {} Kingdom", "Southern {} Empire", "Eastern {} Republic", "Western {} Federation",
+    "Highland {} Realm", "Coastal {} States", "Mountain {} Kingdom", "Island {} Federation",
+
+    // NEW: Scale variants
+    "Great {} Empire", "Lesser {} Principality", "Greater {} Republic", "Minor {} Duchy",
+    "Vast {} Federation", "Mighty {} Kingdom", "Supreme {} Dominion", "Grand {} Alliance",
+];
+
+/// Weighted patterns for realistic distribution (pattern, weight)
+pub const WEIGHTED_NATION_PATTERNS: &[(&str, u32)] = &[
+    // Common patterns (weight 3)
+    ("Kingdom of {}", 3), ("{} Empire", 3), ("Republic of {}", 3), ("{} Federation", 3),
+
+    // Uncommon patterns (weight 2)
+    ("{} Union", 2), ("Duchy of {}", 2), ("United {} Republic", 2), ("Royal Kingdom of {}", 2),
+
+    // Rare patterns (weight 1)
+    ("Imperial {} Empire", 1), ("Grand Duchy of {}", 1), ("Sovereign {} State", 1),
+    ("Constitutional {} Monarchy", 1), ("Supreme {} Dominion", 1),
+];
+
+/// Simple house patterns (expanded)
+pub const SIMPLE_HOUSE_PATTERNS: &[&str] = &[
+    // Classical patterns (original)
+    "House {}", "House of {}", "The {} Dynasty", "{} Family",
+    "Noble House {}", "The House of {}", "{} Bloodline", "{} Lineage",
+
+    // NEW: Royal variants
+    "Royal House {}", "Imperial {} Dynasty", "Crowned {} Family", "Sovereign {} Line",
+    "Regal {} House", "Majestic {} Bloodline", "Noble {} Dynasty", "Princely {} House",
+
+    // NEW: Knightly variants
+    "Order of {}", "Knights of {}", "Brotherhood of {}", "Fellowship of {}",
+    "Company of {}", "Guard of {}", "Watch of {}", "Shield of {}",
+
+    // NEW: Ancestral variants
+    "Ancient House {}", "Elder {} Line", "First {} Dynasty", "Old {} Family",
+    "Hereditary {} House", "Ancestral {} Bloodline", "Traditional {} Line", "Historic {} Dynasty",
+];
+
+/// Weighted house patterns
+pub const WEIGHTED_HOUSE_PATTERNS: &[(&str, u32)] = &[
+    // Common patterns (weight 3)
+    ("House {}", 3), ("House of {}", 3), ("{} Family", 3), ("{} Dynasty", 3),
+
+    // Uncommon patterns (weight 2)
+    ("Noble House {}", 2), ("Royal House {}", 2), ("Order of {}", 2), ("Knights of {}", 2),
+
+    // Rare patterns (weight 1)
+    ("Imperial {} Dynasty", 1), ("Sovereign {} Line", 1), ("Ancient House {}", 1), ("Brotherhood of {}", 1),
 ];
