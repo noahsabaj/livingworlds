@@ -145,6 +145,49 @@ pub const ORDER_NAMES: &[&str] = &[
     "Spiritcaller",
 ];
 
+/// Noble house/dynasty names (Magical orders, mystical houses, fantasy nobility)
+pub const HOUSE_NAMES: &[&str] = &[
+    // Magical orders and houses
+    "Shadowmere", "Starweaver", "Moonwhisper", "Sunblade", "Nightfall",
+    "Dawnbringer", "Stormcaller", "Frostborn", "Firewalker", "Earthshaper",
+    "Voidseeker", "Lightbender", "Darkweaver", "Soulkeeper", "Mindreader",
+    "Spellbinder", "Runecarver", "Enchanter", "Illusionist", "Necromancer",
+
+    // Elemental houses
+    "Flameheart", "Frostwind", "Earthborn", "Stormborn", "Voidwalker",
+    "Lightbringer", "Shadowbane", "Crystalborn", "Mistral", "Tempest",
+    "Inferno", "Glacier", "Earthquake", "Hurricane", "Eclipse",
+
+    // Celestial and cosmic houses
+    "Starhaven", "Moonfall", "Sunspire", "Comet", "Nebula",
+    "Constellation", "Galaxy", "Supernova", "Quasar", "Asteroid",
+    "Meteor", "Aurora", "Solar", "Lunar", "Stellar",
+
+    // Mythical creature houses
+    "Dragonborn", "Phoenix Rising", "Griffin Wing", "Unicorn Horn", "Pegasus",
+    "Chimera", "Hydra", "Sphinx", "Kraken", "Leviathan",
+    "Basilisk", "Wyrm", "Drake", "Wyvern", "Manticore",
+
+    // Arcane and mystical
+    "Arcanum", "Mystique", "Enigma", "Oracle", "Prophecy",
+    "Divination", "Transmutation", "Evocation", "Abjuration", "Conjuration",
+    "Enchantment", "Illusion", "Necromancy", "Restoration", "Destruction",
+
+    // Fantasy literature inspired
+    "Pendragon", "Targaryen", "Stark", "Lannister", "Baratheon",
+    "Malfoy", "Potter", "Weasley", "Black", "Longbottom",
+    "Baggins", "Took", "Brandybuck", "Proudfoot", "Greenhill",
+
+    // Ethereal and planar
+    "Ethereal", "Astral", "Feywild", "Shadowfell", "Elemental",
+    "Celestial", "Infernal", "Primordial", "Transcendent", "Ascendant",
+    "Immortal", "Eternal", "Infinite", "Boundless", "Limitless",
+
+    // Color-themed mystical houses
+    "Crimson", "Azure", "Violet", "Emerald", "Golden",
+    "Silver", "Platinum", "Obsidian", "Crystal", "Prismatic",
+];
+
 /// Nation roots
 pub const NATION_ROOTS: &[&str] = &[
     "Arcanum",
@@ -239,4 +282,143 @@ pub const PLACE_NAMES: &[&str] = &[
     "Diamond Depths",
     "Pearl Harbor",
     "Opal Oasis",
+];
+
+// ========================================================================
+// COMPOUND PATTERN SYSTEM DATA - For multi-variable name generation
+// ========================================================================
+
+/// Adjectives for compound patterns (Mystical theme: Arcane, Elemental, Celestial, Planar)
+pub const MYSTICAL_ADJECTIVES: &[&str] = &[
+    // Arcane/magical adjectives
+    "Arcane", "Mystical", "Magical", "Enchanted", "Spellbound", "Bewitched", "Cursed", "Blessed",
+    "Sacred", "Profane", "Divine", "Infernal", "Celestial", "Abyssal", "Ethereal", "Astral",
+
+    // Elemental adjectives
+    "Fire", "Water", "Earth", "Air", "Ice", "Lightning", "Shadow", "Light",
+    "Void", "Chaos", "Order", "Balance", "Harmony", "Discord", "Storm", "Calm",
+
+    // Temporal/spatial adjectives
+    "Eternal", "Temporal", "Infinite", "Boundless", "Timeless", "Ageless", "Ancient", "Primordial",
+    "Transcendent", "Ascendant", "Descendant", "Immortal", "Mortal", "Undying", "Everlasting", "Fleeting",
+
+    // Color/crystal adjectives
+    "Crimson", "Azure", "Violet", "Emerald", "Golden", "Silver", "Obsidian", "Crystal",
+    "Prismatic", "Opal", "Ruby", "Sapphire", "Diamond", "Platinum", "Jade", "Onyx",
+
+    // Power/energy adjectives
+    "Powerful", "Mighty", "Supreme", "Ultimate", "Omnipotent", "Omniscient", "All-knowing", "All-seeing",
+    "Wise", "Cunning", "Clever", "Brilliant", "Genius", "Mad", "Insane", "Prophetic",
+
+    // Planar adjectives
+    "Planar", "Dimensional", "Otherworldly", "Unearthly", "Supernatural", "Paranormal", "Metaphysical", "Occult",
+    "Esoteric", "Hermetic", "Gnostic", "Cabalistic", "Alchemical", "Necromantic", "Divinatory", "Evocative",
+];
+
+/// Political structures for compound patterns
+pub const POLITICAL_STRUCTURES: &[&str] = &[
+    // Magical governance
+    "Magocracy", "Theocracy", "Covenant", "Conclave", "Circle", "Order", "Sanctum", "Academy",
+    "College", "University", "School", "Guild", "Brotherhood", "Sisterhood", "Society", "Lodge",
+
+    // Mystical organizations
+    "Coven", "Cabal", "Cult", "Sect", "Faction", "Alliance", "Confederation", "Federation",
+    "Union", "League", "Assembly", "Council", "Tribunal", "Inquisition", "Crusade", "Quest",
+
+    // Arcane structures
+    "Tower", "Spire", "Citadel", "Fortress", "Keep", "Hold", "Stronghold", "Bastion",
+    "Sanctuary", "Refuge", "Haven", "Retreat", "Hermitage", "Monastery", "Convent", "Priory",
+
+    // Planar/dimensional
+    "Realm", "Domain", "Plane", "Dimension", "World", "Universe", "Cosmos", "Multiverse",
+    "Reality", "Existence", "Void", "Abyss", "Limbo", "Paradise", "Elysium", "Valhalla",
+];
+
+/// Geographic modifiers for compound patterns
+pub const GEOGRAPHIC_MODIFIERS: &[&str] = &[
+    // Magical locations
+    "Arcane", "Mystical", "Enchanted", "Cursed", "Blessed", "Sacred", "Profane", "Divine",
+    "Ethereal", "Astral", "Spectral", "Phantom", "Ghost", "Spirit", "Soul", "Mind",
+
+    // Elemental terrain
+    "Fire", "Ice", "Storm", "Lightning", "Shadow", "Light", "Void", "Chaos",
+    "Crystal", "Obsidian", "Diamond", "Ruby", "Emerald", "Sapphire", "Opal", "Jade",
+
+    // Celestial/cosmic
+    "Star", "Moon", "Sun", "Comet", "Nebula", "Galaxy", "Constellation", "Aurora",
+    "Solar", "Lunar", "Stellar", "Cosmic", "Universal", "Infinite", "Eternal", "Timeless",
+
+    // Planar descriptors
+    "Upper", "Lower", "Inner", "Outer", "Prime", "Material", "Ethereal", "Astral",
+    "Positive", "Negative", "Elemental", "Energy", "Para", "Quasi", "Shadow", "Feywild",
+
+    // Mystical directions
+    "Ascending", "Descending", "Transcending", "Transforming", "Evolving", "Devolving", "Spiraling", "Flowing",
+    "Hidden", "Secret", "Lost", "Forgotten", "Ancient", "Primordial", "Future", "Past",
+];
+
+/// Simple patterns for basic generation (expanded from original 8)
+pub const SIMPLE_NATION_PATTERNS: &[&str] = &[
+    // Classical patterns (original)
+    "{} Covenant", "Circle of {}", "{} Conclave", "Order of {}",
+    "{} Sanctum", "Arcane {} Empire", "Mystical Realm of {}", "{} Magocracy",
+
+    // NEW: Arcane/magical variants
+    "Arcane {} Covenant", "Mystical Circle of {}", "Magical {} Conclave", "Enchanted Order of {}",
+    "Sacred {} Sanctum", "Divine {} Empire", "Blessed Realm of {}", "Cursed {} Magocracy",
+
+    // NEW: Elemental variants
+    "Fire {} Covenant", "Shadow Circle of {}", "Lightning {} Conclave", "Storm Order of {}",
+    "Crystal {} Sanctum", "Void {} Empire", "Ethereal Realm of {}", "Astral {} Magocracy",
+
+    // NEW: Celestial variants
+    "Celestial {} Covenant", "Stellar Circle of {}", "Solar {} Conclave", "Lunar Order of {}",
+    "Cosmic {} Sanctum", "Infinite {} Empire", "Eternal Realm of {}", "Timeless {} Magocracy",
+
+    // NEW: Power/supremacy variants
+    "Supreme {} Covenant", "Ultimate Circle of {}", "Omnipotent {} Conclave", "All-knowing Order of {}",
+    "Transcendent {} Sanctum", "Ascendant {} Empire", "Immortal Realm of {}", "Everlasting {} Magocracy",
+];
+
+/// Weighted patterns for realistic distribution (pattern, weight)
+pub const WEIGHTED_NATION_PATTERNS: &[(&str, u32)] = &[
+    // Common patterns (weight 3)
+    ("{} Covenant", 3), ("Circle of {}", 3), ("{} Conclave", 3), ("Order of {}", 3),
+
+    // Uncommon patterns (weight 2)
+    ("{} Sanctum", 2), ("Arcane {} Empire", 2), ("Mystical {} Covenant", 2), ("Sacred Circle of {}", 2),
+
+    // Rare patterns (weight 1)
+    ("Mystical Realm of {}", 1), ("{} Magocracy", 1), ("Supreme {} Covenant", 1), ("Transcendent {} Sanctum", 1),
+];
+
+/// Simple house patterns (expanded)
+pub const SIMPLE_HOUSE_PATTERNS: &[&str] = &[
+    // Classical patterns (original)
+    "House of {}", "{} Circle", "Order of {}", "The {} Covenant",
+    "{} Conclave", "{} Bloodline", "House {}", "The {} Legacy",
+
+    // NEW: Arcane/mystical variants
+    "Arcane House of {}", "Mystical {} Circle", "Magical Order of {}", "The Enchanted {} Covenant",
+    "Sacred {} Conclave", "Divine {} Bloodline", "Blessed House {}", "The Cursed {} Legacy",
+
+    // NEW: Elemental variants
+    "Fire House of {}", "Shadow {} Circle", "Lightning Order of {}", "The Storm {} Covenant",
+    "Crystal {} Conclave", "Void {} Bloodline", "Ethereal House {}", "The Astral {} Legacy",
+
+    // NEW: Power/knowledge variants
+    "Ancient House of {}", "Eternal {} Circle", "Immortal Order of {}", "The Timeless {} Covenant",
+    "All-knowing {} Conclave", "Omnipotent {} Bloodline", "Supreme House {}", "The Ultimate {} Legacy",
+];
+
+/// Weighted house patterns
+pub const WEIGHTED_HOUSE_PATTERNS: &[(&str, u32)] = &[
+    // Common patterns (weight 3)
+    ("House of {}", 3), ("{} Circle", 3), ("Order of {}", 3), ("{} Conclave", 3),
+
+    // Uncommon patterns (weight 2)
+    ("{} Bloodline", 2), ("The {} Covenant", 2), ("Arcane House of {}", 2), ("Sacred {} Conclave", 2),
+
+    // Rare patterns (weight 1)
+    ("The {} Legacy", 1), ("Divine {} Bloodline", 1), ("Supreme House {}", 1), ("The Ultimate {} Legacy", 1),
 ];
