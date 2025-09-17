@@ -10,6 +10,9 @@ pub enum NameType {
     Nation {
         culture: Culture,
     },
+    House {
+        culture: Culture,
+    },
     Province {
         region: Region,
         culture: Culture,

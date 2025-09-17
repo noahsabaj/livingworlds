@@ -6,9 +6,14 @@
 //!
 //! # Architecture
 //!
-//! The name generator is organized into several focused modules:
+//! The name generator uses a modular architecture with specialized modules:
+//! - `core`: Main NameGenerator struct and orchestration
+//! - `world`: Complex world name generation patterns
+//! - `places`: Province and city name generation
+//! - `people`: Person names with cultural titles
+//! - `geographic`: Natural feature names (rivers, mountains, etc.)
+//! - `cultures`: Culture-specific generation patterns
 //! - `types`: All enum and type definitions
-//! - `generator`: Core generation logic
 //! - `data`: Name databases organized by culture and type
 //! - `utils`: Utility functions
 //!
@@ -44,10 +49,15 @@
 //! ```
 
 // Internal modules - ALL PRIVATE, only accessible through this gateway
-mod data;
-mod generator;
-mod types;
-mod utils; // Internal data module - not exposed externally
+mod core;       // Main NameGenerator struct and orchestration
+mod world;      // World name generation patterns
+mod places;     // Province and city name generation
+mod people;     // Person names with titles
+mod geographic; // Natural feature names
+mod cultures;   // Culture-specific generation patterns
+mod data;       // Name databases
+mod types;      // Type definitions
+mod utils;      // Utility functions
 
 // TODO: Create test module when needed
 // #[cfg(test)]
@@ -55,7 +65,7 @@ mod utils; // Internal data module - not exposed externally
 
 // CONTROLLED PUBLIC API - This is the ONLY way in/out of name_generator
 // Re-export only what external code needs
-pub use generator::NameGenerator;
+pub use core::NameGenerator;
 pub use types::{CitySize, Culture, Gender, NameRelation, NameType, PersonRole, Region};
 
 // Selectively expose utility functions
