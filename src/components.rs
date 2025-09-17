@@ -89,33 +89,8 @@ pub struct HoverableProvince;
 #[derive(Component)]
 pub struct ProvinceInfoPanel;
 
-/// Represents a nation/civilization in the game
-#[derive(Component, Debug, Clone)]
-pub struct Nation {
-    pub id: u32,
-    pub name: String,
-    pub color: Color,
-    pub capital_province_id: Option<u32>,
-    pub controlled_provinces: Vec<u32>,
-    pub population: u32,
-    pub treasury: f32,
-    pub stability: f32,
-}
-
-impl Nation {
-    pub fn new(id: u32, name: String, color: Color) -> Self {
-        Self {
-            id,
-            name,
-            color,
-            capital_province_id: None,
-            controlled_provinces: Vec::new(),
-            population: 0,
-            treasury: 100.0,
-            stability: 1.0,
-        }
-    }
-}
+// NOTE: Nation struct has been moved to src/nations/types.rs
+// This legacy Nation was removed to prevent confusion
 
 /// Component for UI text that displays information
 #[derive(Component)]

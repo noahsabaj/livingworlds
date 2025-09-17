@@ -17,6 +17,7 @@ pub mod math; // Single source of truth for spatial math and noise
 pub mod world; // World representation and rendering
 
 // Gameplay systems
+pub mod nations;
 pub mod simulation;
 
 // UI and menus
@@ -84,6 +85,7 @@ use crate::{
     loading_screen::LoadingScreenPlugin,
     menus::MenusPlugin,
     modding::ModdingPlugin,
+    nations::NationPlugin,
     save_load::SaveLoadPlugin,
     settings::SettingsPlugin,
     simulation::SimulationPlugin,
@@ -254,6 +256,7 @@ pub fn build_app_with_config(config: AppConfig) -> Result<App, AppBuildError> {
     app.add_plugins(CloudPlugin)
         .add_plugins(TerrainPlugin)
         .add_plugins(OverlayPlugin)
+        .add_plugins(NationPlugin)
         .add_plugins(SimulationPlugin)
         .add_plugins(SaveLoadPlugin);
 

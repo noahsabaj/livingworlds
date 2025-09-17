@@ -131,6 +131,7 @@ impl<'a> ProvinceBuilder<'a> {
         Province {
             id: ProvinceId::new(index),
             position,
+            owner: None, // Nations are assigned later
             elevation: Elevation::new(elevation),
             terrain,
             population: 0,

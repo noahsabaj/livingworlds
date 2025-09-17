@@ -202,17 +202,46 @@ pub fn poll_async_world_generation(
                 let mesh_handle = build_world_mesh(&world.provinces, &mut meshes, world.seed);
                 commands.insert_resource(WorldMeshHandle(mesh_handle));
 
-                // Create province storage
-                let province_storage = ProvinceStorage::from_provinces(world.provinces.clone());
-                commands.insert_resource(province_storage);
+                // Create province storage (mutable for nation assignment)
+                let mut province_storage = ProvinceStorage::from_provinces(world.provinces.clone());
 
                 // Create map dimensions resource (required by camera system)
                 let map_dimensions = crate::resources::MapDimensions::from_world_size(&generation.settings.world_size);
-                commands.insert_resource(map_dimensions);
+                commands.insert_resource(map_dimensions.clone());
 
                 // Create spatial index
-                let spatial_index = ProvincesSpatialIndex::build(&world.provinces, &map_dimensions);
+                let spatial_index = ProvincesSpatialIndex::build(&province_storage.provinces, &map_dimensions);
                 commands.insert_resource(spatial_index);
+
+                // Spawn nations with ruling houses
+                let nation_settings = crate::nations::NationGenerationSettings::default();
+                let (nations, houses) = crate::nations::spawn_nations(
+                    &mut province_storage.provinces,
+                    &nation_settings,
+                    world.seed,
+                );
+
+                // Build ownership cache from province data
+                let mut ownership_cache = crate::nations::ProvinceOwnershipCache::default();
+                ownership_cache.rebuild(&province_storage.provinces);
+                commands.insert_resource(ownership_cache);
+
+                // Spawn nation entities
+                for nation in nations {
+                    commands.spawn(crate::nations::NationBundle {
+                        nation,
+                        transform: Transform::default(),
+                        visibility: Visibility::default(),
+                    });
+                }
+
+                // Spawn house entities
+                for house in houses {
+                    commands.spawn(house);
+                }
+
+                // Insert the updated province storage (with nation ownership)
+                commands.insert_resource(province_storage);
 
                 // Update loading state to completion
                 set_loading_progress(&mut loading_state, PROGRESS_COMPLETE, "World ready!");

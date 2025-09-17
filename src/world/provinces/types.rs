@@ -5,6 +5,7 @@
 
 use crate::components::MineralType;
 use crate::constants::PROVINCE_MIN_POPULATION;
+use crate::nations::NationId;
 use super::super::terrain::TerrainType;
 use bevy::prelude::*;
 use bevy::reflect::Reflect;
@@ -245,12 +246,15 @@ pub enum HexDirection {
 /// They are stored in the ProvinceStorage resource as a Vec.
 #[derive(Clone, Debug, Reflect, Serialize, Deserialize)]
 pub struct Province {
-    // === Identity & Location (16 bytes) ===
+    // === Identity & Location ===
     /// Unique identifier for this province
     pub id: ProvinceId,
 
     /// World position in 2D space
     pub position: Vec2,
+
+    /// Nation that owns/controls this province
+    pub owner: Option<NationId>,
 
     // === Population (8 bytes) ===
     /// Current population (now properly an integer)
@@ -316,6 +320,7 @@ impl Default for Province {
         Self {
             id: ProvinceId::default(),
             position: Vec2::ZERO,
+            owner: None,
             population: PROVINCE_MIN_POPULATION,
             max_population: PROVINCE_MIN_POPULATION * 10,
             terrain: TerrainType::TemperateGrassland,
