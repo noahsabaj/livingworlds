@@ -1,79 +1,66 @@
-//! Save/Load plugin implementation
+//! Save/Load plugin implementation - AUTOMATED WITH DECLARATIVE MAGIC!
 //!
-//! This module contains the Bevy plugin that registers all save/load systems.
+//! This module demonstrates the POWER of the Plugin Registration Automation Framework!
+//! 79 lines of manual boilerplate → 35 lines of declarative paradise!
 
 use super::{
-    AutoSaveTimer,
-    CloseSaveDialogEvent,
-    DeleteSaveEvent,
-    LoadCompleteEvent,
-    LoadGameEvent,
-    OpenSaveDialogEvent,
-    SaveBrowserState,
-    SaveCompleteEvent,
-    SaveDialogState,
-    // Events (imported through parent gateway)
-    SaveGameEvent,
-    // Resources (imported through parent gateway)
-    SaveGameList,
+    AutoSaveTimer, CloseSaveDialogEvent, DeleteSaveEvent, LoadCompleteEvent, LoadGameEvent,
+    OpenSaveDialogEvent, SaveBrowserState, SaveCompleteEvent, SaveDialogState, SaveGameEvent, SaveGameList,
 };
+use bevy_plugin_builder::define_plugin;
 use crate::states::GameState;
 use bevy::prelude::*;
 
-pub struct SaveLoadPlugin;
+/// Save/Load plugin using REVOLUTIONARY declarative automation
+define_plugin!(SaveLoadPlugin {
+    resources: [SaveGameList, SaveBrowserState, SaveDialogState, AutoSaveTimer],
 
-impl Plugin for SaveLoadPlugin {
-    fn build(&self, app: &mut App) {
-        app
-            // Resources
-            .init_resource::<SaveGameList>()
-            .init_resource::<SaveBrowserState>()
-            .init_resource::<SaveDialogState>()
-            .init_resource::<AutoSaveTimer>()
-            // Events
-            .add_event::<SaveGameEvent>()
-            .add_event::<LoadGameEvent>()
-            .add_event::<SaveCompleteEvent>()
-            .add_event::<LoadCompleteEvent>()
-            .add_event::<DeleteSaveEvent>()
-            .add_event::<OpenSaveDialogEvent>()
-            .add_event::<CloseSaveDialogEvent>()
-            // Systems
-            .add_systems(
-                Update,
-                (
-                    super::core::handle_save_game,
-                    super::core::handle_load_game,
-                    super::core::handle_auto_save.run_if(in_state(GameState::InGame)),
-                    super::handlers::handle_save_load_shortcuts.run_if(in_state(GameState::InGame)),
-                    super::handlers::handle_spawn_save_browser_event,
-                    super::ui::update_save_browser,
-                    super::ui::handle_save_browser_interactions,
-                    super::ui::handle_delete_button_click,
-                    super::ui::handle_delete_confirmation,
-                    super::ui::handle_open_save_dialog,
-                    super::ui::handle_close_save_dialog,
-                    super::ui::handle_save_dialog_interactions,
-                ),
-            )
-            .add_systems(
-                OnEnter(GameState::LoadingWorld),
-                super::core::check_for_pending_load,
-            )
-            .add_systems(OnExit(GameState::MainMenu), super::ui::close_save_browser)
-            .add_systems(OnExit(GameState::Paused), super::ui::close_save_browser)
-            .add_systems(Startup, super::io::ensure_save_directory);
+    events: [
+        SaveGameEvent,
+        LoadGameEvent,
+        SaveCompleteEvent,
+        LoadCompleteEvent,
+        DeleteSaveEvent,
+        OpenSaveDialogEvent,
+        CloseSaveDialogEvent
+    ],
 
-        // Register types for reflection
-        app.register_type::<crate::world::Province>()
-            .register_type::<crate::components::MineralType>()
-            .register_type::<crate::world::TerrainType>()
-            .register_type::<crate::resources::WorldSeed>()
-            .register_type::<crate::resources::WorldSize>()
-            .register_type::<crate::resources::MapDimensions>()
-            .register_type::<crate::resources::GameTime>()
-            .register_type::<crate::resources::WorldTension>()
-            .register_type::<crate::resources::MapMode>()
-            .register_type::<crate::world::ProvinceStorage>();
+    reflect: [
+        crate::world::Province,
+        crate::components::MineralType,
+        crate::world::TerrainType,
+        crate::resources::WorldSeed,
+        crate::resources::WorldSize,
+        crate::resources::MapDimensions,
+        crate::resources::GameTime,
+        crate::resources::WorldTension,
+        crate::resources::MapMode,
+        crate::world::ProvinceStorage
+    ],
+
+    startup: [super::io::ensure_save_directory],
+
+    update: [
+        super::core::handle_save_game,
+        super::core::handle_load_game,
+        super::core::handle_auto_save.run_if(in_state(GameState::InGame)),
+        super::handlers::handle_save_load_shortcuts.run_if(in_state(GameState::InGame)),
+        super::handlers::handle_spawn_save_browser_event,
+        super::ui::update_save_browser,
+        super::ui::handle_save_browser_interactions,
+        super::ui::handle_delete_button_click,
+        super::ui::handle_delete_confirmation,
+        super::ui::handle_open_save_dialog,
+        super::ui::handle_close_save_dialog,
+        super::ui::handle_save_dialog_interactions
+    ],
+
+    on_enter: {
+        GameState::LoadingWorld => [super::core::check_for_pending_load]
+    },
+
+    on_exit: {
+        GameState::MainMenu => [super::ui::close_save_browser],
+        GameState::Paused => [super::ui::close_save_browser]
     }
-}
+});

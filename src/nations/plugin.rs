@@ -4,38 +4,30 @@
 //! rendering, and simulation.
 
 use bevy::prelude::*;
-
+use bevy_plugin_builder::define_plugin;
 use crate::states::GameState;
 use super::rendering::{update_nation_colors, render_nation_borders, render_nation_labels};
 use super::types::{NationRegistry, ProvinceOwnershipCache};
 
-pub struct NationPlugin;
+/// Nation system plugin using declarative syntax
+define_plugin!(NationPlugin {
+    resources: [NationRegistry, ProvinceOwnershipCache],
 
-impl Plugin for NationPlugin {
-    fn build(&self, app: &mut App) {
-        app
-            // Resources
-            .init_resource::<NationRegistry>()
-            .init_resource::<ProvinceOwnershipCache>()
+    reflect: [
+        super::types::Nation,
+        super::house::House,
+        super::house::Ruler,
+        super::house::RulerPersonality,
+        super::house::HouseTraits,
+        super::types::NationId,
+        super::types::NationPersonality
+    ],
 
-            // Register types for reflection
-            .register_type::<super::types::Nation>()
-            .register_type::<super::house::House>()
-            .register_type::<super::house::Ruler>()
-            .register_type::<super::house::RulerPersonality>()
-            .register_type::<super::house::HouseTraits>()
-            .register_type::<super::types::NationId>()
-            .register_type::<super::types::NationPersonality>()
-
-            // Systems for rendering
-            .add_systems(
-                Update,
-                (
-                    update_nation_colors,
-                    render_nation_borders,
-                    render_nation_labels,
-                )
-                .run_if(in_state(GameState::InGame)),
-            );
-    }
-}
+    update: [
+        (
+            update_nation_colors,
+            render_nation_borders,
+            render_nation_labels
+        ).run_if(in_state(GameState::InGame))
+    ]
+});

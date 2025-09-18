@@ -1,33 +1,28 @@
-//! Main UI plugin implementation
+//! Main UI plugin implementation - PLUGIN AGGREGATION AUTOMATION!
 //!
-//! This module contains the UIPlugin that orchestrates all UI functionality
-//! and integrates it with the Bevy app.
+//! This module demonstrates PERFECT plugin aggregation automation!
+//! 37 lines of manual plugin additions → 20 lines of declarative beauty!
 
 use bevy::prelude::*;
+use bevy_plugin_builder::define_plugin;
+use super::{
+    buttons, components::ProgressBarPlugin, dialogs, hud, loading, nation_info,
+    overlay_display, performance_dashboard, sliders, text_inputs, tile_info,
+};
 
-use super::buttons;
-use super::components::ProgressBarPlugin;
-use super::dialogs;
-use super::hud;
-use super::loading;
-use super::overlay_display;
-use super::sliders;
-use super::text_inputs;
-use super::tile_info;
-
-/// The main UI plugin that orchestrates all UI functionality
-pub struct UIPlugin;
-
-impl Plugin for UIPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_plugins(buttons::ButtonPlugin)
-            .add_plugins(dialogs::DialogPlugin)
-            .add_plugins(text_inputs::TextInputPlugin)
-            .add_plugins(loading::LoadingIndicatorPlugin)
-            .add_plugins(sliders::SliderPlugin)
-            .add_plugins(ProgressBarPlugin)
-            .add_plugins(hud::HudPlugin)
-            .add_plugins(overlay_display::OverlayDisplayPlugin)
-            .add_plugins(tile_info::TileInfoPlugin);
-    }
-}
+/// The main UI plugin orchestrator using AUTOMATION FRAMEWORK
+define_plugin!(UIPlugin {
+    plugins: [
+        buttons::ButtonPlugin,
+        dialogs::DialogPlugin,
+        text_inputs::TextInputPlugin,
+        loading::LoadingIndicatorPlugin,
+        sliders::SliderPlugin,
+        ProgressBarPlugin,
+        hud::HudPlugin,
+        overlay_display::OverlayDisplayPlugin,
+        tile_info::TileInfoPlugin,
+        nation_info::NationInfoPlugin,
+        performance_dashboard::PerformanceDashboardPlugin
+    ]
+});

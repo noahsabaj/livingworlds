@@ -43,6 +43,9 @@ bevy = { version = "0.16.1", default-features = false, features = [
     # "dynamic_linking",    # Faster development builds (disabled for release mode)
 ] }
 
+# Declarative plugin system - our own published crate!
+bevy-plugin-builder = "0.1"
+
 # Keep our procedural approach - no GLTF or external assets needed!
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -78,6 +81,10 @@ rand_chacha = "0.3"
 chrono = { version = "0.4", features = ["serde"] }
 rayon = "1.10"  # Parallel iteration for massive performance gains
 voronator = "0.2"  # Real Voronoi tessellation for tectonic plates
+bytemuck = { version = "1.14", features = ["derive"] }  # GPU buffer serialization
+
+# Macro utilities
+paste = "1.0"  # Token pasting for generated code in setting_builder macros
 
 # Audio
 rodio = "0.17"

@@ -11,6 +11,8 @@ pub mod constants;
 pub mod resources;
 pub mod states;
 pub mod version;
+pub mod performance; // Rayon performance monitoring
+pub mod safety; // Parallel safety validation
 
 // World generation and representation
 pub mod math; // Single source of truth for spatial math and noise
@@ -21,7 +23,7 @@ pub mod nations;
 pub mod simulation;
 
 // UI and menus
-pub mod loading_screen;
+pub mod loading;
 pub mod menus;
 pub mod settings;
 pub mod ui;
@@ -30,6 +32,8 @@ pub mod ui;
 pub mod camera;
 pub mod modding;
 pub mod name_generator;
+pub mod plugin_builder; // Internal development utilities (main functionality moved to bevy-plugin-builder crate)
+pub mod relationships; // Entity relationship system (Bevy 0.16)
 pub mod save_load;
 
 // Steam integration (only when feature is enabled)
@@ -82,19 +86,20 @@ use bevy_pkv::PkvStore;
 // Import all plugins consistently
 use crate::{
     camera::CameraPlugin,
-    loading_screen::LoadingScreenPlugin,
+    loading::LoadingScreenPlugin,
     menus::MenusPlugin,
     modding::ModdingPlugin,
     nations::NationPlugin,
+    relationships::RelationshipsPlugin,
     save_load::SaveLoadPlugin,
-    settings::SettingsPlugin,
+    settings::SettingsUIPlugin,
     simulation::SimulationPlugin,
     states::StatesPlugin,
     ui::UIPlugin,
     // World module plugins
     world::{
-        BorderPlugin, CloudPlugin, OverlayPlugin, ProvinceEventsPlugin, TerrainPlugin,
-        WorldConfigPlugin,
+        BorderPlugin, CloudPlugin, NoiseComputePlugin, OverlayPlugin, ProvinceEventsPlugin,
+        TerrainPlugin, WorldConfigPlugin,
     },
 };
 
@@ -243,6 +248,7 @@ pub fn build_app_with_config(config: AppConfig) -> Result<App, AppBuildError> {
 
     // Core systems (required by others)
     app.add_plugins(StatesPlugin) // State management (required by menus, world_config, etc.)
+        .add_plugins(RelationshipsPlugin) // Entity relationships (required by nations, world systems)
         .add_plugins(ModdingPlugin) // Mod system (loads configs early)
         .add_plugins(ProvinceEventsPlugin); // Province change events
 
@@ -250,11 +256,12 @@ pub fn build_app_with_config(config: AppConfig) -> Result<App, AppBuildError> {
     app.add_plugins(MenusPlugin) // Menu UI system
         .add_plugins(WorldConfigPlugin) // World configuration UI
         .add_plugins(LoadingScreenPlugin) // Unified loading screen
-        .add_plugins(SettingsPlugin); // Settings menu system
+        .add_plugins(SettingsUIPlugin); // Settings menu system
 
     // World and simulation systems
     app.add_plugins(CloudPlugin)
         .add_plugins(TerrainPlugin)
+        .add_plugins(NoiseComputePlugin)  // GPU compute acceleration for world generation
         .add_plugins(OverlayPlugin)
         .add_plugins(NationPlugin)
         .add_plugins(SimulationPlugin)
@@ -264,6 +271,14 @@ pub fn build_app_with_config(config: AppConfig) -> Result<App, AppBuildError> {
     app.add_plugins(UIPlugin)
         .add_plugins(CameraPlugin)
         .add_plugins(BorderPlugin); // GPU-instanced border rendering
+
+    // Performance monitoring (conditional - only in debug builds)
+    #[cfg(debug_assertions)]
+    app.add_plugins(crate::performance::PerformanceMonitoringPlugin);
+
+    // Parallel safety validation (conditional - only in debug builds)
+    #[cfg(debug_assertions)]
+    app.add_plugins(crate::safety::ParallelSafetyPlugin);
 
     Ok(app)
 }
