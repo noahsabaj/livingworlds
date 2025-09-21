@@ -3,7 +3,8 @@
     "allow": [
       "WebSearch",
       "mcp__context7__resolve-library-id",
-      "mcp__context7__get-library-docs"
+      "mcp__context7__get-library-docs",
+      "Read(//home/nsabaj/Pictures/**)"
     ]
   },
   "outputStyle": "Explanatory"
