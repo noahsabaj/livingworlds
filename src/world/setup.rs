@@ -91,7 +91,8 @@ async fn generate_world_async(
 
     // Helper to send progress updates
     let send_progress = |step: &str, progress: f32| {
-        let _ = progress_sender.try_send(GenerationProgress {
+        info!("Async task: Sending progress update: {} - {:.1}%", step, progress * 100.0);
+        let result = progress_sender.try_send(GenerationProgress {
             step: step.to_string(),
             progress,
             completed: false,
@@ -99,6 +100,9 @@ async fn generate_world_async(
             error_message: None,
             generation_metrics: None,
         });
+        if let Err(e) = result {
+            error!("Failed to send progress update: {:?}", e);
+        }
     };
 
     // Validate settings
@@ -200,7 +204,8 @@ fn generate_world_with_gpu_acceleration(
 
     // Helper to send progress updates
     let send_progress = |step: &str, progress: f32| {
-        let _ = progress_sender.try_send(GenerationProgress {
+        info!("Async task: Sending progress update: {} - {:.1}%", step, progress * 100.0);
+        let result = progress_sender.try_send(GenerationProgress {
             step: step.to_string(),
             progress,
             completed: false,
@@ -208,6 +213,9 @@ fn generate_world_with_gpu_acceleration(
             error_message: None,
             generation_metrics: None,
         });
+        if let Err(e) = result {
+            error!("Failed to send progress update: {:?}", e);
+        }
     };
 
     // Step 1: Generate provinces with GPU acceleration
@@ -601,12 +609,13 @@ pub fn poll_async_world_generation(
             }
         } else {
             // Progress update
-            set_loading_progress(&mut loading_state, progress.progress, &progress.step);
-            debug!(
-                "World generation progress: {:.1}% - {}",
-                progress.progress * 100.0,
-                progress.step
+            info!(
+                "Polling system: Received progress: {} - {:.1}%",
+                progress.step,
+                progress.progress * 100.0
             );
+            set_loading_progress(&mut loading_state, progress.progress, &progress.step);
+            info!("Polling system: LoadingState updated");
         }
     }
 

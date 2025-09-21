@@ -3,6 +3,7 @@
 //! This module contains the main WorldBuilder that orchestrates all generation steps
 //! to create a complete World data structure.
 
+use bevy::log::info;
 use rand::{rngs::StdRng, SeedableRng};
 
 use super::errors::{WorldGenerationError, WorldGenerationErrorType};
@@ -60,6 +61,7 @@ impl WorldBuilder {
         // Helper to report progress
         let report_progress = |step: &str, progress: f32| {
             if let Some(ref callback) = progress_callback {
+                info!("WorldBuilder: Sending progress: {} - {:.1}%", step, progress * 100.0);
                 callback(step, progress);
             }
         };

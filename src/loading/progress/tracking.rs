@@ -14,11 +14,19 @@ pub fn update_loading_progress(
     loading_state: Res<LoadingState>,
     mut query: Query<&mut ProgressBar, With<LoadingProgressBar>>,
 ) {
-    if !loading_state.is_changed() {
-        return;
-    }
+    // Temporarily removed change detection to debug the issue
+    // if !loading_state.is_changed() {
+    //     return;
+    // }
 
     for mut progress_bar in &mut query {
-        progress_bar.value = loading_state.progress.clamp(0.0, 1.0);
+        if progress_bar.value != loading_state.progress {
+            bevy::log::info!(
+                "UI System: Updating progress bar from {:.1}% to {:.1}%",
+                progress_bar.value * 100.0,
+                loading_state.progress * 100.0
+            );
+            progress_bar.value = loading_state.progress.clamp(0.0, 1.0);
+        }
     }
 }

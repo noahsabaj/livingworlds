@@ -13,9 +13,17 @@ pub fn update_loading_text(
     loading_state: Res<LoadingState>,
     mut query: Query<&mut Text, With<LoadingStatusText>>,
 ) {
-    if loading_state.is_changed() {
+    // Temporarily removed change detection to debug the issue
+    // if loading_state.is_changed() {
         for mut text in &mut query {
-            text.0 = loading_state.current_step.clone();
+            if text.0 != loading_state.current_step {
+                bevy::log::info!(
+                    "UI System: Updating status text from '{}' to '{}'",
+                    text.0,
+                    loading_state.current_step
+                );
+                text.0 = loading_state.current_step.clone();
+            }
         }
-    }
+    // }
 }
