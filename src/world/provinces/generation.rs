@@ -612,12 +612,12 @@ impl<'a> ProvinceBuilder<'a> {
     /// Classify terrain based on elevation
     fn classify_terrain(&self, elevation: f32, sea_level: f32) -> TerrainType {
         // Apply smoothstep near sea level for cleaner coastlines
-        // This reduces tiny islands created by noise right at sea level
-        let smoothed_elevation = if (elevation - sea_level).abs() < 0.02 {
+        // Expanded range to create cleaner land/ocean boundaries
+        let smoothed_elevation = if (elevation - sea_level).abs() < 0.04 {
             // Near sea level, apply smoothstep to reduce noise
-            let t = (elevation - (sea_level - 0.02)) / 0.04; // Normalize to 0-1 range
+            let t = (elevation - (sea_level - 0.04)) / 0.08; // Normalize to 0-1 range
             let smooth_t = smoothstep(0.0, 1.0, t);
-            (sea_level - 0.02) + smooth_t * 0.04
+            (sea_level - 0.04) + smooth_t * 0.08
         } else {
             elevation
         };
@@ -664,7 +664,7 @@ impl<'a> ProvinceBuilder<'a> {
     /// This prevents "spaghetti islands" by removing land masses smaller than a threshold.
     /// Uses connected component analysis to identify and remove small isolated land provinces.
     fn filter_small_islands(&self, provinces: &mut Vec<Province>) -> usize {
-        const MIN_ISLAND_SIZE: usize = 10; // Minimum provinces for a valid landmass
+        const MIN_ISLAND_SIZE: usize = 50; // Increased from 10 - removes smallest fragments but keeps archipelagos
 
         // Build a quick lookup map for province indices
         let province_map: HashMap<u32, usize> = provinces
