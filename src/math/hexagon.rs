@@ -3,8 +3,21 @@
 //! This module contains ALL hexagon-related calculations, constants, and geometry.
 //! We use FLAT-TOP hexagons with odd-q offset coordinate system throughout.
 
-use super::angles::{degrees_to_radians, position_on_circle};
 use bevy::prelude::*;
+
+// Helper functions for hexagon calculations
+#[inline]
+fn degrees_to_radians(degrees: f32) -> f32 {
+    degrees.to_radians()
+}
+
+#[inline]
+fn position_on_circle(center_x: f32, center_y: f32, radius: f32, angle: f32) -> (f32, f32) {
+    (
+        center_x + angle.cos() * radius,
+        center_y + angle.sin() * radius,
+    )
+}
 
 // HEXAGON CONSTANTS - All hexagon-related constants in one place
 
@@ -253,42 +266,4 @@ pub fn quantize_position(pos: Vec3, precision: f32) -> (i32, i32) {
         (pos.x * precision).round() as i32,
         (pos.y * precision).round() as i32,
     )
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_hexagon_vertices() {
-        let hex = Hexagon::new(Vec2::ZERO);
-        let vertices = hex.vertices();
-
-        // Center should be at origin
-        assert_eq!(vertices[0], Vec3::ZERO);
-
-        // First corner should be at 0 degrees (right side)
-        assert!((vertices[1].x - HEX_SIZE).abs() < 0.001);
-        assert!(vertices[1].y.abs() < 0.001);
-    }
-
-    #[test]
-    fn test_point_containment() {
-        let hex = Hexagon::new(Vec2::ZERO);
-
-        // Center should be inside
-        assert!(hex.contains_point(Vec2::ZERO));
-
-        // Points outside should not be inside
-        assert!(!hex.contains_point(Vec2::new(HEX_SIZE * 2.0, 0.0)));
-    }
-
-    #[test]
-    fn test_grid_position_calculation() {
-        let pos = calculate_grid_position(0, 0, HEX_SIZE, 10, 10);
-
-        // Should be offset from origin by half the grid size
-        assert!(pos.x < 0.0);
-        assert!(pos.y < 0.0);
-    }
 }

@@ -23,6 +23,8 @@
 mod borders; // Border rendering
 mod clouds; // Cloud system (data, generation, rendering)
 mod colors; // Color system (themes, providers, calculations)
+mod cultural; // Geographic-cultural assignment system
+mod gpu; // GPU compute acceleration for world generation
 mod mesh; // World mesh rendering
 mod minerals; // Mineral resources
 mod overlay;
@@ -59,8 +61,8 @@ pub use terrain::{
 // === Provinces Feature ===
 pub use provinces::{
     calculate_agriculture_values, calculate_ocean_depths, Abundance, Agriculture, Distance,
-    Elevation, HexDirection, Province, ProvinceBuilder, ProvinceId, ProvincesSpatialIndex,
-    WorldBounds,
+    Elevation, HexDirection, Province, ProvinceBuilder, ProvinceEntity, ProvinceId,
+    ProvincesSpatialIndex, WorldBounds,
 };
 
 // === Rivers Feature ===
@@ -81,6 +83,12 @@ pub use overlay::{update_province_colors, CachedOverlayColors, MapMode, OverlayP
 // === Color System ===
 pub use colors::{theme_colors, ColorProvider, Colorable, SafeColor, StoneAbundance, WorldColors};
 
+// === Cultural Assignment ===
+pub use cultural::{
+    assign_cultures_to_province_storage, assign_cultures_to_provinces, assign_province_culture,
+    calculate_world_bounds, CulturalConfig,
+};
+
 // === World UI ===
 pub use ui::{
     AggressionLevel, ClimateType, IslandFrequency, MineralDistribution, MountainDensity,
@@ -89,6 +97,13 @@ pub use ui::{
 
 // === World Generation ===
 pub use generation::{WorldBuilder, WorldGenerationError, WorldGenerationErrorType};
+
+// === GPU Compute Acceleration ===
+pub use gpu::{
+    check_gpu_compute_support, ComputeLabel, ComputeMetrics, ComputeMode, ErosionComputeSettings,
+    GpuComputeStatus, GpuErosionParams, GpuNoiseParams, GpuProvinceData, NoiseComputePlugin,
+    NoiseComputeSettings,
+};
 
 // === World Simulation ===
 pub use simulation::*; // Events and simulation systems
@@ -102,9 +117,9 @@ pub use plugin::{
 
 // === World Generation (from setup.rs) ===
 pub use setup::{
-    AsyncWorldGeneration, // Async world generation resource
-    GenerationProgress, // Progress update structure
+    poll_async_world_generation,  // Progress polling system
     start_async_world_generation, // Async generation starter
-    poll_async_world_generation, // Progress polling system
+    AsyncWorldGeneration,         // Async world generation resource
+    GenerationProgress,           // Progress update structure
     WorldSetupError,
 };

@@ -5,6 +5,7 @@
 use super::super::components::{BackButton, GenerateButton};
 use super::super::types::WorldGenerationSettings;
 use crate::states::{GameState, RequestStateTransition};
+use crate::ui::define_marker_interactions;
 use bevy::prelude::*;
 
 pub fn init_default_settings(mut commands: Commands) {
@@ -31,8 +32,8 @@ pub fn handle_generate_button(
             });
 
             // Initialize loading screen
-            let mut loading_state = crate::loading_screen::LoadingState::default();
-            crate::loading_screen::start_world_generation_loading(
+            let mut loading_state = crate::loading::LoadingState::default();
+            crate::loading::start_world_generation_loading(
                 &mut loading_state,
                 settings.seed,
                 format!("{:?}", settings.world_size),
@@ -48,17 +49,15 @@ pub fn handle_generate_button(
     }
 }
 
-pub fn handle_back_button(
-    interactions: Query<&Interaction, (Changed<Interaction>, With<BackButton>)>,
-    mut state_events: EventWriter<RequestStateTransition>,
-) {
-    for interaction in &interactions {
-        if *interaction == Interaction::Pressed {
-            debug!("Back button pressed");
-            state_events.write(RequestStateTransition {
-                from: GameState::WorldConfiguration,
-                to: GameState::MainMenu,
-            });
-        }
+// Marker interaction automation - reduces 14 lines to 8 lines
+define_marker_interactions! {
+    BackButton => handle_back_button(
+        mut state_events: EventWriter<RequestStateTransition>
+    ) {
+        debug!("Back button pressed");
+        state_events.write(RequestStateTransition {
+            from: GameState::WorldConfiguration,
+            to: GameState::MainMenu,
+        });
     }
 }

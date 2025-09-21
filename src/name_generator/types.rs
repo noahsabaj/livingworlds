@@ -3,6 +3,9 @@
 //! This module contains all the enums and types that define the parameters
 //! for name generation, including cultures, roles, regions, and relationships.
 
+use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
+
 /// The type of name to generate, with context-specific parameters
 #[derive(Debug, Clone)]
 pub enum NameType {
@@ -37,7 +40,7 @@ pub enum NameType {
 ///
 /// Each culture has its own naming patterns, titles, and linguistic characteristics
 /// that affect how names are constructed.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Reflect, Serialize, Deserialize)]
 pub enum Culture {
     /// European-inspired (knights, kingdoms, classical)
     Western,

@@ -1,6 +1,6 @@
 //! Time display component for showing game date/time
 
-use super::super::{LabelBuilder, LabelStyle};
+use super::super::{ChildBuilder, LabelBuilder, LabelStyle};
 use crate::resources::GameTime;
 use bevy::prelude::*;
 
@@ -9,7 +9,7 @@ use bevy::prelude::*;
 pub struct GameTimeDisplay;
 
 /// Spawn the time display UI element
-pub fn spawn_time_display(parent: &mut ChildSpawnerCommands) {
+pub fn spawn_time_display(parent: &mut ChildBuilder) {
     let entity = LabelBuilder::new("Year 1000")
         .style(LabelStyle::Heading)
         .font_size(24.0)

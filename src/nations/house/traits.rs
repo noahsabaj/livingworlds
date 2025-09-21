@@ -89,7 +89,8 @@ impl HouseTraits {
 
     /// Get the dominant trait for this house
     pub fn dominant_trait(&self) -> DominantTrait {
-        let max_trait = self.martial
+        let max_trait = self
+            .martial
             .max(self.stewardship)
             .max(self.diplomacy)
             .max(self.learning)
@@ -123,7 +124,7 @@ pub enum HouseArchetype {
 }
 
 /// The dominant trait that defines a house's character
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum DominantTrait {
     Martial,
     Stewardship,

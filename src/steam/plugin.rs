@@ -4,9 +4,9 @@
 //! 65 lines with intricate Steam initialization → 45 lines declarative + custom logic!
 
 use bevy::prelude::*;
+use bevy_plugin_builder::define_plugin;
 use bevy_steamworks::*;
 use std::sync::Arc;
-use bevy_plugin_builder::define_plugin;
 
 use super::{
     achievements, callbacks, leaderboards, rich_presence, statistics,

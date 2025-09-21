@@ -38,10 +38,3 @@ pub fn setup_hud(mut commands: Commands) {
                 });
         });
 }
-
-/// Cleanup all HUD elements
-pub fn cleanup_hud(mut commands: Commands, query: Query<Entity, With<HudRoot>>) {
-    for entity in &query {
-        commands.entity(entity).despawn();
-    }
-}

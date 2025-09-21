@@ -3,13 +3,13 @@
 //! This module handles displaying nations on the map by coloring provinces
 //! according to their controlling nation.
 
-use bevy::prelude::*;
 use bevy::input::ButtonInput;
+use bevy::prelude::*;
 use bevy::text::Text2d;
 use std::collections::HashMap;
 
-use crate::world::{MapMode, ProvinceStorage, WorldMeshHandle};
 use super::types::{Nation, NationId};
+use crate::world::{MapMode, ProvinceStorage, WorldMeshHandle};
 
 /// System to update province colors based on nation ownership
 /// Only runs when map mode changes to Political
@@ -47,7 +47,8 @@ pub fn update_nation_colors(
             // For each province, use its owner field directly - O(1) per province!
             for (province_idx, province) in province_storage.provinces.iter().enumerate() {
                 let color = if let Some(nation_id) = province.owner {
-                    nation_colors.get(&nation_id)
+                    nation_colors
+                        .get(&nation_id)
                         .copied()
                         .unwrap_or(Color::srgb(0.2, 0.2, 0.2))
                 } else {

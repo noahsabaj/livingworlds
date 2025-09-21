@@ -1,5 +1,6 @@
 //! Label component for text display
 
+use super::super::ChildBuilder;
 use super::super::{colors, dimensions};
 use bevy::prelude::*;
 
@@ -101,7 +102,7 @@ impl LabelBuilder {
         self
     }
 
-    pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
+    pub fn build(self, parent: &mut ChildBuilder) -> Entity {
         let font_size = self.font_size.unwrap_or_else(|| self.style.font_size());
         let text_color = self.color.unwrap_or_else(|| self.style.text_color());
 

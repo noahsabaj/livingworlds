@@ -75,10 +75,10 @@ fn generate_compound_nation(generator: &mut NameGenerator) -> String {
 
     // Multiple compound formats for variety
     let formats = [
-        "The {} {} of {}",           // "The Sacred Empire of Atlantis"
-        "{} {} of {}",               // "Divine Kingdom of Lemuria"
-        "{} {}",                     // "Eternal Dominion" (adjective modifies structure)
-        "The {} {}",                 // "The Ancient Imperium"
+        "The {} {} of {}", // "The Sacred Empire of Atlantis"
+        "{} {} of {}",     // "Divine Kingdom of Lemuria"
+        "{} {}",           // "Eternal Dominion" (adjective modifies structure)
+        "The {} {}",       // "The Ancient Imperium"
     ];
 
     let format = generator.random_choice(&formats);
@@ -109,10 +109,10 @@ fn generate_geographic_compound_nation(generator: &mut NameGenerator) -> String 
 
     // Geographic compound formats
     let formats = [
-        "{} {} of {}",               // "Northern Empire of Atlantis"
-        "{} {}",                     // "Highland Kingdom"
-        "The {} {} Territories",     // "The Eastern Imperium Territories"
-        "{} {} Federation",          // "Coastal Dominion Federation"
+        "{} {} of {}",           // "Northern Empire of Atlantis"
+        "{} {}",                 // "Highland Kingdom"
+        "The {} {} Territories", // "The Eastern Imperium Territories"
+        "{} {} Federation",      // "Coastal Dominion Federation"
     ];
 
     let format = generator.random_choice(&formats);
@@ -144,8 +144,17 @@ fn generate_compound_house(generator: &mut NameGenerator) -> String {
 
     // For houses, use mystical/temporal adjectives more often
     let mystical_adjectives = &[
-        "Sacred", "Divine", "Eternal", "Ancient", "Primordial", "Celestial",
-        "Transcendent", "Enlightened", "Illuminated", "Crystalline", "Astral",
+        "Sacred",
+        "Divine",
+        "Eternal",
+        "Ancient",
+        "Primordial",
+        "Celestial",
+        "Transcendent",
+        "Enlightened",
+        "Illuminated",
+        "Crystalline",
+        "Astral",
     ];
 
     let adjective = generator.random_choice(mystical_adjectives);
@@ -153,11 +162,11 @@ fn generate_compound_house(generator: &mut NameGenerator) -> String {
 
     // Mystical compound formats for houses
     let formats = [
-        "The {} Order of {}",        // "The Sacred Order of Atlantean"
-        "{} Lineage of {}",          // "Divine Lineage of Starborn"
-        "{} {} Bloodline",           // "Ancient Primordial Bloodline"
-        "The {} {} Circle",          // "The Eternal Crystalline Circle"
-        "{} Guardians of {}",        // "Celestial Guardians of Orichalcum"
+        "The {} Order of {}", // "The Sacred Order of Atlantean"
+        "{} Lineage of {}",   // "Divine Lineage of Starborn"
+        "{} {} Bloodline",    // "Ancient Primordial Bloodline"
+        "The {} {} Circle",   // "The Eternal Crystalline Circle"
+        "{} Guardians of {}", // "Celestial Guardians of Orichalcum"
     ];
 
     let format = generator.random_choice(&formats);
@@ -169,7 +178,8 @@ fn generate_compound_house(generator: &mut NameGenerator) -> String {
             format!("{} {} Bloodline", adjective, second_adjective)
         }
         "The {} {} Circle" => {
-            let material = generator.random_choice(&["Crystal", "Obsidian", "Mithril", "Adamantine"]);
+            let material =
+                generator.random_choice(&["Crystal", "Obsidian", "Mithril", "Adamantine"]);
             format!("The {} {} Circle", adjective, material)
         }
         "{} Guardians of {}" => format!("{} Guardians of {}", adjective, house),

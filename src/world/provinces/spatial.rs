@@ -6,8 +6,9 @@
 #![allow(dead_code)] // Preserve utility functions for future use
 
 use super::types::ProvinceId;
-use crate::math::{euclidean_vec2, HEX_SIZE, SQRT_3};
+use crate::math::{HEX_SIZE, SQRT_3};
 use bevy::prelude::*;
+use rayon::prelude::*;
 use std::collections::HashMap;
 
 /// Grid-based spatial index for O(1) province lookups
@@ -22,6 +23,9 @@ pub struct ProvincesSpatialIndex {
     /// Position to province ID mapping for mouse picking
     pub position_to_province: HashMap<(i32, i32), ProvinceId>,
 
+    /// Actual province positions for accurate distance calculations (indexed by province ID)
+    pub province_positions: Vec<Vec2>,
+
     /// World bounds for clamping
     pub bounds: WorldBounds,
 }
@@ -35,31 +39,65 @@ impl ProvincesSpatialIndex {
         provinces: &[super::types::Province],
         dimensions: &crate::resources::MapDimensions,
     ) -> Self {
-        let mut index = Self::new();
-
         let half_width = (dimensions.provinces_per_row as f32 * dimensions.hex_size * SQRT_3) / 2.0;
         let half_height = (dimensions.provinces_per_col as f32 * dimensions.hex_size * 1.5) / 2.0;
 
-        index.bounds = WorldBounds {
+        let bounds = WorldBounds {
             min: Vec2::new(-half_width, -half_height),
             max: Vec2::new(half_width, half_height),
         };
 
-        for (idx, province) in provinces.iter().enumerate() {
-            let col = (idx as u32) % dimensions.provinces_per_row;
-            let row = (idx as u32) / dimensions.provinces_per_row;
+        // Pre-allocate Vec for direct indexing by province ID
+        let mut province_positions = vec![Vec2::ZERO; provinces.len()];
 
-            index.grid.insert((col as i32, row as i32), province.id);
+        // Parallel build grid and position indices
+        let (grid_map, position_map): (Vec<_>, Vec<_>) = provinces
+            .par_iter()
+            .enumerate()
+            .map(|(idx, province)| {
+                let col = (idx as u32) % dimensions.provinces_per_row;
+                let row = (idx as u32) / dimensions.provinces_per_row;
 
-            // Also map quantized positions for mouse picking
-            let pos_key = (
-                (province.position.x / dimensions.hex_size) as i32,
-                (province.position.y / dimensions.hex_size) as i32,
-            );
-            index.position_to_province.insert(pos_key, province.id);
+                let grid_entry = ((col as i32, row as i32), province.id);
+
+                let pos_key = (
+                    (province.position.x / dimensions.hex_size) as i32,
+                    (province.position.y / dimensions.hex_size) as i32,
+                );
+                let position_entry = (pos_key, province.id);
+
+                (grid_entry, position_entry)
+            })
+            .unzip();
+
+        // Parallel collect province positions data
+        let position_updates: Vec<(usize, Vec2)> = provinces.par_iter()
+            .filter_map(|province| {
+                let idx = province.id.value() as usize;
+                if idx < province_positions.len() {
+                    Some((idx, province.position))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        // Sequential population (safe)
+        for (idx, position) in position_updates {
+            province_positions[idx] = position;
         }
 
-        index
+        // Build HashMaps from parallel-computed entries
+        let grid: HashMap<(i32, i32), ProvinceId> = grid_map.into_iter().collect();
+        let position_to_province: HashMap<(i32, i32), ProvinceId> =
+            position_map.into_iter().collect();
+
+        Self {
+            grid,
+            position_to_province,
+            province_positions,
+            bounds,
+        }
     }
 
     /// Get province at grid coordinates
@@ -74,6 +112,49 @@ impl ProvincesSpatialIndex {
             (position.y / hex_size) as i32,
         );
         self.position_to_province.get(&pos_key).copied()
+    }
+
+    /// Fast mouse picking - finds the province under the cursor with accurate hex testing
+    /// Returns (ProvinceId, actual_position) if a province is found
+    pub fn pick_province_at_position(
+        &self,
+        world_pos: Vec2,
+        hex_size: f32,
+    ) -> Option<(ProvinceId, Vec2)> {
+        // First, get provinces in the immediate vicinity (3x3 grid around the click)
+        let center_x = (world_pos.x / hex_size).round() as i32;
+        let center_y = (world_pos.y / hex_size).round() as i32;
+
+        let mut closest_province = None;
+        let mut closest_distance = f32::MAX;
+
+        // Check a small 3x3 grid around the click position
+        for dx in -1..=1 {
+            for dy in -1..=1 {
+                let grid_x = center_x + dx;
+                let grid_y = center_y + dy;
+
+                if let Some(&province_id) = self.position_to_province.get(&(grid_x, grid_y)) {
+                    // Get actual position (direct Vec indexing)
+                    let id_idx = province_id.value() as usize;
+                    if id_idx < self.province_positions.len() {
+                        let actual_pos = self.province_positions[id_idx];
+
+                        // Use hexagon geometry for accurate hit testing
+                        let hexagon = crate::math::Hexagon::with_size(actual_pos, hex_size);
+                        if hexagon.contains_point(world_pos) {
+                            let dist = actual_pos.distance(world_pos);
+                            if dist < closest_distance {
+                                closest_distance = dist;
+                                closest_province = Some((province_id, actual_pos));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        closest_province
     }
 
     /// Check if a position is within world bounds
@@ -98,6 +179,13 @@ impl ProvincesSpatialIndex {
             (position.y / HEX_SIZE) as i32,
         );
         self.position_to_province.insert(pos_key, province_id);
+
+        // Store actual position for accurate distance calculations (extend Vec if needed)
+        let id_idx = province_id.value() as usize;
+        if id_idx >= self.province_positions.len() {
+            self.province_positions.resize(id_idx + 1, Vec2::ZERO);
+        }
+        self.province_positions[id_idx] = position;
     }
 
     /// Query provinces near a world position
@@ -114,12 +202,14 @@ impl ProvincesSpatialIndex {
         for x in min_x..=max_x {
             for y in min_y..=max_y {
                 if let Some(province_id) = self.position_to_province.get(&(x, y)) {
-                    // For now, return the grid position as the province position
-                    // TODO: Store actual positions in the spatial index
-                    let pos = Vec2::new(x as f32 * cell_size, y as f32 * cell_size);
-                    let dist = euclidean_vec2(world_pos, pos);
-                    if dist <= search_radius {
-                        results.push((pos, province_id.value()));
+                    // Use actual stored position for accurate distance calculations (direct Vec indexing)
+                    let id_idx = province_id.value() as usize;
+                    if id_idx < self.province_positions.len() {
+                        let actual_pos = self.province_positions[id_idx];
+                        let dist = world_pos.distance(actual_pos);
+                        if dist <= search_radius {
+                            results.push((actual_pos, province_id.value()));
+                        }
                     }
                 }
             }

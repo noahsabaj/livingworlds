@@ -7,8 +7,8 @@ use bevy::prelude::*;
 use bevy_plugin_builder::define_plugin;
 
 use super::handlers::{
-    handle_mod_toggle_events, handle_workshop_subscribe_events,
-    handle_workshop_unsubscribe_events, handle_refresh_workshop_data_events,
+    handle_mod_toggle_events, handle_refresh_workshop_data_events,
+    handle_workshop_subscribe_events, handle_workshop_unsubscribe_events,
     sync_workshop_installations,
 };
 use super::loader::ConfigReloadEvent;
@@ -33,16 +33,19 @@ define_plugin!(ModdingPlugin {
 
     update: [
         // Config and event handling systems (chained for proper order)
-        (super::loader::check_config_changes,
-         super::loader::handle_config_reload,
-         handle_mod_toggle_events,
-         handle_workshop_subscribe_events,
-         handle_workshop_unsubscribe_events,
-         handle_refresh_workshop_data_events,
-         sync_workshop_installations).chain()
+        (
+            super::loader::check_config_changes,
+            super::loader::handle_config_reload,
+            handle_mod_toggle_events,
+            handle_workshop_subscribe_events,
+            handle_workshop_unsubscribe_events,
+            handle_refresh_workshop_data_events,
+            sync_workshop_installations
+        )
+            .chain()
     ],
 
-    custom_init: |app| {
+    custom_init: |app: &mut App| {
         // Custom mod manager initialization with logging
         let mut mod_manager = ModManager::new();
         mod_manager.initialize();

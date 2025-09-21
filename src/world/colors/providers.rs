@@ -54,7 +54,7 @@ impl ColorProvider for StandardColorProvider {
             base_hsl.hue,
             base_hsl.saturation,
             new_lightness,
-            base_hsl.alpha
+            base_hsl.alpha,
         );
 
         Color::from(varied_hsl)

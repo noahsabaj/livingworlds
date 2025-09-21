@@ -5,10 +5,7 @@
 
 #![allow(dead_code)] // Preserve UI utility functions for future use
 
-use super::components::{PanelBuilder, PanelStyle};
-use super::sliders::{Slider, SliderButtonAction};
-use super::styles::{colors, dimensions};
-use super::text_inputs::FocusGroupId;
+use super::{ChildBuilder, components::{PanelBuilder, PanelStyle}, sliders::{Slider, SliderButtonAction}, styles::{colors, dimensions}, text_inputs::FocusGroupId};
 use bevy::prelude::*;
 
 /// High-level builder for creating forms with automatic layout management
@@ -41,7 +38,7 @@ enum FormField {
         show_buttons: bool,
     },
     Custom {
-        builder_fn: Box<dyn FnOnce(&mut ChildSpawnerCommands)>,
+        builder_fn: Box<dyn FnOnce(&mut ChildBuilder)>,
     },
 }
 
@@ -161,7 +158,7 @@ impl FormBuilder {
 
     pub fn custom_field<F>(mut self, builder_fn: F) -> Self
     where
-        F: FnOnce(&mut ChildSpawnerCommands) + 'static,
+        F: FnOnce(&mut ChildBuilder) + 'static,
     {
         if self.sections.is_empty() {
             self.sections.push(FormSection {
@@ -179,7 +176,7 @@ impl FormBuilder {
         self
     }
 
-    pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
+    pub fn build(self, parent: &mut ChildBuilder) -> Entity {
         // Use PanelBuilder for the container
         let mut panel_builder = PanelBuilder::new()
             .style(PanelStyle::Default)
@@ -485,7 +482,7 @@ pub fn form() -> FormBuilder {
 pub mod presets {
     use super::*;
 
-    pub fn login_form(parent: &mut ChildSpawnerCommands) -> Entity {
+    pub fn login_form(parent: &mut ChildBuilder) -> Entity {
         // We can't use the builder pattern across lifetime boundaries in presets
         // So we create the form manually with proper structure
         parent
@@ -637,7 +634,7 @@ pub mod presets {
             .id()
     }
 
-    pub fn settings_form(parent: &mut ChildSpawnerCommands) -> Entity {
+    pub fn settings_form(parent: &mut ChildBuilder) -> Entity {
         // Manual construction due to lifetime constraints
         parent
             .spawn((

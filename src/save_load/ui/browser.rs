@@ -41,8 +41,8 @@ pub fn spawn_save_browser(
                 overlay
                     .spawn((
                         Node {
-                            width: Val::Px(800.0),                    // Width constraint for readability
-                            max_height: Val::Vh(90.0),               // Safety valve - never bigger than 90% viewport
+                            width: Val::Px(800.0),     // Width constraint for readability
+                            max_height: Val::Vh(90.0), // Safety valve - never bigger than 90% viewport
                             padding: UiRect::all(Val::Px(20.0)),
                             flex_direction: FlexDirection::Column,
                             // NO HEIGHT SPECIFIED! Content determines it naturally

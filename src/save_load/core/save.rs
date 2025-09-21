@@ -11,6 +11,7 @@ use crate::world::ProvinceStorage;
 use bevy::prelude::*;
 use bevy::tasks::IoTaskPool;
 use chrono::Local;
+use rayon::prelude::*;
 use std::fs::File;
 use std::io::Write;
 
@@ -30,7 +31,7 @@ pub fn handle_save_game(
     for event in save_events.read() {
         info!("Saving game to slot: {}", event.slot_name);
 
-        // Gather all game state into SaveGameData
+        // Gather all game state into SaveGameData (optimized province handling)
         let save_data = SaveGameData {
             version: SAVE_VERSION,
             timestamp: Local::now(),
@@ -46,7 +47,18 @@ pub fn handle_save_game(
             map_mode: map_mode.as_deref().copied().unwrap_or_default(),
             provinces: province_storage
                 .as_ref()
-                .map(|s| s.provinces.clone())
+                .map(|s| {
+                    // Parallelize province copying for better performance with large worlds
+                    if s.provinces.len() > 100000 {
+                        s.provinces
+                            .par_chunks(50000) // Process in 50k chunks
+                            .map(|chunk| chunk.to_vec())
+                            .flatten()
+                            .collect()
+                    } else {
+                        s.provinces.clone()
+                    }
+                })
                 .unwrap_or_default(),
         };
 

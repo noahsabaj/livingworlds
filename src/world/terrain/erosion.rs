@@ -4,8 +4,8 @@
 //! that transform tectonic heightmaps into realistic terrain with
 //! river valleys, sediment deposits, and natural drainage patterns.
 
-use crate::math::{euclidean_vec2, lerp, linear_falloff};
 use super::super::provinces::{Elevation, Province};
+use crate::math::{lerp, linear_falloff};
 use bevy::prelude::Vec2;
 use log::info;
 use rand::{rngs::StdRng, Rng, SeedableRng};
@@ -168,7 +168,7 @@ impl HeightMap {
 
                 let cell_pos = Vec2::new(nx as f32 * self.cell_size, ny as f32 * self.cell_size);
 
-                let distance = euclidean_vec2(pos, cell_pos);
+                let distance = pos.distance(cell_pos);
                 let weight = linear_falloff(distance, self.cell_size);
 
                 let current = self.get(nx, ny);
@@ -381,15 +381,18 @@ impl ErosionSystem {
         // Correct bilinear interpolation indexing:
         // (x0,y0) -> top-left,    (x1,y0) -> top-right
         // (x0,y1) -> bottom-left, (x1,y1) -> bottom-right
-        let idx_top_left = y0 * width + x0;      // (x0, y0)
-        let idx_top_right = y0 * width + x1;     // (x1, y0)
-        let idx_bottom_left = y1 * width + x0;   // (x0, y1)
-        let idx_bottom_right = y1 * width + x1;  // (x1, y1)
+        let idx_top_left = y0 * width + x0; // (x0, y0)
+        let idx_top_right = y0 * width + x1; // (x1, y0)
+        let idx_bottom_left = y1 * width + x0; // (x0, y1)
+        let idx_bottom_right = y1 * width + x1; // (x1, y1)
 
         // Extra safety check
         let max_idx = width * height - 1;
-        if idx_top_left > max_idx || idx_top_right > max_idx ||
-           idx_bottom_left > max_idx || idx_bottom_right > max_idx {
+        if idx_top_left > max_idx
+            || idx_top_right > max_idx
+            || idx_bottom_left > max_idx
+            || idx_bottom_right > max_idx
+        {
             // Fallback to nearest valid cell
             return data[y0.min(height - 1) * width + x0.min(width - 1)];
         }
@@ -400,9 +403,9 @@ impl ErosionSystem {
         let h_bottom_right = data[idx_bottom_right];
 
         // Bilinear interpolation: interpolate horizontally, then vertically
-        let h_top = lerp(h_top_left, h_top_right, fx);      // Top edge interpolation
+        let h_top = lerp(h_top_left, h_top_right, fx); // Top edge interpolation
         let h_bottom = lerp(h_bottom_left, h_bottom_right, fx); // Bottom edge interpolation
-        lerp(h_top, h_bottom, fy)  // Final vertical interpolation
+        lerp(h_top, h_bottom, fy) // Final vertical interpolation
     }
 
     /// Thread-safe static version of calculate_gradient

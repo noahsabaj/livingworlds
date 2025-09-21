@@ -6,7 +6,7 @@
 
 #![allow(dead_code)] // Preserve UI utility functions for future use
 
-use super::{colors, dimensions};
+use super::{ChildBuilder, colors, dimensions};
 use crate::math::fast_sin;
 use bevy::prelude::*;
 
@@ -139,7 +139,7 @@ impl LoadingIndicatorBuilder {
         self
     }
 
-    pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
+    pub fn build(self, parent: &mut ChildBuilder) -> Entity {
         let _container_size = self.size.container_size();
         let flex_direction = match self.label_position {
             LabelPosition::Below => FlexDirection::Column,
@@ -197,7 +197,7 @@ impl LoadingIndicatorBuilder {
 
 /// Spawn a rotating spinner
 fn spawn_spinner(
-    parent: &mut ChildSpawnerCommands,
+    parent: &mut ChildBuilder,
     size: LoadingSize,
     color: Color,
     animated: bool,
@@ -232,7 +232,7 @@ fn spawn_spinner(
 
 /// Spawn animated dots
 fn spawn_dots(
-    parent: &mut ChildSpawnerCommands,
+    parent: &mut ChildBuilder,
     size: LoadingSize,
     color: Color,
     animated: bool,
@@ -270,7 +270,7 @@ fn spawn_dots(
 
 /// Spawn a pulsing indicator
 fn spawn_pulse(
-    parent: &mut ChildSpawnerCommands,
+    parent: &mut ChildBuilder,
     size: LoadingSize,
     color: Color,
     animated: bool,
@@ -308,7 +308,7 @@ fn spawn_pulse(
 
 /// Spawn an indeterminate progress bar
 fn spawn_indeterminate_bar(
-    parent: &mut ChildSpawnerCommands,
+    parent: &mut ChildBuilder,
     size: LoadingSize,
     color: Color,
     animated: bool,

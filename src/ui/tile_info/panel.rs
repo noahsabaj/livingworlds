@@ -1,10 +1,10 @@
 //! Tile info panel for displaying province information
 
-use super::super::{LabelBuilder, PanelBuilder, PanelStyle};
+use super::super::{ChildBuilder, LabelBuilder, PanelBuilder, PanelStyle};
 use crate::resources::SelectedProvinceInfo;
 use crate::world::{ProvinceId, ProvinceStorage};
-use bevy::prelude::*;
 use bevy::log::{debug, error};
+use bevy::prelude::*;
 
 /// Marker component for the tile info panel
 #[derive(Component)]
@@ -15,7 +15,7 @@ pub struct TileInfoPanel;
 pub struct TileInfoText;
 
 /// Spawn the tile info panel UI
-pub fn spawn_tile_info_panel(parent: &mut ChildSpawnerCommands) {
+pub fn spawn_tile_info_panel(parent: &mut ChildBuilder) {
     // Create panel using PanelBuilder
     PanelBuilder::new()
         .style(PanelStyle::Default)
@@ -47,23 +47,23 @@ pub fn update_tile_info_ui(
             {
                 // Bounds check to prevent panic on invalid index
                 if let Some(province) = province_storage.provinces.get(idx) {
-                *text = Text::new(format!(
-                    "Province #{}
+                    *text = Text::new(format!(
+                        "Province #{}
 Terrain: {:?}
 Elevation: {:.2}
 Population: {:.0}
 Agriculture: {:.1}
 Water Distance: {:.1} hex
 Position: ({:.0}, {:.0})",
-                    province.id,
-                    province.terrain,
-                    province.elevation,
-                    province.population,
-                    province.agriculture,
-                    province.fresh_water_distance,
-                    province.position.x,
-                    province.position.y,
-                ));
+                        province.id,
+                        province.terrain,
+                        province.elevation,
+                        province.population,
+                        province.agriculture,
+                        province.fresh_water_distance,
+                        province.position.x,
+                        province.position.y,
+                    ));
                 } else {
                     // Handle invalid index gracefully with error reporting
                     error!(

@@ -35,7 +35,9 @@ pub struct RefreshWorkshopDataEvent;
 
 // Import Steam Workshop integration (conditionally)
 #[cfg(feature = "steam")]
-use crate::steam::{SteamClient, subscribe_to_workshop_item, get_subscribed_items, get_workshop_item_install_info};
+use crate::steam::{
+    get_subscribed_items, get_workshop_item_install_info, subscribe_to_workshop_item, SteamClient,
+};
 
 // Placeholder Steam types when steam feature is disabled
 #[cfg(not(feature = "steam"))]
@@ -62,10 +64,8 @@ pub fn handle_mod_toggle_events(
 /// Handle Steam Workshop subscribe events
 pub fn handle_workshop_subscribe_events(
     mut events: EventReader<WorkshopSubscribeEvent>,
-    #[cfg(feature = "steam")]
-    steam: Option<Res<SteamClient>>,
-    #[cfg(not(feature = "steam"))]
-    _steam: Option<Res<SteamClient>>,
+    #[cfg(feature = "steam")] steam: Option<Res<SteamClient>>,
+    #[cfg(not(feature = "steam"))] _steam: Option<Res<SteamClient>>,
 ) {
     #[cfg(feature = "steam")]
     {
@@ -82,7 +82,10 @@ pub fn handle_workshop_subscribe_events(
 
             subscribe_to_workshop_item(&steam, event.workshop_id);
 
-            info!("Successfully subscribed to workshop item: {}", event.workshop_id);
+            info!(
+                "Successfully subscribed to workshop item: {}",
+                event.workshop_id
+            );
         }
     }
 
@@ -98,10 +101,8 @@ pub fn handle_workshop_subscribe_events(
 /// Handle Steam Workshop unsubscribe events
 pub fn handle_workshop_unsubscribe_events(
     mut events: EventReader<WorkshopUnsubscribeEvent>,
-    #[cfg(feature = "steam")]
-    steam: Option<Res<SteamClient>>,
-    #[cfg(not(feature = "steam"))]
-    _steam: Option<Res<SteamClient>>,
+    #[cfg(feature = "steam")] steam: Option<Res<SteamClient>>,
+    #[cfg(not(feature = "steam"))] _steam: Option<Res<SteamClient>>,
 ) {
     #[cfg(feature = "steam")]
     {
@@ -120,7 +121,10 @@ pub fn handle_workshop_unsubscribe_events(
             // This would be implemented via Steam's UGC API
             warn!("Unsubscribe functionality requires additional Steam UGC API integration");
 
-            info!("Unsubscribe requested for workshop item: {}", event.workshop_id);
+            info!(
+                "Unsubscribe requested for workshop item: {}",
+                event.workshop_id
+            );
         }
     }
 
@@ -136,10 +140,8 @@ pub fn handle_workshop_unsubscribe_events(
 /// Handle workshop data refresh events
 pub fn handle_refresh_workshop_data_events(
     mut events: EventReader<RefreshWorkshopDataEvent>,
-    #[cfg(feature = "steam")]
-    steam: Option<Res<SteamClient>>,
-    #[cfg(not(feature = "steam"))]
-    _steam: Option<Res<SteamClient>>,
+    #[cfg(feature = "steam")] steam: Option<Res<SteamClient>>,
+    #[cfg(not(feature = "steam"))] _steam: Option<Res<SteamClient>>,
     mut mod_manager: ResMut<ModManager>,
 ) {
     #[cfg(feature = "steam")]
@@ -173,10 +175,8 @@ pub fn handle_refresh_workshop_data_events(
 
 /// Synchronize Steam Workshop installations with local mod manager
 pub fn sync_workshop_installations(
-    #[cfg(feature = "steam")]
-    steam: Option<Res<SteamClient>>,
-    #[cfg(not(feature = "steam"))]
-    _steam: Option<Res<SteamClient>>,
+    #[cfg(feature = "steam")] steam: Option<Res<SteamClient>>,
+    #[cfg(not(feature = "steam"))] _steam: Option<Res<SteamClient>>,
     mut mod_manager: ResMut<ModManager>,
     time: Res<Time>,
 ) {
@@ -202,12 +202,16 @@ pub fn sync_workshop_installations(
             // Check if the item is installed and get its path
             if let Some(install_path) = get_workshop_item_install_info(&steam, workshop_id) {
                 // Check if we already have this workshop mod loaded
-                let found = mod_manager.available_mods.iter().any(|m| {
-                    matches!(&m.source, ModSource::Workshop(id) if *id == workshop_id)
-                });
+                let found = mod_manager
+                    .available_mods
+                    .iter()
+                    .any(|m| matches!(&m.source, ModSource::Workshop(id) if *id == workshop_id));
 
                 if !found {
-                    info!("New workshop item detected: {} at {}", workshop_id, install_path);
+                    info!(
+                        "New workshop item detected: {} at {}",
+                        workshop_id, install_path
+                    );
                     mod_manager.add_workshop_mod(workshop_id, install_path);
                 }
             }

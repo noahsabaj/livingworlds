@@ -24,7 +24,11 @@ pub fn generate_person_name(
 }
 
 /// Get culturally appropriate first and last names
-pub fn get_cultural_person_name(generator: &mut NameGenerator, gender: Gender, culture: Culture) -> (String, String) {
+pub fn get_cultural_person_name(
+    generator: &mut NameGenerator,
+    gender: Gender,
+    culture: Culture,
+) -> (String, String) {
     match culture {
         Culture::Western => {
             use super::data::cultures::western_data::*;

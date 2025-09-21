@@ -5,6 +5,7 @@
 
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 
 /// Unique identifier for a nation
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Component, Reflect)]
@@ -25,7 +26,7 @@ impl NationId {
 pub struct Nation {
     pub id: NationId,
     pub name: String,
-    pub adjective: String,  // "French" for "France"
+    pub adjective: String, // "French" for "France"
     pub color: Color,
     pub capital_province: u32,
     // NOTE: Province ownership is stored in Province.owner, not here
@@ -34,7 +35,7 @@ pub struct Nation {
     // Economic and military strength
     pub treasury: f32,
     pub military_strength: f32,
-    pub stability: f32,  // 0.0 to 1.0
+    pub stability: f32, // 0.0 to 1.0
 
     // Personality for AI decisions
     pub personality: NationPersonality,
@@ -43,14 +44,13 @@ pub struct Nation {
 /// Personality traits that drive nation behavior
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct NationPersonality {
-    pub aggression: f32,     // -1.0 (pacifist) to 1.0 (warmonger)
-    pub expansionism: f32,   // -1.0 (isolationist) to 1.0 (imperialist)
-    pub diplomacy: f32,      // -1.0 (hostile) to 1.0 (friendly)
-    pub mercantilism: f32,   // -1.0 (closed) to 1.0 (free trade)
+    pub aggression: f32,   // -1.0 (pacifist) to 1.0 (warmonger)
+    pub expansionism: f32, // -1.0 (isolationist) to 1.0 (imperialist)
+    pub diplomacy: f32,    // -1.0 (hostile) to 1.0 (friendly)
+    pub mercantilism: f32, // -1.0 (closed) to 1.0 (free trade)
 }
 
 impl NationPersonality {
-    /// Create a random personality
     pub fn random(rng: &mut impl rand::Rng) -> Self {
         Self {
             aggression: rng.gen_range(-1.0..1.0),
@@ -60,7 +60,6 @@ impl NationPersonality {
         }
     }
 
-    /// Create a balanced personality
     pub fn balanced() -> Self {
         Self {
             aggression: 0.0,
@@ -77,20 +76,32 @@ pub struct NationBundle {
     pub nation: Nation,
     pub transform: Transform,
     pub visibility: Visibility,
+    pub pressure_vector: crate::simulation::PressureVector,
 }
 
 /// Resource tracking all nations
-#[derive(Resource, Default)]
+#[derive(Resource)]
 pub struct NationRegistry {
     pub nations: Vec<Nation>,
-    pub nation_id_counter: u32,
+    pub nation_id_counter: std::sync::Arc<std::sync::atomic::AtomicU32>,
+}
+
+impl Default for NationRegistry {
+    fn default() -> Self {
+        Self {
+            nations: Vec::new(),
+            nation_id_counter: std::sync::Arc::new(std::sync::atomic::AtomicU32::new(0)),
+        }
+    }
 }
 
 impl NationRegistry {
-    pub fn create_nation_id(&mut self) -> NationId {
-        let id = NationId::new(self.nation_id_counter);
-        self.nation_id_counter += 1;
-        id
+    /// Thread-safe nation ID creation using atomic operations
+    pub fn create_nation_id(&self) -> NationId {
+        let id = self
+            .nation_id_counter
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        NationId::new(id)
     }
 }
 
@@ -104,9 +115,19 @@ pub struct ProvinceOwnershipCache {
     pub version: u32,
 }
 
+/// Registry of nation colors for rendering
+#[derive(Resource, Default)]
+pub struct NationColorRegistry {
+    /// Map from nation ID to color
+    pub colors: std::collections::HashMap<NationId, Color>,
+}
+
 impl ProvinceOwnershipCache {
     /// Get all provinces owned by a nation
-    pub fn get_nation_provinces(&self, nation_id: NationId) -> Option<&std::collections::HashSet<u32>> {
+    pub fn get_nation_provinces(
+        &self,
+        nation_id: NationId,
+    ) -> Option<&std::collections::HashSet<u32>> {
         self.by_nation.get(&nation_id)
     }
 
@@ -154,9 +175,9 @@ impl Default for NationGenerationSettings {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NationDensity {
-    Sparse,      // Large empires
-    Balanced,    // Mix of sizes
-    Fragmented,  // Many small states
+    Sparse,     // Large empires
+    Balanced,   // Mix of sizes
+    Fragmented, // Many small states
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -165,4 +186,41 @@ pub enum StartingDevelopment {
     Medieval,
     Renaissance,
     Mixed,
+}
+
+/// A territory is a group of contiguous provinces owned by same nation
+#[derive(Component, Debug, Clone)]
+pub struct Territory {
+    pub provinces: HashSet<u32>, // The province IDs in this territory
+    pub nation_id: NationId,
+    pub center: Vec2,  // Geographic center
+    pub is_core: bool, // Core territory vs conquered
+}
+
+/// Entity Relationships for Territory ownership
+/// Territory is owned by a Nation - uses Bevy 0.16 automatic bidirectional tracking
+#[derive(Component, Debug, Clone)]
+#[relationship(relationship_target = OwnsTerritory)] // THIS enables automatic tracking!
+pub struct OwnedBy(pub Entity);
+
+/// Nation owns territories - automatically maintained by Bevy!
+#[derive(Component, Debug, Clone, Default)]
+#[relationship_target(relationship = OwnedBy, linked_spawn)] // THIS creates the magic!
+pub struct OwnsTerritory(Vec<Entity>); // Private for safety - Bevy handles access
+
+impl OwnsTerritory {
+    /// Safe read-only access to territories
+    pub fn territories(&self) -> &[Entity] {
+        &self.0
+    }
+
+    /// Check if nation owns any territories
+    pub fn has_territories(&self) -> bool {
+        !self.0.is_empty()
+    }
+
+    /// Count of territories owned
+    pub fn territory_count(&self) -> usize {
+        self.0.len()
+    }
 }

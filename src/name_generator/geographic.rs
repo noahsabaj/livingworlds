@@ -17,7 +17,8 @@ pub fn generate_river_name(generator: &mut NameGenerator) -> String {
 pub fn generate_mountain_name(generator: &mut NameGenerator) -> String {
     use super::data::*;
     let root = generator.random_choice(MOUNTAIN_ROOTS);
-    let suffix = generator.random_choice(&["", " Peak", " Mountain", " Ridge", " Summit", " Spire"]);
+    let suffix =
+        generator.random_choice(&["", " Peak", " Mountain", " Ridge", " Summit", " Spire"]);
     format!("{}{}", root, suffix)
 }
 

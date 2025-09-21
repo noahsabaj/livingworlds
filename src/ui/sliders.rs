@@ -2,8 +2,7 @@
 //! Provides THE standard way to create sliders with consistent styling,
 //! automatic value tracking, and built-in interaction handling.
 
-use super::buttons::{ButtonBuilder, ButtonSize, ButtonStyle};
-use super::styles::colors;
+use super::{ChildBuilder, buttons::{ButtonBuilder, ButtonSize, ButtonStyle}, styles::colors};
 use bevy::prelude::*;
 use bevy::ui::RelativeCursorPosition;
 
@@ -168,7 +167,11 @@ impl<M: Component> SliderBuilderWithMarker<M> {
         }
     }
 
-    pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
+    pub fn build(self, parent: &mut ChildBuilder) -> Entity {
+        build_slider_internal(parent, self.builder, Some(self.marker), None::<NoMarker>)
+    }
+
+    pub fn build_in(self, parent: &mut ChildBuilder) -> Entity {
         build_slider_internal(parent, self.builder, Some(self.marker), None::<NoMarker>)
     }
 }
@@ -181,7 +184,16 @@ pub struct SliderBuilderWithMarkers<M: Component, V: Component> {
 }
 
 impl<M: Component, V: Component> SliderBuilderWithMarkers<M, V> {
-    pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
+    pub fn build(self, parent: &mut ChildBuilder) -> Entity {
+        build_slider_internal(
+            parent,
+            self.builder,
+            Some(self.slider_marker),
+            Some(self.value_marker),
+        )
+    }
+
+    pub fn build_in(self, parent: &mut ChildBuilder) -> Entity {
         build_slider_internal(
             parent,
             self.builder,
@@ -229,6 +241,11 @@ impl SliderBuilder {
     }
 
     pub fn with_width(mut self, width: Val) -> Self {
+        self.width = width;
+        self
+    }
+
+    pub fn width(mut self, width: Val) -> Self {
         self.width = width;
         self
     }
@@ -309,14 +326,19 @@ impl SliderBuilder {
         }
     }
 
-    pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
+    pub fn build(self, parent: &mut ChildBuilder) -> Entity {
+        build_slider_internal_no_markers(parent, self)
+    }
+
+    /// Build slider with ChildBuilder (for use in macro contexts)
+    pub fn build_in(self, parent: &mut ChildBuilder) -> Entity {
         build_slider_internal_no_markers(parent, self)
     }
 }
 
 // Internal function to build the slider without markers
 fn build_slider_internal_no_markers(
-    parent: &mut ChildSpawnerCommands,
+    parent: &mut ChildBuilder,
     builder: SliderBuilder,
 ) -> Entity {
     build_slider_internal(parent, builder, None::<NoMarker>, None::<NoMarker>)
@@ -328,7 +350,7 @@ struct NoMarker;
 
 // Internal function to build the slider
 fn build_slider_internal<M: Component, V: Component>(
-    parent: &mut ChildSpawnerCommands,
+    parent: &mut ChildBuilder,
     builder: SliderBuilder,
     slider_marker: Option<M>,
     value_marker: Option<V>,

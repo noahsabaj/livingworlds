@@ -8,14 +8,14 @@
 //! In the mega-mesh architecture, provinces are data stored in ProvinceStorage,
 //! not individual entities. This dramatically improves performance by reducing
 
-use bevy::prelude::*;
 use bevy::log::error;
+use bevy::prelude::*;
 use bevy::render::mesh::PrimitiveTopology;
 use bevy::render::render_asset::RenderAssetUsages;
 use bevy::sprite::MeshMaterial2d;
 use bevy::window::PrimaryWindow;
 
-use crate::math::{euclidean_vec2, Hexagon, HEX_SIZE as HEX_SIZE_PIXELS};
+use crate::math::{Hexagon, HEX_SIZE as HEX_SIZE_PIXELS};
 use crate::resources::{ProvincesSpatialIndex, SelectedProvinceInfo};
 use crate::world::ProvinceId;
 use crate::world::ProvinceStorage;
@@ -32,25 +32,24 @@ const GOLDEN_COLOR: [f32; 4] = [1.0, 0.84, 0.0, 1.0];
 /// Golden color with transparency for material
 const GOLDEN_COLOR_ALPHA: f32 = 0.9;
 
-/// Plugin that manages selection border rendering
-pub struct BorderPlugin;
+use crate::states::GameState;
+/// Plugin that manages selection border rendering using BORDER AUTOMATION!
+///
+/// **AUTOMATION ACHIEVEMENT**: 18 lines manual → 12 lines declarative!
+use bevy_plugin_builder::define_plugin;
 
-impl Plugin for BorderPlugin {
-    fn build(&self, app: &mut App) {
-        use crate::states::GameState;
+define_plugin!(BorderPlugin {
+    resources: [SelectionBorder, SelectedProvinceInfo],
 
-        app
-            // Resources
-            .init_resource::<SelectionBorder>()
-            .init_resource::<SelectedProvinceInfo>()
-            .add_systems(OnEnter(GameState::InGame), setup_selection_border)
-            .add_systems(
-                Update,
-                (handle_tile_selection, update_selection_border)
-                    .run_if(in_state(GameState::InGame)),
-            );
+    update: [
+        (handle_tile_selection, update_selection_border)
+            .run_if(in_state(GameState::InGame))
+    ],
+
+    on_enter: {
+        GameState::InGame => [setup_selection_border]
     }
-}
+});
 
 /// Resource storing the single selection border entity
 #[derive(Resource, Default)]
@@ -149,24 +148,24 @@ fn update_selection_border(
         {
             // Bounds check to prevent panic on invalid index
             if let Some(province) = province_storage.provinces.get(idx) {
-            trace!(
-                "Showing selection border for province {} at ({:.0}, {:.0})",
-                province_id,
-                province.position.x,
-                province.position.y
-            );
+                trace!(
+                    "Showing selection border for province {} at ({:.0}, {:.0})",
+                    province_id,
+                    province.position.x,
+                    province.position.y
+                );
 
-            // Mutate existing transform instead of creating new one
-            if let Ok(mut transform) = transforms.get_mut(border_entity) {
-                transform.translation.x = province.position.x;
-                transform.translation.y = province.position.y;
-                transform.translation.z = BORDER_Z_INDEX;
-            }
+                // Mutate existing transform instead of creating new one
+                if let Ok(mut transform) = transforms.get_mut(border_entity) {
+                    transform.translation.x = province.position.x;
+                    transform.translation.y = province.position.y;
+                    transform.translation.z = BORDER_Z_INDEX;
+                }
 
-            // Show the border by mutating visibility
-            if let Ok(mut visibility) = visibilities.get_mut(border_entity) {
-                *visibility = Visibility::Inherited;
-            }
+                // Show the border by mutating visibility
+                if let Ok(mut visibility) = visibilities.get_mut(border_entity) {
+                    *visibility = Visibility::Inherited;
+                }
             } else {
                 // Handle invalid index gracefully with error reporting
                 error!(
@@ -227,35 +226,15 @@ fn handle_tile_selection(
     selected_info.province_id = None;
 
     let hex_size = HEX_SIZE_PIXELS;
-    let search_radius = hex_size * HEXAGON_SEARCH_RADIUS_MULTIPLIER;
 
-    // Query spatial index for provinces near click position
-    let nearby_provinces = spatial_index.query_near(world_pos, search_radius);
+    // Use fast direct lookup instead of expensive radius search
+    if let Some((province_id, _actual_pos)) =
+        spatial_index.pick_province_at_position(world_pos, hex_size)
+    {
+        // Province found - update selection
+        selected_info.province_id = Some(province_id.value());
 
-    let mut closest_province = None;
-    let mut closest_distance = f32::MAX;
-
-    for (pos, province_id) in nearby_provinces {
-        // Use the geometry module's Hexagon for proper hit testing (DRY principle)
-        let hexagon = Hexagon::with_size(pos, hex_size);
-
-        if hexagon.contains_point(world_pos) {
-            let distance = euclidean_vec2(pos, world_pos);
-            if distance < closest_distance {
-                closest_distance = distance;
-                closest_province = Some(province_id);
-            }
-        }
-    }
-
-    // Select the closest province if found
-    if let Some(province_id) = closest_province {
-        selected_info.province_id = Some(province_id);
-
-        if let Some(&idx) = province_storage
-            .province_by_id
-            .get(&ProvinceId::new(province_id))
-        {
+        if let Some(&idx) = province_storage.province_by_id.get(&province_id) {
             // Bounds check to prevent panic on invalid index
             if let Some(province) = province_storage.provinces.get(idx) {
                 trace!(

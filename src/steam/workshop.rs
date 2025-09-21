@@ -23,10 +23,7 @@ pub fn get_subscribed_items(steam: &SteamClient) -> Vec<u64> {
     let client = &steam.0;
     let ugc = client.ugc();
 
-    ugc.subscribed_items()
-        .into_iter()
-        .map(|id| id.0)
-        .collect()
+    ugc.subscribed_items().into_iter().map(|id| id.0).collect()
 }
 
 /// Check if a workshop item is downloaded and ready to use

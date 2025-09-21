@@ -13,13 +13,10 @@ use super::{main_menu, pause_menu, types::*};
 ///
 /// **AUTOMATION ACHIEVEMENT**: 34 lines manual → 20 lines declarative!
 define_plugin!(MenusPlugin {
-    events: [
-        SpawnSettingsMenuEvent,
-        SpawnSaveBrowserEvent
-    ],
+    events: [SpawnSettingsMenuEvent, SpawnSaveBrowserEvent],
 
     plugins: [
-        main_menu::MainMenuPlugin,      // Title screen menu
-        pause_menu::PauseMenuPlugin     // In-game pause overlay
+        main_menu::MainMenuPlugin,   // Title screen menu
+        pause_menu::PauseMenuPlugin  // In-game pause overlay
     ]
 });

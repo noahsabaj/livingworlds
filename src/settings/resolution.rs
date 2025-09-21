@@ -23,7 +23,7 @@ pub fn handle_resolution_confirm_request(
 
         // Use the new dialog system
         use crate::ui::dialog_presets;
-        dialog_presets::resolution_confirm_dialog(commands.reborrow());
+        dialog_presets::resolution_confirm_dialog(&mut commands.reborrow());
     }
 }
 

@@ -7,6 +7,7 @@
 use super::types::MapMode;
 use crate::components::MineralType;
 use crate::math::VERTICES_PER_HEX;
+use crate::nations::NationColorRegistry;
 use crate::world::minerals::calculate_total_richness;
 use crate::world::{Province, ProvinceStorage, StoneAbundance, TerrainType, WorldColors};
 use bevy::log::{debug, info};
@@ -34,8 +35,8 @@ impl Default for CachedOverlayColors {
         Self {
             current: Arc::new(Vec::new()),
             current_type: MapMode::Terrain,
-            cache: HashMap::new(),
-            max_cache_size: 10, // Increased to keep more overlays in memory
+            cache: HashMap::with_capacity(8), // Pre-allocate for common overlay types
+            max_cache_size: 10,               // Increased to keep more overlays in memory
         }
     }
 }
@@ -48,6 +49,17 @@ impl CachedOverlayColors {
         mode: MapMode,
         province_storage: &ProvinceStorage,
         world_seed: u32,
+    ) -> Arc<Vec<[f32; 4]>> {
+        self.get_or_calculate_with_nations(mode, province_storage, world_seed, None)
+    }
+
+    /// Get colors with optional nation color registry for political mode
+    pub fn get_or_calculate_with_nations(
+        &mut self,
+        mode: MapMode,
+        province_storage: &ProvinceStorage,
+        world_seed: u32,
+        nation_colors: Option<&NationColorRegistry>,
     ) -> Arc<Vec<[f32; 4]>> {
         // If requesting current overlay, return Arc clone (just increments refcount)
         if mode == self.current_type {
@@ -69,7 +81,12 @@ impl CachedOverlayColors {
         let start = std::time::Instant::now();
 
         // Calculate colors in parallel for better performance
-        let colors = Arc::new(self.calculate_colors_parallel(mode, province_storage, world_seed));
+        let colors = Arc::new(self.calculate_colors_parallel_with_nations(
+            mode,
+            province_storage,
+            world_seed,
+            nation_colors,
+        ));
 
         debug!(
             "Calculated {} overlay in {:.2}ms ({} vertices, {:.1}MB)",
@@ -112,6 +129,17 @@ impl CachedOverlayColors {
         province_storage: &ProvinceStorage,
         world_seed: u32,
     ) -> Vec<[f32; 4]> {
+        self.calculate_colors_parallel_with_nations(mode, province_storage, world_seed, None)
+    }
+
+    /// Calculate colors with optional nation colors for political mode
+    fn calculate_colors_parallel_with_nations(
+        &self,
+        mode: MapMode,
+        province_storage: &ProvinceStorage,
+        world_seed: u32,
+        nation_colors: Option<&NationColorRegistry>,
+    ) -> Vec<[f32; 4]> {
         // Use actual world seed for deterministic color generation
         let world_colors = WorldColors::new(world_seed);
 
@@ -122,18 +150,53 @@ impl CachedOverlayColors {
         // Convert to LinearRgba and use its to_f32_array() method like Bevy examples
         use bevy::color::LinearRgba;
 
-        // Process provinces in parallel chunks for 4-8x speedup
+        // Pre-build color map for political mode to use in parallel chunks
+        let political_colors = if mode == MapMode::Political {
+            let mut map = HashMap::new();
+            if let Some(registry) = nation_colors {
+                for province in &province_storage.provinces {
+                    if let Some(owner) = province.owner {
+                        if let Some(&color) = registry.colors.get(&owner) {
+                            map.insert(province.id.0, color);
+                        }
+                    }
+                }
+            }
+            Some(map)
+        } else {
+            None
+        };
+
+        // Calculate optimal chunk size based on CPU count
+        let num_threads = rayon::current_num_threads();
+        let provinces_per_thread = (province_storage.provinces.len() / num_threads).max(1000);
+        let chunk_size = provinces_per_thread.min(50000); // Cap at 50k for cache efficiency
+
+        // Process provinces in parallel chunks with optimized sizing
         let chunk_colors: Vec<Vec<[f32; 4]>> = province_storage
             .provinces
-            .par_chunks(10000) // Increased chunk size for better CPU utilization
+            .par_chunks(chunk_size)
             .map(|chunk| {
+                // Pre-allocate exact size for this chunk
                 let mut chunk_colors = Vec::with_capacity(chunk.len() * VERTICES_PER_HEX);
+
+                // Process each province in the chunk
                 for province in chunk {
-                    // Calculate color for each province individually (no fast path shortcuts)
-                    let color = self.calculate_province_color(mode, province, &world_colors);
+                    // Calculate color for each province
+                    let color = if mode == MapMode::Political {
+                        // Political mode ALWAYS uses pre-built color map
+                        political_colors
+                            .as_ref()
+                            .and_then(|map| map.get(&province.id.0).copied())
+                            .unwrap_or(Color::srgb(0.15, 0.15, 0.15)) // Unclaimed/unmapped province
+                    } else {
+                        // All other modes use the standard calculation
+                        self.calculate_province_color(mode, province, &world_colors)
+                    };
                     let color_array = LinearRgba::from(color).to_f32_array();
 
-                    // Unroll loop for better performance
+                    // Unroll loop for better performance - compiler optimization hint
+                    #[allow(clippy::needless_range_loop)]
                     for _ in 0..VERTICES_PER_HEX {
                         chunk_colors.push(color_array);
                     }
@@ -142,7 +205,14 @@ impl CachedOverlayColors {
             })
             .collect();
 
-        // Combine chunks efficiently
+        // Parallel extend for combining chunks efficiently
+        // Optimize: calculate total size directly without intermediate collection
+        let total_size: usize = chunk_colors.iter().map(|c| c.len()).sum();
+
+        // Pre-allocate exact final size
+        colors.reserve_exact(total_size);
+
+        // Combine chunks
         for chunk in chunk_colors {
             colors.extend(chunk);
         }
@@ -151,31 +221,35 @@ impl CachedOverlayColors {
     }
 
     /// Calculate color for a single province based on map mode
+    /// NOTE: Political mode is handled separately and should never call this function
     fn calculate_province_color(
         &self,
         mode: MapMode,
         province: &Province,
         world_colors: &WorldColors,
     ) -> Color {
+        debug_assert!(
+            mode != MapMode::Political,
+            "Political mode should use pre-built color map"
+        );
+
         match mode {
             // Terrain mode - natural terrain colors with proper position for variation
-            MapMode::Terrain => {
-                world_colors.terrain(province.terrain, province.elevation.value(), province.position)
-            }
-
-            // Political mode - nation colors (placeholder for now)
-            MapMode::Political => {
-                // TODO: Implement nation colors when nation system is ready
-                // For now, use a hash of province ID for consistent coloring
-                let hue = (province.id.0 as f32 * 0.1234) % 1.0;
-                Color::hsl(hue * 360.0, 0.7, 0.5)
-            }
+            MapMode::Terrain => world_colors.terrain(
+                province.terrain,
+                province.elevation.value(),
+                province.position,
+            ),
 
             // Climate zones based on latitude
             MapMode::Climate => {
                 // TODO: Implement climate zones when climate system is ready
                 // For now, use terrain colors as placeholder
-                world_colors.terrain(province.terrain, province.elevation.value(), province.position)
+                world_colors.terrain(
+                    province.terrain,
+                    province.elevation.value(),
+                    province.position,
+                )
             }
 
             // Population density heat map
@@ -197,14 +271,22 @@ impl CachedOverlayColors {
                 if matches!(province.terrain, TerrainType::River) {
                     Color::srgb(0.0, 0.3, 0.8)
                 } else {
-                    world_colors.terrain(province.terrain, province.elevation.value(), province.position)
+                    world_colors.terrain(
+                        province.terrain,
+                        province.elevation.value(),
+                        province.position,
+                    )
                 }
             }
 
             // Infrastructure development
             MapMode::Infrastructure => {
                 // TODO: Implement when infrastructure system is ready
-                world_colors.terrain(province.terrain, province.elevation.value(), province.position)
+                world_colors.terrain(
+                    province.terrain,
+                    province.elevation.value(),
+                    province.position,
+                )
             }
 
             // Mineral-specific modes
@@ -230,7 +312,11 @@ impl CachedOverlayColors {
                         )
                     }
                 } else {
-                    world_colors.terrain(province.terrain, province.elevation.value(), province.position)
+                    world_colors.terrain(
+                        province.terrain,
+                        province.elevation.value(),
+                        province.position,
+                    )
                 }
             }
 
@@ -239,11 +325,21 @@ impl CachedOverlayColors {
                 let total_richness = calculate_total_richness(province);
                 world_colors.richness(total_richness)
             }
+
+            // Safety: Political mode is filtered before this function is called
+            _ => unreachable!(
+                "Unexpected map mode in calculate_province_color: {:?}",
+                mode
+            ),
         }
     }
 
     /// Pre-calculate common overlays for instant switching
-    pub fn pre_calculate_common_modes(&mut self, province_storage: &ProvinceStorage, world_seed: u32) {
+    pub fn pre_calculate_common_modes(
+        &mut self,
+        province_storage: &ProvinceStorage,
+        world_seed: u32,
+    ) {
         // Pre-calculate ALL frequently used modes during loading
         // This uses more memory but eliminates lag when switching
         let modes = vec![

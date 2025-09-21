@@ -6,8 +6,8 @@
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::nations::NationId;
 use super::traits::HouseTraits;
+use crate::nations::NationId;
 
 /// A ruling house (dynasty/family) that controls a nation
 #[derive(Debug, Clone, Component, Serialize, Deserialize, Reflect)]
@@ -43,7 +43,7 @@ pub struct House {
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct Ruler {
     pub name: String,
-    pub title: String,  // King, Queen, Emperor, Duke, etc.
+    pub title: String, // King, Queen, Emperor, Duke, etc.
     pub age: u32,
     pub years_ruling: u32,
     pub personality: RulerPersonality,
@@ -52,10 +52,10 @@ pub struct Ruler {
 /// Individual ruler personality (distinct from house traits)
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct RulerPersonality {
-    pub competence: f32,    // How effective they are at ruling
-    pub ambition: f32,      // Personal drive for power/glory
-    pub temperament: f32,   // Calm vs volatile
-    pub honor: f32,         // How much they value oaths and reputation
+    pub competence: f32,  // How effective they are at ruling
+    pub ambition: f32,    // Personal drive for power/glory
+    pub temperament: f32, // Calm vs volatile
+    pub honor: f32,       // How much they value oaths and reputation
 }
 
 impl RulerPersonality {

@@ -1,5 +1,6 @@
 //! Progress bar component for showing progress and loading states
 
+use super::super::ChildBuilder;
 use super::super::{colors, dimensions};
 use bevy::prelude::*;
 
@@ -135,7 +136,7 @@ impl ProgressBarBuilder {
         self
     }
 
-    pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
+    pub fn build(self, parent: &mut ChildBuilder) -> Entity {
         let height = Val::Px(self.height.unwrap_or_else(|| self.style.height()));
         let track_color = self.track_color.unwrap_or_else(|| self.style.track_color());
         let fill_color = self.fill_color.unwrap_or_else(|| self.style.fill_color());

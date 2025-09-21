@@ -8,7 +8,11 @@ use super::types::*;
 use super::utils::*;
 
 /// Generate a province name combining geographic and cultural elements
-pub fn generate_province_name(generator: &mut NameGenerator, region: Region, culture: Culture) -> String {
+pub fn generate_province_name(
+    generator: &mut NameGenerator,
+    region: Region,
+    culture: Culture,
+) -> String {
     let cultural_style = get_cultural_place_style(generator, culture);
     let geographical_prefix = match region {
         Region::Coastal => generator.random_choice(&["Port", "Bay", "Cape", "Harbor", "Coast"]),
@@ -33,7 +37,11 @@ pub fn generate_province_name(generator: &mut NameGenerator, region: Region, cul
 }
 
 /// Generate a city name with size-appropriate modifiers
-pub fn generate_city_name(generator: &mut NameGenerator, size: CitySize, culture: Culture) -> String {
+pub fn generate_city_name(
+    generator: &mut NameGenerator,
+    size: CitySize,
+    culture: Culture,
+) -> String {
     let base_name = get_cultural_place_style(generator, culture);
 
     match size {

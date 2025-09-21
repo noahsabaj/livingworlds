@@ -49,7 +49,11 @@ pub fn submit_world_count(steam: &SteamClient, count: u32) {
 pub fn submit_population_record(steam: &SteamClient, population: u64) {
     // Convert to millions for leaderboard display
     let population_millions = (population / 1_000_000) as i32;
-    submit_leaderboard_score(steam, leaderboard_ids::HIGHEST_POPULATION, population_millions);
+    submit_leaderboard_score(
+        steam,
+        leaderboard_ids::HIGHEST_POPULATION,
+        population_millions,
+    );
 }
 
 /// Submit longest peace era to leaderboard

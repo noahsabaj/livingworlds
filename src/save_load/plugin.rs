@@ -5,11 +5,12 @@
 
 use super::{
     AutoSaveTimer, CloseSaveDialogEvent, DeleteSaveEvent, LoadCompleteEvent, LoadGameEvent,
-    OpenSaveDialogEvent, SaveBrowserState, SaveCompleteEvent, SaveDialogState, SaveGameEvent, SaveGameList,
+    OpenSaveDialogEvent, SaveBrowserState, SaveCompleteEvent, SaveDialogState, SaveGameEvent,
+    SaveGameList,
 };
-use bevy_plugin_builder::define_plugin;
 use crate::states::GameState;
 use bevy::prelude::*;
+use bevy_plugin_builder::define_plugin;
 
 /// Save/Load plugin using REVOLUTIONARY declarative automation
 define_plugin!(SaveLoadPlugin {

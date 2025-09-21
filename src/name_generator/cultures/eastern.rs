@@ -72,8 +72,20 @@ fn generate_compound_nation(generator: &mut NameGenerator) -> String {
 
     // Focus on celestial/honor adjectives for Eastern culture
     let celestial_adjectives = &[
-        "Celestial", "Divine", "Heavenly", "Sacred", "Holy", "Blessed", "Eternal",
-        "Noble", "Righteous", "Harmonious", "Peaceful", "Wise", "Virtuous", "Pure",
+        "Celestial",
+        "Divine",
+        "Heavenly",
+        "Sacred",
+        "Holy",
+        "Blessed",
+        "Eternal",
+        "Noble",
+        "Righteous",
+        "Harmonious",
+        "Peaceful",
+        "Wise",
+        "Virtuous",
+        "Pure",
     ];
 
     let adjective = generator.random_choice(celestial_adjectives);
@@ -82,10 +94,10 @@ fn generate_compound_nation(generator: &mut NameGenerator) -> String {
 
     // Multiple compound formats for variety
     let formats = [
-        "The {} {} of {}",           // "The Celestial Empire of Ming"
-        "{} {} of {}",               // "Divine Dynasty of Tang"
-        "{} {}",                     // "Sacred Harmony" (using different base)
-        "The {} {}",                 // "The Heavenly Court"
+        "The {} {} of {}", // "The Celestial Empire of Ming"
+        "{} {} of {}",     // "Divine Dynasty of Tang"
+        "{} {}",           // "Sacred Harmony" (using different base)
+        "The {} {}",       // "The Heavenly Court"
     ];
 
     let format = generator.random_choice(&formats);
@@ -112,8 +124,22 @@ fn generate_elemental_compound_nation(generator: &mut NameGenerator) -> String {
 
     // Focus on elemental adjectives
     let elemental_adjectives = &[
-        "Fire", "Water", "Earth", "Metal", "Wood", "Thunder", "Lightning", "Storm",
-        "Wind", "Rain", "Snow", "Ice", "Dragon", "Phoenix", "Tiger", "Crane",
+        "Fire",
+        "Water",
+        "Earth",
+        "Metal",
+        "Wood",
+        "Thunder",
+        "Lightning",
+        "Storm",
+        "Wind",
+        "Rain",
+        "Snow",
+        "Ice",
+        "Dragon",
+        "Phoenix",
+        "Tiger",
+        "Crane",
     ];
 
     let element = generator.random_choice(elemental_adjectives);
@@ -122,10 +148,10 @@ fn generate_elemental_compound_nation(generator: &mut NameGenerator) -> String {
 
     // Elemental compound formats
     let formats = [
-        "{} {} of {}",               // "Fire Dynasty of Ming"
-        "{} {}",                     // "Dragon Empire"
-        "The {} {} Alliance",        // "The Thunder Kingdom Alliance"
-        "{} {} Harmony",             // "Water Empire Harmony"
+        "{} {} of {}",        // "Fire Dynasty of Ming"
+        "{} {}",              // "Dragon Empire"
+        "The {} {} Alliance", // "The Thunder Kingdom Alliance"
+        "{} {} Harmony",      // "Water Empire Harmony"
     ];
 
     let format = generator.random_choice(&formats);
@@ -157,8 +183,20 @@ fn generate_compound_house(generator: &mut NameGenerator) -> String {
 
     // For houses, use honor/virtue adjectives
     let honor_adjectives = &[
-        "Sacred", "Noble", "Ancient", "Elder", "Wise", "Righteous", "Honorable",
-        "Virtuous", "Pure", "Peaceful", "Harmonious", "Celestial", "Divine", "Holy",
+        "Sacred",
+        "Noble",
+        "Ancient",
+        "Elder",
+        "Wise",
+        "Righteous",
+        "Honorable",
+        "Virtuous",
+        "Pure",
+        "Peaceful",
+        "Harmonious",
+        "Celestial",
+        "Divine",
+        "Holy",
     ];
 
     let adjective = generator.random_choice(honor_adjectives);
@@ -166,11 +204,11 @@ fn generate_compound_house(generator: &mut NameGenerator) -> String {
 
     // Honor/way compound formats for houses
     let formats = [
-        "The {} Way of {}",          // "The Sacred Way of Golden Dragon"
-        "{} School of {}",           // "Noble School of Jade Emperor"
-        "The {} {} Circle",          // "The Ancient Tiger Circle"
-        "{} Order of {}",            // "Wise Order of Phoenix"
-        "{} Path of {}",             // "Righteous Path of Lotus"
+        "The {} Way of {}", // "The Sacred Way of Golden Dragon"
+        "{} School of {}",  // "Noble School of Jade Emperor"
+        "The {} {} Circle", // "The Ancient Tiger Circle"
+        "{} Order of {}",   // "Wise Order of Phoenix"
+        "{} Path of {}",    // "Righteous Path of Lotus"
     ];
 
     let format = generator.random_choice(&formats);

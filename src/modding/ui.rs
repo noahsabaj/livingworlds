@@ -9,7 +9,7 @@
 #![allow(elided_lifetimes_in_paths)]
 
 use super::manager::ModManager;
-use crate::loading_screen::{start_mod_application_loading, LoadingState};
+use crate::loading::{start_mod_application_loading, LoadingState};
 use crate::states::{GameState, RequestStateTransition};
 use crate::ui::{
     colors,

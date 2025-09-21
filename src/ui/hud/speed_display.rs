@@ -1,6 +1,6 @@
 //! Speed display component for showing simulation speed
 
-use super::super::{LabelBuilder, LabelStyle};
+use super::super::{ChildBuilder, LabelBuilder, LabelStyle};
 use crate::resources::GameTime;
 use bevy::prelude::*;
 
@@ -9,7 +9,7 @@ use bevy::prelude::*;
 pub struct GameSpeedDisplay;
 
 /// Spawn the speed display UI element
-pub fn spawn_speed_display(parent: &mut ChildSpawnerCommands) {
+pub fn spawn_speed_display(parent: &mut ChildBuilder) {
     let entity = LabelBuilder::new("Speed: 1x")
         .style(LabelStyle::Body)
         .font_size(16.0)

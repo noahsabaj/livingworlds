@@ -5,9 +5,9 @@
 
 use rand::{rngs::StdRng, SeedableRng};
 
+use super::errors::{WorldGenerationError, WorldGenerationErrorType};
 use crate::resources::{MapDimensions, WorldSize};
 use crate::world::World;
-use super::errors::{WorldGenerationError, WorldGenerationErrorType};
 
 // Import utilities
 

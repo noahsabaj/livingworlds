@@ -288,7 +288,7 @@ impl QualityLevel {
 }
 
 /// Types of settings that can be modified
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum SettingType {
     // Graphics
     WindowMode,

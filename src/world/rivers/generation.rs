@@ -6,12 +6,13 @@ use rand::{rngs::StdRng, seq::SliceRandom, Rng};
 use rayon::prelude::*;
 use std::collections::HashSet;
 
+use super::super::provinces::{Province, ProvinceId};
+use super::super::terrain::TerrainType;
+use super::RiverSystem;
 use crate::constants::*;
 use crate::math::get_neighbor_positions;
 use crate::resources::MapDimensions;
-use super::RiverSystem;
-use super::super::terrain::TerrainType;
-use super::super::provinces::{Province, ProvinceId};
+use crate::world::generation::GenerationUtils;
 
 // River generation constants
 const DEFAULT_RIVER_DENSITY: f32 = 1.0;
@@ -48,7 +49,7 @@ impl std::error::Error for RiverGenerationError {}
 /// This builder encapsulates river generation logic with configurable density.
 pub struct RiverBuilder<'a> {
     provinces: &'a mut [Province],
-    dimensions: MapDimensions,
+    utils: GenerationUtils,
     rng: &'a mut StdRng,
     river_density: f32,
     min_elevation: f32,
@@ -60,9 +61,12 @@ impl<'a> RiverBuilder<'a> {
         dimensions: MapDimensions,
         rng: &'a mut StdRng,
     ) -> Self {
+        // Create generation utilities for shared operations
+        let utils = GenerationUtils::new(dimensions);
+
         Self {
             provinces,
-            dimensions,
+            utils,
             rng,
             river_density: DEFAULT_RIVER_DENSITY,
             min_elevation: RIVER_MIN_ELEVATION,
@@ -83,7 +87,7 @@ impl<'a> RiverBuilder<'a> {
     pub fn build(self) -> Result<RiverSystem, RiverGenerationError> {
         generate_rivers_internal(
             self.provinces,
-            self.dimensions,
+            &self.utils,
             self.rng,
             self.river_density,
             self.min_elevation,
@@ -91,14 +95,7 @@ impl<'a> RiverBuilder<'a> {
     }
 }
 
-// Helper functions to remove DRY violations
-
-/// Convert province ID to grid coordinates
-fn id_to_grid_coords(id: ProvinceId, provinces_per_row: u32) -> (i32, i32) {
-    let col = (id.value() % provinces_per_row) as i32;
-    let row = (id.value() / provinces_per_row) as i32;
-    (col, row)
-}
+// Helper functions
 
 /// Apply terrain type to a province if it's not ocean
 fn apply_terrain_if_not_ocean(province: &mut Province, terrain: TerrainType) {
@@ -107,66 +104,63 @@ fn apply_terrain_if_not_ocean(province: &mut Province, terrain: TerrainType) {
     }
 }
 
-/// Get province at grid position using direct array indexing (no HashMap needed)
-#[inline]
-fn get_province_at_grid(provinces: &[Province], col: i32, row: i32, provinces_per_row: u32) -> Option<&Province> {
-    // Bounds check
-    if col < 0 || row < 0 {
-        return None;
-    }
-
-    // Calculate province ID from grid coordinates (sequential IDs)
-    let province_id = (row as u32) * provinces_per_row + (col as u32);
-    let province_idx = province_id as usize;
-
-    // Direct array access (O(1) with no HashMap overhead)
-    if province_idx < provinces.len() {
-        Some(&provinces[province_idx])
-    } else {
-        None
-    }
-}
-
 /// Find potential river sources from mountains and high hills
 fn find_river_sources(
     provinces: &[Province],
     min_elevation: f32,
 ) -> Result<Vec<(ProvinceId, Vec2, f32)>, RiverGenerationError> {
-    let mut potential_sources = Vec::new();
+    // ENGINEERING FIX: Use percentile-based approach instead of terrain types
+    // This adapts to any elevation distribution and guarantees river sources exist
+
+    // First, collect all land provinces with their elevations
+    let mut land_provinces: Vec<(ProvinceId, Vec2, f32)> = Vec::new();
 
     for province in provinces.iter() {
         if province.elevation.value().is_nan() {
             return Err(RiverGenerationError::NaNElevation(province.id.value()));
         }
 
-        // Alpine terrain and other high-elevation areas can be river sources
-        if province.terrain == TerrainType::Alpine
-            || (province.elevation.value() >= min_elevation
-                && matches!(
-                    province.terrain,
-                    TerrainType::Chaparral | TerrainType::TemperateGrassland
-                ))
-        {
-            potential_sources.push((province.id, province.position, province.elevation.value()));
+        // Skip ocean and beach provinces
+        if province.terrain != TerrainType::Ocean && province.terrain != TerrainType::Beach {
+            land_provinces.push((province.id, province.position, province.elevation.value()));
         }
     }
+
+    if land_provinces.is_empty() {
+        return Err(RiverGenerationError::NoValidSources);
+    }
+
+    // Sort by elevation to find percentiles
+    land_provinces.sort_by(|a, b| a.2.total_cmp(&b.2));
+
+    // FLEXIBLE CRITERIA: Use top 25% of land elevations as potential river sources
+    // This guarantees we always have sources regardless of elevation compression
+    let percentile_75_index = (land_provinces.len() * 3) / 4;  // Top 25%
+
+    // Also apply the min_elevation as a secondary filter (but much lower now)
+    let elevation_threshold = land_provinces[percentile_75_index].2.max(min_elevation);
+
+    // Collect all provinces above the threshold
+    let mut potential_sources: Vec<(ProvinceId, Vec2, f32)> = land_provinces
+        .into_iter()
+        .filter(|&(_, _, elev)| elev >= elevation_threshold)
+        .collect();
 
     if potential_sources.is_empty() {
         return Err(RiverGenerationError::NoValidSources);
     }
 
     // Sort by elevation (highest first) for better river flow
-    // Use total_cmp to handle NaN values deterministically
     potential_sources.sort_by(|a, b| b.2.total_cmp(&a.2));
 
     Ok(potential_sources)
 }
 
-/// Trace a single river from source to ocean using direct array indexing
+/// Trace a single river from source to ocean using shared utilities
 fn trace_river_path(
     source_id: ProvinceId,
     provinces: &[Province],
-    dimensions: &MapDimensions,
+    utils: &GenerationUtils,
     rng_seed: u64,
 ) -> (Vec<ProvinceId>, Vec<ProvinceId>, f32) {
     // Create thread-local RNG from seed
@@ -177,21 +171,23 @@ fn trace_river_path(
     let mut delta_tiles = Vec::new();
     let mut visited = HashSet::new();
 
-    let (start_col, start_row) = id_to_grid_coords(source_id, dimensions.provinces_per_row);
+    let (start_col, start_row) = utils.id_to_grid_coords(source_id);
     visited.insert((start_col, start_row));
 
     let mut flow = 1.0;
 
     for _ in 0..MAX_RIVER_LENGTH {
-        let (current_col, current_row) =
-            id_to_grid_coords(current_id, dimensions.provinces_per_row);
-        let neighbors = get_neighbor_positions(current_col, current_row, dimensions.hex_size);
+        let (current_col, current_row) = utils.id_to_grid_coords(current_id);
+        let neighbors =
+            get_neighbor_positions(current_col, current_row, utils.dimensions().hex_size);
 
-        // Collect valid unvisited neighbors using direct array access
+        // Collect valid unvisited neighbors using shared utilities
         let mut valid_neighbors: Vec<(&Province, (i32, i32))> = Vec::new();
 
         for (neighbor_col, neighbor_row) in neighbors {
-            if let Some(province) = get_province_at_grid(provinces, neighbor_col, neighbor_row, dimensions.provinces_per_row) {
+            if let Some(province) =
+                utils.get_province_at_grid(provinces, neighbor_col, neighbor_row)
+            {
                 if visited.contains(&(neighbor_col, neighbor_row)) {
                     continue;
                 }
@@ -214,9 +210,7 @@ fn trace_river_path(
 
         // Sort neighbors by elevation (lowest first)
         // Use total_cmp to handle NaN values deterministically
-        valid_neighbors.sort_by(|a, b| {
-            a.0.elevation.value().total_cmp(&b.0.elevation.value())
-        });
+        valid_neighbors.sort_by(|a, b| a.0.elevation.value().total_cmp(&b.0.elevation.value()));
 
         // Add randomization for natural meandering
         let next = if !valid_neighbors.is_empty()
@@ -240,12 +234,13 @@ fn trace_river_path(
     (river_path, delta_tiles, flow)
 }
 
-/// Apply terrain changes based on river flow using direct array indexing
+/// Apply terrain changes based on river flow using shared utilities
 fn apply_terrain_changes(
     provinces: &mut [Province],
     river_tiles: &[ProvinceId],
     delta_tiles: &[ProvinceId],
-    flow_accumulation: &[f32],  // Now a Vec indexed by province ID
+    flow_accumulation: &[f32], // Now a Vec indexed by province ID
+    utils: &GenerationUtils,
 ) {
     // First pass: Apply base river terrain using direct indexing
     for (province_idx, flow) in flow_accumulation.iter().enumerate() {
@@ -258,14 +253,14 @@ fn apply_terrain_changes(
     // Second pass: No widening - single-tile rivers look best on hex grids
     // Previous attempts at widening created visual artifacts due to hex grid offset patterns
 
-    // Generate branching deltas
-    generate_delta_branches(delta_tiles, provinces, flow_accumulation);
+    // Generate branching deltas using shared utilities
+    generate_delta_branches(delta_tiles, provinces, flow_accumulation, utils);
 }
 
 /// Internal river generation implementation
 fn generate_rivers_internal(
     provinces: &mut [Province],
-    dimensions: MapDimensions,
+    utils: &GenerationUtils,
     rng: &mut StdRng,
     river_density: f32,
     min_elevation: f32,
@@ -276,7 +271,7 @@ fn generate_rivers_internal(
         return Err(RiverGenerationError::EmptyProvinces);
     }
 
-    if dimensions.provinces_per_row == 0 {
+    if utils.dimensions().provinces_per_row == 0 {
         return Err(RiverGenerationError::InvalidDimensions(
             "provinces_per_row cannot be zero".to_string(),
         ));
@@ -303,27 +298,26 @@ fn generate_rivers_internal(
     let base_seed = rng.r#gen::<u64>();
 
     // Trace rivers in parallel for better performance using direct indexing
-    let river_results: Vec<(Vec<ProvinceId>, Vec<ProvinceId>, Vec<(u32, f32)>)> =
-        selected_sources
-            .par_iter()
-            .map(|(source_id, _source_pos, _elevation)| {
-                let (river_path, delta_tiles, flow) =
-                    trace_river_path(*source_id, provinces, &dimensions, base_seed);
+    let river_results: Vec<(Vec<ProvinceId>, Vec<ProvinceId>, Vec<(u32, f32)>)> = selected_sources
+        .par_iter()
+        .map(|(source_id, _source_pos, _elevation)| {
+            let (river_path, delta_tiles, flow) =
+                trace_river_path(*source_id, provinces, utils, base_seed);
 
-                // Build flow list without HashMap overhead
-                let mut river_flow_list = Vec::new();
-                for &tile_id in &river_path {
-                    river_flow_list.push((tile_id.value(), flow));
-                }
+            // Build flow list without HashMap overhead
+            let mut river_flow_list = Vec::new();
+            for &tile_id in &river_path {
+                river_flow_list.push((tile_id.value(), flow));
+            }
 
-                (river_path, delta_tiles, river_flow_list)
-            })
-            .collect();
+            (river_path, delta_tiles, river_flow_list)
+        })
+        .collect();
 
     // Merge results from parallel execution into Vec for O(1) access
     let mut all_river_tiles = Vec::new();
     let mut all_delta_tiles = Vec::new();
-    let mut flow_accumulation_vec = vec![0.0; provinces.len()];  // Direct indexing!
+    let mut flow_accumulation_vec = vec![0.0; provinces.len()]; // Direct indexing!
 
     for (river_path, delta_tiles, river_flow_list) in river_results {
         all_river_tiles.extend(river_path);
@@ -337,12 +331,13 @@ fn generate_rivers_internal(
         }
     }
 
-    // Apply terrain changes based on flow using Vec
+    // Apply terrain changes based on flow using shared utilities
     apply_terrain_changes(
         provinces,
         &all_river_tiles,
         &all_delta_tiles,
         &flow_accumulation_vec,
+        utils,
     );
 
     info!(
@@ -362,12 +357,12 @@ fn generate_rivers_internal(
     })
 }
 
-
-/// Generate branching delta distributaries
+/// Generate branching delta distributaries using shared utilities
 fn generate_delta_branches(
     delta_tiles: &[ProvinceId],
     provinces: &mut [Province],
-    flow_accumulation: &[f32],  // Now a Vec indexed by province ID
+    flow_accumulation: &[f32], // Now a Vec indexed by province ID
+    utils: &GenerationUtils,
 ) {
     for &delta_id in delta_tiles {
         let delta_idx = delta_id.value() as usize;
@@ -379,35 +374,30 @@ fn generate_delta_branches(
 
             // Number of distributary channels based on flow
             let num_branches = if flow > 10.0 {
-                3  // Major delta - 3 branches
+                3 // Major delta - 3 branches
             } else if flow > 5.0 {
-                2  // Medium delta - 2 branches
+                2 // Medium delta - 2 branches
             } else {
-                1  // Small delta - single channel
+                1 // Small delta - single channel
             };
 
             // Create distributary branches
-            create_delta_distributaries(
-                delta_idx,
-                num_branches,
-                provinces,
-            );
+            create_delta_distributaries(delta_idx, num_branches, provinces, utils);
         }
     }
 }
 
-/// Create individual distributary channels for a delta
+/// Create individual distributary channels for a delta using shared utilities
 fn create_delta_distributaries(
     delta_idx: usize,
     num_branches: usize,
     provinces: &mut [Province],
+    utils: &GenerationUtils,
 ) {
-    let provinces_per_row = (provinces.len() as f32).sqrt() as u32;
-
     // Extract needed values before mutation
     let delta_id = provinces[delta_idx].id;
     let delta_elevation = provinces[delta_idx].elevation.value();
-    let (delta_col, delta_row) = id_to_grid_coords(delta_id, provinces_per_row);
+    let (delta_col, delta_row) = utils.id_to_grid_coords(delta_id);
 
     // Apply River terrain to the delta tile (no more Delta type)
     apply_terrain_if_not_ocean(&mut provinces[delta_idx], TerrainType::River);
@@ -430,7 +420,7 @@ fn create_delta_distributaries(
         if *neighbor_col < 0 || *neighbor_row < 0 {
             continue;
         }
-        let neighbor_id = (*neighbor_row as u32) * provinces_per_row + (*neighbor_col as u32);
+        let neighbor_id = (*neighbor_row as u32) * PROVINCES_PER_ROW + (*neighbor_col as u32);
 
         let neighbor_idx = neighbor_id as usize;
         if neighbor_idx < provinces.len() {
@@ -439,15 +429,13 @@ fn create_delta_distributaries(
             let neighbor_elevation = provinces[neighbor_idx].elevation.value();
 
             // Only create distributary if heading toward ocean
-            if neighbor_terrain == TerrainType::Ocean
-                || neighbor_elevation < delta_elevation {
-
-                // Create a short distributary channel
+            if neighbor_terrain == TerrainType::Ocean || neighbor_elevation < delta_elevation {
+                // Create a short distributary channel using shared utilities
                 create_distributary_channel(
                     neighbor_idx,
-                    3,  // Max length of 3 tiles
+                    3, // Max length of 3 tiles
                     provinces,
-                    provinces_per_row,
+                    utils,
                 );
 
                 branch_count += 1;
@@ -456,12 +444,12 @@ fn create_delta_distributaries(
     }
 }
 
-/// Create a single distributary channel
+/// Create a single distributary channel using shared utilities
 fn create_distributary_channel(
     start_idx: usize,
     max_length: usize,
     provinces: &mut [Province],
-    provinces_per_row: u32,
+    utils: &GenerationUtils,
 ) {
     let mut current_idx = start_idx;
     let mut visited = HashSet::new();
@@ -481,9 +469,10 @@ fn create_distributary_channel(
         apply_terrain_if_not_ocean(&mut provinces[current_idx], TerrainType::River);
         visited.insert(current_id.value());
 
-        // Find lowest neighbor to continue channel
-        let (current_col, current_row) = id_to_grid_coords(current_id, provinces_per_row);
-        let neighbors = get_neighbor_positions(current_col, current_row, 50.0);
+        // Find lowest neighbor to continue channel using shared utilities
+        let (current_col, current_row) = utils.id_to_grid_coords(current_id);
+        let neighbors =
+            get_neighbor_positions(current_col, current_row, utils.dimensions().hex_size);
 
         let mut lowest_neighbor: Option<usize> = None;
         let mut lowest_elevation = current_elevation;
@@ -492,14 +481,14 @@ fn create_distributary_channel(
             if neighbor_col < 0 || neighbor_row < 0 {
                 continue;
             }
-            let neighbor_id = (neighbor_row as u32) * provinces_per_row + (neighbor_col as u32);
+            let neighbor_id = (neighbor_row as u32) * PROVINCES_PER_ROW + (neighbor_col as u32);
 
             if visited.contains(&neighbor_id) {
                 continue;
             }
 
             let neighbor_idx = neighbor_id as usize;
-        if neighbor_idx < provinces.len() {
+            if neighbor_idx < provinces.len() {
                 let neighbor_province = &provinces[neighbor_idx];
 
                 // Prefer ocean tiles, then lower elevation

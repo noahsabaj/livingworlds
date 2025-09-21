@@ -14,7 +14,7 @@ pub fn extract_save_metadata(path: &Path) -> Option<(String, f32, u32, String, u
     let file = File::open(path).ok()?;
     let mut reader = BufReader::new(file);
     let mut limited_reader = (&mut reader).take(8192); // 8KB should be enough for metadata
-    let mut compressed_chunk = Vec::new();
+    let mut compressed_chunk = Vec::with_capacity(8192); // Pre-allocate for expected size
     limited_reader.read_to_end(&mut compressed_chunk).ok()?;
 
     // Try to decompress what we have
@@ -23,12 +23,12 @@ pub fn extract_save_metadata(path: &Path) -> Option<(String, f32, u32, String, u
         Err(_) => {
             // Fallback: read the full file if partial decompression fails
             let mut file = File::open(path).ok()?;
-            let mut compressed_data = Vec::new();
+            let mut compressed_data = Vec::new(); // Size unknown for full file, keep as-is
             file.read_to_end(&mut compressed_data).ok()?;
 
             // But only decompress the first 64KB of content to keep it fast
             let mut decoder = Decoder::new(&compressed_data[..]).ok()?;
-            let mut partial_decompressed = Vec::new();
+            let mut partial_decompressed = Vec::with_capacity(65536); // Pre-allocate for 64KB
             let _ = (&mut decoder)
                 .take(65536)
                 .read_to_end(&mut partial_decompressed);

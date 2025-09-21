@@ -19,6 +19,7 @@ pub struct ResolutionConfirmDialog;
 #[derive(Component)]
 pub struct TabButton {
     pub tab: SettingsTab,
+    pub enabled: bool,
 }
 
 /// Component for keyboard-focusable elements

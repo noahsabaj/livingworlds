@@ -29,8 +29,8 @@ pub use plugin::ModdingPlugin;
 
 // Events that external code needs access to
 pub use handlers::{
-    ModEnabledEvent, ModDisabledEvent,
-    WorkshopSubscribeEvent, WorkshopUnsubscribeEvent, RefreshWorkshopDataEvent,
+    ModDisabledEvent, ModEnabledEvent, RefreshWorkshopDataEvent, WorkshopSubscribeEvent,
+    WorkshopUnsubscribeEvent,
 };
 
 // UI Events that need to be accessible from menus
@@ -40,7 +40,7 @@ pub use ui::OpenModBrowserEvent;
 pub use examples::create_example_mod;
 
 // Types that external systems need to understand
-pub use types::{ModSource, LoadedMod, ModManifest};
+pub use types::{LoadedMod, ModManifest, ModSource};
 
 // Manager access for systems that need to query mod state
 pub use manager::ModManager;

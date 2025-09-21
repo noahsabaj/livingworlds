@@ -5,7 +5,7 @@
 
 #![allow(dead_code)] // Preserve UI utility functions for future use
 
-use super::{colors, dimensions};
+use super::{ChildBuilder, colors, dimensions};
 use super::{ButtonBuilder, ButtonSize, ButtonStyle};
 use bevy::prelude::*;
 
@@ -73,7 +73,7 @@ enum ToolbarItem {
     Separator,
     Spacer,
     Custom {
-        builder_fn: Box<dyn FnOnce(&mut ChildSpawnerCommands)>,
+        builder_fn: Box<dyn FnOnce(&mut ChildBuilder)>,
     },
 }
 
@@ -178,7 +178,7 @@ impl ToolbarBuilder {
 
     pub fn custom<F>(mut self, builder_fn: F) -> Self
     where
-        F: FnOnce(&mut ChildSpawnerCommands) + 'static,
+        F: FnOnce(&mut ChildBuilder) + 'static,
     {
         self.items.push(ToolbarItem::Custom {
             builder_fn: Box::new(builder_fn),
@@ -186,7 +186,7 @@ impl ToolbarBuilder {
         self
     }
 
-    pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
+    pub fn build(self, parent: &mut ChildBuilder) -> Entity {
         let (flex_direction, justify_content) = match self.orientation {
             ToolbarOrientation::Horizontal => (FlexDirection::Row, JustifyContent::Start),
             ToolbarOrientation::Vertical => (FlexDirection::Column, JustifyContent::Start),
@@ -280,7 +280,7 @@ pub fn toolbar() -> ToolbarBuilder {
 pub mod presets {
     use super::*;
 
-    pub fn editor_toolbar(parent: &mut ChildSpawnerCommands) -> Entity {
+    pub fn editor_toolbar(parent: &mut ChildBuilder) -> Entity {
         // Manual construction due to lifetime constraints
         let style = ToolbarStyle::Default;
         parent
@@ -300,7 +300,7 @@ pub mod presets {
                 BackgroundColor(style.background_color()),
             ))
             .with_children(|toolbar| {
-                let spawn_separator = |parent: &mut ChildSpawnerCommands| {
+                let spawn_separator = |parent: &mut ChildBuilder| {
                     parent.spawn((
                         Node {
                             width: Val::Px(1.0),
@@ -364,7 +364,7 @@ pub mod presets {
             .id()
     }
 
-    pub fn navigation_toolbar(parent: &mut ChildSpawnerCommands) -> Entity {
+    pub fn navigation_toolbar(parent: &mut ChildBuilder) -> Entity {
         let style = ToolbarStyle::Compact;
         parent
             .spawn((
@@ -426,7 +426,7 @@ pub mod presets {
             .id()
     }
 
-    pub fn action_toolbar(parent: &mut ChildSpawnerCommands) -> Entity {
+    pub fn action_toolbar(parent: &mut ChildBuilder) -> Entity {
         let style = ToolbarStyle::Floating;
         parent
             .spawn((

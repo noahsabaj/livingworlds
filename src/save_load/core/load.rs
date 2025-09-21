@@ -4,7 +4,7 @@
 
 use super::{LoadCompleteEvent, LoadGameEvent};
 use super::{PendingLoadData, SaveGameList};
-use crate::loading_screen::{set_loading_progress, start_save_loading, LoadingState};
+use crate::loading::{set_loading_progress, start_save_loading, LoadingState};
 use crate::resources::{ProvincesSpatialIndex, WorldName, WorldSeed};
 use crate::states::{GameState, RequestStateTransition};
 use crate::world::{build_world_mesh, CloudBuilder, ProvinceStorage, WorldMeshHandle};
@@ -12,6 +12,7 @@ use bevy::prelude::*;
 use bevy::render::mesh::Mesh2d;
 use bevy::sprite::MeshMaterial2d;
 use rand::{rngs::StdRng, SeedableRng};
+use rayon::prelude::*;
 use std::collections::HashMap;
 use std::fs;
 
@@ -138,7 +139,8 @@ pub fn check_for_pending_load(
             load_data.0.provinces.len()
         );
         set_loading_progress(&mut loading_state, 0.5, "Rebuilding world mesh...");
-        let mesh_handle = build_world_mesh(&load_data.0.provinces, &mut meshes, load_data.0.world_seed);
+        let mesh_handle =
+            build_world_mesh(&load_data.0.provinces, &mut meshes, load_data.0.world_seed);
         set_loading_progress(&mut loading_state, 0.8, "Creating game entities...");
 
         commands.spawn((
@@ -151,21 +153,31 @@ pub fn check_for_pending_load(
         // Store the mesh handle
         commands.insert_resource(WorldMeshHandle(mesh_handle.clone()));
 
-        // Create province storage
-        let mut province_by_id = HashMap::new();
-        for (idx, province) in load_data.0.provinces.iter().enumerate() {
-            province_by_id.insert(province.id, idx);
-        }
+        // Create province storage with parallel ID mapping
+        let province_by_id: HashMap<_, _> = load_data
+            .0
+            .provinces
+            .par_iter()
+            .enumerate()
+            .map(|(idx, province)| (province.id, idx))
+            .collect();
 
         commands.insert_resource(ProvinceStorage {
             provinces: load_data.0.provinces.clone(),
             province_by_id,
         });
 
-        // Create spatial index
+        // Create spatial index with parallel insertion
+        let spatial_entries: Vec<_> = load_data
+            .0
+            .provinces
+            .par_iter()
+            .map(|province| (province.position, province.id.value()))
+            .collect();
+
         let mut spatial_index = ProvincesSpatialIndex::default();
-        for province in &load_data.0.provinces {
-            spatial_index.insert(province.position, province.id.value());
+        for (position, id) in spatial_entries {
+            spatial_index.insert(position, id);
         }
         commands.insert_resource(spatial_index);
 

@@ -1,6 +1,6 @@
 //! Mineral legend display for resource overlays
 
-use super::super::{LabelBuilder, PanelBuilder, PanelStyle};
+use super::super::{ChildBuilder, LabelBuilder, PanelBuilder, PanelStyle};
 use crate::components::MineralType;
 use crate::resources::MapMode;
 use crate::ui::styles::colors;
@@ -11,7 +11,7 @@ use bevy::prelude::*;
 pub struct MineralLegendContainer;
 
 /// Spawn the mineral legend
-pub fn spawn_mineral_legend(parent: &mut ChildSpawnerCommands) {
+pub fn spawn_mineral_legend(parent: &mut ChildBuilder) {
     let panel_entity = PanelBuilder::new()
         .style(PanelStyle::Transparent)
         .flex_direction(FlexDirection::Column)
@@ -47,7 +47,7 @@ pub fn spawn_mineral_legend(parent: &mut ChildSpawnerCommands) {
 }
 
 /// Spawn a single mineral legend row
-fn spawn_mineral_row(parent: &mut ChildSpawnerCommands, symbol: &str, color: &Color, name: &str) {
+fn spawn_mineral_row(parent: &mut ChildBuilder, symbol: &str, color: &Color, name: &str) {
     // Row container using PanelBuilder
     PanelBuilder::new()
         .style(PanelStyle::Transparent)

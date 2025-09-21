@@ -71,8 +71,21 @@ fn generate_compound_nation(generator: &mut NameGenerator) -> String {
 
     // Focus on desert/nomadic adjectives for Desert culture
     let desert_nomadic_adjectives = &[
-        "Golden", "Sandy", "Scorching", "Blazing", "Sun-blessed", "Desert", "Oasis",
-        "Wandering", "Nomadic", "Roaming", "Free", "Tribal", "Proud", "Ancient", "Mighty",
+        "Golden",
+        "Sandy",
+        "Scorching",
+        "Blazing",
+        "Sun-blessed",
+        "Desert",
+        "Oasis",
+        "Wandering",
+        "Nomadic",
+        "Roaming",
+        "Free",
+        "Tribal",
+        "Proud",
+        "Ancient",
+        "Mighty",
     ];
 
     let adjective = generator.random_choice(desert_nomadic_adjectives);
@@ -81,10 +94,10 @@ fn generate_compound_nation(generator: &mut NameGenerator) -> String {
 
     // Multiple compound formats for variety
     let formats = [
-        "The {} {} of {}",           // "The Golden Caliphate of Babylon"
-        "{} {} of {}",               // "Desert Emirate of Arabia"
-        "{} {}",                     // "Nomadic Federation" (using different root)
-        "The {} {}",                 // "The Ancient Sultanate"
+        "The {} {} of {}", // "The Golden Caliphate of Babylon"
+        "{} {} of {}",     // "Desert Emirate of Arabia"
+        "{} {}",           // "Nomadic Federation" (using different root)
+        "The {} {}",       // "The Ancient Sultanate"
     ];
 
     let format = generator.random_choice(&formats);
@@ -111,8 +124,21 @@ fn generate_trade_compound_nation(generator: &mut NameGenerator) -> String {
 
     // Focus on trade/wealth adjectives
     let trade_wealth_adjectives = &[
-        "Wealthy", "Rich", "Merchant", "Trading", "Silk", "Spice", "Incense", "Pearl",
-        "Gold", "Jeweled", "Prosperous", "Thriving", "Caravan", "Golden", "Abundant",
+        "Wealthy",
+        "Rich",
+        "Merchant",
+        "Trading",
+        "Silk",
+        "Spice",
+        "Incense",
+        "Pearl",
+        "Gold",
+        "Jeweled",
+        "Prosperous",
+        "Thriving",
+        "Caravan",
+        "Golden",
+        "Abundant",
     ];
 
     let adjective = generator.random_choice(trade_wealth_adjectives);
@@ -121,10 +147,10 @@ fn generate_trade_compound_nation(generator: &mut NameGenerator) -> String {
 
     // Trade compound formats
     let formats = [
-        "{} {} of {}",               // "Merchant Caliphate of Samarkand"
-        "{} {}",                     // "Spice Empire"
-        "The {} {} League",          // "The Golden Caravan League"
-        "{} {} Alliance",            // "Silk Emirate Alliance"
+        "{} {} of {}",      // "Merchant Caliphate of Samarkand"
+        "{} {}",            // "Spice Empire"
+        "The {} {} League", // "The Golden Caravan League"
+        "{} {} Alliance",   // "Silk Emirate Alliance"
     ];
 
     let format = generator.random_choice(&formats);
@@ -156,8 +182,8 @@ fn generate_compound_house(generator: &mut NameGenerator) -> String {
 
     // For houses, use tribal/trade adjectives
     let tribal_trade_adjectives = &[
-        "Ancient", "Noble", "Mighty", "Proud", "Sacred", "Holy", "Blessed", "Faithful",
-        "Golden", "Wealthy", "Rich", "Merchant", "Trading", "Silk", "Spice", "Desert",
+        "Ancient", "Noble", "Mighty", "Proud", "Sacred", "Holy", "Blessed", "Faithful", "Golden",
+        "Wealthy", "Rich", "Merchant", "Trading", "Silk", "Spice", "Desert",
     ];
 
     let adjective = generator.random_choice(tribal_trade_adjectives);
@@ -165,11 +191,11 @@ fn generate_compound_house(generator: &mut NameGenerator) -> String {
 
     // Tribal/trade compound formats for houses
     let formats = [
-        "The {} Trading House of {}",    // "The Golden Trading House of Al-Rashid"
-        "{} Merchant Tribe of {}",       // "Wealthy Merchant Tribe of Sassanid"
-        "The {} {} Confederation",       // "The Ancient Al-Saud Confederation"
-        "{} Desert Clan of {}",          // "Sacred Desert Clan of Umayyad"
-        "{} Caravan House of {}",        // "Mighty Caravan House of Abbasid"
+        "The {} Trading House of {}", // "The Golden Trading House of Al-Rashid"
+        "{} Merchant Tribe of {}",    // "Wealthy Merchant Tribe of Sassanid"
+        "The {} {} Confederation",    // "The Ancient Al-Saud Confederation"
+        "{} Desert Clan of {}",       // "Sacred Desert Clan of Umayyad"
+        "{} Caravan House of {}",     // "Mighty Caravan House of Abbasid"
     ];
 
     let format = generator.random_choice(&formats);

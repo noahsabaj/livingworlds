@@ -1,0 +1,55 @@
+//! UI Cleanup Utilities
+//!
+//! Generic systems for cleaning up UI entities following Living Worlds' zero-duplication philosophy.
+//! This module eliminates the need for duplicate cleanup functions across UI modules.
+
+use bevy::prelude::*;
+
+/// Generic system to despawn all entities with a specific root component.
+///
+/// This function eliminates duplicate cleanup boilerplate across all UI systems.
+/// Use with any component that marks UI root entities for automatic cleanup.
+///
+/// # Examples
+/// ```rust
+/// // In define_plugin! macro:
+/// on_exit: {
+///     GameState::Settings => [despawn_entities::<SettingsMenuRoot>]
+/// }
+///
+/// // Or as a standalone system:
+/// app.add_systems(OnExit(GameState::Menu), despawn_entities::<MenuRoot>);
+/// ```
+///
+/// # Performance
+/// This is a zero-cost abstraction - compiles to identical assembly as manual implementations.
+///
+/// # Type Safety
+/// The generic parameter ensures compile-time verification that only valid component types are used.
+pub fn despawn_entities<T: Component>(mut commands: Commands, query: Query<Entity, With<T>>) {
+    for entity in &query {
+        commands.entity(entity).despawn();
+    }
+}
+
+/// Convenience alias for UI-specific cleanup (same function, clearer intent for UI contexts).
+///
+/// Use this alias when the context makes it clear you're cleaning up UI entities.
+/// Functionally identical to `despawn_entities` but provides semantic clarity.
+pub use despawn_entities as despawn_ui_entities;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(Component)]
+    struct TestUIRoot;
+
+    #[test]
+    fn test_despawn_entities_compiles() {
+        // This test ensures the generic function compiles correctly
+        // Runtime testing happens in integration tests
+        let _system = despawn_entities::<TestUIRoot>;
+        let _alias = despawn_ui_entities::<TestUIRoot>;
+    }
+}

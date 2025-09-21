@@ -49,9 +49,7 @@ define_plugin!(WorldPlugin {
 
     startup: [initialize_world_systems],
 
-    update: [
-        (handle_province_selection, update_world_bounds_camera).chain()
-    ]
+    update: [(handle_province_selection, update_world_bounds_camera).chain()]
 });
 
 // === WORLD SYSTEMS - Internal Bevy systems ===

@@ -41,16 +41,16 @@ pub use plugin::SteamPlugin;
 
 // Export shared types for external use
 pub use types::{
-    AchievementUnlockedEvent, SteamClient, SteamStats,
-    WorkshopItemDownloadedEvent, WorkshopItemType,
+    AchievementUnlockedEvent, SteamClient, SteamStats, WorkshopItemDownloadedEvent,
+    WorkshopItemType,
 };
 
 // Export key functionality that other systems need
-pub use statistics::{increment_stat, set_stat, update_steam_stats};
-pub use workshop::{get_subscribed_items, subscribe_to_workshop_item};
 pub use leaderboards::{
     submit_observation_time, submit_peace_record, submit_population_record, submit_world_count,
 };
+pub use statistics::{increment_stat, set_stat, update_steam_stats};
+pub use workshop::{get_subscribed_items, subscribe_to_workshop_item};
 
 // PURE GATEWAY - No Implementation Logic
 //

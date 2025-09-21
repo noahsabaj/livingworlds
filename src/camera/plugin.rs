@@ -4,9 +4,9 @@ use super::controller::CameraController;
 use super::input;
 use super::movement;
 use super::window;
-use bevy_plugin_builder::define_plugin;
 use crate::states::GameState;
 use bevy::prelude::*;
+use bevy_plugin_builder::define_plugin;
 
 /// Camera control plugin for managing viewport and camera movement using declarative syntax
 define_plugin!(CameraPlugin {

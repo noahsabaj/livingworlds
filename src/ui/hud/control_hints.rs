@@ -1,6 +1,6 @@
 //! Control hints display for showing keyboard shortcuts
 
-use super::super::{LabelBuilder, LabelStyle};
+use super::super::{ChildBuilder, LabelBuilder, LabelStyle};
 use crate::resources::GameTime;
 use bevy::prelude::*;
 
@@ -9,7 +9,7 @@ use bevy::prelude::*;
 pub struct ControlHintsText;
 
 /// Spawn the control hints UI element
-pub fn spawn_control_hints(parent: &mut ChildSpawnerCommands) {
+pub fn spawn_control_hints(parent: &mut ChildBuilder) {
     let entity = LabelBuilder::new("[1-5] Speed | [Space] Pause")
         .style(LabelStyle::Caption)
         .color(Color::srgba(0.5, 0.5, 0.5, 1.0))

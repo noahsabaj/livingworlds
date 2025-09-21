@@ -5,13 +5,16 @@
 
 use bevy::prelude::*;
 use rand::{rngs::StdRng, Rng, SeedableRng};
-use std::collections::{HashMap, VecDeque};
+use rayon::prelude::*;
+use std::collections::{HashMap, HashSet, VecDeque};
+use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::Arc;
 
 use crate::name_generator::{Culture, NameGenerator, NameType};
 use crate::world::{Province, TerrainType};
-use crate::math::euclidean_squared_vec2;
+// Distance calculations use Bevy's Vec2 methods directly
+use super::house::{generate_motto, House, HouseTraits, Ruler, RulerPersonality};
 use super::types::*;
-use super::house::{House, Ruler, RulerPersonality, HouseTraits, generate_motto};
 
 /// Spawn nations into the world with territory and ruling houses
 pub fn spawn_nations(
@@ -34,18 +37,27 @@ pub fn spawn_nations(
 
     info!("Spawning {} nations with capitals", capital_provinces.len());
 
-    // Create nations with ruling houses
-    for &capital_idx in &capital_provinces {
-        let (nation, house) = create_nation_with_house(
-            &mut nation_registry,
-            capital_idx,
-            provinces[capital_idx].position,
-            &mut rng,
-            settings,
-        );
-        nations.push(nation);
-        houses.push(house);
-    }
+    // Pre-generate seeds for parallel nation creation (avoids RNG contention)
+    let nation_seeds: Vec<u64> = (0..capital_provinces.len()).map(|_| rng.gen()).collect();
+
+    // Create nations with ruling houses in parallel
+    let nation_registry_arc = Arc::new(nation_registry);
+    let (nations_vec, houses_vec): (Vec<Nation>, Vec<House>) = capital_provinces
+        .par_iter()
+        .zip(nation_seeds.par_iter())
+        .map(|(&capital_idx, &nation_seed)| {
+            create_nation_with_house_parallel(
+                &nation_registry_arc,
+                capital_idx,
+                provinces[capital_idx].position,
+                nation_seed,
+                settings,
+            )
+        })
+        .unzip();
+
+    nations = nations_vec;
+    houses = houses_vec;
 
     // Assign territory using growth algorithm
     assign_territory_to_nations(&mut nations, provinces, settings.nation_density);
@@ -59,78 +71,101 @@ pub fn spawn_nations(
     (nations, houses)
 }
 
-/// Select suitable provinces to be nation capitals
+/// Select suitable provinces to be nation capitals using parallel evaluation
 fn select_capital_provinces(
     provinces: &[Province],
     nation_count: u32,
     rng: &mut StdRng,
 ) -> Vec<usize> {
-    // Find all land provinces that could be capitals
-    let mut suitable_provinces: Vec<usize> = provinces
-        .iter()
+    // Parallel filter to find all land provinces that could be capitals
+    let suitable_provinces: Vec<usize> = provinces
+        .par_iter()
         .enumerate()
-        .filter(|(_, p)| {
-            !matches!(
+        .filter_map(|(idx, p)| {
+            if !matches!(
                 p.terrain,
                 TerrainType::Ocean | TerrainType::River | TerrainType::Alpine
-            )
+            ) {
+                Some(idx)
+            } else {
+                None
+            }
         })
-        .map(|(idx, _)| idx)
         .collect();
 
     if suitable_provinces.len() <= nation_count as usize {
         return suitable_provinces;
     }
 
-    // Select capitals with good spacing
-    let mut selected_capitals = Vec::new();
+    // Calculate minimum distance for good spacing
     let min_distance_squared = calculate_min_capital_distance(provinces.len(), nation_count);
 
+    // Use spatial partitioning with parallel evaluation for capital selection
+    let mut selected_capitals = Vec::new();
+    let mut remaining_candidates = suitable_provinces.clone();
+
     for _ in 0..nation_count {
-        if suitable_provinces.is_empty() {
+        if remaining_candidates.is_empty() {
             break;
         }
 
-        // Pick a random candidate
-        let candidate_idx = rng.gen_range(0..suitable_provinces.len());
-        let province_idx = suitable_provinces[candidate_idx];
+        // Parallel evaluate all remaining candidates for distance constraints
+        let scores: Vec<(usize, f32)> = remaining_candidates
+            .par_iter()
+            .map(|&candidate_idx| {
+                let position = provinces[candidate_idx].position;
 
-        // Check if it's far enough from existing capitals
-        let position = provinces[province_idx].position;
-        let far_enough = selected_capitals.iter().all(|&other_idx: &usize| {
-            euclidean_squared_vec2(position, provinces[other_idx].position) >= min_distance_squared
-        });
+                // Calculate minimum distance to any existing capital
+                let min_dist = if selected_capitals.is_empty() {
+                    f32::MAX
+                } else {
+                    selected_capitals
+                        .iter()
+                        .map(|&other_idx: &usize| {
+                            position.distance_squared(provinces[other_idx].position)
+                        })
+                        .min_by(|a: &f32, b: &f32| a.partial_cmp(b).unwrap())
+                        .unwrap_or(f32::MAX)
+                };
 
-        if far_enough || selected_capitals.is_empty() {
-            selected_capitals.push(province_idx);
-            suitable_provinces.remove(candidate_idx);
+                (candidate_idx, min_dist)
+            })
+            .collect();
+
+        // Find candidates that meet distance requirements
+        let mut valid_candidates: Vec<usize> = scores
+            .into_iter()
+            .filter(|&(_, dist)| dist >= min_distance_squared || selected_capitals.is_empty())
+            .map(|(idx, _)| idx)
+            .collect();
+
+        // Select a random valid candidate or fallback to any candidate
+        let selected = if !valid_candidates.is_empty() {
+            let idx = rng.gen_range(0..valid_candidates.len());
+            valid_candidates[idx]
+        } else if !remaining_candidates.is_empty() {
+            // Fallback: pick the candidate with maximum minimum distance
+            let best = remaining_candidates
+                .par_iter()
+                .map(|&idx| {
+                    let pos = provinces[idx].position;
+                    let min_dist = selected_capitals
+                        .iter()
+                        .map(|&other| provinces[other].position.distance_squared(pos))
+                        .min_by(|a, b| a.partial_cmp(b).unwrap())
+                        .unwrap_or(0.0);
+                    (idx, min_dist)
+                })
+                .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
+                .map(|(idx, _)| idx)
+                .unwrap_or(remaining_candidates[rng.gen_range(0..remaining_candidates.len())]);
+            best
         } else {
-            // Try a few more times with this candidate
-            let mut found = false;
-            for _ in 0..5 {
-                let idx = rng.gen_range(0..suitable_provinces.len());
-                let prov_idx = suitable_provinces[idx];
-                let pos = provinces[prov_idx].position;
+            break;
+        };
 
-                let ok = selected_capitals.iter().all(|&other| {
-                    euclidean_squared_vec2(provinces[other].position, pos) >= min_distance_squared
-                });
-
-                if ok {
-                    selected_capitals.push(prov_idx);
-                    suitable_provinces.remove(idx);
-                    found = true;
-                    break;
-                }
-            }
-
-            if !found && suitable_provinces.len() > 0 {
-                // Just pick one anyway if we're struggling
-                let idx = rng.gen_range(0..suitable_provinces.len());
-                selected_capitals.push(suitable_provinces[idx]);
-                suitable_provinces.remove(idx);
-            }
-        }
+        selected_capitals.push(selected);
+        remaining_candidates.retain(|&x| x != selected);
     }
 
     selected_capitals
@@ -144,7 +179,81 @@ fn calculate_min_capital_distance(province_count: usize, nation_count: u32) -> f
     radius * radius * 0.5 // Squared distance, with some overlap allowed
 }
 
-/// Create a nation with its ruling house
+/// Create a nation with its ruling house (parallel version)
+fn create_nation_with_house_parallel(
+    registry: &Arc<NationRegistry>,
+    capital_idx: usize,
+    capital_position: Vec2,
+    seed: u64,
+    settings: &NationGenerationSettings,
+) -> (Nation, House) {
+    let mut rng = StdRng::seed_from_u64(seed);
+    let nation_id = registry.create_nation_id(); // Thread-safe with atomic operations
+
+    // Generate nation name using the name generator (thread-local)
+    let mut name_gen = NameGenerator::with_seed(seed);
+    let culture = pick_culture_for_location(capital_position, &mut rng);
+    let nation_name = name_gen.generate(NameType::Nation { culture });
+
+    // Generate adjective from nation name
+    let adjective = generate_adjective(&nation_name);
+
+    // Generate house for this nation using our comprehensive name generator
+    let house_name = name_gen.generate(NameType::House { culture });
+    let ruler_name = name_gen.generate(NameType::Person {
+        gender: crate::name_generator::Gender::Male,
+        culture,
+        role: crate::name_generator::PersonRole::Ruler,
+    });
+    let ruler_title = pick_ruler_title(settings.starting_development);
+
+    // Create personality influenced by aggression setting
+    let mut personality = NationPersonality::random(&mut rng);
+    personality.aggression *= settings.aggression_level;
+
+    // Create house traits
+    let house_traits = HouseTraits::random(&mut rng);
+    let motto = generate_motto(&house_traits, &culture);
+
+    // Pick a unique color for this nation
+    let color = generate_nation_color(nation_id.value(), &mut rng);
+
+    // Create the nation
+    let nation = Nation {
+        id: nation_id,
+        name: nation_name.clone(),
+        adjective,
+        color,
+        capital_province: capital_idx as u32,
+        treasury: 1000.0,
+        military_strength: 100.0,
+        stability: 0.75,
+        personality,
+    };
+
+    // Create the ruling house
+    let house = House {
+        nation_id,
+        name: house_name.clone(),
+        full_name: format!("House {} of {}", house_name, nation_name),
+        ruler: Ruler {
+            name: ruler_name,
+            title: ruler_title,
+            age: rng.gen_range(25..65),
+            years_ruling: rng.gen_range(1..15),
+            personality: RulerPersonality::random(&mut rng),
+        },
+        motto,
+        traits: house_traits,
+        years_in_power: rng.gen_range(10..200),
+        legitimacy: 0.75 + rng.gen_range(-0.2..0.2),
+        prestige: 0.5 + rng.gen_range(-0.3..0.3),
+    };
+
+    (nation, house)
+}
+
+/// Create a nation with its ruling house (legacy sequential version)
 fn create_nation_with_house(
     registry: &mut NationRegistry,
     capital_idx: usize,
@@ -251,7 +360,6 @@ fn generate_adjective(nation_name: &str) -> String {
     }
 }
 
-
 /// Pick a ruler title based on development level
 fn pick_ruler_title(development: StartingDevelopment) -> String {
     match development {
@@ -318,7 +426,7 @@ fn hue_to_rgb(p: f32, q: f32, mut t: f32) -> f32 {
     p
 }
 
-/// Assign territory to nations using a growth algorithm
+/// Assign territory to nations using parallel growth algorithm with atomic operations
 fn assign_territory_to_nations(
     nations: &mut Vec<Nation>,
     provinces: &mut [Province],
@@ -330,53 +438,224 @@ fn assign_territory_to_nations(
         NationDensity::Fragmented => provinces.len() / nations.len() / 2,
     };
 
-    // Initialize capitals with ownership
+    // Create atomic ownership array (0 = unclaimed, nation_id + 1 = claimed)
+    let atomic_owners: Arc<Vec<AtomicU32>> =
+        Arc::new((0..provinces.len()).map(|_| AtomicU32::new(0)).collect());
+
+    // Initialize capitals with atomic ownership
     for nation in nations.iter() {
-        provinces[nation.capital_province as usize].owner = Some(nation.id);
+        let capital_idx = nation.capital_province as usize;
+        atomic_owners[capital_idx].store(nation.id.value() + 1, Ordering::SeqCst);
     }
 
-    // Grow each nation's territory using BFS
-    for nation in nations.iter() {
-        let mut frontier = VecDeque::new();
-        frontier.push_back(nation.capital_province);
-        let mut provinces_claimed = 1;
+    // Parallel territory expansion for all nations
+    let nation_claims: Vec<Vec<u32>> = nations
+        .par_iter()
+        .map(|nation| {
+            let mut claimed_provinces = vec![nation.capital_province];
+            let mut frontier = VecDeque::new();
+            frontier.push_back(nation.capital_province);
+            let nation_id_atomic = nation.id.value() + 1; // +1 because 0 means unclaimed
 
-        while let Some(current_province_id) = frontier.pop_front() {
-            if provinces_claimed >= growth_limit {
-                break;
+            while claimed_provinces.len() < growth_limit && !frontier.is_empty() {
+                // Process current frontier level
+                let current_level_size = frontier.len();
+                let mut next_frontier = Vec::new();
+
+                for _ in 0..current_level_size {
+                    if let Some(current_province_id) = frontier.pop_front() {
+                        let neighbors = provinces[current_province_id as usize].neighbors;
+
+                        for neighbor_opt in neighbors.iter() {
+                            if let Some(neighbor_id) = neighbor_opt {
+                                let neighbor_idx = neighbor_id.value() as usize;
+                                let neighbor = &provinces[neighbor_idx];
+
+                                // Check terrain suitability
+                                if matches!(
+                                    neighbor.terrain,
+                                    TerrainType::Ocean | TerrainType::River | TerrainType::Alpine
+                                ) {
+                                    continue;
+                                }
+
+                                // Try to claim the province atomically
+                                let result = atomic_owners[neighbor_idx].compare_exchange(
+                                    0,                // Expected: unclaimed
+                                    nation_id_atomic, // New value: our nation ID
+                                    Ordering::SeqCst,
+                                    Ordering::SeqCst,
+                                );
+
+                                if result.is_ok() {
+                                    // Successfully claimed!
+                                    claimed_provinces.push(neighbor_idx as u32);
+                                    next_frontier.push(neighbor_idx as u32);
+
+                                    if claimed_provinces.len() >= growth_limit {
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
+                        if claimed_provinces.len() >= growth_limit {
+                            break;
+                        }
+                    }
+                }
+
+                // Move to next level of BFS
+                frontier.extend(next_frontier);
             }
 
-            // Get neighbors of current province (copy to avoid borrow issues)
-            let neighbors = provinces[current_province_id as usize].neighbors;
-            for neighbor_opt in neighbors.iter() {
-                if let Some(neighbor_id) = neighbor_opt {
-                    let neighbor_idx = neighbor_id.value();
-                    let neighbor = &mut provinces[neighbor_idx as usize];
+            claimed_provinces
+        })
+        .collect();
 
-                    // Check if this province is unclaimed and is land
-                    if neighbor.owner.is_none() {
-                        // Don't claim ocean, river, or alpine terrain
-                        if !matches!(
-                            neighbor.terrain,
-                            TerrainType::Ocean | TerrainType::River | TerrainType::Alpine
-                        ) {
-                            neighbor.owner = Some(nation.id);
-                            frontier.push_back(neighbor_idx);
-                            provinces_claimed += 1;
+    // Apply the atomic ownership results back to provinces
+    for (idx, atomic_owner) in atomic_owners.iter().enumerate() {
+        let owner_val = atomic_owner.load(Ordering::SeqCst);
+        if owner_val > 0 {
+            // Convert back from atomic value to NationId (subtract 1)
+            provinces[idx].owner = Some(NationId::new(owner_val - 1));
+        }
+    }
 
-                            if provinces_claimed >= growth_limit {
-                                break;
+    // Log statistics
+    let owned_provinces = provinces.iter().filter(|p| p.owner.is_some()).count();
+    let total_claimed: usize = nation_claims.iter().map(|v| v.len()).sum();
+
+    info!(
+        "Parallel territory assignment complete. {} provinces claimed by {} nations (avg: {})",
+        owned_provinces,
+        nations.len(),
+        owned_provinces / nations.len().max(1)
+    );
+
+    debug!(
+        "Territory distribution: min={}, max={}, median={}",
+        nation_claims.iter().map(|v| v.len()).min().unwrap_or(0),
+        nation_claims.iter().map(|v| v.len()).max().unwrap_or(0),
+        {
+            // Optimize: pre-allocate Vec with known capacity to avoid reallocations
+            let nation_count = nation_claims.len();
+            let mut sizes: Vec<_> = Vec::with_capacity(nation_count);
+            sizes.extend(nation_claims.iter().map(|v| v.len()));
+            sizes.sort();
+            sizes.get(sizes.len() / 2).copied().unwrap_or(0)
+        }
+    );
+}
+
+/// Build Territory entities from contiguous province regions (parallel version)
+/// Returns a map of nation_id -> vec of territories for that nation
+pub fn build_territories_from_provinces(
+    provinces: &[Province],
+) -> HashMap<NationId, Vec<Territory>> {
+    // Parallel grouping: Group provinces by owner nation first
+    let provinces_by_nation: HashMap<NationId, Vec<usize>> = provinces
+        .par_iter()
+        .enumerate()
+        .filter_map(|(idx, province)| province.owner.map(|owner| (owner, idx)))
+        .fold(HashMap::new, |mut acc, (nation_id, province_idx)| {
+            acc.entry(nation_id)
+                .or_insert_with(Vec::new)
+                .push(province_idx);
+            acc
+        })
+        .reduce(HashMap::new, |mut acc1, acc2| {
+            for (nation_id, mut indices) in acc2 {
+                acc1.entry(nation_id)
+                    .or_insert_with(Vec::new)
+                    .append(&mut indices);
+            }
+            acc1
+        });
+
+    // Parallel territory building: Process each nation's provinces in parallel
+    let nation_territories: HashMap<NationId, Vec<Territory>> = provinces_by_nation
+        .par_iter()
+        .map(|(&nation_id, province_indices)| {
+            let mut territories = Vec::new();
+            let mut visited = HashSet::with_capacity(province_indices.len());
+
+            // For this nation, find all contiguous territories
+            for &province_idx in province_indices {
+                let province = &provinces[province_idx];
+
+                if visited.contains(&province.id.value()) {
+                    continue;
+                }
+
+                // Start a new territory from this province
+                let mut territory_provinces = HashSet::new();
+                let mut frontier = VecDeque::new();
+                frontier.push_back(province.id.value());
+
+                let mut sum_x = 0.0;
+                let mut sum_y = 0.0;
+                let mut count = 0;
+
+                // BFS to find all contiguous provinces owned by same nation
+                while let Some(current_id) = frontier.pop_front() {
+                    if visited.contains(&current_id) {
+                        continue;
+                    }
+
+                    if let Some(current_province) =
+                        provinces.iter().find(|p| p.id.value() == current_id)
+                    {
+                        if current_province.owner == Some(nation_id) {
+                            visited.insert(current_id);
+                            territory_provinces.insert(current_id);
+
+                            sum_x += current_province.position.x;
+                            sum_y += current_province.position.y;
+                            count += 1;
+
+                            // Add unvisited neighbors
+                            for neighbor_opt in current_province.neighbors {
+                                if let Some(neighbor_id) = neighbor_opt {
+                                    if !visited.contains(&neighbor_id.value()) {
+                                        frontier.push_back(neighbor_id.value());
+                                    }
+                                }
                             }
                         }
                     }
                 }
+
+                // Create territory if we found provinces
+                if !territory_provinces.is_empty() {
+                    let center = Vec2::new(sum_x / count as f32, sum_y / count as f32);
+
+                    let territory = Territory {
+                        provinces: territory_provinces,
+                        nation_id,
+                        center,
+                        is_core: true, // TODO: Determine core vs conquered based on culture/history
+                    };
+
+                    territories.push(territory);
+                }
             }
-        }
+
+            (nation_id, territories)
+        })
+        .collect();
+
+    info!("Built territories for {} nations", nation_territories.len());
+
+    for (nation_id, territories) in &nation_territories {
+        let total_provinces: usize = territories.iter().map(|t| t.provinces.len()).sum();
+        info!(
+            "Nation {} has {} territories with {} total provinces",
+            nation_id.value(),
+            territories.len(),
+            total_provinces
+        );
     }
 
-    let owned_provinces = provinces.iter().filter(|p| p.owner.is_some()).count();
-    info!(
-        "Territory assignment complete. Average provinces per nation: {}",
-        owned_provinces / nations.len().max(1)
-    );
+    nation_territories
 }

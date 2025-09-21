@@ -37,7 +37,6 @@ pub struct WorkshopItemDownloadedEvent {
     pub title: String,
 }
 
-
 /// Workshop item types for Living Worlds
 #[derive(Debug, Clone, Copy)]
 pub enum WorkshopItemType {

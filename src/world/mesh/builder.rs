@@ -336,8 +336,11 @@ impl MeshBuilder {
 
             // Generate colors
             let world_colors = WorldColors::new(self.world_seed);
-            let color =
-                world_colors.terrain(province.terrain, province.elevation.value(), province.position);
+            let color = world_colors.terrain(
+                province.terrain,
+                province.elevation.value(),
+                province.position,
+            );
             // Use proper linear sRGB conversion as per Bevy 0.16 docs
             let rgba = color.to_linear().to_f32_array();
             for _ in 0..VERTICES_PER_HEXAGON {
@@ -360,8 +363,15 @@ impl MeshBuilder {
     }
 }
 
-pub fn build_world_mesh(provinces: &[Province], meshes: &mut Assets<Mesh>, world_seed: u32) -> Handle<Mesh> {
-    match MeshBuilder::default().with_seed(world_seed).build(provinces, meshes) {
+pub fn build_world_mesh(
+    provinces: &[Province],
+    meshes: &mut Assets<Mesh>,
+    world_seed: u32,
+) -> Handle<Mesh> {
+    match MeshBuilder::default()
+        .with_seed(world_seed)
+        .build(provinces, meshes)
+    {
         Ok((handle, _stats)) => handle,
         Err(e) => {
             error!("Failed to build world mesh: {}", e);

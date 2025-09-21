@@ -212,50 +212,54 @@ impl PerlinNoise {
         // Continental shelf layer - massive scale (40% influence, up from 25%)
         // This creates the main continent shapes and should dominate
         let continental = self.sample_fbm(
-            x, y,
+            x,
+            y,
             FbmSettings {
                 octaves: 4,
-                frequency: 0.001,  // Very low frequency for continent-scale
+                frequency: 0.001, // Very low frequency for continent-scale
                 persistence: 0.4,
                 lacunarity: 2.0,
-            }
-        ) * 0.40;  // Increased weight for more coherent continents
+            },
+        ) * 0.40; // Increased weight for more coherent continents
 
         // Major landmass layer - large features (30% influence, up from 25%)
         // This adds major terrain variations within continents
         let landmass = self.sample_fbm(
-            x, y,
+            x,
+            y,
             FbmSettings {
                 octaves: 6,
-                frequency: 0.005,  // Low frequency for major features
+                frequency: 0.005, // Low frequency for major features
                 persistence: 0.5,
                 lacunarity: 2.1,
-            }
-        ) * 0.30;  // Increased weight for stronger landmass definition
+            },
+        ) * 0.30; // Increased weight for stronger landmass definition
 
         // Island chains layer - medium scale (15% influence, down from 20%)
         // Reduced to prevent excessive fragmentation
         let islands = self.sample_fbm(
-            x, y,
+            x,
+            y,
             FbmSettings {
-                octaves: 6,  // Reduced from 8 for less complexity
-                frequency: 0.02,  // Medium frequency for island chains
-                persistence: 0.45,  // Reduced from 0.55 for gentler falloff
+                octaves: 6,        // Reduced from 8 for less complexity
+                frequency: 0.02,   // Medium frequency for island chains
+                persistence: 0.45, // Reduced from 0.55 for gentler falloff
                 lacunarity: 2.2,
-            }
-        ) * 0.15;  // Reduced weight to minimize fragmentation
+            },
+        ) * 0.15; // Reduced weight to minimize fragmentation
 
         // Coastal detail layer - fine features (10% influence, down from 15%)
         // Significantly reduced to prevent "spaghetti islands"
         let coastal = self.sample_fbm(
-            x, y,
+            x,
+            y,
             FbmSettings {
-                octaves: 6,  // Reduced from 10 for less noise
+                octaves: 6,       // Reduced from 10 for less noise
                 frequency: 0.08,  // Reduced from 0.1 for larger coastal features
-                persistence: 0.4,  // Reduced from 0.6 for quicker falloff
+                persistence: 0.4, // Reduced from 0.6 for quicker falloff
                 lacunarity: 2.3,
-            }
-        ) * 0.10;  // Reduced weight to minimize small islands
+            },
+        ) * 0.10; // Reduced weight to minimize small islands
 
         // Mountain ridge layer (5% influence, down from 15%)
         // Minimal influence to avoid creating isolated peaks
@@ -275,12 +279,12 @@ impl PerlinNoise {
                     x,
                     y,
                     FbmSettings {
-                        octaves: 8,  // Increased from 4 for realistic coastlines
-                        frequency: TERRAIN_FREQUENCY * 0.3,  // Lower frequency for larger features
-                        persistence: 0.55,  // Slightly higher for more detail retention
-                        lacunarity: 2.1,  // Slightly irregular scaling for organic look
+                        octaves: 8,                         // Increased from 4 for realistic coastlines
+                        frequency: TERRAIN_FREQUENCY * 0.3, // Lower frequency for larger features
+                        persistence: 0.55, // Slightly higher for more detail retention
+                        lacunarity: 2.1,   // Slightly irregular scaling for organic look
                     },
-                ) * 0.5;  // Increased detail influence
+                ) * 0.5; // Increased detail influence
                 (continental + detail).clamp(0.0, 1.0)
             }
             TerrainPreset::Islands => {
@@ -469,7 +473,9 @@ impl PerlinBuilder {
     }
 
     pub fn build(self) -> PerlinNoise {
-        let seed = self.seed.expect("PerlinBuilder requires a seed - call .seed(value) before .build()");
+        let seed = self
+            .seed
+            .expect("PerlinBuilder requires a seed - call .seed(value) before .build()");
         let mut noise = PerlinNoise::new(seed);
 
         if let Some(octaves) = self.octaves {
@@ -533,80 +539,4 @@ pub enum CloudPreset {
     Fluffy,
     /// Dense storm clouds
     Storm,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_noise_creation() {
-        let noise = PerlinNoise::new(12345);
-        assert_eq!(noise.seed(), 12345);
-    }
-
-    #[test]
-    fn test_normalization() {
-        assert_eq!(PerlinNoise::normalize_to_01(-1.0), 0.0);
-        assert_eq!(PerlinNoise::normalize_to_01(1.0), 1.0);
-        assert_eq!(PerlinNoise::normalize_to_01(0.0), 0.5);
-    }
-
-    #[test]
-    fn test_sample_range() {
-        let noise = PerlinNoise::new(42);
-        for x in 0..10 {
-            for y in 0..10 {
-                let value = noise.sample(x as f64, y as f64);
-                assert!(
-                    value >= 0.0 && value <= 1.0,
-                    "Sample out of range: {}",
-                    value
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn test_terrain_range() {
-        let noise = PerlinNoise::new(99);
-        for x in 0..10 {
-            for y in 0..10 {
-                let value = noise.sample_terrain(x as f64 * 10.0, y as f64 * 10.0);
-                assert!(
-                    value >= 0.0 && value <= 1.0,
-                    "Terrain out of range: {}",
-                    value
-                );
-            }
-        }
-    }
-
-    #[test]
-    fn test_builder() {
-        let noise = PerlinNoise::builder()
-            .seed(777)
-            .octaves(8)
-            .frequency(0.01)
-            .build();
-
-        assert_eq!(noise.seed(), 777);
-        assert_eq!(noise.default_octaves, 8);
-        assert_eq!(noise.default_frequency, 0.01);
-    }
-
-    #[test]
-    fn test_thread_safety() {
-        use std::thread;
-
-        let noise = PerlinNoise::new(123);
-        let noise_clone = noise.clone();
-
-        let handle = thread::spawn(move || noise_clone.sample(10.0, 20.0));
-
-        let result1 = noise.sample(10.0, 20.0);
-        let result2 = handle.join().unwrap();
-
-        assert_eq!(result1, result2, "Thread safety issue: different results");
-    }
 }

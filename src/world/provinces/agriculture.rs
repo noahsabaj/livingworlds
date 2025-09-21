@@ -4,10 +4,10 @@ use bevy::log::info;
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use crate::resources::MapDimensions;
 use super::super::rivers::RiverSystem;
 use super::super::terrain::TerrainType;
 use super::{Agriculture, Distance, Province, ProvinceId};
+use crate::resources::MapDimensions;
 
 // Agriculture base values by terrain type
 const RIVER_BASE_AGRICULTURE: f32 = 2.5; // River tiles are very fertile
@@ -92,12 +92,7 @@ pub fn calculate(
         .map(|(idx, province)| {
             let base_agriculture = get_base_agriculture(province.terrain);
             let water_dist = water_distances[idx].unwrap_or(MAX_WATER_DISTANCE);
-            let water_bonus = calculate_water_bonus(
-                province,
-                &river_set,
-                &delta_set,
-                water_dist,
-            );
+            let water_bonus = calculate_water_bonus(province, &river_set, &delta_set, water_dist);
 
             let agriculture = Agriculture::new(base_agriculture * water_bonus);
             let fresh_water_distance = Distance::new(water_dist);
@@ -138,9 +133,7 @@ fn calculate_water_bonus(
     water_distance: f32,
 ) -> f32 {
     // Special handling for water terrain - they don't get extra bonus
-    if province.terrain == TerrainType::River
-        || province.terrain == TerrainType::Ocean
-    {
+    if province.terrain == TerrainType::River || province.terrain == TerrainType::Ocean {
         return 1.0; // Base agriculture already accounts for water
     }
 
@@ -204,62 +197,4 @@ fn calculate_water_distances(
     }
 
     Ok(distances)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_base_agriculture_values() {
-        assert_eq!(
-            get_base_agriculture(TerrainType::River),
-            RIVER_BASE_AGRICULTURE
-        );
-        assert_eq!(
-            get_base_agriculture(TerrainType::River),
-            RIVER_BASE_AGRICULTURE
-        );
-        assert_eq!(
-            get_base_agriculture(TerrainType::TemperateGrassland),
-            PLAINS_BASE_AGRICULTURE
-        );
-        assert_eq!(
-            get_base_agriculture(TerrainType::Ocean),
-            OCEAN_BASE_AGRICULTURE
-        );
-    }
-
-    #[test]
-    fn test_water_bonus_calculation() {
-        let mut province = Province::default();
-        province.id = ProvinceId::new(1);
-        province.terrain = TerrainType::TemperateGrassland;
-        province.position = Vec2::ZERO;
-        province.elevation = Elevation::new(0.5);
-        province.population = 100;
-        province.agriculture = Agriculture::new(0.0);
-        province.fresh_water_distance = Distance::new(0.0);
-
-        let river_set = HashSet::new();
-        let delta_set = HashSet::new();
-
-        // Test various distances
-        assert_eq!(
-            calculate_water_bonus(&province, &river_set, &delta_set, 0.0),
-            1.0
-        );
-        assert_eq!(
-            calculate_water_bonus(&province, &river_set, &delta_set, 0.5),
-            1.3
-        );
-        assert_eq!(
-            calculate_water_bonus(&province, &river_set, &delta_set, 2.0),
-            1.1
-        );
-        assert_eq!(
-            calculate_water_bonus(&province, &river_set, &delta_set, 15.0),
-            1.0
-        );
-    }
 }

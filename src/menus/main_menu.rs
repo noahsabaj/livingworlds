@@ -151,7 +151,7 @@ fn handle_button_interactions(
     mut save_browser_events: EventWriter<SpawnSaveBrowserEvent>,
     mut mod_browser_events: EventWriter<crate::modding::OpenModBrowserEvent>,
     current_state: Res<State<GameState>>,
-    commands: Commands,
+    mut commands: Commands,
 ) {
     for (interaction, button) in &mut interactions {
         // Only respond to enabled buttons
@@ -183,7 +183,7 @@ fn handle_button_interactions(
                 MenuAction::Exit => {
                     debug!("Exit button pressed - showing confirmation dialog");
                     use crate::ui::dialog_presets;
-                    dialog_presets::exit_confirmation_dialog(commands);
+                    dialog_presets::exit_confirmation_dialog(&mut commands);
                     return;
                 }
                 _ => {}

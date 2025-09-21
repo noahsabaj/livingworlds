@@ -7,6 +7,7 @@ use super::SaveGameList;
 use super::{SaveGameInfo, SAVE_DIRECTORY, SAVE_EXTENSION};
 use bevy::prelude::*;
 use chrono::Local;
+use rayon::prelude::*;
 use std::fs;
 use std::path::Path;
 
@@ -22,7 +23,7 @@ pub fn scan_save_files(mut save_list: ResMut<SaveGameList>) {
     scan_save_files_internal(&mut save_list);
 }
 
-/// Internal function for scanning save files without ECS wrapper
+/// Internal function for scanning save files without ECS wrapper (parallel version)
 pub fn scan_save_files_internal(save_list: &mut SaveGameList) {
     save_list.saves.clear();
 
@@ -32,61 +33,71 @@ pub fn scan_save_files_internal(save_list: &mut SaveGameList) {
     }
 
     if let Ok(entries) = fs::read_dir(save_dir) {
-        for entry in entries.flatten() {
-            if let Ok(metadata) = entry.metadata() {
-                if metadata.is_file() {
-                    if let Some(extension) = entry.path().extension() {
-                        if extension == SAVE_EXTENSION {
-                            if let Some(file_name) = entry.file_name().to_str() {
-                                let name =
-                                    file_name.trim_end_matches(&format!(".{}", SAVE_EXTENSION));
-
-                                // Try to parse date from filename
-                                let date_created =
-                                    parse_date_from_filename(name).unwrap_or_else(|| {
-                                        metadata
-                                            .modified()
-                                            .ok()
-                                            .and_then(|t| {
-                                                t.duration_since(std::time::UNIX_EPOCH).ok()
-                                            })
-                                            .and_then(|d| {
-                                                use chrono::{Local, TimeZone};
-                                                Local.timestamp_opt(d.as_secs() as i64, 0).single()
-                                            })
-                                            .unwrap_or_else(Local::now)
-                                    });
-
-                                // Extract metadata from the save file
-                                let (world_size, game_time, version, world_name, world_seed) =
-                                    extract_save_metadata(&entry.path()).unwrap_or_else(|| {
-                                        (
-                                            "Unknown".to_string(),
-                                            0.0,
-                                            1,
-                                            "Unnamed World".to_string(),
-                                            0,
-                                        )
-                                    });
-
-                                let save_info = SaveGameInfo {
-                                    name: name.to_string(),
-                                    path: entry.path(),
-                                    date_created,
-                                    world_name,
-                                    world_seed,
-                                    world_size,
-                                    game_time,
-                                    version,
-                                    compressed_size: metadata.len(),
-                                };
-                                save_list.saves.push(save_info);
-                            }
+        // Collect all save file entries first
+        let save_entries: Vec<_> = entries
+            .flatten()
+            .filter(|entry| {
+                if let Ok(metadata) = entry.metadata() {
+                    if metadata.is_file() {
+                        if let Some(extension) = entry.path().extension() {
+                            return extension == SAVE_EXTENSION;
                         }
                     }
                 }
-            }
-        }
+                false
+            })
+            .collect();
+
+        // Process save files in parallel for metadata extraction
+        let saves: Vec<SaveGameInfo> = save_entries
+            .par_iter()
+            .filter_map(|entry| {
+                let metadata = entry.metadata().ok()?;
+                let file_name = entry.file_name();
+                let file_name_str = file_name.to_str()?;
+                let name = file_name_str.trim_end_matches(&format!(".{}", SAVE_EXTENSION));
+
+                // Try to parse date from filename
+                let date_created = parse_date_from_filename(name).unwrap_or_else(|| {
+                    metadata
+                        .modified()
+                        .ok()
+                        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                        .and_then(|d| {
+                            use chrono::{Local, TimeZone};
+                            Local.timestamp_opt(d.as_secs() as i64, 0).single()
+                        })
+                        .unwrap_or_else(Local::now)
+                });
+
+                // Extract metadata from the save file (parallel I/O operation)
+                let (world_size, game_time, version, world_name, world_seed) =
+                    extract_save_metadata(&entry.path()).unwrap_or_else(|| {
+                        (
+                            "Unknown".to_string(),
+                            0.0,
+                            1,
+                            "Unnamed World".to_string(),
+                            0,
+                        )
+                    });
+
+                Some(SaveGameInfo {
+                    name: name.to_string(),
+                    path: entry.path(),
+                    date_created,
+                    world_name,
+                    world_seed,
+                    world_size,
+                    game_time,
+                    version,
+                    compressed_size: metadata.len(),
+                })
+            })
+            .collect();
+
+        // Store the results
+        save_list.saves = saves;
     }
 
     // Sort by date, newest first

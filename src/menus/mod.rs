@@ -20,10 +20,11 @@
 
 // PRIVATE MODULES - Menu implementation details
 
+mod interactions_example;
 mod main_menu;
 mod pause_menu;
 mod plugin;
-mod types;
+mod types; // Revolutionary UI automation demonstration
 
 // SELECTIVE PUBLIC EXPORTS - Controlled menu API
 
@@ -38,6 +39,9 @@ pub use types::{
 // Export menu root markers (needed for queries in other systems)
 pub use main_menu::MainMenuRoot;
 pub use pause_menu::PauseMenuRoot;
+
+// Export UI automation demonstration (for testing and showcasing)
+pub use interactions_example::integrate_with_plugin;
 
 // PURE GATEWAY - No Implementation Logic
 

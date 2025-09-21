@@ -26,7 +26,9 @@ pub fn generate_nation_name(generator: &mut NameGenerator) -> String {
         }
         6..=8 => {
             // 30% - Compound patterns with warrior themes
-            let warrior_adjectives = &["Mighty", "Fierce", "Iron", "Thunder", "Storm", "Wolf", "Bear", "Battle"];
+            let warrior_adjectives = &[
+                "Mighty", "Fierce", "Iron", "Thunder", "Storm", "Wolf", "Bear", "Battle",
+            ];
             let adjective = generator.random_choice(warrior_adjectives);
             let structure = generator.random_choice(POLITICAL_STRUCTURES);
             let root = generator.random_choice(NATION_ROOTS);
@@ -34,7 +36,9 @@ pub fn generate_nation_name(generator: &mut NameGenerator) -> String {
         }
         _ => {
             // 10% - Winter compound patterns
-            let winter_adjectives = &["Frost", "Ice", "Snow", "Winter", "Frozen", "Crystal", "White", "Cold"];
+            let winter_adjectives = &[
+                "Frost", "Ice", "Snow", "Winter", "Frozen", "Crystal", "White", "Cold",
+            ];
             let adjective = generator.random_choice(winter_adjectives);
             let structure = generator.random_choice(POLITICAL_STRUCTURES);
             let root = generator.random_choice(NATION_ROOTS);
@@ -81,9 +85,9 @@ fn generate_compound_house(generator: &mut NameGenerator) -> String {
 
     // For houses, use warrior/winter adjectives
     let warrior_winter_adjectives = &[
-        "Iron", "Steel", "Thunder", "Storm", "Wolf", "Bear", "Battle", "War",
-        "Frost", "Ice", "Snow", "Winter", "Frozen", "Crystal", "White", "Cold",
-        "Ancient", "Elder", "First", "Great", "Sacred", "Noble", "True", "Mighty",
+        "Iron", "Steel", "Thunder", "Storm", "Wolf", "Bear", "Battle", "War", "Frost", "Ice",
+        "Snow", "Winter", "Frozen", "Crystal", "White", "Cold", "Ancient", "Elder", "First",
+        "Great", "Sacred", "Noble", "True", "Mighty",
     ];
 
     let adjective = generator.random_choice(warrior_winter_adjectives);
@@ -91,11 +95,11 @@ fn generate_compound_house(generator: &mut NameGenerator) -> String {
 
     // Warrior/winter compound formats for houses
     let formats = [
-        "The {} {} Brotherhood",     // "The Iron Wolf Brotherhood"
-        "{} House of {}",            // "Storm House of Ironwolf"
-        "The {} {} Clan",            // "The Ancient Bear Clan"
-        "{} Warriors of {}",         // "Frost Warriors of Stormaxe"
-        "{} Guard of {}",            // "Thunder Guard of Winterborn"
+        "The {} {} Brotherhood", // "The Iron Wolf Brotherhood"
+        "{} House of {}",        // "Storm House of Ironwolf"
+        "The {} {} Clan",        // "The Ancient Bear Clan"
+        "{} Warriors of {}",     // "Frost Warriors of Stormaxe"
+        "{} Guard of {}",        // "Thunder Guard of Winterborn"
     ];
 
     let format = generator.random_choice(&formats);

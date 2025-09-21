@@ -1,20 +1,18 @@
 //! Main plugin for the simulation module - AUTOMATION POWERED!
 
-use bevy_plugin_builder::define_plugin;
 use crate::resources::GameTime;
 use crate::states::GameState;
 use crate::world::Province;
 use bevy::prelude::*;
+use bevy_plugin_builder::define_plugin;
 use rayon::prelude::*;
 
 // Import from sibling modules through super (gateway pattern)
 use super::input::handle_time_controls;
+use super::pressures::{apply_pressure_effects, resolve_pressure_actions, update_nation_pressures};
 use super::time::{
     advance_game_time, resume_from_pause_menu, track_year_changes, NewYearEvent,
     SimulationSpeedChanged,
-};
-use super::pressures::{
-    update_nation_pressures, resolve_pressure_actions, apply_pressure_effects,
 };
 
 /// Timer for pressure system updates
@@ -64,7 +62,15 @@ struct NationPressureData {
 fn run_pressure_systems_on_timer(
     time: Res<Time>,
     mut timer: ResMut<PressureSystemTimer>,
-    mut nations_query: Query<(Entity, &mut crate::nations::Nation, &mut crate::simulation::PressureVector, &crate::nations::OwnsTerritory), Without<crate::nations::Territory>>,
+    mut nations_query: Query<
+        (
+            Entity,
+            &mut crate::nations::Nation,
+            &mut crate::simulation::PressureVector,
+            &crate::nations::OwnsTerritory,
+        ),
+        Without<crate::nations::Territory>,
+    >,
     territories_query: Query<&crate::nations::Territory>,
     province_storage: Res<crate::world::ProvinceStorage>,
     mut _commands: Commands,
@@ -96,7 +102,10 @@ fn run_pressure_systems_on_timer(
                 for &territory_entity in &data.territory_entities {
                     if let Ok(territory) = territories_query.get(territory_entity) {
                         for &province_id in &territory.provinces {
-                            if let Some(&idx) = province_storage.province_by_id.get(&crate::world::ProvinceId::new(province_id)) {
+                            if let Some(&idx) = province_storage
+                                .province_by_id
+                                .get(&crate::world::ProvinceId::new(province_id))
+                            {
                                 if let Some(province) = province_storage.provinces.get(idx) {
                                     controlled_provinces.push(province.clone());
                                 }
@@ -110,24 +119,32 @@ fn run_pressure_systems_on_timer(
 
                 if !controlled_provinces.is_empty() {
                     use crate::simulation::pressures::{
-                        PressureType,
-                        calculate_population_pressure,
-                        calculate_economic_pressure,
-                        calculate_military_pressure,
-                        calculate_legitimacy_pressure,
-                        determine_ruler_personality,
-                        RecentEvents,
+                        calculate_economic_pressure, calculate_legitimacy_pressure,
+                        calculate_military_pressure, calculate_population_pressure,
+                        determine_ruler_personality, PressureType, RecentEvents,
                     };
 
                     // Population pressures
-                    let controlled_provinces_refs: Vec<&Province> = controlled_provinces.iter().collect();
-                    let pop_pressure = calculate_population_pressure(&data.nation, &controlled_provinces_refs);
-                    new_pressures.set_pressure(PressureType::PopulationOvercrowding, pop_pressure.overcrowding);
-                    new_pressures.set_pressure(PressureType::PopulationUnderpopulation, pop_pressure.underpopulation);
+                    let controlled_provinces_refs: Vec<&Province> =
+                        controlled_provinces.iter().collect();
+                    let pop_pressure =
+                        calculate_population_pressure(&data.nation, &controlled_provinces_refs);
+                    new_pressures.set_pressure(
+                        PressureType::PopulationOvercrowding,
+                        pop_pressure.overcrowding,
+                    );
+                    new_pressures.set_pressure(
+                        PressureType::PopulationUnderpopulation,
+                        pop_pressure.underpopulation,
+                    );
 
                     // Economic pressures
-                    let econ_pressure = calculate_economic_pressure(&data.nation, &controlled_provinces_refs);
-                    new_pressures.set_pressure(PressureType::EconomicStrain, econ_pressure.treasury_shortage);
+                    let econ_pressure =
+                        calculate_economic_pressure(&data.nation, &controlled_provinces_refs);
+                    new_pressures.set_pressure(
+                        PressureType::EconomicStrain,
+                        econ_pressure.treasury_shortage,
+                    );
 
                     // Military pressures
                     let mil_pressure = calculate_military_pressure(
@@ -136,7 +153,10 @@ fn run_pressure_systems_on_timer(
                         controlled_provinces.len(),
                         0, // TODO: Recent defeats
                     );
-                    new_pressures.set_pressure(PressureType::MilitaryVulnerability, mil_pressure.military_weakness);
+                    new_pressures.set_pressure(
+                        PressureType::MilitaryVulnerability,
+                        mil_pressure.military_weakness,
+                    );
 
                     // Legitimacy pressures
                     let ruler_personality = determine_ruler_personality(&data.nation);
@@ -156,7 +176,10 @@ fn run_pressure_systems_on_timer(
                         economic_health,
                         &recent_events,
                     );
-                    new_pressures.set_pressure(PressureType::LegitimacyCrisis, legit_pressure.popular_discontent);
+                    new_pressures.set_pressure(
+                        PressureType::LegitimacyCrisis,
+                        legit_pressure.popular_discontent,
+                    );
 
                     // Record trend
                     new_pressures.record_trend();
@@ -181,7 +204,9 @@ fn run_pressure_systems_on_timer(
 }
 
 /// Determine ruler personality from nation/house traits
-fn determine_ruler_personality(nation: &crate::nations::Nation) -> crate::simulation::pressures::RulerPersonality {
+fn determine_ruler_personality(
+    nation: &crate::nations::Nation,
+) -> crate::simulation::pressures::RulerPersonality {
     use crate::simulation::pressures::RulerPersonality;
 
     if nation.military_strength > nation.treasury {

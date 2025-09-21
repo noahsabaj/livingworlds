@@ -4,9 +4,9 @@
 //! political boundaries, terrain, mineral resources, and infrastructure.
 //! Now optimized with Arc-based zero-copy architecture for instant mode switching.
 
+use super::MapMode;
 use crate::constants::MS_PER_SECOND;
 use crate::world::ProvinceStorage;
-use super::MapMode;
 use bevy::log::{debug, trace, warn};
 use bevy::prelude::*;
 use bevy::render::mesh::Mesh;
@@ -25,6 +25,7 @@ pub fn update_province_colors(
     mesh_handle: Res<crate::world::WorldMeshHandle>,
     mut meshes: ResMut<Assets<Mesh>>,
     time: Res<Time>,
+    nation_colors: Option<Res<crate::nations::NationColorRegistry>>,
 ) {
     let start = std::time::Instant::now();
     trace!(
@@ -43,7 +44,16 @@ pub fn update_province_colors(
     let mesh_lookup_time = start.elapsed();
 
     // Get Arc to colors - NO CLONING, just reference counting!
-    let colors_arc = cached_colors.get_or_calculate(*overlay, &province_storage, world_seed.0);
+    let colors_arc = if let Some(registry) = nation_colors {
+        cached_colors.get_or_calculate_with_nations(
+            *overlay,
+            &province_storage,
+            world_seed.0,
+            Some(registry.as_ref()),
+        )
+    } else {
+        cached_colors.get_or_calculate(*overlay, &province_storage, world_seed.0)
+    };
 
     let _selection_time = start.elapsed() - mesh_lookup_time;
 

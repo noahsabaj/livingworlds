@@ -49,19 +49,15 @@
 //! ```
 
 // Internal modules - ALL PRIVATE, only accessible through this gateway
-mod core;       // Main NameGenerator struct and orchestration
-mod world;      // World name generation patterns
-mod places;     // Province and city name generation
-mod people;     // Person names with titles
+mod core; // Main NameGenerator struct and orchestration
+mod cultures; // Culture-specific generation patterns
+mod data; // Name databases
 mod geographic; // Natural feature names
-mod cultures;   // Culture-specific generation patterns
-mod data;       // Name databases
-mod types;      // Type definitions
-mod utils;      // Utility functions
-
-// TODO: Create test module when needed
-// #[cfg(test)]
-// mod tests;
+mod people; // Person names with titles
+mod places; // Province and city name generation
+mod types; // Type definitions
+mod utils;
+mod world; // World name generation patterns // Utility functions
 
 // CONTROLLED PUBLIC API - This is the ONLY way in/out of name_generator
 // Re-export only what external code needs

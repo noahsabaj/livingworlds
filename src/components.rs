@@ -89,9 +89,6 @@ pub struct HoverableProvince;
 #[derive(Component)]
 pub struct ProvinceInfoPanel;
 
-// NOTE: Nation struct has been moved to src/nations/types.rs
-// This legacy Nation was removed to prevent confusion
-
 /// Component for UI text that displays information
 #[derive(Component)]
 pub struct InfoText;

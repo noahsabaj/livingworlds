@@ -1,18 +1,15 @@
-//! Parallel Safety Plugin - SIMPLICITY PERFECTION!
+//! Parallel Safety Plugin
 //!
-//! This module demonstrates PERFECT simple plugin automation!
-//! 21 lines of manual registration → 12 lines pure elegance!
+//! Plugin for parallel safety validation and race condition detection.
 
-use bevy::prelude::*;
-use bevy_plugin_builder::define_plugin;
 use super::{
     detection::RaceConditionDetector,
-    metrics::{ParallelSafetyMetrics, log_safety_metrics},
+    metrics::{log_safety_metrics, ParallelSafetyMetrics},
 };
+use bevy::prelude::*;
+use bevy_plugin_builder::define_plugin;
 
-/// Plugin for parallel safety validation using PURE AUTOMATION!
-///
-/// **AUTOMATION ACHIEVEMENT**: 21 lines manual → 12 lines declarative!
+/// Plugin for parallel safety validation.
 define_plugin!(ParallelSafetyPlugin {
     resources: [ParallelSafetyMetrics, RaceConditionDetector],
 

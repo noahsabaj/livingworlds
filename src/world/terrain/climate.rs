@@ -4,13 +4,14 @@
 //! rain shadows, and other climate phenomena to create realistic
 //! biome distributions based on physical principles.
 
-use crate::math::{euclidean_vec2, exponential_smooth, lerp, sin_cos, PI};
 use super::super::provinces::Province;
 use super::types::TerrainType;
+use crate::math::{exponential_smooth, lerp};
 use bevy::log::{debug, info};
 use bevy::prelude::Vec2;
 use rayon::prelude::*;
 use std::collections::{HashMap, VecDeque};
+use std::f32::consts::PI;
 
 // CONSTANTS - Climate parameters based on Earth
 
@@ -135,18 +136,15 @@ impl ClimateSystem {
         }
     }
 
-    /// Run full climate simulation
+    /// Run full climate simulation with unified passes for memory efficiency
     pub fn simulate(&mut self, provinces: &[Province]) {
-        info!("Starting climate simulation...");
+        info!("Starting climate simulation with unified passes...");
 
         // Step 1: Calculate ocean distances
         self.calculate_ocean_distances(provinces);
 
-        // Step 2: Calculate base temperatures
-        self.calculate_temperatures(provinces);
-
-        // Step 3: Calculate prevailing winds
-        self.calculate_winds(provinces);
+        // Step 2 & 3 UNIFIED: Calculate temperatures AND winds in single pass
+        self.calculate_temperatures_and_winds(provinces);
 
         // Step 4: Simulate moisture propagation
         self.propagate_moisture(provinces);
@@ -157,7 +155,7 @@ impl ClimateSystem {
         // Step 6: Calculate final humidity
         self.calculate_humidity(provinces);
 
-        info!("Climate simulation complete");
+        info!("Climate simulation complete (memory optimized)");
     }
 
     /// Calculate distance to ocean for each province
@@ -206,19 +204,20 @@ impl ClimateSystem {
         }
     }
 
-    /// Calculate temperature based on latitude and elevation (PARALLELIZED)
-    fn calculate_temperatures(&mut self, provinces: &[Province]) {
-        debug!("Calculating temperatures...");
+    /// Calculate temperature and wind patterns in a unified pass (OPTIMIZED)
+    fn calculate_temperatures_and_winds(&mut self, provinces: &[Province]) {
+        debug!("Calculating temperatures and wind patterns in unified pass...");
 
-        let temps: Vec<(usize, f32)> = provinces
+        // Use par_iter_mut to update climates directly without temporary allocations
+        let bounds = self.dimensions.bounds;
+        let hex_size = self.dimensions.hex_size;
+
+        provinces
             .par_iter()
-            .enumerate()
-            .map(|(idx, province)| {
-                let ocean_distance = self.climates[idx].ocean_distance;
-
-                let latitude = (province.position.y - self.dimensions.bounds.y_min)
-                    / (self.dimensions.bounds.y_max - self.dimensions.bounds.y_min);
-
+            .zip(self.climates.par_iter_mut())
+            .for_each(|(province, climate)| {
+                // Calculate temperature
+                let latitude = (province.position.y - bounds.y_min) / (bounds.y_max - bounds.y_min);
                 let lat_from_equator = (latitude - 0.5).abs() * 2.0;
                 let base_temp = lerp(EQUATOR_TEMP, POLE_TEMP, lat_from_equator);
 
@@ -227,55 +226,37 @@ impl ClimateSystem {
                 let elevation_cooling = elevation_m * LAPSE_RATE;
 
                 // Apply ocean moderation
-                let ocean_moderation = if ocean_distance < OCEAN_INFLUENCE_DISTANCE {
-                    let factor = 1.0 - (ocean_distance / OCEAN_INFLUENCE_DISTANCE);
+                let ocean_moderation = if climate.ocean_distance < OCEAN_INFLUENCE_DISTANCE {
+                    let factor = 1.0 - (climate.ocean_distance / OCEAN_INFLUENCE_DISTANCE);
                     OCEAN_TEMP_MODERATION * factor
                 } else {
                     0.0
                 };
 
-                let temperature = base_temp - elevation_cooling + ocean_moderation;
-                (idx, temperature)
-            })
-            .collect();
+                climate.temperature = base_temp - elevation_cooling + ocean_moderation;
 
-        for (idx, temp) in temps {
-            self.climates[idx].temperature = temp;
-        }
-    }
+                // Calculate wind patterns in same pass
+                let lat_from_equator_wind = (latitude - 0.5).abs();
 
-    /// Calculate prevailing wind patterns
-    fn calculate_winds(&mut self, provinces: &[Province]) {
-        debug!("Calculating wind patterns...");
+                if lat_from_equator_wind < TRADE_WIND_ZONE {
+                    // Trade winds - blow from east to west
+                    climate.wind_direction = PI; // West
+                    climate.wind_strength = 0.8;
+                } else if lat_from_equator_wind < WESTERLIES_ZONE {
+                    // Westerlies - blow from west to east
+                    climate.wind_direction = 0.0; // East
+                    climate.wind_strength = 1.0;
+                } else {
+                    // Polar easterlies - blow from east to west
+                    climate.wind_direction = PI; // West
+                    climate.wind_strength = 0.6;
+                }
 
-        for (idx, province) in provinces.iter().enumerate() {
-            let climate = &mut self.climates[idx];
-
-            let latitude = (province.position.y - self.dimensions.bounds.y_min)
-                / (self.dimensions.bounds.y_max - self.dimensions.bounds.y_min);
-
-            // Determine wind zone and direction
-            let lat_from_equator = (latitude - 0.5).abs();
-
-            if lat_from_equator < TRADE_WIND_ZONE {
-                // Trade winds - blow from east to west
-                climate.wind_direction = PI; // West
-                climate.wind_strength = 0.8;
-            } else if lat_from_equator < WESTERLIES_ZONE {
-                // Westerlies - blow from west to east
-                climate.wind_direction = 0.0; // East
-                climate.wind_strength = 1.0;
-            } else {
-                // Polar easterlies - blow from east to west
-                climate.wind_direction = PI; // West
-                climate.wind_strength = 0.6;
-            }
-
-            // Reduce wind strength over land
-            if province.terrain != TerrainType::Ocean {
-                climate.wind_strength *= 0.7;
-            }
-        }
+                // Reduce wind strength over land
+                if province.terrain != TerrainType::Ocean {
+                    climate.wind_strength *= 0.7;
+                }
+            });
     }
 
     /// Propagate moisture from oceans inland
@@ -304,9 +285,7 @@ impl ClimateSystem {
             );
 
             // Clone rainfall data only (not entire Climate structs!) for parallel read
-            let current_rainfall: Vec<f32> = self.climates.iter()
-                .map(|c| c.rainfall)
-                .collect();
+            let current_rainfall: Vec<f32> = self.climates.iter().map(|c| c.rainfall).collect();
 
             let batch_size = 10000;
             let num_batches = (provinces.len() + batch_size - 1) / batch_size;
@@ -349,16 +328,13 @@ impl ClimateSystem {
 
                 for (idx, rainfall) in batch_rainfall {
                     // Blend with existing value for smoother propagation
-                    self.climates[idx].rainfall = exponential_smooth(self.climates[idx].rainfall, rainfall, 0.3);
+                    self.climates[idx].rainfall =
+                        exponential_smooth(self.climates[idx].rainfall, rainfall, 0.3);
                 }
 
                 // Progress report - reduced frequency
                 if batch_idx % 50 == 0 {
-                    debug!(
-                        "Processing batch {}/{}",
-                        batch_idx + 1,
-                        num_batches
-                    );
+                    debug!("Processing batch {}/{}", batch_idx + 1, num_batches);
                 }
             }
         }
@@ -383,7 +359,9 @@ impl ClimateSystem {
         }
 
         // Extract wind data only for parallel access (not cloning entire climates!)
-        let wind_data: Vec<(f32, f32)> = self.climates.iter()
+        let wind_data: Vec<(f32, f32)> = self
+            .climates
+            .iter()
             .map(|c| (c.wind_direction, c.wind_strength))
             .collect();
         let hex_size = self.dimensions.hex_size;
@@ -394,7 +372,7 @@ impl ClimateSystem {
             .filter_map(|(idx, province)| {
                 let (wind_dir, _wind_strength) = wind_data[idx];
 
-                let (cos_wind, sin_wind) = sin_cos(wind_dir);
+                let (sin_wind, cos_wind) = wind_dir.sin_cos();
                 let wind_source = Vec2::new(-cos_wind, -sin_wind);
 
                 // Sample fewer points for performance
@@ -406,7 +384,7 @@ impl ClimateSystem {
                     if let Some(indices) = spatial_grid.get(&(grid_x, grid_y)) {
                         for &other_idx in indices {
                             let other = &provinces[other_idx];
-                            if euclidean_vec2(other.position, check_pos) < hex_size * 1.5 {
+                            if other.position.distance(check_pos) < hex_size * 1.5 {
                                 if other.elevation.value() > 0.6 {
                                     return Some(idx);
                                 }
@@ -553,11 +531,15 @@ pub fn apply_climate_to_provinces(
     dimensions: crate::resources::MapDimensions,
 ) {
     // Count how many provinces actually need climate calculations
-    let land_provinces = provinces.iter()
+    let land_provinces = provinces
+        .iter()
         .filter(|p| p.terrain != crate::world::TerrainType::Ocean)
         .count();
-    info!("    Calculating climate for {} land provinces (skipping {} ocean provinces)",
-          land_provinces, provinces.len() - land_provinces);
+    info!(
+        "    Calculating climate for {} land provinces (skipping {} ocean provinces)",
+        land_provinces,
+        provinces.len() - land_provinces
+    );
 
     let mut climate_system = ClimateSystem::new(dimensions, provinces.len());
     climate_system.simulate(provinces);
@@ -573,7 +555,8 @@ pub fn apply_climate_to_provinces(
         let biome = climate_system.get_biome(idx, province.elevation.value());
         // Update terrain based on biome for land provinces only (preserve River/Beach)
         if province.terrain != crate::world::TerrainType::River
-            && province.terrain != crate::world::TerrainType::Beach {
+            && province.terrain != crate::world::TerrainType::Beach
+        {
             province.terrain = biome_to_terrain(biome, province.elevation.value());
         }
     }

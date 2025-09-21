@@ -7,7 +7,6 @@ use bevy::prelude::*;
 
 use super::types::{SteamClient, SteamStats};
 
-/// Initialize Steam statistics
 pub fn initialize_stats(steam: Res<SteamClient>) {
     let client = &steam.0;
     let user_stats = client.user_stats();

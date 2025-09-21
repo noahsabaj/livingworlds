@@ -17,6 +17,7 @@
 // PRIVATE modules - internal implementation details
 mod input;
 mod plugin;
+mod pressures;
 mod tension;
 mod time;
 
@@ -31,6 +32,12 @@ pub use tension::WorldTension;
 
 // Time-related exports that other systems need
 pub use time::{GameTime, NewYearEvent, SimulationSpeedChanged};
+
+// Pressure system exports for civilization behaviors
+pub use pressures::{
+    apply_pressure_effects, resolve_pressure_actions, update_nation_pressures, PressureLevel,
+    PressureType, PressureVector,
+};
 
 // Note: Input handling is internal only - no public exports needed
 // Note: Time systems are internal only - exposed through plugin

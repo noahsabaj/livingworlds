@@ -30,6 +30,10 @@ pub fn build_info() -> String {
         NAME,
         VERSION,
         STAGE,
-        if cfg!(debug_assertions) { "debug" } else { "release" }
+        if cfg!(debug_assertions) {
+            "debug"
+        } else {
+            "release"
+        }
     )
 }

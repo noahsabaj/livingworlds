@@ -5,8 +5,8 @@
 use bevy::prelude::*;
 use bevy_steamworks::*;
 
-use super::{constants as achievements, display::get_achievement_display_name};
 use super::super::types::{AchievementUnlockedEvent, SteamClient, SteamStats};
+use super::{constants as achievements, display::get_achievement_display_name};
 
 /// Check and unlock achievements based on current game state
 pub fn handle_achievement_triggers(

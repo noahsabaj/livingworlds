@@ -19,7 +19,6 @@ pub const SPEED_LEVELS: &[(KeyCode, f32, &str)] = &[
     (KeyCode::Digit5, SPEED_FASTEST, "Fastest (9x)"),
 ];
 
-/// Check if any speed key was pressed and return the corresponding speed
 pub fn handle_speed_keys(keyboard: &ButtonInput<KeyCode>) -> Option<(f32, &'static str)> {
     SPEED_LEVELS
         .iter()
@@ -27,7 +26,6 @@ pub fn handle_speed_keys(keyboard: &ButtonInput<KeyCode>) -> Option<(f32, &'stat
         .map(|(_, speed, name)| (*speed, *name))
 }
 
-/// Calculate the next speed level when incrementing
 pub fn get_next_speed_level(current_speed: f32, is_paused: bool) -> f32 {
     if is_paused {
         // If paused, go to normal speed
@@ -43,7 +41,6 @@ pub fn get_next_speed_level(current_speed: f32, is_paused: bool) -> f32 {
     }
 }
 
-/// Calculate the previous speed level when decrementing
 pub fn get_previous_speed_level(current_speed: f32) -> f32 {
     if current_speed > SPEED_FASTEST - 0.1 {
         SPEED_FASTER

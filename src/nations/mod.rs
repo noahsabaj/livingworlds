@@ -3,13 +3,15 @@
 //! This module implements the political entities that control provinces,
 //! including nations, dynasties, and their interactions.
 
-pub mod types;
 pub mod generation;
-pub mod rendering;
-pub mod plugin;
 pub mod house;
+pub mod plugin;
+pub mod rendering;
+pub mod types;
 
-pub use types::*;
-pub use generation::spawn_nations;
+pub use generation::{build_territories_from_provinces, spawn_nations};
+pub use house::{
+    generate_motto, DominantTrait, House, HouseArchetype, HouseTraits, Ruler, RulerPersonality,
+};
 pub use plugin::NationPlugin;
-pub use house::{House, Ruler, RulerPersonality, HouseTraits, HouseArchetype, DominantTrait, generate_motto};
+pub use types::*;

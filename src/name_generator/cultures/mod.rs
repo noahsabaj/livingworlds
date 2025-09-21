@@ -5,17 +5,17 @@
 //! re-exported through this controlled interface.
 
 // All culture modules are PRIVATE - only accessible through this gateway
-mod western;
+mod ancient;
+mod desert;
 mod eastern;
+mod island;
+mod mystical;
 mod northern;
 mod southern;
-mod desert;
-mod island;
-mod ancient;
-mod mystical;
+mod western;
 
 // Implementation logic is also PRIVATE
 mod generator;
 
 // Re-export controlled interface
-pub use generator::{generate_nation_name, generate_house_name};
+pub use generator::{generate_house_name, generate_nation_name};

@@ -1,6 +1,6 @@
 //! Overlay text display for showing current map mode
 
-use super::super::{LabelBuilder, LabelStyle, Orientation, SeparatorBuilder};
+use super::super::{ChildBuilder, LabelBuilder, LabelStyle, Orientation, SeparatorBuilder};
 use crate::resources::MapMode;
 use bevy::prelude::*;
 
@@ -9,7 +9,7 @@ use bevy::prelude::*;
 pub struct MapModeText;
 
 /// Spawn the overlay text display
-pub fn spawn_overlay_text(parent: &mut ChildSpawnerCommands) {
+pub fn spawn_overlay_text(parent: &mut ChildBuilder) {
     // Current overlay display using fixed LabelBuilder
     let label_entity = LabelBuilder::new("Political Map")
         .font_size(20.0)

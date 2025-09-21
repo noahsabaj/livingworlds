@@ -4,6 +4,7 @@
 
 use super::super::components::*;
 use super::super::types::WorldGenerationSettings;
+use crate::ui::define_marker_interactions;
 use bevy::prelude::*;
 
 pub fn handle_preset_hover(
@@ -22,27 +23,25 @@ pub fn handle_preset_hover(
     }
 }
 
-pub fn handle_advanced_toggle(
-    interactions: Query<&Interaction, (Changed<Interaction>, With<AdvancedToggle>)>,
-    mut advanced_panel: Query<&mut Node, With<AdvancedPanel>>,
-) {
-    for interaction in &interactions {
-        if *interaction == Interaction::Pressed {
-            if let Ok(mut panel_style) = advanced_panel.single_mut() {
-                let is_showing = panel_style.display == Display::Flex;
-                panel_style.display = if is_showing {
-                    Display::None
-                } else {
-                    Display::Flex
-                };
-
-                debug!(
-                    "Advanced settings toggled: {}",
-                    if is_showing { "hidden" } else { "shown" }
-                );
+// Marker interaction automation - reduces 23 lines to 14 lines
+define_marker_interactions! {
+    AdvancedToggle => handle_advanced_toggle(
+        mut advanced_panel: Query<&mut Node, With<AdvancedPanel>>
+    ) {
+        if let Ok(mut panel_style) = advanced_panel.single_mut() {
+            let is_showing = panel_style.display == Display::Flex;
+            panel_style.display = if is_showing {
+                Display::None
             } else {
-                warn!("Could not find AdvancedPanel entity for toggling");
-            }
+                Display::Flex
+            };
+
+            debug!(
+                "Advanced settings toggled: {}",
+                if is_showing { "hidden" } else { "shown" }
+            );
+        } else {
+            warn!("Could not find AdvancedPanel entity for toggling");
         }
     }
 }

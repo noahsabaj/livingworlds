@@ -4,13 +4,13 @@
 //! systems into the application, coordinating between definitions, transitions,
 //! lifecycle, and utilities.
 
-use bevy::prelude::*;
-use bevy_plugin_builder::define_plugin;
 use super::{
     definitions::*,
-    transitions::{handle_state_transitions, handle_menu_events},
     lifecycle::*,
+    transitions::{handle_menu_events, handle_state_transitions},
 };
+use bevy::prelude::*;
+use bevy_plugin_builder::define_plugin;
 
 /// Plugin that manages all state-related systems using declarative syntax
 define_plugin!(StatesPlugin {

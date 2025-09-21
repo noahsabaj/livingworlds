@@ -1,90 +1,51 @@
-//! Settings module for Living Worlds
+//! Settings Module - Gateway Architecture
 //!
-//! This module provides a comprehensive settings system with UI, persistence,
-//! and real-time configuration updates.
-
-// Submodules
-pub mod components;
-pub mod handlers;
-pub mod navigation;
-pub mod persistence;
-pub mod resolution;
-pub mod settings_ui;
-pub mod types;
-
-// Re-exports for convenience
-pub use components::*;
-pub use persistence::{load_settings, save_settings};
-pub use settings_ui::spawn_settings_menu;
-pub use types::*;
+//! Pure gateway module for settings functionality. Provides controlled API
+//! for settings management, persistence, and UI interactions.
+//!
+//! Follows the gateway architecture pattern established by the ui/ module.
 
 use crate::menus::SpawnSettingsMenuEvent;
 use bevy::prelude::*;
 
-/// Plugin that manages all settings-related functionality
-pub struct SettingsPlugin;
+// PRIVATE MODULES - All implementation hidden behind gateway
+mod components;
+mod navigation;
+mod persistence;
+mod resolution;
+mod setting_builder; // NEW: Declarative settings automation system
+mod settings_ui;
+mod types;
 
-impl Plugin for SettingsPlugin {
-    fn build(&self, app: &mut App) {
-        app
-            // Resources - Note: GameSettings is loaded from disk in load_settings
-            .init_resource::<TempGameSettings>()
-            .init_resource::<SettingsDirtyState>()
-            .init_resource::<ResolutionConfirmation>()
-            .init_resource::<FocusedElement>()
-            // Events
-            .add_event::<SettingsChanged>()
-            .add_event::<RequestResolutionConfirm>()
-            .add_systems(Startup, persistence::load_settings)
-            .add_systems(Update, handle_spawn_settings_menu_event)
-            // Systems - only run when settings menu is open
-            .add_systems(
-                Update,
-                (
-                    handlers::handle_tab_buttons,
-                    handlers::handle_cycle_buttons,
-                    handlers::handle_toggle_buttons,
-                    handlers::handle_slider_interactions,
-                    handlers::handle_apply_cancel_buttons,
-                    handlers::handle_preset_buttons,
-                    handlers::handle_reset_button,
-                    handlers::handle_unsaved_changes_dialog,
-                    handlers::track_dirty_state,
-                    handlers::update_apply_button_state,        // FIX: Register the missing system!
-                    handlers::update_apply_exit_button_hover,
-                    handlers::update_ui_on_settings_change,
-                    resolution::handle_resolution_confirm_request,
-                    resolution::update_resolution_countdown,
-                    resolution::handle_resolution_confirm_buttons,
-                    navigation::handle_keyboard_navigation,
-                ),
-            )
-            // Apply settings when changed
-            .add_systems(Update, handlers::apply_settings_changes);
-    }
-}
+// CONTROLLED EXPORTS - Minimal public API
 
-/// System to handle the SpawnSettingsMenuEvent by spawning the settings menu
-fn handle_spawn_settings_menu_event(
-    mut events: EventReader<SpawnSettingsMenuEvent>,
-    commands: Commands,
-    settings: Res<GameSettings>,
-    temp_settings: ResMut<TempGameSettings>,
-    current_tab: Res<crate::states::CurrentSettingsTab>,
-    dirty_state: ResMut<SettingsDirtyState>,
-) {
-    for _ in events.read() {
-        // Call the spawn function directly - pass the system parameters as-is
-        settings_ui::spawn_settings_menu(
-            commands,
-            settings,
-            temp_settings,
-            current_tab,
-            dirty_state,
-        );
-        return; // Only spawn once per frame
-    }
-}
+// Essential types for external use
+pub use types::{
+    AudioSettings, ControlSettings, GameSettings, GraphicsPreset, GraphicsSettings,
+    InterfaceSettings, QualityLevel, RequestResolutionConfirm, ResolutionConfirmation,
+    ResolutionOption, SettingType, SettingsChanged, SettingsDirtyState, TempGameSettings,
+    WindowModeOption,
+};
+
+// Essential components for external queries (minimal exposure)
+pub use components::{
+    ApplyButton, CancelButton, CycleButton, Focusable, FocusedElement, PresetButton,
+    SettingsMenuRoot, SettingsSlider, TabButton, ToggleButton,
+};
+
+// Core functionality
+pub use persistence::{load_settings, save_settings};
+
+// Settings UI builders (eating our own dog food)
+pub use settings_ui::{
+    spawn_settings_menu, PresetGridBuilder, SettingRowBuilder, SettingSectionBuilder,
+};
+
+// NEW: Declarative settings automation system
+pub use setting_builder::define_setting_tab;
+
+// Main plugin - Clean architecture with no legacy wrappers
+pub use settings_ui::SettingsUIPlugin;
 
 /// Helper function to despawn the settings menu
 pub fn despawn_settings_menu(mut commands: Commands, query: Query<Entity, With<SettingsMenuRoot>>) {

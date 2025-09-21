@@ -5,13 +5,12 @@
 //!
 //! This is a PURE ORCHESTRATOR - feature-specific generation lives in feature modules.
 
-use bevy::prelude::*;
-
 // PRIVATE MODULES - Only orchestration logic
 
 mod builder; // Main world builder orchestrator
 mod errors; // Error types for generation failures
-mod utils; // Shared utilities
+mod plugin;
+mod utils; // Shared utilities // Generation plugin
 
 // PUBLIC INTERFACE - The only way to generate worlds
 
@@ -21,17 +20,8 @@ pub use builder::WorldBuilder;
 // Re-export error types for generation failures
 pub use errors::{WorldGenerationError, WorldGenerationErrorType};
 
-/// Plugin that registers world generation systems
-pub struct GenerationPlugin;
+// Re-export shared generation utilities
+pub use utils::GenerationUtils;
 
-impl Plugin for GenerationPlugin {
-    fn build(&self, app: &mut App) {
-        // Generation is typically a one-time process at startup
-        // No systems to register, but we could add generation commands here
-        app.add_systems(Startup, log_generation_ready);
-    }
-}
-
-fn log_generation_ready() {
-    info!("World generation module ready");
-}
+// Re-export the plugin from plugin.rs
+pub use plugin::GenerationPlugin;

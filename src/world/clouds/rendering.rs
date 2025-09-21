@@ -5,12 +5,13 @@
 
 use super::types::{CloudLayer, CloudSystem};
 use crate::constants::*;
-use crate::math::{fast_sin, random_01, random_range, sin_cos, smoothstep, PerlinNoise, PI, TAU};
+use crate::math::{fast_sin, smoothstep, PerlinNoise};
 use crate::resources::{WeatherState, WeatherSystem};
 use bevy::prelude::*;
 use rand::prelude::*;
 use rand::rngs::StdRng;
 use rayon::prelude::*;
+use std::f32::consts::{PI, TAU};
 
 /// Component for cloud sprites with movement properties
 #[derive(Component)]
@@ -46,9 +47,9 @@ pub fn generate_cloud_formation(
             // Clustered formation - clouds group together
             let cluster_radius = spread * 0.5;
             for _ in 0..count {
-                let angle = random_range(rng, 0.0, TAU);
-                let distance = random_range(rng, 0.0, cluster_radius) * random_01(rng).sqrt();
-                let (cos_angle, sin_angle) = sin_cos(angle);
+                let angle = rng.gen_range(0.0..TAU);
+                let distance = rng.gen_range(0.0..cluster_radius) * rng.r#gen::<f32>().sqrt();
+                let (sin_angle, cos_angle) = angle.sin_cos();
                 let offset = Vec2::new(cos_angle * distance, sin_angle * distance);
                 positions.push(center + offset);
             }
@@ -66,7 +67,7 @@ pub fn generate_cloud_formation(
 
                 // Add sine wave variation for more natural looking stratus
                 let wave_offset = fast_sin(t * wave_frequency * TAU) * wave_amplitude;
-                let random_offset = random_range(rng, -band_height * 0.5, band_height * 0.5);
+                let random_offset = rng.gen_range(-band_height * 0.5..band_height * 0.5);
                 let y = center.y + wave_offset + random_offset;
 
                 positions.push(Vec2::new(x, y));
@@ -75,8 +76,8 @@ pub fn generate_cloud_formation(
         CloudFormationType::Cirrus => {
             // Wispy diagonal streaks
             let streak_length = spread * 1.5;
-            let streak_angle = random_range(rng, 0.0, PI / 3.0);
-            let (cos_streak, sin_streak) = sin_cos(streak_angle);
+            let streak_angle = rng.gen_range(0.0..PI / 3.0);
+            let (sin_streak, cos_streak) = streak_angle.sin_cos();
             for i in 0..count {
                 let t = i as f32 / count as f32;
                 let base_x = center.x + (t - 0.5) * streak_length * cos_streak;
@@ -92,8 +93,8 @@ pub fn generate_cloud_formation(
         CloudFormationType::Scattered => {
             // Random placement (original behavior)
             for _ in 0..count {
-                let x = center.x + random_range(rng, -spread, spread);
-                let y = center.y + random_range(rng, -spread, spread);
+                let x = center.x + rng.gen_range(-spread..spread);
+                let y = center.y + rng.gen_range(-spread..spread);
                 positions.push(Vec2::new(x, y));
             }
         }
@@ -282,7 +283,7 @@ pub fn update_weather_system(
     weather.time_since_change += time.delta_secs();
 
     if weather.time_since_change > weather.min_weather_duration {
-        let change_roll = random_01(rng);
+        let change_roll = rng.r#gen::<f32>();
         if change_roll < weather.weather_change_chance {
             // Pick a new weather state
             let states = [
@@ -292,7 +293,7 @@ pub fn update_weather_system(
                 WeatherState::Cloudy,
                 WeatherState::Overcast,
             ];
-            let new_state = states[random_range(rng, 0, states.len())];
+            let new_state = states[rng.gen_range(0..states.len())];
 
             if new_state != weather.current_state {
                 weather.target_state = new_state;
@@ -392,8 +393,8 @@ pub fn dynamic_cloud_spawn_system(
                 let handle = images.add(texture);
 
                 let mut rng = StdRng::seed_from_u64(seed as u64);
-                let x = camera_pos.x + random_range(&mut rng, -2000.0, 2000.0);
-                let y = camera_pos.y + random_range(&mut rng, -1500.0, 1500.0);
+                let x = camera_pos.x + rng.gen_range(-2000.0..2000.0);
+                let y = camera_pos.y + rng.gen_range(-1500.0..1500.0);
 
                 commands.spawn((
                     Sprite {
@@ -442,7 +443,6 @@ fn spawn_clouds_from_data(
         // If CloudSystem is empty, generate procedural clouds
         if cloud_system.clouds.is_empty() {
             use super::types::{CloudData, CloudLayer};
-            use crate::math::random_range;
             use rand::{Rng, SeedableRng};
 
             let mut rng = rand::rngs::StdRng::seed_from_u64(12345); // Fixed seed for consistency
@@ -457,16 +457,16 @@ fn spawn_clouds_from_data(
 
                 for _ in 0..cloud_count {
                     let position = Vec2::new(
-                        random_range(&mut rng, -2000.0, 2000.0),
-                        random_range(&mut rng, -1500.0, 1500.0),
+                        rng.gen_range(-2000.0..2000.0),
+                        rng.gen_range(-1500.0..1500.0),
                     );
 
                     let cloud = CloudData::new(position, layer)
-                        .with_size(random_range(&mut rng, 200.0, 600.0))
+                        .with_size(rng.gen_range(200.0..600.0))
                         .with_alpha(layer.default_alpha())
                         .with_velocity(Vec2::new(
-                            random_range(&mut rng, -20.0, 20.0),
-                            random_range(&mut rng, -5.0, 5.0),
+                            rng.gen_range(-20.0..20.0),
+                            rng.gen_range(-5.0..5.0),
                         ))
                         .with_texture(rng.gen_range(0..5));
 
@@ -553,7 +553,7 @@ impl Plugin for CloudPlugin {
         use crate::states::GameState;
 
         app.init_resource::<WeatherSystem>()
-            .init_resource::<CloudSystem>()  // Initialize CloudSystem resource
+            .init_resource::<CloudSystem>() // Initialize CloudSystem resource
             .add_systems(OnEnter(GameState::InGame), spawn_clouds_from_data)
             .add_systems(
                 Update,

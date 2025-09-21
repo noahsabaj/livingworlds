@@ -15,7 +15,7 @@ pub fn spawn_world_name_section(parent: &mut ChildSpawnerCommands) {
         .width(Val::Percent(100.0))
         .flex_direction(FlexDirection::Column)
         .row_gap(Val::Px(5.0))
-        .padding(UiRect::all(Val::Px(0.0)))  // Zero padding to align with other sections
+        .padding(UiRect::all(Val::Px(0.0))) // Zero padding to align with other sections
         .build_with_children(parent, |section| {
             // Label
             section.spawn((
@@ -33,7 +33,7 @@ pub fn spawn_world_name_section(parent: &mut ChildSpawnerCommands) {
                 .flex_direction(FlexDirection::Row)
                 .justify_content(JustifyContent::SpaceBetween)
                 .column_gap(Val::Px(10.0))
-                .padding(UiRect::all(Val::Px(0.0)))  // Zero padding to align with other sections
+                .padding(UiRect::all(Val::Px(0.0))) // Zero padding to align with other sections
                 .build_with_children(section, |row| {
                     // Use our text input builder
                     text_input()

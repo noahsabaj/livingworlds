@@ -239,7 +239,7 @@ fn handle_pause_button_interactions(
                 MenuAction::Exit => {
                     info!("Exit from pause menu - showing confirmation dialog");
                     use crate::ui::dialog_presets;
-                    dialog_presets::exit_confirmation_dialog(commands);
+                    dialog_presets::exit_confirmation_dialog(&mut commands);
                     return;
                 }
                 MenuAction::SaveGame => {

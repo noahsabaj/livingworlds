@@ -8,14 +8,8 @@ use bevy_plugin_builder::define_plugin;
 
 // Import all relationship modules
 use super::{
-    administrative::*,
-    cultural::*,
-    diplomatic::*,
-    infrastructure::*,
-    military::*,
-    political::*,
-    population::*,
-    religious::*,
+    administrative::*, cultural::*, diplomatic::*, infrastructure::*, military::*, political::*,
+    population::*, religious::*,
 };
 
 /// Plugin that registers all relationship systems - AUTOMATED WITH DECLARATIVE MAGIC!
@@ -58,39 +52,45 @@ define_plugin!(RelationshipsPlugin {
 
     update: [
         // Primary relationship systems (chained for order)
-        (update_cultural_coherence,
-         update_administrative_efficiency,
-         update_diplomatic_state,
-         update_infrastructure_status,
-         update_military_status,
-         update_religious_status,
-         simulate_religious_spread,
-         update_provincial_demographics).chain()
+        (
+            update_cultural_coherence,
+            update_administrative_efficiency,
+            update_diplomatic_state,
+            update_infrastructure_status,
+            update_military_status,
+            update_religious_status,
+            simulate_religious_spread,
+            update_provincial_demographics
+        )
+            .chain()
     ],
 
     fixed_update: [
         // Validation systems for relationship integrity
-        (validate_province_ownership,
-         validate_capital_assignments,
-         validate_cultural_regions,
-         validate_exclusive_cultural_membership,
-         validate_administrative_assignments,
-         validate_diplomatic_consistency,
-         validate_infrastructure_connections,
-         validate_military_positions,
-         validate_army_ownership,
-         validate_religious_relationships,
-         validate_religious_influence_consistency,
-         validate_population_residence,
-         validate_demographic_consistency)
+        (
+            validate_province_ownership,
+            validate_capital_assignments,
+            validate_cultural_regions,
+            validate_exclusive_cultural_membership,
+            validate_administrative_assignments,
+            validate_diplomatic_consistency,
+            validate_infrastructure_connections,
+            validate_military_positions,
+            validate_army_ownership,
+            validate_religious_relationships,
+            validate_religious_influence_consistency,
+            validate_population_residence,
+            validate_demographic_consistency
+        )
     ],
 
-    custom_init: |app| {
+    custom_init: |app: &mut App| {
         // Debug systems (conditional compilation)
         #[cfg(debug_assertions)]
-        app.add_systems(Update, (
-            debug_relationships.run_if(resource_exists::<DebugRelationships>),
-        ));
+        app.add_systems(
+            Update,
+            (debug_relationships.run_if(resource_exists::<DebugRelationships>),),
+        );
     }
 });
 
@@ -118,8 +118,11 @@ fn debug_relationships(
         debug_res.print_interval_seconds = 5.0; // Reset to 5 second interval
 
         let nation_count = nations_query.iter().count();
-        let province_count = province_storage.as_ref().map_or(0, |storage| storage.provinces.len());
-        let controlled_provinces = political_query.iter()
+        let province_count = province_storage
+            .as_ref()
+            .map_or(0, |storage| storage.provinces.len());
+        let controlled_provinces = political_query
+            .iter()
             .map(|controls| controls.province_count())
             .sum::<usize>();
 

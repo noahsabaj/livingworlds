@@ -6,12 +6,10 @@
 //! This is a pure gateway module - all implementation lives in submodules.
 
 // Private submodules - implementation details hidden from external code
-mod types;
-mod traits;
-mod mottos;
-mod motto_data;
-mod motto_data_extended;
 mod influence;
+mod mottos;
+mod traits;
+mod types;
 
 // Public re-exports - carefully controlled API surface
 
@@ -19,7 +17,7 @@ mod influence;
 pub use types::{House, Ruler, RulerPersonality};
 
 // Trait system
-pub use traits::{HouseTraits, HouseArchetype, DominantTrait};
+pub use traits::{DominantTrait, HouseArchetype, HouseTraits};
 
 // Motto generation (only the public function, not internals)
 pub use mottos::generate_motto;

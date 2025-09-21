@@ -71,8 +71,20 @@ fn generate_compound_nation(generator: &mut NameGenerator) -> String {
 
     // Focus on trade/ancient adjectives for Southern culture
     let trade_ancient_adjectives = &[
-        "Golden", "Rich", "Prosperous", "Wealthy", "Merchant", "Trading", "Commercial",
-        "Ancient", "Classical", "Imperial", "Roman", "Egyptian", "Pharaonic", "Eternal",
+        "Golden",
+        "Rich",
+        "Prosperous",
+        "Wealthy",
+        "Merchant",
+        "Trading",
+        "Commercial",
+        "Ancient",
+        "Classical",
+        "Imperial",
+        "Roman",
+        "Egyptian",
+        "Pharaonic",
+        "Eternal",
     ];
 
     let adjective = generator.random_choice(trade_ancient_adjectives);
@@ -81,10 +93,10 @@ fn generate_compound_nation(generator: &mut NameGenerator) -> String {
 
     // Multiple compound formats for variety
     let formats = [
-        "The {} {} of {}",           // "The Golden Republic of Carthago"
-        "{} {} of {}",               // "Imperial Empire of Roma"
-        "{} {}",                     // "Wealthy League" (using different root)
-        "The {} {}",                 // "The Ancient Sultanate"
+        "The {} {} of {}", // "The Golden Republic of Carthago"
+        "{} {} of {}",     // "Imperial Empire of Roma"
+        "{} {}",           // "Wealthy League" (using different root)
+        "The {} {}",       // "The Ancient Sultanate"
     ];
 
     let format = generator.random_choice(&formats);
@@ -111,8 +123,21 @@ fn generate_maritime_compound_nation(generator: &mut NameGenerator) -> String {
 
     // Focus on maritime/coastal adjectives
     let maritime_adjectives = &[
-        "Maritime", "Coastal", "Naval", "Seafaring", "Oceanic", "Harbor", "Port", "Pearl",
-        "Coral", "Tidal", "Nautical", "Marine", "Mediterranean", "Adriatic", "Aegean",
+        "Maritime",
+        "Coastal",
+        "Naval",
+        "Seafaring",
+        "Oceanic",
+        "Harbor",
+        "Port",
+        "Pearl",
+        "Coral",
+        "Tidal",
+        "Nautical",
+        "Marine",
+        "Mediterranean",
+        "Adriatic",
+        "Aegean",
     ];
 
     let adjective = generator.random_choice(maritime_adjectives);
@@ -121,10 +146,10 @@ fn generate_maritime_compound_nation(generator: &mut NameGenerator) -> String {
 
     // Maritime compound formats
     let formats = [
-        "{} {} of {}",               // "Maritime Republic of Venetia"
-        "{} {}",                     // "Coastal Empire"
-        "The {} {} League",          // "The Naval Republic League"
-        "{} {} Alliance",            // "Harbor States Alliance"
+        "{} {} of {}",      // "Maritime Republic of Venetia"
+        "{} {}",            // "Coastal Empire"
+        "The {} {} League", // "The Naval Republic League"
+        "{} {} Alliance",   // "Harbor States Alliance"
     ];
 
     let format = generator.random_choice(&formats);
@@ -156,8 +181,20 @@ fn generate_compound_house(generator: &mut NameGenerator) -> String {
 
     // For houses, use trade/noble adjectives
     let noble_trade_adjectives = &[
-        "Golden", "Rich", "Wealthy", "Merchant", "Trading", "Commercial", "Prosperous",
-        "Ancient", "Imperial", "Classical", "Noble", "Royal", "Patrician", "Aristocratic",
+        "Golden",
+        "Rich",
+        "Wealthy",
+        "Merchant",
+        "Trading",
+        "Commercial",
+        "Prosperous",
+        "Ancient",
+        "Imperial",
+        "Classical",
+        "Noble",
+        "Royal",
+        "Patrician",
+        "Aristocratic",
     ];
 
     let adjective = generator.random_choice(noble_trade_adjectives);
@@ -165,11 +202,11 @@ fn generate_compound_house(generator: &mut NameGenerator) -> String {
 
     // Trade/noble compound formats for houses
     let formats = [
-        "The {} Trading House of {}",    // "The Golden Trading House of Medici"
-        "{} Merchant Family of {}",      // "Wealthy Merchant Family of Borgia"
-        "The {} {} Banking House",       // "The Ancient Medici Banking House"
-        "{} Noble House of {}",          // "Imperial Noble House of Aurelius"
-        "{} Maritime Family of {}",      // "Prosperous Maritime Family of Visconti"
+        "The {} Trading House of {}", // "The Golden Trading House of Medici"
+        "{} Merchant Family of {}",   // "Wealthy Merchant Family of Borgia"
+        "The {} {} Banking House",    // "The Ancient Medici Banking House"
+        "{} Noble House of {}",       // "Imperial Noble House of Aurelius"
+        "{} Maritime Family of {}",   // "Prosperous Maritime Family of Visconti"
     ];
 
     let format = generator.random_choice(&formats);

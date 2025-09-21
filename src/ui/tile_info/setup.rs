@@ -23,10 +23,3 @@ pub fn setup_tile_info(mut commands: Commands) {
             panel::spawn_tile_info_panel(parent);
         });
 }
-
-/// Cleanup the tile info panel
-pub fn cleanup_tile_info(mut commands: Commands, query: Query<Entity, With<TileInfoRoot>>) {
-    for entity in &query {
-        commands.entity(entity).despawn();
-    }
-}

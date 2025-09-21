@@ -11,7 +11,12 @@ mod types;
 // PUBLIC EXPORTS
 
 // Province types
-pub use types::{Abundance, Agriculture, Distance, Elevation, HexDirection, Province, ProvinceId};
+pub use types::{
+    Abundance, Agriculture, Distance, Elevation, HexDirection, Province, ProvinceEntity, ProvinceId,
+};
+
+// Generation functions
+pub use generation::precompute_neighbor_indices;
 
 // Spatial indexing
 pub use spatial::{ProvincesSpatialIndex, WorldBounds};

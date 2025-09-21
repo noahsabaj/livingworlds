@@ -71,8 +71,22 @@ fn generate_compound_nation(generator: &mut NameGenerator) -> String {
 
     // Focus on maritime/tropical adjectives for Island culture
     let maritime_tropical_adjectives = &[
-        "Maritime", "Ocean", "Sea", "Tidal", "Coral", "Pearl", "Blue", "Turquoise",
-        "Tropical", "Paradise", "Golden", "Sun", "Sunset", "Palm", "Coconut", "Sacred",
+        "Maritime",
+        "Ocean",
+        "Sea",
+        "Tidal",
+        "Coral",
+        "Pearl",
+        "Blue",
+        "Turquoise",
+        "Tropical",
+        "Paradise",
+        "Golden",
+        "Sun",
+        "Sunset",
+        "Palm",
+        "Coconut",
+        "Sacred",
     ];
 
     let adjective = generator.random_choice(maritime_tropical_adjectives);
@@ -81,10 +95,10 @@ fn generate_compound_nation(generator: &mut NameGenerator) -> String {
 
     // Multiple compound formats for variety
     let formats = [
-        "The {} {} of {}",           // "The Maritime Kingdom of Samoa"
-        "{} {} of {}",               // "Ocean Empire of Fiji"
-        "{} {}",                     // "Tropical Federation" (using different root)
-        "The {} {}",                 // "The Sacred Islands"
+        "The {} {} of {}", // "The Maritime Kingdom of Samoa"
+        "{} {} of {}",     // "Ocean Empire of Fiji"
+        "{} {}",           // "Tropical Federation" (using different root)
+        "The {} {}",       // "The Sacred Islands"
     ];
 
     let format = generator.random_choice(&formats);
@@ -111,8 +125,8 @@ fn generate_volcanic_compound_nation(generator: &mut NameGenerator) -> String {
 
     // Focus on volcanic/geological adjectives
     let volcanic_adjectives = &[
-        "Volcanic", "Fire", "Lava", "Magma", "Ash", "Crater", "Hot", "Steam",
-        "Geyser", "Thermal", "Rock", "Stone", "Cliff", "Peak", "Ridge", "Sacred",
+        "Volcanic", "Fire", "Lava", "Magma", "Ash", "Crater", "Hot", "Steam", "Geyser", "Thermal",
+        "Rock", "Stone", "Cliff", "Peak", "Ridge", "Sacred",
     ];
 
     let adjective = generator.random_choice(volcanic_adjectives);
@@ -121,10 +135,10 @@ fn generate_volcanic_compound_nation(generator: &mut NameGenerator) -> String {
 
     // Volcanic compound formats
     let formats = [
-        "{} {} of {}",               // "Volcanic Kingdom of Hawaii"
-        "{} {}",                     // "Fire Empire"
-        "The {} {} Chain",           // "The Lava Island Chain"
-        "{} {} Alliance",            // "Steam Kingdom Alliance"
+        "{} {} of {}",     // "Volcanic Kingdom of Hawaii"
+        "{} {}",           // "Fire Empire"
+        "The {} {} Chain", // "The Lava Island Chain"
+        "{} {} Alliance",  // "Steam Kingdom Alliance"
     ];
 
     let format = generator.random_choice(&formats);
@@ -156,8 +170,21 @@ fn generate_compound_house(generator: &mut NameGenerator) -> String {
 
     // For houses, use seafaring/tribal adjectives
     let seafaring_tribal_adjectives = &[
-        "Seafaring", "Navigator", "Voyager", "Explorer", "Mariner", "Captain", "Admiral",
-        "Noble", "Chief", "Royal", "Sacred", "Ancient", "Warrior", "Mighty", "Great",
+        "Seafaring",
+        "Navigator",
+        "Voyager",
+        "Explorer",
+        "Mariner",
+        "Captain",
+        "Admiral",
+        "Noble",
+        "Chief",
+        "Royal",
+        "Sacred",
+        "Ancient",
+        "Warrior",
+        "Mighty",
+        "Great",
     ];
 
     let adjective = generator.random_choice(seafaring_tribal_adjectives);
@@ -165,16 +192,18 @@ fn generate_compound_house(generator: &mut NameGenerator) -> String {
 
     // Seafaring/tribal compound formats for houses
     let formats = [
-        "The {} Navigation House of {}",  // "The Seafaring Navigation House of Kamehameha"
-        "{} Voyager Clan of {}",          // "Navigator Voyager Clan of Coral"
-        "The {} {} Ohana",                // "The Sacred Pearl Ohana"
-        "{} Ocean Family of {}",          // "Captain Ocean Family of Turtle"
-        "{} Islander House of {}",        // "Mighty Islander House of Palm"
+        "The {} Navigation House of {}", // "The Seafaring Navigation House of Kamehameha"
+        "{} Voyager Clan of {}",         // "Navigator Voyager Clan of Coral"
+        "The {} {} Ohana",               // "The Sacred Pearl Ohana"
+        "{} Ocean Family of {}",         // "Captain Ocean Family of Turtle"
+        "{} Islander House of {}",       // "Mighty Islander House of Palm"
     ];
 
     let format = generator.random_choice(&formats);
     match *format {
-        "The {} Navigation House of {}" => format!("The {} Navigation House of {}", adjective, house),
+        "The {} Navigation House of {}" => {
+            format!("The {} Navigation House of {}", adjective, house)
+        }
         "{} Voyager Clan of {}" => format!("{} Voyager Clan of {}", adjective, house),
         "The {} {} Ohana" => {
             let second_element = generator.random_choice(HOUSE_NAMES);

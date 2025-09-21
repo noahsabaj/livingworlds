@@ -197,8 +197,9 @@ pub const LANDMASS_INFLUENCE_WEIGHT: f32 = 0.35;
 pub const RIVER_COUNT: usize = 200;
 
 /// Minimum mountain elevation to spawn a river
-/// 0.5 (50% elevation) ensures rivers start from highlands
-pub const RIVER_MIN_ELEVATION: f32 = 0.5;
+/// 0.3 (30% elevation) ensures rivers start from hills
+/// Lowered to work with compressed elevation range
+pub const RIVER_MIN_ELEVATION: f32 = 0.3;
 
 /// Grid cell size for spatial indexing (as multiple of hex size)
 pub const SPATIAL_INDEX_CELL_SIZE_MULTIPLIER: f32 = 2.0;

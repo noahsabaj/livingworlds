@@ -1,34 +1,31 @@
 //! HUD plugin implementation
-//!
-//! This module contains the HudPlugin that orchestrates all HUD functionality
-//! including time display, speed indicators, and control hints.
 
-use bevy::prelude::*;
 use crate::states::GameState;
+use crate::ui::despawn_ui_entities;
+use bevy::prelude::*;
+use bevy_plugin_builder::define_plugin;
 
-use super::{control_hints, setup, speed_display, time_display};
+use super::{control_hints, setup, speed_display, time_display, HudRoot};
 
-/// Plugin that manages all HUD elements
-pub struct HudPlugin;
+/// Plugin that manages all HUD elements.
+define_plugin!(HudPlugin {
+    reflect: [
+        time_display::GameTimeDisplay,
+        speed_display::GameSpeedDisplay,
+        control_hints::ControlHintsText
+    ],
 
-impl Plugin for HudPlugin {
-    fn build(&self, app: &mut App) {
-        app
-            // Register components
-            .register_type::<time_display::GameTimeDisplay>()
-            .register_type::<speed_display::GameSpeedDisplay>()
-            .register_type::<control_hints::ControlHintsText>()
-            // Systems from submodules
-            .add_systems(OnEnter(GameState::InGame), setup::setup_hud)
-            .add_systems(OnExit(GameState::InGame), setup::cleanup_hud)
-            .add_systems(
-                Update,
-                (
-                    time_display::update_time_display,
-                    speed_display::update_speed_display,
-                    control_hints::update_control_hints,
-                )
-                    .run_if(in_state(GameState::InGame)),
-            );
+    update: [
+        (time_display::update_time_display,
+         speed_display::update_speed_display,
+         control_hints::update_control_hints).run_if(in_state(GameState::InGame))
+    ],
+
+    on_enter: {
+        GameState::InGame => [setup::setup_hud]
+    },
+
+    on_exit: {
+        GameState::InGame => [despawn_ui_entities::<HudRoot>]
     }
-}
+});

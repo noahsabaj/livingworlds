@@ -55,8 +55,12 @@ impl NameGenerator {
             NameType::World => super::world::generate_world_name(self),
             NameType::Nation { culture } => super::cultures::generate_nation_name(self, culture),
             NameType::House { culture } => super::cultures::generate_house_name(self, culture),
-            NameType::Province { region, culture } => super::places::generate_province_name(self, region, culture),
-            NameType::City { size, culture } => super::places::generate_city_name(self, size, culture),
+            NameType::Province { region, culture } => {
+                super::places::generate_province_name(self, region, culture)
+            }
+            NameType::City { size, culture } => {
+                super::places::generate_city_name(self, size, culture)
+            }
             NameType::Person {
                 gender,
                 culture,

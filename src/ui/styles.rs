@@ -3,6 +3,8 @@
 //! This module provides a single source of truth for all UI styling,
 //! ensuring visual consistency across the entire game interface.
 
+use bevy::prelude::Color;
+
 /// Standardized color palette with semantic naming
 pub mod colors {
     use bevy::prelude::Color;
@@ -63,6 +65,7 @@ pub mod colors {
     pub const TEXT_SECONDARY: Color = Color::srgb(0.7, 0.7, 0.7);
     pub const TEXT_TERTIARY: Color = Color::srgb(0.5, 0.5, 0.5);
     pub const TEXT_MUTED: Color = Color::srgb(0.5, 0.5, 0.5);
+    pub const TEXT_DISABLED: Color = Color::srgb(0.3, 0.3, 0.3);
     pub const TEXT_TITLE: Color = Color::srgb(0.9, 0.85, 0.7);
 
     // Border colors
@@ -205,3 +208,15 @@ pub mod helpers {
         }
     }
 }
+
+// Convenience aliases for commonly used constants
+pub use colors::{
+    BACKGROUND_MEDIUM as UI_BACKGROUND_COLOR, BORDER_DEFAULT as UI_BORDER_COLOR,
+    TEXT_PRIMARY as TEXT_COLOR_PRIMARY, TEXT_SECONDARY as TEXT_COLOR_SECONDARY,
+    TEXT_TITLE as TEXT_COLOR_HEADER,
+};
+
+pub use dimensions::{
+    FONT_SIZE_LARGE as TEXT_SIZE_LARGE, FONT_SIZE_NORMAL as TEXT_SIZE_NORMAL,
+    FONT_SIZE_TITLE as TEXT_SIZE_TITLE,
+};

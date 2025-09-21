@@ -1,4 +1,4 @@
-use super::super::{colors, dimensions};
+use super::super::{ChildBuilder, colors, dimensions};
 use bevy::prelude::*;
 
 /// Component for panels/containers
@@ -243,7 +243,7 @@ impl PanelBuilder {
         self
     }
 
-    pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
+    pub fn build(self, parent: &mut ChildBuilder) -> Entity {
         let background_color = self
             .custom_background
             .unwrap_or_else(|| self.style.background_color());
@@ -293,11 +293,14 @@ impl PanelBuilder {
         panel_entity.id()
     }
 
-    pub fn build_with_children(
+    pub fn build_with_children<F>(
         self,
-        parent: &mut ChildSpawnerCommands,
-        children: impl FnOnce(&mut ChildSpawnerCommands),
-    ) -> Entity {
+        parent: &mut ChildBuilder,
+        children: F,
+    ) -> Entity
+    where
+        F: FnOnce(&mut ChildBuilder),
+    {
         let background_color = self
             .custom_background
             .unwrap_or_else(|| self.style.background_color());

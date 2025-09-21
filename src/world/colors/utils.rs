@@ -3,7 +3,6 @@
 //! This module provides helper functions and type-safe wrappers for
 //! color operations, including safe color construction and position hashing.
 
-use crate::math::hash_random;
 use bevy::prelude::Color;
 
 /// Type-safe wrapper for stone abundance with validation
@@ -51,6 +50,19 @@ impl SafeColor {
 /// Position-based hash for deterministic variation
 #[inline]
 pub fn position_hash(x: f32, y: f32, seed: u32) -> f32 {
-    // Use centralized hash_random and convert from [0,1] to [-1,1]
-    hash_random(x, y, seed) * 2.0 - 1.0
+    // Simple deterministic hash function for position-based variation
+    let x_int = (x * 1000.0) as u32;
+    let y_int = (y * 1000.0) as u32;
+
+    // Mix the coordinates and seed using bit operations
+    let mut hash = seed;
+    hash ^= x_int.wrapping_mul(0x9e3779b9);
+    hash ^= y_int.wrapping_mul(0x85ebca6b);
+    hash ^= hash >> 16;
+    hash ^= hash << 13;
+    hash ^= hash >> 17;
+
+    // Convert to [0,1] then to [-1,1]
+    let normalized = (hash as f32) / (u32::MAX as f32);
+    normalized * 2.0 - 1.0
 }

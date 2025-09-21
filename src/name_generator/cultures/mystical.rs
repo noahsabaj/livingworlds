@@ -71,8 +71,22 @@ fn generate_compound_nation(generator: &mut NameGenerator) -> String {
 
     // Focus on arcane/elemental adjectives for Mystical culture
     let arcane_elemental_adjectives = &[
-        "Arcane", "Mystical", "Magical", "Enchanted", "Sacred", "Divine", "Blessed", "Cursed",
-        "Fire", "Shadow", "Lightning", "Crystal", "Void", "Ethereal", "Astral", "Celestial",
+        "Arcane",
+        "Mystical",
+        "Magical",
+        "Enchanted",
+        "Sacred",
+        "Divine",
+        "Blessed",
+        "Cursed",
+        "Fire",
+        "Shadow",
+        "Lightning",
+        "Crystal",
+        "Void",
+        "Ethereal",
+        "Astral",
+        "Celestial",
     ];
 
     let adjective = generator.random_choice(arcane_elemental_adjectives);
@@ -81,10 +95,10 @@ fn generate_compound_nation(generator: &mut NameGenerator) -> String {
 
     // Multiple compound formats for variety
     let formats = [
-        "The {} {} of {}",           // "The Arcane Covenant of Mystara"
-        "{} {} of {}",               // "Mystical Order of Ethereal"
-        "{} {}",                     // "Enchanted Conclave" (using different root)
-        "The {} {}",                 // "The Sacred Sanctum"
+        "The {} {} of {}", // "The Arcane Covenant of Mystara"
+        "{} {} of {}",     // "Mystical Order of Ethereal"
+        "{} {}",           // "Enchanted Conclave" (using different root)
+        "The {} {}",       // "The Sacred Sanctum"
     ];
 
     let format = generator.random_choice(&formats);
@@ -111,8 +125,20 @@ fn generate_planar_compound_nation(generator: &mut NameGenerator) -> String {
 
     // Focus on planar/dimensional adjectives
     let planar_adjectives = &[
-        "Planar", "Dimensional", "Otherworldly", "Transcendent", "Ascendant", "Supreme", "Ultimate",
-        "Eternal", "Infinite", "Timeless", "Omnipotent", "All-knowing", "Immortal", "Everlasting",
+        "Planar",
+        "Dimensional",
+        "Otherworldly",
+        "Transcendent",
+        "Ascendant",
+        "Supreme",
+        "Ultimate",
+        "Eternal",
+        "Infinite",
+        "Timeless",
+        "Omnipotent",
+        "All-knowing",
+        "Immortal",
+        "Everlasting",
     ];
 
     let adjective = generator.random_choice(planar_adjectives);
@@ -121,10 +147,10 @@ fn generate_planar_compound_nation(generator: &mut NameGenerator) -> String {
 
     // Planar compound formats
     let formats = [
-        "{} {} of {}",               // "Transcendent Covenant of Elysium"
-        "{} {}",                     // "Ultimate Order"
-        "The {} {} Dominion",        // "The Eternal Conclave Dominion"
-        "{} {} Ascendancy",          // "Supreme Sanctum Ascendancy"
+        "{} {} of {}",        // "Transcendent Covenant of Elysium"
+        "{} {}",              // "Ultimate Order"
+        "The {} {} Dominion", // "The Eternal Conclave Dominion"
+        "{} {} Ascendancy",   // "Supreme Sanctum Ascendancy"
     ];
 
     let format = generator.random_choice(&formats);
@@ -156,8 +182,22 @@ fn generate_compound_house(generator: &mut NameGenerator) -> String {
 
     // For houses, use mystical/power adjectives
     let mystical_power_adjectives = &[
-        "Arcane", "Mystical", "Sacred", "Divine", "Ancient", "Eternal", "Immortal", "Supreme",
-        "Fire", "Shadow", "Crystal", "Void", "Astral", "Celestial", "All-knowing", "Omnipotent",
+        "Arcane",
+        "Mystical",
+        "Sacred",
+        "Divine",
+        "Ancient",
+        "Eternal",
+        "Immortal",
+        "Supreme",
+        "Fire",
+        "Shadow",
+        "Crystal",
+        "Void",
+        "Astral",
+        "Celestial",
+        "All-knowing",
+        "Omnipotent",
     ];
 
     let adjective = generator.random_choice(mystical_power_adjectives);
@@ -165,11 +205,11 @@ fn generate_compound_house(generator: &mut NameGenerator) -> String {
 
     // Mystical/power compound formats for houses
     let formats = [
-        "The {} Arcane House of {}",     // "The Sacred Arcane House of Shadowmere"
-        "{} Mystical Circle of {}",      // "Divine Mystical Circle of Starweaver"
-        "The {} {} Covenant",            // "The Ancient Nightfall Covenant"
-        "{} Spellbound Order of {}",     // "Eternal Spellbound Order of Crystalborn"
-        "{} Enchanted House of {}",      // "Supreme Enchanted House of Dragonborn"
+        "The {} Arcane House of {}", // "The Sacred Arcane House of Shadowmere"
+        "{} Mystical Circle of {}",  // "Divine Mystical Circle of Starweaver"
+        "The {} {} Covenant",        // "The Ancient Nightfall Covenant"
+        "{} Spellbound Order of {}", // "Eternal Spellbound Order of Crystalborn"
+        "{} Enchanted House of {}",  // "Supreme Enchanted House of Dragonborn"
     ];
 
     let format = generator.random_choice(&formats);

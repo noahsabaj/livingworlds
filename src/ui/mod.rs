@@ -5,16 +5,24 @@
 
 use bevy::prelude::*;
 
+// Back to ChildSpawnerCommands - this was much closer to working
+// The type mismatch was small compared to EntityCommands
+pub type ChildBuilder<'a> = ChildSpawnerCommands<'a>;
+
 // PRIVATE MODULES - All implementation hidden
 mod builders;
 mod buttons;
+mod cleanup;
 mod components;
 mod dialogs;
 mod form;
 mod hud;
 mod interaction;
 mod loading;
+mod nation_info;
+mod nation_selection;
 mod overlay_display;
+mod performance_dashboard;
 mod plugin;
 mod sliders;
 pub mod styles;
@@ -38,8 +46,21 @@ pub use dialogs::{
 
 // HUD/Display markers
 pub use hud::HudRoot;
-pub use interaction::SelectedProvinceInfo;
+pub use interaction::{
+    handle_selection_interaction,
+    ButtonValue,
+    FieldUpdater,
+    SelectedProvinceInfo,
+    // UI interaction automation system
+    SelectionConfig,
+    SelectionStyling,
+};
+
+// UI interaction automation macros
+pub use crate::{define_marker_interactions, define_ui_interactions};
+pub use nation_info::{NationInfoPanel, SelectedNation};
 pub use overlay_display::{MapModeText, MineralLegendContainer};
+pub use performance_dashboard::{DashboardVisibility, PerformancePanel};
 pub use tile_info::{TileInfoPanel, TileInfoText};
 
 // Builder components and types
@@ -77,6 +98,9 @@ pub use styles::{colors, dimensions, helpers, layers};
 // Convenience functions from individual modules
 pub use sliders::slider;
 pub use text_inputs::text_input;
+
+// Generic cleanup system
+pub use cleanup::{despawn_entities, despawn_ui_entities};
 
 // Main plugin (implementation in plugin.rs)
 pub use plugin::UIPlugin;

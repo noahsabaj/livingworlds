@@ -71,8 +71,22 @@ fn generate_compound_nation(generator: &mut NameGenerator) -> String {
 
     // Focus on royal/noble adjectives for Western culture
     let royal_adjectives = &[
-        "Royal", "Imperial", "Noble", "Grand", "Great", "High", "Supreme", "Sovereign",
-        "Majestic", "Regal", "Holy", "Sacred", "Glorious", "Victorious", "Ancient", "Eternal",
+        "Royal",
+        "Imperial",
+        "Noble",
+        "Grand",
+        "Great",
+        "High",
+        "Supreme",
+        "Sovereign",
+        "Majestic",
+        "Regal",
+        "Holy",
+        "Sacred",
+        "Glorious",
+        "Victorious",
+        "Ancient",
+        "Eternal",
     ];
 
     let adjective = generator.random_choice(royal_adjectives);
@@ -81,10 +95,10 @@ fn generate_compound_nation(generator: &mut NameGenerator) -> String {
 
     // Multiple compound formats for variety
     let formats = [
-        "The {} {} of {}",           // "The Royal Kingdom of Britannia"
-        "{} {} of {}",               // "Imperial Empire of Germania"
-        "{} {}",                     // "Sacred Realm" (using different root)
-        "The {} {}",                 // "The Grand Duchy"
+        "The {} {} of {}", // "The Royal Kingdom of Britannia"
+        "{} {} of {}",     // "Imperial Empire of Germania"
+        "{} {}",           // "Sacred Realm" (using different root)
+        "The {} {}",       // "The Grand Duchy"
     ];
 
     let format = generator.random_choice(&formats);
@@ -111,8 +125,19 @@ fn generate_democratic_compound_nation(generator: &mut NameGenerator) -> String 
 
     // Focus on democratic/freedom adjectives
     let democratic_adjectives = &[
-        "United", "Free", "Allied", "Confederated", "Federated", "Republican", "Democratic",
-        "Independent", "Parliamentary", "Constitutional", "Progressive", "Modern", "Reformed",
+        "United",
+        "Free",
+        "Allied",
+        "Confederated",
+        "Federated",
+        "Republican",
+        "Democratic",
+        "Independent",
+        "Parliamentary",
+        "Constitutional",
+        "Progressive",
+        "Modern",
+        "Reformed",
     ];
 
     let adjective = generator.random_choice(democratic_adjectives);
@@ -121,10 +146,10 @@ fn generate_democratic_compound_nation(generator: &mut NameGenerator) -> String 
 
     // Democratic compound formats
     let formats = [
-        "{} {} of {}",               // "United States of Britannia"
-        "{} {}",                     // "Federal Republic"
-        "The {} {} Union",           // "The Democratic Kingdom Union"
-        "{} {} Alliance",            // "Allied Republic Alliance"
+        "{} {} of {}",     // "United States of Britannia"
+        "{} {}",           // "Federal Republic"
+        "The {} {} Union", // "The Democratic Kingdom Union"
+        "{} {} Alliance",  // "Allied Republic Alliance"
     ];
 
     let format = generator.random_choice(&formats);
@@ -156,8 +181,21 @@ fn generate_compound_house(generator: &mut NameGenerator) -> String {
 
     // For houses, use royal/knightly adjectives
     let noble_adjectives = &[
-        "Royal", "Noble", "Ancient", "Elder", "First", "Grand", "Great", "High",
-        "Sacred", "Holy", "Blessed", "Glorious", "Victorious", "Heroic", "Legendary",
+        "Royal",
+        "Noble",
+        "Ancient",
+        "Elder",
+        "First",
+        "Grand",
+        "Great",
+        "High",
+        "Sacred",
+        "Holy",
+        "Blessed",
+        "Glorious",
+        "Victorious",
+        "Heroic",
+        "Legendary",
     ];
 
     let adjective = generator.random_choice(noble_adjectives);
@@ -165,11 +203,11 @@ fn generate_compound_house(generator: &mut NameGenerator) -> String {
 
     // Knightly/royal compound formats for houses
     let formats = [
-        "The {} Order of {}",        // "The Sacred Order of Lionheart"
-        "{} House of {}",            // "Royal House of Windsor"
-        "The {} {} Brotherhood",     // "The Ancient Greystone Brotherhood"
-        "{} Knights of {}",          // "Noble Knights of Ravencrest"
-        "{} Guard of {}",            // "Royal Guard of Crownguard"
+        "The {} Order of {}",    // "The Sacred Order of Lionheart"
+        "{} House of {}",        // "Royal House of Windsor"
+        "The {} {} Brotherhood", // "The Ancient Greystone Brotherhood"
+        "{} Knights of {}",      // "Noble Knights of Ravencrest"
+        "{} Guard of {}",        // "Royal Guard of Crownguard"
     ];
 
     let format = generator.random_choice(&formats);

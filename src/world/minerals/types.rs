@@ -18,7 +18,7 @@ use thiserror::Error;
 
 use crate::components::MineralType;
 use crate::constants::*;
-use crate::math::{euclidean_vec2, gaussian_falloff};
+use crate::math::gaussian_falloff;
 use crate::world::{Abundance, Province, TerrainType};
 
 #[derive(Debug, Error)]
@@ -326,7 +326,7 @@ impl VeinSpatialIndex {
                     for &idx in indices {
                         if let Some(vein) = self.veins.get(idx) {
                             if vein.mineral_type == mineral_type {
-                                let distance = euclidean_vec2(position, vein.position);
+                                let distance = position.distance(vein.position);
                                 if distance <= radius {
                                     results.push((idx, distance));
                                 }

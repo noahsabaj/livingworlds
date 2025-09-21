@@ -1,5 +1,6 @@
 //! Separator component for visual dividers
 
+use super::super::ChildBuilder;
 use super::super::{colors, dimensions};
 use super::types::Orientation;
 use bevy::prelude::*;
@@ -95,7 +96,7 @@ impl SeparatorBuilder {
         self
     }
 
-    pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
+    pub fn build(self, parent: &mut ChildBuilder) -> Entity {
         let color = self.color.unwrap_or_else(|| self.style.color());
         let thickness = self.thickness.unwrap_or_else(|| self.style.thickness());
 

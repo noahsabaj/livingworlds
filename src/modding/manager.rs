@@ -320,7 +320,8 @@ impl ModManager {
         info!("Refreshing workshop mods...");
 
         // Remove existing workshop mods
-        self.available_mods.retain(|m| !matches!(m.source, ModSource::Workshop(_)));
+        self.available_mods
+            .retain(|m| !matches!(m.source, ModSource::Workshop(_)));
 
         // Re-scan workshop directory
         if let Ok(entries) = fs::read_dir(&self.mod_paths.workshop_mods) {
@@ -377,12 +378,20 @@ impl ModManager {
         let workshop_path = PathBuf::from(install_path);
 
         // Check if this workshop mod already exists
-        if self.available_mods.iter().any(|m| matches!(m.source, ModSource::Workshop(id) if id == workshop_id)) {
+        if self
+            .available_mods
+            .iter()
+            .any(|m| matches!(m.source, ModSource::Workshop(id) if id == workshop_id))
+        {
             info!("Workshop mod {} already exists", workshop_id);
             return;
         }
 
-        info!("Adding new workshop mod: {} at {}", workshop_id, workshop_path.display());
+        info!(
+            "Adding new workshop mod: {} at {}",
+            workshop_id,
+            workshop_path.display()
+        );
 
         let mut loaded_mod = LoadedMod {
             manifest: ModManifest {
@@ -407,7 +416,10 @@ impl ModManager {
             if let Ok(contents) = fs::read_to_string(&manifest_path) {
                 if let Ok(manifest) = ron::from_str::<ModManifest>(&contents) {
                     loaded_mod.manifest = manifest;
-                    info!("Loaded manifest for workshop mod: {}", loaded_mod.manifest.name);
+                    info!(
+                        "Loaded manifest for workshop mod: {}",
+                        loaded_mod.manifest.name
+                    );
                 }
             }
         }

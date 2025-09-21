@@ -3,11 +3,11 @@
 //! This plugin manages the nation and house systems, including generation,
 //! rendering, and simulation.
 
+use super::rendering::{render_nation_borders, render_nation_labels, update_nation_colors};
+use super::types::{NationRegistry, ProvinceOwnershipCache};
+use crate::states::GameState;
 use bevy::prelude::*;
 use bevy_plugin_builder::define_plugin;
-use crate::states::GameState;
-use super::rendering::{update_nation_colors, render_nation_borders, render_nation_labels};
-use super::types::{NationRegistry, ProvinceOwnershipCache};
 
 /// Nation system plugin using declarative syntax
 define_plugin!(NationPlugin {
@@ -24,10 +24,8 @@ define_plugin!(NationPlugin {
     ],
 
     update: [
-        (
-            update_nation_colors,
-            render_nation_borders,
-            render_nation_labels
-        ).run_if(in_state(GameState::InGame))
+        super::rendering::update_nation_colors.run_if(in_state(GameState::InGame)),
+        super::rendering::render_nation_borders.run_if(in_state(GameState::InGame)),
+        super::rendering::render_nation_labels.run_if(in_state(GameState::InGame))
     ]
 });

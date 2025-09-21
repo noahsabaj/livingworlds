@@ -12,11 +12,9 @@
 //!
 //! - [`hexagon`] - All hexagon geometry calculations (flat-top, odd-q offset)
 //! - [`perlin`] - All noise generation (terrain, clouds, everything)
-//! - [`interpolation`] - All interpolation, smoothing, and blending operations
-//! - [`distance`] - All distance calculations (Euclidean, Manhattan, hexagonal, etc.)
-//! - [`angles`] - All angle calculations, trigonometry, and rotation utilities
-//! - [`random`] - All random number generation and distribution utilities
-//!
+//! - [`interpolation`] - Game-specific interpolation, smoothing, and blending functions
+//! - [`distance`] - Game-specific distance functions (hex distance, falloff, influence)
+//! - [`angles`] - Game-specific angle calculations and utilities
 //! ---
 //!
 //! ## Hexagon Geometry (`hexagon` module)
@@ -139,25 +137,21 @@
 //! ## Interpolation & Smoothing (`interpolation` module)
 //!
 //! ### Overview
-//! The interpolation module provides ALL interpolation, smoothing, and blending operations
-//! for Living Worlds. This includes animation smoothing, color blending, and all forms of
-//! value transitions. This is the ONLY source for interpolation math.
-//!
-//! ### ⛔ FORBIDDEN
-//! - Manual lerp implementations like `a * (1.0 - t) + b * t`
-//! - Local smoothstep or easing functions
-//! - Duplicate exponential smoothing code
-//! - Any interpolation math outside this module
+//! The interpolation module provides GAME-SPECIFIC interpolation functions for Living Worlds.
+//! For basic linear interpolation, use Bevy's built-in methods directly:
+//! - `a.lerp(b, t)` for most types (f32, Vec2, Vec3, Color, etc.)
+//! - `pos1.lerp(pos2, t)` for position interpolation
+//! - `color1.lerp(color2, t)` for basic color transitions
 //!
 //! ### Basic Usage
 //! ```rust
-//! use crate::math::{lerp, lerp_vec3, smoothstep, lerp_exp, lerp_color};
+//! use crate::math::{smoothstep, lerp_exp_vec3, asymmetric_smooth, lerp_color};
 //!
-//! // Linear interpolation
-//! let value = lerp(0.0, 100.0, 0.5); // Returns 50.0
-//! let position = lerp_vec3(start_pos, end_pos, t);
+//! // Basic interpolation - use Bevy directly
+//! let value = 0.0_f32.lerp(100.0, 0.5); // Returns 50.0
+//! let position = start_pos.lerp(end_pos, t);
 //!
-//! // Smooth S-curve transitions
+//! // Game-specific functions from this module
 //! let smooth_t = smoothstep(0.0, 1.0, raw_t);
 //! let smoother_t = smootherstep(0.0, 1.0, raw_t);
 //!
@@ -170,7 +164,6 @@
 //! );
 //!
 //! // Asymmetric smoothing (different rise/fall rates)
-//! use crate::math::asymmetric_smooth;
 //! let tension = asymmetric_smooth(
 //!     current_tension,
 //!     target_tension,
@@ -179,13 +172,13 @@
 //!     delta_time
 //! );
 //!
-//! // Color interpolation
+//! // Linear color space interpolation
 //! let blended_color = lerp_color(color_a, color_b, t);
 //!
 //! // Weighted blending of multiple values
 //! use crate::math::{weighted_blend, weighted_blend_colors};
-//! let result = weighted_blend(&values, &weights);
-//! let color = weighted_blend_colors(&colors, &weights);
+//! let result = weighted_blend(&[(value1, weight1), (value2, weight2)]);
+//! let color = weighted_blend_colors(&[(color1, weight1), (color2, weight2)]);
 //!
 //! // Utility functions
 //! use crate::math::{inverse_lerp, remap};
@@ -193,75 +186,55 @@
 //! let remapped = remap(value, old_min, old_max, new_min, new_max);
 //! ```
 //!
-//! ### Key Functions
-//!
-//! #### Basic Interpolation
-//! - `lerp(a, b, t)` - Linear interpolation for f32
-//! - `lerp_vec2(a, b, t)` - Linear interpolation for Vec2
-//! - `lerp_vec3(a, b, t)` - Linear interpolation for Vec3
-//! - `lerp_color(a, b, t)` - Color space interpolation
-//!
-//! #### Smoothing Functions
-//! - `smoothstep(edge0, edge1, x)` - S-curve smoothing
-//! - `smootherstep(edge0, edge1, x)` - Smoother S-curve
-//! - `lerp_exp(current, target, smoothing, dt)` - Exponential smoothing
+//! ### Game-Specific Functions
+//! #### Advanced Smoothing
+//! - `lerp_exp(current, target, smoothing, dt)` - Frame-rate independent smoothing
 //! - `lerp_exp_vec3(current, target, smoothing, dt)` - Exponential for Vec3
-//!
-//! #### Advanced Functions
+//! - `asymmetric_smooth(current, target, rise, fall, dt)` - Different rise/fall rates
 //! - `exponential_smooth(current, target, factor)` - Simple exponential blend
-//! - `asymmetric_smooth(current, target, rise, fall, dt)` - Different rates
-//! - `weighted_blend(values, weights)` - Multi-value blending
-//! - `weighted_blend_colors(colors, weights)` - Multi-color blending
 //!
-//! #### Utility Functions
+//! #### S-Curve Interpolation
+//! - `smoothstep(edge0, edge1, x)` - S-curve smoothing
+//! - `smootherstep(edge0, edge1, x)` - Smoother S-curve (Ken Perlin's version)
+//!
+//! #### Multi-Value Blending
+//! - `weighted_blend(values_weights)` - Multi-value blending with normalization
+//! - `weighted_blend_colors(colors_weights)` - Multi-color blending in linear space
+//! - `weighted_blend_vec2/vec3` - Position blending with weights
+//!
+//! #### Color & Range Utilities
+//! - `lerp_color(a, b, t)` - Linear color space interpolation
 //! - `inverse_lerp(a, b, value)` - Get t from interpolated value
 //! - `remap(value, old_min, old_max, new_min, new_max)` - Range remapping
 //!
 //! ### Common Use Cases
 //! 1. **Camera Movement**: `lerp_exp_vec3()` for smooth following
 //! 2. **UI Animations**: `smoothstep()` for fade effects
-//! 3. **World Tension**: `asymmetric_smooth()` for physics
+//! 3. **World Tension**: `asymmetric_smooth()` for physics-like behavior
 //! 4. **Climate**: `exponential_smooth()` for rainfall blending
-//! 5. **Terrain Colors**: `lerp_color()` for biome transitions
+//! 5. **Terrain Colors**: `lerp_color()` for accurate biome transitions
 //!
 //! ---
 //!
 //! ## Distance Calculations (`distance` module)
 //!
 //! ### Overview
-//! The distance module provides ALL distance calculations for Living Worlds. This includes
-//! geometric distances (Euclidean, Manhattan, Chebyshev), hexagonal grid distances, and
-//! specialized game mechanics like falloff and influence calculations.
-//!
-//! ### ⛔ FORBIDDEN
-//! - Manual distance calculations like `sqrt((x2-x1)² + (y2-y1)²)`
-//! - Using Vec2::distance() directly (use our wrappers for consistency)
-//! - Implementing custom falloff functions
-//! - Any distance math outside this module
+//! The distance module provides GAME-SPECIFIC distance functions for Living Worlds.
+//! For basic distance calculations, use Bevy's Vec2/Vec3 methods directly:
+//! - `pos1.distance(pos2)` for Euclidean distance
+//! - `pos1.distance_squared(pos2)` for faster comparisons
+//! - `(pos1 - pos2).abs().x + (pos1 - pos2).abs().y` for Manhattan distance
 //!
 //! ### Basic Usage
 //! ```rust
-//! use crate::math::{
-//!     euclidean_vec2, euclidean_squared_vec2,
-//!     manhattan_vec2, chebyshev_vec2,
-//!     hex_distance, gaussian_falloff
-//! };
+//! use crate::math::{hex_distance, gaussian_falloff};
 //!
-//! // Standard Euclidean distance
-//! let dist = euclidean_vec2(pos1, pos2);
+//! // Basic distance - use Bevy directly
+//! let dist = pos1.distance(pos2);
+//! let dist_sq = pos1.distance_squared(pos2); // Faster for comparisons
 //!
-//! // Squared distance (faster for comparisons)
-//! if euclidean_squared_vec2(a, b) < radius_squared {
-//!     // Point is within radius
-//! }
-//!
-//! // Manhattan distance for grid movement
-//! let grid_dist = manhattan_vec2(start, end);
-//!
-//! // Hexagon grid distance
+//! // Game-specific functions from this module
 //! let hex_steps = hex_distance(col1, row1, col2, row2);
-//!
-//! // Distance with falloff for influence
 //! let influence = gaussian_falloff(distance, sigma);
 //!
 //! // Find closest point from a list
@@ -270,11 +243,11 @@
 //! let nearby = find_within_radius(center, &points, radius);
 //! ```
 //!
-//! ### Distance Types
-//! - **Euclidean**: Standard straight-line distance (Pythagorean theorem)
-//! - **Manhattan**: Grid-based "taxicab" distance (sum of coordinate differences)
-//! - **Chebyshev**: Maximum coordinate difference (king moves in chess)
-//! - **Hexagonal**: Minimum steps between hexagons in odd-q offset grid
+//! ### Game-Specific Functions
+//! - **Hexagonal Distance**: Complex grid distance calculation for hex grids
+//! - **Falloff Functions**: Influence calculations for minerals, territories, etc.
+//! - **Boundary Detection**: Distance from map edges for continent generation
+//! - **Spatial Queries**: Efficient nearest-neighbor and radius searches
 //!
 //! ### Falloff Functions
 //! - `linear_falloff(dist, max)` - Linear decrease from 1.0 to 0.0
@@ -283,17 +256,12 @@
 //! - `inverse_square_falloff(dist, scale)` - Physical falloff (light, gravity)
 //! - `smooth_falloff(dist, inner, outer)` - Smooth transition between radii
 //!
-//! ### Performance Functions
-//! - `euclidean_squared_*()` - Avoids sqrt for comparison only
-//! - `batch_distances()` - Calculate many distances efficiently
-//! - `find_within_radius()` - Spatial queries with early termination
-//!
 //! ### Common Use Cases
-//! 1. **Province Selection**: `euclidean_vec2()` for mouse picking
+//! 1. **Province Selection**: `pos1.distance(pos2)` for mouse picking
 //! 2. **Mineral Influence**: `gaussian_falloff()` for ore vein effects
 //! 3. **Ocean Distance**: BFS with `hex_distance()` for water proximity
 //! 4. **Map Falloff**: `normalized_edge_distance()` for island generation
-//! 5. **Pathfinding**: `manhattan_vec2()` or `hex_distance()` for heuristics
+//! 5. **Pathfinding**: `hex_distance()` for hexagonal grid heuristics
 //!
 //! ---
 //!
@@ -321,18 +289,6 @@ mod distance;
 mod hexagon;
 mod interpolation;
 mod perlin;
-mod random;
-
-// Test modules - only compiled in test mode
-// TODO: Create these test modules when needed
-// #[cfg(test)]
-// mod distance_tests;
-// #[cfg(test)]
-// mod hexagon_tests;
-// #[cfg(test)]
-// mod interpolation_tests;
-// #[cfg(test)]
-// mod test_utils;
 
 // Only these carefully selected exports are available to external code.
 // This enforces our "single source of truth" principle - all math operations
@@ -348,112 +304,22 @@ pub use hexagon::{
 // Perlin noise generation exports
 pub use perlin::{CloudPreset, FbmSettings, PerlinBuilder, PerlinNoise, TerrainPreset};
 
-// Interpolation and smoothing exports
+// Game-specific interpolation and smoothing exports
 pub use interpolation::{
     asymmetric_smooth, exponential_smooth, inverse_lerp, lerp, lerp_color, lerp_exp, lerp_exp_vec2,
-    lerp_exp_vec3, lerp_vec2, lerp_vec3, remap, smootherstep, smoothstep, weighted_blend,
-    weighted_blend_colors,
+    lerp_exp_vec3, remap, smootherstep, smoothstep, weighted_blend, weighted_blend_colors,
+    weighted_blend_vec2, weighted_blend_vec3,
 };
 
-// Distance calculation exports
+// Game-specific distance calculation exports
 pub use distance::{
-    batch_distances,
-    batch_distances_squared,
-    // Game utilities
-    calculate_influence,
-    chebyshev_2d,
-    chebyshev_vec2,
-    // Edge and wrapping distances
-    distance_from_rect_edge,
-    euclidean_2d,
-    euclidean_squared_2d,
-    euclidean_squared_vec2,
-    euclidean_vec2,
-    euclidean_vec3,
-    find_closest,
-    find_within_radius,
-    gaussian_falloff,
-    // Hexagon distances
-    hex_distance,
-    hex_distance_world,
-    inverse_square_falloff,
-    // Falloff functions
-    linear_falloff,
-    manhattan_2d,
-    manhattan_3d,
-    manhattan_vec2,
-    normalized_edge_distance,
-    quadratic_falloff,
-    smooth_falloff,
-    toroidal_distance_2d,
-    wrapping_distance_2d,
-    FalloffType,
+    calculate_influence, distance_from_rect_edge, find_closest, find_within_radius,
+    gaussian_falloff, hex_distance, hex_distance_world, inverse_square_falloff, linear_falloff,
+    normalized_edge_distance, quadratic_falloff, smooth_falloff, FalloffType,
 };
 
-// Angle and trigonometry exports
+// Game-specific angle calculation exports
 pub use angles::{
-    // Calculations
-    angle_between,
-    angle_in_range,
-    angle_variation,
-    angular_distance,
-    // Conversions
-    degrees_to_radians,
-    fast_cos,
-    // Trigonometric helpers
-    fast_sin,
-    // Interpolation
-    lerp_angle,
-    movement_vector,
-    // Normalization
-    normalize_angle,
-    normalize_angle_signed,
-    position_on_circle,
-    positions_around_circle,
-    radians_to_degrees,
-    sin_cos,
-    smoothstep_angle,
-    // Vector operations
-    unit_vector_from_angle,
-    vector_from_angle,
-    wrap_degrees,
-    wrap_degrees_signed,
-    DEG_TO_RAD,
-    HALF_PI,
-    PI,
-    QUARTER_PI,
-    RAD_TO_DEG,
-    TAU,
-};
-
-// Random generation exports
-pub use random::{
-    choose,
-    choose_multiple,
-    // RNG creation
-    create_rng,
-    create_rng_multi,
-    // Deterministic
-    hash_random,
-    hash_random_int,
-    random_01,
-    random_11,
-    random_bool,
-    random_color_variation,
-    random_exponential,
-    random_hex_offset,
-    // Distributions
-    random_normal,
-    random_point_in_circle,
-    // Geometric
-    random_point_in_rect,
-    random_point_on_circle,
-    random_range,
-    random_spaced_positions,
-    random_unit_vector,
-    // Game utilities
-    random_variation,
-    random_vector,
-    random_weighted_index,
-    shuffle,
+    angle_in_range, angle_variation, angular_distance, fast_cos, fast_sin, lerp_angle,
+    movement_vector, positions_around_circle, smoothstep_angle,
 };

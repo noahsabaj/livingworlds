@@ -3,16 +3,27 @@
 //! This module contains the core Province struct and its type-safe wrappers.
 //! Provinces represent individual hexagonal tiles in the game world.
 
+use super::super::terrain::TerrainType;
 use crate::components::MineralType;
 use crate::constants::PROVINCE_MIN_POPULATION;
+use crate::name_generator::Culture;
 use crate::nations::NationId;
-use super::super::terrain::TerrainType;
 use bevy::prelude::*;
 use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
 // TYPE-SAFE WRAPPERS - Zero-cost abstractions for compile-time validation
+
+/// Province entity marker component
+/// Links an entity to its data in ProvinceStorage
+#[derive(Component, Debug, Clone, Copy)]
+pub struct ProvinceEntity {
+    /// Index into ProvinceStorage.provinces array
+    pub storage_index: usize,
+    /// Province ID for quick lookups
+    pub id: ProvinceId,
+}
 
 /// Type-safe province identifier
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Reflect, Serialize, Deserialize)]
@@ -256,6 +267,9 @@ pub struct Province {
     /// Nation that owns/controls this province
     pub owner: Option<NationId>,
 
+    /// Cultural identity of this province (assigned based on geography)
+    pub culture: Option<Culture>,
+
     // === Population (8 bytes) ===
     /// Current population (now properly an integer)
     pub population: u32,
@@ -321,6 +335,7 @@ impl Default for Province {
             id: ProvinceId::default(),
             position: Vec2::ZERO,
             owner: None,
+            culture: None,
             population: PROVINCE_MIN_POPULATION,
             max_population: PROVINCE_MIN_POPULATION * 10,
             terrain: TerrainType::TemperateGrassland,
@@ -382,8 +397,7 @@ impl Province {
 
     /// Check if this province has fresh water access
     pub fn has_fresh_water(&self) -> bool {
-        self.terrain == TerrainType::River
-            || self.fresh_water_distance.within(2.0)
+        self.terrain == TerrainType::River || self.fresh_water_distance.within(2.0)
     }
 
     /// Calculate population growth multiplier based on terrain and resources

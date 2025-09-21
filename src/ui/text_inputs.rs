@@ -5,8 +5,7 @@
 //! boilerplate code and includes built-in focus management, consistent styling,
 //! and extensibility for future features.
 
-use super::buttons::{ButtonBuilder, ButtonSize, ButtonStyle};
-use super::styles::colors;
+use super::{ChildBuilder, buttons::{ButtonBuilder, ButtonSize, ButtonStyle}, styles::colors};
 use bevy::prelude::*;
 use bevy_simple_text_input::{
     TextInput, TextInputInactive, TextInputSettings, TextInputTextColor, TextInputTextFont,
@@ -207,7 +206,7 @@ pub struct TextInputBuilderWithMarker<M: Component> {
 
 // Helper function to build text input with common components
 fn build_text_input_with_extras<M>(
-    parent: &mut ChildSpawnerCommands,
+    parent: &mut ChildBuilder,
     builder: TextInputBuilder,
     extras: impl FnOnce(&mut EntityCommands) -> M,
 ) -> Entity {
@@ -366,7 +365,7 @@ impl<M: Component> TextInputBuilderWithMarker<M> {
     }
 
     /// Build and spawn the text input entity with the marker
-    pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
+    pub fn build(self, parent: &mut ChildBuilder) -> Entity {
         build_text_input_with_extras(parent, self.builder, |entity| {
             entity.insert(self.marker);
         })
@@ -382,7 +381,7 @@ pub struct TextInputBuilderWithTwoMarkers<M: Component, N: Component> {
 
 impl<M: Component, N: Component> TextInputBuilderWithTwoMarkers<M, N> {
     /// Build and spawn the text input entity with both markers
-    pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
+    pub fn build(self, parent: &mut ChildBuilder) -> Entity {
         build_text_input_with_extras(parent, self.builder, |entity| {
             entity.insert(self.marker1);
             entity.insert(self.marker2);
@@ -564,7 +563,7 @@ impl TextInputBuilder {
     }
 
     /// Build and spawn the text input entity
-    pub fn build(self, parent: &mut ChildSpawnerCommands) -> Entity {
+    pub fn build(self, parent: &mut ChildBuilder) -> Entity {
         build_text_input_with_extras(parent, self, |_entity| {})
     }
 }
