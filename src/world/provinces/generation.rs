@@ -371,7 +371,15 @@ impl<'a> ProvinceBuilder<'a> {
         self.continent_seeds.clear();
 
         // Vary continent count for more diverse worlds
-        let num_continents = self.rng.gen_range(3..=self.continent_count);
+        // Handle presets with fewer than 3 continents (e.g., Pangaea with 1)
+        let min_continents = 3.min(self.continent_count);
+        let num_continents = if min_continents == self.continent_count {
+            // If continent_count < 3, use exact count (no variation)
+            self.continent_count
+        } else {
+            // Otherwise, vary between 3 and the specified count
+            self.rng.gen_range(min_continents..=self.continent_count)
+        };
 
         let map_width = self.utils.dimensions().bounds.x_max - self.utils.dimensions().bounds.x_min;
         let map_height =
