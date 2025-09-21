@@ -413,7 +413,7 @@ impl DialogBuilder {
 pub mod presets {
     use super::*;
 
-    pub fn exit_confirmation_dialog(mut commands: Commands) -> Entity {
+    pub fn exit_confirmation_dialog(commands: &mut Commands) -> Entity {
         DialogBuilder::new(DialogType::ExitConfirmation)
             .title("Exit Game")
             .body("Are you sure you want to exit?")
@@ -422,10 +422,10 @@ pub mod presets {
             .z_index(layers::CRITICAL_DIALOG)
             .danger_button("Exit Game", DialogButtonMarker::Confirm)
             .cancel_button("Cancel")
-            .build(&mut commands)
+            .build(commands)
     }
 
-    pub fn unsaved_changes_dialog(mut commands: Commands) -> Entity {
+    pub fn unsaved_changes_dialog(commands: &mut Commands) -> Entity {
         DialogBuilder::new(DialogType::UnsavedChanges)
             .title("Unsaved Changes")
             .body("You have unsaved changes. What would you like to do?")
@@ -434,10 +434,10 @@ pub mod presets {
             .save_button("Save & Exit")
             .danger_button("Discard Changes", DialogButtonMarker::Discard)
             .cancel_button("Cancel")
-            .build(&mut commands)
+            .build(commands)
     }
 
-    pub fn resolution_dialog(mut commands: Commands, new_resolution: (u32, u32)) -> Entity {
+    pub fn resolution_dialog(commands: &mut Commands, new_resolution: (u32, u32)) -> Entity {
         DialogBuilder::new(DialogType::Resolution)
             .title("Change Resolution")
             .body(format!(
@@ -447,10 +447,10 @@ pub mod presets {
             .width(Val::Px(dimensions::DIALOG_WIDTH_SMALL))
             .confirm_button("Apply")
             .cancel_button("Cancel")
-            .build(&mut commands)
+            .build(commands)
     }
 
-    pub fn world_generation_error_dialog(mut commands: Commands, error_message: &str) -> Entity {
+    pub fn world_generation_error_dialog(commands: &mut Commands, error_message: &str) -> Entity {
         DialogBuilder::new(DialogType::WorldGenerationError)
             .title("World Generation Failed")
             .body(format!("Failed to generate world:\n\n{}\n\nWould you like to try again with different settings?", error_message))
@@ -459,19 +459,68 @@ pub mod presets {
             .z_index(layers::CRITICAL_DIALOG)
             .confirm_button("Try Again")
             .cancel_button("Main Menu")
-            .build(&mut commands)
+            .build(commands)
     }
 
-    pub fn info_dialog(mut commands: Commands, title: &str, message: &str) -> Entity {
+    /// Enhanced error dialog that displays rich context from ErrorContext
+    pub fn world_generation_error_dialog_with_context(
+        commands: &mut Commands,
+        context: &crate::diagnostics::ErrorContext,
+    ) -> Entity {
+        // Build a detailed error message with context
+        let mut body_text = String::new();
+
+        // Main error message
+        body_text.push_str("World generation failed with the following error:\n\n");
+        body_text.push_str(&context.error_message);
+        body_text.push_str("\n\n");
+
+        // Add generation metrics if available
+        if let Some(ref metrics) = context.generation_metrics {
+            body_text.push_str("📊 Generation Statistics:\n");
+            body_text.push_str(&format!("• Ocean Coverage: {:.1}%\n", metrics.ocean_percentage));
+            body_text.push_str(&format!("• Land Coverage: {:.1}%\n", metrics.land_percentage));
+            body_text.push_str(&format!("• Sea Level: {:.3}\n", metrics.sea_level));
+            body_text.push_str(&format!("• Elevation Range: {:.3} to {:.3}\n",
+                metrics.elevation_range.0, metrics.elevation_range.1));
+            body_text.push_str(&format!("• River Sources Found: {}\n", metrics.river_sources_found));
+            body_text.push_str(&format!("• Mountains Above 0.3: {}\n", metrics.mountain_count));
+            body_text.push_str("\n");
+        }
+
+        // Add recovery suggestions
+        if !context.recovery_suggestions.is_empty() {
+            body_text.push_str("💡 Suggested Solutions:\n");
+            for suggestion in &context.recovery_suggestions {
+                body_text.push_str(&format!("• {}\n", suggestion));
+            }
+            body_text.push_str("\n");
+        }
+
+        body_text.push_str("Would you like to try again with different settings?");
+
+        // Use a wider dialog to accommodate the detailed information
+        DialogBuilder::new(DialogType::WorldGenerationError)
+            .title("World Generation Failed - Detailed Report")
+            .body(body_text)
+            .width(Val::Px(dimensions::DIALOG_WIDTH_LARGE))
+            .dismissible(false)
+            .z_index(layers::CRITICAL_DIALOG)
+            .confirm_button("Try Different Settings")
+            .cancel_button("Back to Main Menu")
+            .build(commands)
+    }
+
+    pub fn info_dialog(commands: &mut Commands, title: &str, message: &str) -> Entity {
         DialogBuilder::new(DialogType::Info)
             .title(title)
             .body(message)
             .width(Val::Px(dimensions::DIALOG_WIDTH_MEDIUM))
             .confirm_button("OK")
-            .build(&mut commands)
+            .build(commands)
     }
 
-    pub fn error_dialog(mut commands: Commands, error_message: &str) -> Entity {
+    pub fn error_dialog(commands: &mut Commands, error_message: &str) -> Entity {
         DialogBuilder::new(DialogType::Error)
             .title("Error")
             .body(error_message)
@@ -479,10 +528,10 @@ pub mod presets {
             .z_index(layers::CRITICAL_DIALOG)
             .dismissible(false)
             .confirm_button("OK")
-            .build(&mut commands)
+            .build(commands)
     }
 
-    pub fn resolution_confirm_dialog(mut commands: Commands) -> Entity {
+    pub fn resolution_confirm_dialog(commands: &mut Commands) -> Entity {
         // Create overlay that blocks clicks
         let overlay_entity = commands
             .spawn((
@@ -619,10 +668,11 @@ pub fn dialog_dismiss_system(
 }
 
 /// Plugin for the dialog system
-pub struct DialogPlugin;
+/// Dialog plugin using MINIMAL AUTOMATION!
+///
+/// **AUTOMATION ACHIEVEMENT**: 6 lines manual → 3 lines declarative!
+use bevy_plugin_builder::define_plugin;
 
-impl Plugin for DialogPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_systems(Update, dialog_dismiss_system);
-    }
-}
+define_plugin!(DialogPlugin {
+    update: [dialog_dismiss_system]
+});
