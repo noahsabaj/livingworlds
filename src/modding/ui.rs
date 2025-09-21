@@ -13,6 +13,7 @@ use crate::loading::{start_mod_application_loading, LoadingState};
 use crate::states::{GameState, RequestStateTransition};
 use crate::ui::{
     colors,
+    helpers,
     layers,     // Re-exported from styles
     text_input, // Re-exported from text_inputs
     ButtonBuilder,
@@ -213,21 +214,24 @@ pub fn spawn_mod_browser(
     mod_manager: &ModManager,
     browser_state: &ModBrowserState,
 ) {
-    // Root container - full screen overlay
-    commands
-        .spawn((
-            Node {
-                width: Val::Percent(100.0),
-                height: Val::Percent(100.0),
-                position_type: PositionType::Absolute,
-                flex_direction: FlexDirection::Column,
-                ..default()
-            },
-            BackgroundColor(colors::OVERLAY_DARK),
-            ZIndex(layers::MODAL_OVERLAY),
-            ModBrowserRoot,
-        ))
-        .with_children(|parent| {
+    // Create modal overlay that blocks clicks
+    let overlay_entity = helpers::spawn_modal_overlay(
+        commands,
+        colors::OVERLAY_DARK,
+        ZIndex(layers::MODAL_OVERLAY),
+    );
+
+    // Add our root marker and configure for column layout
+    commands.entity(overlay_entity).insert((
+        Node {
+            flex_direction: FlexDirection::Column,
+            ..default()
+        },
+        ModBrowserRoot,
+    ));
+
+    // Add content to overlay
+    commands.entity(overlay_entity).with_children(|parent| {
             // Header with tabs
             parent
                 .spawn((

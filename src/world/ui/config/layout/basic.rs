@@ -9,7 +9,7 @@ use crate::ui::{text_input, FocusGroupId};
 use crate::ui::{ButtonBuilder, ButtonSize, ButtonStyle, PanelBuilder, PanelStyle};
 use bevy::prelude::*;
 
-pub fn spawn_world_name_section(parent: &mut ChildSpawnerCommands) {
+pub fn spawn_world_name_section(parent: &mut ChildSpawnerCommands, world_name: &str) {
     PanelBuilder::new()
         .style(PanelStyle::Transparent)
         .width(Val::Percent(100.0))
@@ -37,7 +37,7 @@ pub fn spawn_world_name_section(parent: &mut ChildSpawnerCommands) {
                 .build_with_children(section, |row| {
                     // Use our text input builder
                     text_input()
-                        .with_value("Aetheria Prime")
+                        .with_value(world_name)
                         .with_font_size(18.0)
                         .with_width(Val::Px(300.0))
                         .with_padding(UiRect::horizontal(Val::Px(15.0)))

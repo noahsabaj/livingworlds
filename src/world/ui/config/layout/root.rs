@@ -88,7 +88,7 @@ pub fn spawn_world_config_ui(mut commands: Commands, settings: Res<WorldGenerati
                         });
 
                     // World Name Section
-                    super::spawn_world_name_section(content);
+                    super::spawn_world_name_section(content, &settings.world_name);
 
                     // World Size Section
                     super::spawn_world_size_section(content);

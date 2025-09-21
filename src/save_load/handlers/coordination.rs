@@ -8,14 +8,12 @@ use bevy::prelude::*;
 
 /// System to handle the SpawnSaveBrowserEvent
 pub fn handle_spawn_save_browser_event(
-    mut events: EventReader<SpawnSaveBrowserEvent>,
+    events: EventReader<SpawnSaveBrowserEvent>,
     commands: Commands,
     save_list: ResMut<SaveGameList>,
     browser_state: ResMut<SaveBrowserState>,
 ) {
-    for _ in events.read() {
-        // Delegate to the UI module's spawn function
-        super::spawn_save_browser(events, commands, save_list, browser_state);
-        return; // Only spawn once per frame
-    }
+    // Simply pass through to the actual spawn function
+    // Let spawn_save_browser handle the event reading itself
+    super::spawn_save_browser(events, commands, save_list, browser_state);
 }

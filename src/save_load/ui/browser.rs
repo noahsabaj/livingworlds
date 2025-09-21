@@ -5,7 +5,7 @@
 use super::components::*;
 use super::{LoadGameEvent, SaveBrowserState, SaveGameList};
 use crate::menus::SpawnSaveBrowserEvent;
-use crate::ui::{colors, ButtonBuilder, ButtonSize, ButtonStyle, PanelBuilder, PanelStyle};
+use crate::ui::{colors, helpers, ButtonBuilder, ButtonSize, ButtonStyle, PanelBuilder, PanelStyle};
 use bevy::prelude::*;
 
 /// System to handle the SpawnSaveBrowserEvent
@@ -22,21 +22,18 @@ pub fn spawn_save_browser(
         // Scan for saves
         super::scan_save_files_internal(&mut save_list);
 
-        // Create save browser manually (too complex for DialogBuilder)
-        commands
-            .spawn((
-                Node {
-                    position_type: PositionType::Absolute,
-                    width: Val::Percent(100.0),
-                    height: Val::Percent(100.0),
-                    justify_content: JustifyContent::Center,
-                    align_items: AlignItems::Center,
-                    ..default()
-                },
-                BackgroundColor(colors::OVERLAY_DARK),
-                SaveBrowserRoot,
-            ))
-            .with_children(|overlay| {
+        // Create save browser with modal overlay that blocks clicks
+        let overlay_entity = helpers::spawn_modal_overlay(
+            &mut commands,
+            colors::OVERLAY_DARK,
+            ZIndex(200),
+        );
+
+        // Add our root marker
+        commands.entity(overlay_entity).insert(SaveBrowserRoot);
+
+        // Add dialog content
+        commands.entity(overlay_entity).with_children(|overlay| {
                 // Dialog container
                 overlay
                     .spawn((

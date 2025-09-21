@@ -6,7 +6,7 @@ use super::components::*;
 use super::{CloseSaveDialogEvent, OpenSaveDialogEvent, SaveGameEvent};
 use super::{SaveDialogState, SaveGameList};
 use crate::resources::{WorldName, WorldSeed};
-use crate::ui::{colors, TextInputBuilder};
+use crate::ui::{colors, helpers, TextInputBuilder};
 use crate::ui::{ButtonBuilder, ButtonSize, ButtonStyle, PanelBuilder, PanelStyle};
 use bevy::prelude::*;
 use bevy_simple_text_input::TextInputValue;
@@ -40,21 +40,18 @@ pub fn handle_open_save_dialog(
                 .unwrap_or_else(|| "Unnamed World".to_string());
             let world_seed_val = world_seed.as_ref().map(|s| s.0).unwrap_or(0);
 
-            // Create save dialog manually (too complex for DialogBuilder)
-            commands
-                .spawn((
-                    Node {
-                        position_type: PositionType::Absolute,
-                        width: Val::Percent(100.0),
-                        height: Val::Percent(100.0),
-                        justify_content: JustifyContent::Center,
-                        align_items: AlignItems::Center,
-                        ..default()
-                    },
-                    BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.7)),
-                    SaveDialogRoot,
-                ))
-                .with_children(|overlay| {
+            // Create save dialog with modal overlay that blocks clicks
+            let overlay_entity = helpers::spawn_modal_overlay(
+                &mut commands,
+                Color::srgba(0.0, 0.0, 0.0, 0.7),
+                ZIndex(200),
+            );
+
+            // Add our root marker
+            commands.entity(overlay_entity).insert(SaveDialogRoot);
+
+            // Add dialog content
+            commands.entity(overlay_entity).with_children(|overlay| {
                     // Dialog container
                     overlay
                         .spawn((

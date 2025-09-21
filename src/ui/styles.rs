@@ -207,6 +207,33 @@ pub mod helpers {
             ..default()
         }
     }
+
+    /// Creates a modal overlay that blocks clicks to elements behind it
+    ///
+    /// This helper ensures that all modal dialogs properly block interaction
+    /// with UI elements behind them. The Button component is critical for
+    /// consuming click events at the overlay level.
+    pub fn spawn_modal_overlay(
+        commands: &mut Commands,
+        background_color: Color,
+        z_index: ZIndex,
+    ) -> Entity {
+        commands
+            .spawn((
+                Button,  // ALWAYS included to block clicks!
+                Node {
+                    position_type: PositionType::Absolute,
+                    width: Val::Percent(100.0),
+                    height: Val::Percent(100.0),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    ..default()
+                },
+                BackgroundColor(background_color),
+                z_index,
+            ))
+            .id()
+    }
 }
 
 // Convenience aliases for commonly used constants
