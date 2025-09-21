@@ -23,7 +23,7 @@ pub use plugin::NoiseComputePlugin;
 // Public exports - Resources and settings
 pub use resources::{
     ComputeBufferHandles, ComputeMetrics, ComputeState, ErosionComputeSettings,
-    NoiseComputeSettings,
+    NoiseComputeSettings, GpuGenerationRequest,
 };
 
 // Public exports - Types
@@ -42,8 +42,8 @@ pub use buffers::{
 // Public exports - Coordination
 pub use coordinator::{
     coordinate_gpu_generation, get_gpu_elevation_results, handle_gpu_failures,
-    monitor_gpu_timeouts, request_gpu_elevation_generation, GpuGenerationConfig,
-    GpuGenerationState, GpuPerformanceMetrics,
+    monitor_gpu_timeouts, manage_gpu_generation_request, request_gpu_elevation_generation,
+    GpuGenerationConfig, GpuGenerationState, GpuPerformanceMetrics,
 };
 
 // Public exports - Integration

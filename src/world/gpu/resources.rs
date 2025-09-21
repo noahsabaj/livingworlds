@@ -7,6 +7,18 @@ use bevy::prelude::*;
 use bevy::render::extract_resource::ExtractResource;
 use bevy::render::render_resource::Buffer;
 
+/// Resource to explicitly request GPU generation
+/// This prevents the GPU from running continuously in the main menu
+#[derive(Resource, Clone, Default, ExtractResource)]
+pub struct GpuGenerationRequest {
+    /// Whether generation has been requested
+    pub requested: bool,
+    /// Whether generation has completed
+    pub completed: bool,
+    /// Number of times dispatch has been called (prevents multiple executions)
+    pub dispatch_count: u32,
+}
+
 /// Settings for GPU-accelerated noise generation
 #[derive(Resource, Clone, ExtractResource, Reflect)]
 #[reflect(Resource)]

@@ -5,7 +5,7 @@
 
 use super::{
     get_completed_elevations, request_elevation_readback,
-    resources::{ComputeBufferHandles, NoiseComputeSettings},
+    resources::{ComputeBufferHandles, NoiseComputeSettings, GpuGenerationRequest},
     upload_province_positions, GpuComputeStatus, GpuElevationData,
 };
 use crate::world::provinces::Province;
@@ -214,6 +214,45 @@ pub fn handle_gpu_failures(
             *retry_count = 0;
         }
         _ => {}
+    }
+}
+
+/// System to manage GPU generation request lifecycle
+pub fn manage_gpu_generation_request(
+    mut request: Option<ResMut<GpuGenerationRequest>>,
+    state: Res<GpuGenerationState>,
+    mut frame_counter: Local<u32>,
+    mut has_started_computing: Local<bool>,
+) {
+    let Some(mut request) = request else { return };
+
+    // If generation was requested and we're in Computing state, track the dispatch
+    if request.requested && !request.completed {
+        if matches!(state.as_ref(), GpuGenerationState::Computing) {
+            if !*has_started_computing {
+                // Mark that we've started computing
+                *has_started_computing = true;
+                request.dispatch_count = 1;
+                *frame_counter = 0;
+                info!("GPU dispatch tracked");
+            }
+
+            // Increment frame counter
+            *frame_counter += 1;
+
+            // After 2 frames of dispatch, mark as complete to prevent continuous execution
+            if *frame_counter > 2 {
+                request.completed = true;
+                request.requested = false;
+                *has_started_computing = false;
+                *frame_counter = 0;
+                info!("GPU generation marked complete after dispatch");
+            }
+        }
+    } else if request.completed {
+        // Reset state when generation is complete
+        *has_started_computing = false;
+        *frame_counter = 0;
     }
 }
 

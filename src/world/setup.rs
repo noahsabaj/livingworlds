@@ -295,8 +295,16 @@ pub fn start_async_world_generation(
     gpu_state: Option<ResMut<crate::world::gpu::GpuGenerationState>>,
     gpu_metrics: Option<ResMut<crate::world::gpu::GpuPerformanceMetrics>>,
     validation_config: Option<Res<crate::world::gpu::ValidationConfig>>,
+    mut gpu_request: Option<ResMut<crate::world::gpu::GpuGenerationRequest>>,
 ) {
     info!("Starting async world generation");
+
+    // Request GPU generation if available
+    if let Some(ref mut request) = gpu_request {
+        request.requested = true;
+        request.completed = false;
+        info!("GPU generation requested for world generation");
+    }
 
     // Create progress channel
     let (progress_sender, progress_receiver) = async_channel::unbounded::<GenerationProgress>();

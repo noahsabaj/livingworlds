@@ -44,6 +44,7 @@ pub fn check_and_trigger_world_generation(
         None, // gpu_state
         None, // gpu_metrics
         None, // validation_config
+        None, // gpu_request
     );
 }
 

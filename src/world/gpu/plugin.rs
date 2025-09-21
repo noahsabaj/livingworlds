@@ -17,11 +17,12 @@ use super::{
     },
     capabilities::check_gpu_compute_support,
     coordinator::{
-        coordinate_gpu_generation, handle_gpu_failures, monitor_gpu_timeouts, GpuGenerationConfig,
+        coordinate_gpu_generation, handle_gpu_failures, monitor_gpu_timeouts,
+        manage_gpu_generation_request, GpuGenerationConfig,
         GpuGenerationState, GpuPerformanceMetrics,
     },
     node::{init_compute_pipelines, NoiseComputeNode},
-    resources::{ComputeBufferHandles, ErosionComputeSettings, NoiseComputeSettings},
+    resources::{ComputeBufferHandles, ErosionComputeSettings, NoiseComputeSettings, GpuGenerationRequest},
     types::{ComputeLabel, GpuComputeStatus},
     validation::{periodic_validation_system, ValidationConfig, ValidationHistory},
 };
@@ -39,17 +40,20 @@ define_plugin!(NoiseComputePlugin {
         ValidationHistory,
         BenchmarkConfig,
         BenchmarkState,
-        GpuElevationData
+        GpuElevationData,
+        GpuGenerationRequest
     ],
 
     plugins: [
         ExtractResourcePlugin::<NoiseComputeSettings>::default(),
         ExtractResourcePlugin::<ErosionComputeSettings>::default(),
-        ExtractResourcePlugin::<GpuElevationData>::default()
+        ExtractResourcePlugin::<GpuElevationData>::default(),
+        ExtractResourcePlugin::<GpuGenerationRequest>::default()
     ],
 
     update: [(
         coordinate_gpu_generation,
+        manage_gpu_generation_request,
         handle_gpu_failures,
         monitor_gpu_timeouts,
         periodic_validation_system,

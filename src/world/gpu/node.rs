@@ -14,7 +14,7 @@ use bevy::{
 
 use super::{
     buffers::ComputeBindGroups,
-    resources::{ComputeBufferHandles, ErosionComputeSettings, NoiseComputeSettings},
+    resources::{ComputeBufferHandles, ErosionComputeSettings, NoiseComputeSettings, GpuGenerationRequest},
 };
 
 /// Resource holding compute pipeline handles
@@ -72,16 +72,27 @@ impl Node for NoiseComputeNode {
                 }
             }
             NoiseComputeState::Ready => {
-                // Check if we should start generation
-                if let Some(buffers) = world.get_resource::<ComputeBufferHandles>() {
-                    if buffers.positions_buffer.is_some() && buffers.elevations_buffer.is_some() {
-                        self.state = NoiseComputeState::Generating;
-                        info!("Starting GPU noise generation");
+                // ONLY start generation if explicitly requested
+                if let Some(request) = world.get_resource::<GpuGenerationRequest>() {
+                    if request.requested && !request.completed {
+                        // Also check that buffers exist
+                        if let Some(buffers) = world.get_resource::<ComputeBufferHandles>() {
+                            if buffers.positions_buffer.is_some() && buffers.elevations_buffer.is_some() {
+                                self.state = NoiseComputeState::Generating;
+                                info!("Starting GPU noise generation");
+                            }
+                        }
                     }
                 }
             }
             NoiseComputeState::Generating => {
-                // Generation will happen in run(), then transition to Complete
+                // Check if generation has been completed via the request resource
+                if let Some(request) = world.get_resource::<GpuGenerationRequest>() {
+                    if request.completed {
+                        self.state = NoiseComputeState::Complete;
+                        info!("GPU noise generation complete");
+                    }
+                }
             }
             NoiseComputeState::Complete => {
                 // Noise generation is done, could trigger erosion or readback here
@@ -98,6 +109,13 @@ impl Node for NoiseComputeNode {
         // Only run if we're in the generating state
         if !matches!(self.state, NoiseComputeState::Generating) {
             return Ok(());
+        }
+
+        // Check if already dispatched (dispatch_count > 0 means we've run)
+        if let Some(request) = world.get_resource::<GpuGenerationRequest>() {
+            if request.dispatch_count > 0 {
+                return Ok(());
+            }
         }
 
         let pipeline_cache = world.resource::<PipelineCache>();
@@ -139,8 +157,8 @@ impl Node for NoiseComputeNode {
 
             pass.dispatch_workgroups(num_workgroups, 1, 1);
 
-            debug!(
-                "Dispatched {} workgroups for {} provinces",
+            info!(
+                "Dispatched {} workgroups for {} provinces (one-time execution)",
                 num_workgroups, num_provinces
             );
         }
