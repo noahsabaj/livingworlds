@@ -209,7 +209,7 @@ impl PerlinNoise {
     ///
     /// Returns elevation from 0.0 (ocean floor) to 1.0 (mountain peak).
     pub fn sample_terrain(&self, x: f64, y: f64) -> f64 {
-        // Continental shelf layer - massive scale (40% influence, up from 25%)
+        // Continental shelf layer - massive scale (47% influence, up from 40%)
         // This creates the main continent shapes and should dominate
         let continental = self.sample_fbm(
             x,
@@ -220,9 +220,9 @@ impl PerlinNoise {
                 persistence: 0.4,
                 lacunarity: 2.0,
             },
-        ) * 0.40; // Increased weight for more coherent continents
+        ) * 0.47; // Further increased for even more coherent continents
 
-        // Major landmass layer - large features (30% influence, up from 25%)
+        // Major landmass layer - large features (35% influence, up from 30%)
         // This adds major terrain variations within continents
         let landmass = self.sample_fbm(
             x,
@@ -233,10 +233,10 @@ impl PerlinNoise {
                 persistence: 0.5,
                 lacunarity: 2.1,
             },
-        ) * 0.30; // Increased weight for stronger landmass definition
+        ) * 0.35; // Increased to compensate for reduced noise layers
 
-        // Island chains layer - medium scale (15% influence, down from 20%)
-        // Reduced to prevent excessive fragmentation
+        // Island chains layer - medium scale (8% influence, down from 15%)
+        // Further reduced to prevent excessive fragmentation
         let islands = self.sample_fbm(
             x,
             y,
@@ -246,10 +246,10 @@ impl PerlinNoise {
                 persistence: 0.45, // Reduced from 0.55 for gentler falloff
                 lacunarity: 2.2,
             },
-        ) * 0.15; // Reduced weight to minimize fragmentation
+        ) * 0.08; // Significantly reduced to minimize fragmentation
 
-        // Coastal detail layer - fine features (10% influence, down from 15%)
-        // Significantly reduced to prevent "spaghetti islands"
+        // Coastal detail layer - fine features (5% influence, down from 10%)
+        // Further reduced to create cleaner coastlines
         let coastal = self.sample_fbm(
             x,
             y,
@@ -259,7 +259,7 @@ impl PerlinNoise {
                 persistence: 0.4, // Reduced from 0.6 for quicker falloff
                 lacunarity: 2.3,
             },
-        ) * 0.10; // Reduced weight to minimize small islands
+        ) * 0.05; // Halved to significantly reduce coastline noise
 
         // Mountain ridge layer (5% influence, down from 15%)
         // Minimal influence to avoid creating isolated peaks
