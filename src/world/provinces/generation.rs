@@ -387,27 +387,39 @@ impl<'a> ProvinceBuilder<'a> {
         let center_x = self.utils.dimensions().bounds.x_min + map_width / 2.0;
         let center_y = self.utils.dimensions().bounds.y_min + map_height / 2.0;
 
-        for i in 0..num_continents {
-            // Place some continents near center, others more randomly
-            let (x, y) = if i < 2 && num_continents > 4 {
-                // First couple continents closer to center for larger worlds
-                let angle = self.rng.gen_range(0.0..TAU);
-                let dist = self.rng.gen_range(0.2..0.5) * map_width.min(map_height) / 2.0;
-                let (sin_angle, cos_angle) = angle.sin_cos();
-                (center_x + cos_angle * dist, center_y + sin_angle * dist)
-            } else {
-                // Others more randomly distributed
-                {
-                    let pos = self.utils.random_position(self.rng);
-                    (pos.x, pos.y)
-                }
-            };
+        // Special handling for Pangaea (single supercontinent)
+        if self.continent_count == 1 {
+            // Create one massive continent in the center
+            let position = Vec2::new(center_x, center_y);
+            let strength = 0.95;  // Very strong influence
+            let radius = 0.7 * map_width.min(map_height);  // 70% of map size
 
-            let position = Vec2::new(x, y);
-            let strength = self.rng.gen_range(0.6..1.0);
-            let radius = self.rng.gen_range(0.15..0.35) * map_width.min(map_height);
-
+            info!("  Generating Pangaea supercontinent: radius={:.0}, strength={:.2}", radius, strength);
             self.continent_seeds.push((position, strength, radius));
+        } else {
+            // Normal multi-continent generation
+            for i in 0..num_continents {
+                // Place some continents near center, others more randomly
+                let (x, y) = if i < 2 && num_continents > 4 {
+                    // First couple continents closer to center for larger worlds
+                    let angle = self.rng.gen_range(0.0..TAU);
+                    let dist = self.rng.gen_range(0.2..0.5) * map_width.min(map_height) / 2.0;
+                    let (sin_angle, cos_angle) = angle.sin_cos();
+                    (center_x + cos_angle * dist, center_y + sin_angle * dist)
+                } else {
+                    // Others more randomly distributed
+                    {
+                        let pos = self.utils.random_position(self.rng);
+                        (pos.x, pos.y)
+                    }
+                };
+
+                let position = Vec2::new(x, y);
+                let strength = self.rng.gen_range(0.6..1.0);
+                let radius = self.rng.gen_range(0.15..0.35) * map_width.min(map_height);
+
+                self.continent_seeds.push((position, strength, radius));
+            }
         }
     }
 
