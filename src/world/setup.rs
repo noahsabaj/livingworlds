@@ -19,7 +19,7 @@
 //! This separation allows the core generation to be reused in tests,
 //! tools, or other contexts while keeping Bevy-specific concerns isolated.
 
-use super::clouds::CloudSystem;
+use super::clouds::{CloudBuilder, CloudSystem};
 use super::provinces::ProvinceId;
 use super::World;
 use super::{build_world_mesh, ProvinceStorage, WorldBuilder, WorldMeshHandle};
@@ -117,15 +117,18 @@ async fn generate_world_async(
     }
 
     // Generate world data with progress reporting
-    send_progress("Generating terrain...", 0.1);
-
     let start_time = std::time::Instant::now();
+
+    // Create a progress callback closure that sends updates through the channel
+    let progress_callback = |step: &str, progress: f32| {
+        send_progress(step, progress);
+    };
 
     // Choose between GPU-accelerated and CPU-only generation
     let world_result = if let Some(gpu_res) = gpu_resources.as_ref() {
         if gpu_res.compute_supported && gpu_res.use_gpu {
             info!("🚀 Using GPU-accelerated world generation");
-            generate_world_with_gpu_acceleration(settings.clone(), gpu_res.clone())
+            generate_world_with_gpu_acceleration(settings.clone(), gpu_res.clone(), progress_sender.clone())
         } else {
             info!("🖥️ GPU available but disabled - using CPU generation");
             WorldBuilder::new(
@@ -135,7 +138,7 @@ async fn generate_world_async(
                 settings.ocean_coverage,
                 settings.river_density,
             )
-            .build()
+            .build_with_progress(Some(progress_callback))
         }
     } else {
         info!("🖥️ GPU not available - using CPU generation");
@@ -146,7 +149,7 @@ async fn generate_world_async(
             settings.ocean_coverage,
             settings.river_density,
         )
-        .build()
+        .build_with_progress(Some(progress_callback))
     };
 
     let generation_time = start_time.elapsed().as_millis() as f32;
@@ -187,6 +190,7 @@ async fn generate_world_async(
 fn generate_world_with_gpu_acceleration(
     settings: WorldGenerationSettings,
     gpu_resources: crate::world::gpu::GpuResources,
+    progress_sender: Sender<GenerationProgress>,
 ) -> Result<crate::world::World, crate::world::generation::WorldGenerationError> {
     use crate::resources::MapDimensions;
     use crate::world::gpu::GpuProvinceBuilder;
@@ -194,7 +198,20 @@ fn generate_world_with_gpu_acceleration(
 
     let dimensions = MapDimensions::from_world_size(&settings.world_size);
 
+    // Helper to send progress updates
+    let send_progress = |step: &str, progress: f32| {
+        let _ = progress_sender.try_send(GenerationProgress {
+            step: step.to_string(),
+            progress,
+            completed: false,
+            world_data: None,
+            error_message: None,
+            generation_metrics: None,
+        });
+    };
+
     // Step 1: Generate provinces with GPU acceleration
+    send_progress("Generating provinces with GPU acceleration...", 0.1);
     info!("⚡ GPU-accelerating province generation...");
 
     // Create a simplified GPU status for the async context
@@ -237,6 +254,7 @@ fn generate_world_with_gpu_acceleration(
     let mut rng = StdRng::seed_from_u64(settings.seed as u64);
 
     // Step 2: Apply erosion simulation for realistic terrain
+    send_progress("Applying erosion simulation...", 0.2);
     let erosion_iterations = match dimensions.provinces_per_row * dimensions.provinces_per_col {
         n if n < 400_000 => 3_000,
         n if n < 700_000 => 5_000,
@@ -250,12 +268,15 @@ fn generate_world_with_gpu_acceleration(
     );
 
     // Step 3: Calculate ocean depths
+    send_progress("Calculating ocean depths...", 0.3);
     crate::world::calculate_ocean_depths(&mut provinces, dimensions);
 
     // Step 4: Generate climate zones
+    send_progress("Generating climate zones...", 0.4);
     crate::world::apply_climate_to_provinces(&mut provinces, dimensions);
 
     // Step 5: Generate river systems
+    send_progress("Creating river systems...", 0.5);
     let river_system = crate::world::RiverBuilder::new(&mut provinces, dimensions, &mut rng)
         .with_density(settings.river_density)
         .build()
@@ -265,6 +286,7 @@ fn generate_world_with_gpu_acceleration(
         })?;
 
     // Step 6: Calculate agriculture values
+    send_progress("Calculating agriculture values...", 0.6);
     crate::world::calculate_agriculture_values(&mut provinces, &river_system, dimensions).map_err(
         |e| crate::world::generation::WorldGenerationError {
             error_message: format!("Failed to calculate agriculture: {}", e),
@@ -272,11 +294,18 @@ fn generate_world_with_gpu_acceleration(
         },
     )?;
 
+    // Step 7: Generate cloud system
+    send_progress("Generating clouds...", 0.7);
+    let cloud_system = crate::world::CloudBuilder::new(&mut rng, &dimensions).build();
+
+    // Final step
+    send_progress("Finalizing world...", 0.9);
+
     // Return the complete world
     Ok(crate::world::World {
         provinces,
         rivers: river_system,
-        clouds: CloudSystem::default(),
+        clouds: cloud_system,
         seed: settings.seed,
     })
 }
