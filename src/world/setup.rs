@@ -72,11 +72,43 @@ pub struct AsyncWorldGeneration {
     pub settings: WorldGenerationSettings,
 }
 
+/// Timer to delay state transition after world generation completes
+/// This gives the UI time to display the 100% completion message
+#[derive(Resource)]
+pub struct WorldGenerationTransitionDelay {
+    pub timer: Timer,
+}
+
 const MIN_CONTINENTS: u32 = 1;
 const MAX_OCEAN_COVERAGE: f32 = 0.95;
 const MIN_OCEAN_COVERAGE: f32 = 0.05;
 const MAX_RIVER_DENSITY: f32 = 1.0;
 const MIN_RIVER_DENSITY: f32 = 0.0;
+
+/// System to handle the transition delay timer after world generation completes
+pub fn handle_world_generation_transition_delay(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut timer_res: Option<ResMut<WorldGenerationTransitionDelay>>,
+    mut state_events: EventWriter<RequestStateTransition>,
+) {
+    if let Some(mut delay) = timer_res {
+        delay.timer.tick(time.delta());
+
+        if delay.timer.just_finished() {
+            info!("Transition delay timer finished, moving to InGame state");
+
+            // Now transition to the game
+            state_events.write(RequestStateTransition {
+                from: GameState::LoadingWorld,
+                to: GameState::InGame,
+            });
+
+            // Clean up the timer resource
+            commands.remove_resource::<WorldGenerationTransitionDelay>();
+        }
+    }
+}
 
 /// Background world generation function - runs on AsyncComputeTaskPool
 async fn generate_world_async(
@@ -547,13 +579,12 @@ pub fn poll_async_world_generation(
                 set_loading_progress(&mut loading_state, PROGRESS_COMPLETE, "World ready!");
                 info!("Loading progress set to complete");
 
-                // Transition to game
-                info!("Writing state transition from LoadingWorld to InGame...");
-                state_events.write(RequestStateTransition {
-                    from: GameState::LoadingWorld,
-                    to: GameState::InGame,
+                // Create a timer to delay the state transition
+                // This gives the UI time to display the 100% completion
+                info!("Creating transition delay timer (1 second)...");
+                commands.insert_resource(WorldGenerationTransitionDelay {
+                    timer: Timer::from_seconds(1.0, TimerMode::Once),
                 });
-                info!("State transition event written");
 
                 // Clean up async generation resource
                 info!("Cleaning up async generation resource...");

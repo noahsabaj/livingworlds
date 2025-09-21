@@ -67,7 +67,8 @@ impl WorldBuilder {
         };
 
         // Step 1: Generate provinces with Perlin noise elevation
-        report_progress("Generating provinces...", 0.1);
+        let province_count = self.dimensions.provinces_per_row * self.dimensions.provinces_per_col;
+        report_progress(&format!("Generating {} provinces with Perlin noise elevation...", province_count), 0.1);
         let mut provinces =
             crate::world::ProvinceBuilder::new(self.dimensions, &mut self.rng, self.seed)
                 .with_ocean_coverage(self.ocean_coverage)
@@ -78,13 +79,13 @@ impl WorldBuilder {
         // (This is already done in ProvinceBuilder::build() now)
 
         // Step 2: Apply erosion simulation for realistic terrain
-        report_progress("Applying erosion...", 0.2);
         let erosion_iterations =
             match self.dimensions.provinces_per_row * self.dimensions.provinces_per_col {
                 n if n < 400_000 => 3_000,
                 n if n < 700_000 => 5_000,
                 _ => 8_000,
             };
+        report_progress(&format!("Applying erosion simulation ({} iterations)...", erosion_iterations), 0.2);
         crate::world::apply_erosion_to_provinces(
             &mut provinces,
             self.dimensions,
@@ -93,15 +94,17 @@ impl WorldBuilder {
         );
 
         // Step 3: Calculate ocean depths
-        report_progress("Calculating ocean depths...", 0.3);
+        let ocean_count = provinces.iter().filter(|p| p.elevation.value() <= 0.0).count();
+        report_progress(&format!("Calculating depths for {} ocean provinces...", ocean_count), 0.3);
         crate::world::calculate_ocean_depths(&mut provinces, self.dimensions);
 
         // Step 4: Generate climate zones
-        report_progress("Generating climate zones...", 0.4);
+        report_progress(&format!("Generating climate zones across {} provinces...", provinces.len()), 0.4);
         crate::world::apply_climate_to_provinces(&mut provinces, self.dimensions);
 
         // Step 5: Generate river systems
-        report_progress("Creating river systems...", 0.5);
+        let target_rivers = (provinces.len() as f32 * self.river_density * 0.001) as usize;
+        report_progress(&format!("Creating river systems (targeting ~{} rivers)...", target_rivers), 0.5);
         let river_system =
             crate::world::RiverBuilder::new(&mut provinces, self.dimensions, &mut self.rng)
                 .with_density(self.river_density)
@@ -112,7 +115,7 @@ impl WorldBuilder {
                 })?;
 
         // Step 6: Calculate agriculture values
-        report_progress("Calculating agriculture...", 0.6);
+        report_progress(&format!("Calculating agriculture values for {} provinces...", provinces.len()), 0.6);
         crate::world::calculate_agriculture_values(&mut provinces, &river_system, self.dimensions)
             .map_err(|e| WorldGenerationError {
                 error_message: format!("Failed to calculate agriculture: {}", e),
@@ -120,11 +123,15 @@ impl WorldBuilder {
             })?;
 
         // Step 7: Generate cloud system
-        report_progress("Generating clouds...", 0.7);
+        let cloud_count = 90; // Default cloud count
+        report_progress(&format!("Generating {} procedural clouds...", cloud_count), 0.7);
         let cloud_system = crate::world::CloudBuilder::new(&mut self.rng, &self.dimensions).build();
 
-        // Final step
-        report_progress("Finalizing world...", 0.9);
+        // Step 8: Final validation and packaging
+        report_progress("Finalizing world data structures...", 0.85);
+
+        // Step 9: Complete!
+        report_progress("World generation complete!", 0.95);
 
         Ok(World {
             provinces,

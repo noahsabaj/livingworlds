@@ -119,7 +119,9 @@ pub use plugin::{
 pub use setup::{
     poll_async_world_generation,  // Progress polling system
     start_async_world_generation, // Async generation starter
+    handle_world_generation_transition_delay, // Transition delay handler
     AsyncWorldGeneration,         // Async world generation resource
     GenerationProgress,           // Progress update structure
+    WorldGenerationTransitionDelay, // Transition delay resource
     WorldSetupError,
 };

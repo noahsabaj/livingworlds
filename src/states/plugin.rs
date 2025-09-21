@@ -35,7 +35,8 @@ define_plugin!(StatesPlugin {
         handle_menu_events.run_if(in_state(GameState::MainMenu)),
         (
             check_and_trigger_world_generation,
-            crate::world::poll_async_world_generation
+            crate::world::poll_async_world_generation,
+            crate::world::handle_world_generation_transition_delay
         ).run_if(in_state(GameState::LoadingWorld)),
         handle_error_dialog_buttons.run_if(in_state(GameState::WorldGenerationFailed)),
         log_state_changes.run_if(state_changed::<GameState>)

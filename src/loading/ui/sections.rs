@@ -118,11 +118,17 @@ pub fn spawn_bottom_section(parent: &mut ChildSpawnerCommands, loading_state: &L
         })
         .with_children(|bottom| {
             // Status text using LabelBuilder for consistency
-            LabelBuilder::new(&loading_state.current_step)
+            let status_text_entity = LabelBuilder::new(&loading_state.current_step)
                 .font_size(dimensions::FONT_SIZE_MEDIUM)
                 .color(colors::TEXT_PRIMARY)
                 .margin(UiRect::bottom(Val::Px(15.0)))
                 .build(bottom);
+
+            // Mark the status text for updates
+            bottom
+                .commands()
+                .entity(status_text_entity)
+                .insert(LoadingStatusText);
 
             // Progress bar using ProgressBarBuilder with custom label
             let progress_entity = ProgressBarBuilder::new(loading_state.progress)
