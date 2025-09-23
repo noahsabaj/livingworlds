@@ -4,7 +4,6 @@
 //! replacing the struct-based cultural region system with entity relationships.
 
 use bevy::prelude::*;
-use rayon::prelude::*;
 
 // ================================================================================================
 // CULTURAL REGION RELATIONSHIPS
@@ -142,9 +141,9 @@ pub fn update_cultural_coherence(
     mut regions_query: Query<(Entity, &mut CulturalCoherence, &ContainsProvinces)>,
     provinces_query: Query<Option<&crate::relationships::ControlledBy>>,
 ) {
-    regions_query
-        .par_iter_mut()
-        .for_each(|(_region_entity, mut coherence, contains_provinces)| {
+    // NOTE: Bevy queries should not be manually parallelized with Rayon
+    // Bevy has its own parallel scheduling system
+    for (_region_entity, mut coherence, contains_provinces) in &mut regions_query {
             let province_count = contains_provinces.count() as u32;
             coherence.province_count = province_count;
 
@@ -170,7 +169,7 @@ pub fn update_cultural_coherence(
             } else {
                 1.0 / (coherence.controlling_nations as f32).sqrt()
             };
-        });
+    }
 }
 
 /// Detects cultural tensions based on political fragmentation

@@ -4,7 +4,6 @@
 //! that connects provinces and enables economic activity.
 
 use bevy::prelude::*;
-use rayon::prelude::*;
 
 // ================================================================================================
 // ROAD NETWORK RELATIONSHIPS
@@ -200,28 +199,28 @@ pub fn update_infrastructure_status(
         Option<&ConnectedTradeRoutes>,
     )>,
 ) {
-    provinces_query.par_iter_mut().for_each(
-        |(province_entity, mut infrastructure, connected_roads, connected_trade_routes)| {
-            // Count road connections using entity relationships
-            infrastructure.road_connections = connected_roads
-                .map(|roads| roads.connection_count() as u32)
-                .unwrap_or(0);
+    // NOTE: Bevy queries should not be manually parallelized with Rayon
+    // Bevy has its own parallel scheduling system
+    for (province_entity, mut infrastructure, connected_roads, connected_trade_routes) in &mut provinces_query {
+        // Count road connections using entity relationships
+        infrastructure.road_connections = connected_roads
+            .map(|roads| roads.connection_count() as u32)
+            .unwrap_or(0);
 
-            // Count trade route connections using entity relationships
-            infrastructure.trade_route_count = connected_trade_routes
-                .map(|trade_routes| trade_routes.connection_count() as u32)
-                .unwrap_or(0);
+        // Count trade route connections using entity relationships
+        infrastructure.trade_route_count = connected_trade_routes
+            .map(|trade_routes| trade_routes.connection_count() as u32)
+            .unwrap_or(0);
 
-            // Calculate connectivity score
-            let road_score = (infrastructure.road_connections as f32 * 0.3).min(1.0);
-            let trade_score = (infrastructure.trade_route_count as f32 * 0.2).min(1.0);
-            infrastructure.connectivity = (road_score + trade_score).min(1.0);
+        // Calculate connectivity score
+        let road_score = (infrastructure.road_connections as f32 * 0.3).min(1.0);
+        let trade_score = (infrastructure.trade_route_count as f32 * 0.2).min(1.0);
+        infrastructure.connectivity = (road_score + trade_score).min(1.0);
 
-            // Note: Maintenance cost calculation would require accessing Road components
-            // which would need a separate query. For now, we'll set a placeholder.
-            infrastructure.maintenance_cost = infrastructure.road_connections as f32 * 10.0;
-        },
-    );
+        // Note: Maintenance cost calculation would require accessing Road components
+        // which would need a separate query. For now, we'll set a placeholder.
+        infrastructure.maintenance_cost = infrastructure.road_connections as f32 * 10.0;
+    }
 }
 
 /// Calculates trade efficiency between provinces

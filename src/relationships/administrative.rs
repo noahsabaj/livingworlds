@@ -4,7 +4,6 @@
 //! and the hierarchy of governance from national to local levels.
 
 use bevy::prelude::*;
-use rayon::prelude::*;
 
 // ================================================================================================
 // PROVINCIAL ADMINISTRATION
@@ -123,37 +122,37 @@ pub fn update_administrative_efficiency(
     )>,
     governors_query: Query<&Governor>,
 ) {
-    provinces_query.par_iter_mut().for_each(
-        |(province_entity, mut efficiency, administered_by)| {
-            if let Some(administered_by) = administered_by {
-                if let Some(governor_entity) = administered_by.primary_governor() {
-                    if let Ok(governor) = governors_query.get(governor_entity) {
-                        // Calculate efficiency based on governor traits
-                        let base_efficiency =
-                            (governor.competence * (1.0 - governor.corruption)).max(0.1);
-                        efficiency.efficiency = base_efficiency;
+    // NOTE: Bevy queries should not be manually parallelized with Rayon
+    // Bevy has its own parallel scheduling system
+    for (province_entity, mut efficiency, administered_by) in &mut provinces_query {
+        if let Some(administered_by) = administered_by {
+            if let Some(governor_entity) = administered_by.primary_governor() {
+                if let Ok(governor) = governors_query.get(governor_entity) {
+                    // Calculate efficiency based on governor traits
+                    let base_efficiency =
+                        (governor.competence * (1.0 - governor.corruption)).max(0.1);
+                    efficiency.efficiency = base_efficiency;
 
-                        // Tax collection affected by loyalty and corruption
-                        efficiency.tax_collection =
-                            (governor.loyalty * (1.0 - governor.corruption * 0.5)).max(0.1);
+                    // Tax collection affected by loyalty and corruption
+                    efficiency.tax_collection =
+                        (governor.loyalty * (1.0 - governor.corruption * 0.5)).max(0.1);
 
-                        // Infrastructure maintenance primarily based on competence
-                        efficiency.infrastructure_maintenance = governor.competence.max(0.1);
-                    }
-                } else {
-                    // No valid governor - poor administration
-                    efficiency.efficiency = 0.3;
-                    efficiency.tax_collection = 0.2;
-                    efficiency.infrastructure_maintenance = 0.2;
+                    // Infrastructure maintenance primarily based on competence
+                    efficiency.infrastructure_maintenance = governor.competence.max(0.1);
                 }
             } else {
-                // No governor assigned - minimal administration
-                efficiency.efficiency = 0.1;
-                efficiency.tax_collection = 0.1;
-                efficiency.infrastructure_maintenance = 0.1;
+                // No valid governor - poor administration
+                efficiency.efficiency = 0.3;
+                efficiency.tax_collection = 0.2;
+                efficiency.infrastructure_maintenance = 0.2;
             }
-        },
-    );
+        } else {
+            // No governor assigned - minimal administration
+            efficiency.efficiency = 0.1;
+            efficiency.tax_collection = 0.1;
+            efficiency.infrastructure_maintenance = 0.1;
+        }
+    }
 }
 
 // ================================================================================================

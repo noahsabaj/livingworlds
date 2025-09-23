@@ -4,7 +4,6 @@
 //! and demographic tracking for migration and population dynamics.
 
 use bevy::prelude::*;
-use rayon::prelude::*;
 
 // ================================================================================================
 // POPULATION RESIDENCE RELATIONSHIPS
@@ -218,36 +217,36 @@ pub fn update_provincial_demographics(
     mut provinces_query: Query<(Entity, &mut Demographics, &HostsPopulations)>,
     populations_query: Query<&PopulationGroup>,
 ) {
-    provinces_query.par_iter_mut().for_each(
-        |(province_entity, mut demographics, hosts_populations)| {
-            // Calculate total population
-            let population_groups: Vec<&PopulationGroup> = hosts_populations
-                .populations()
+    // NOTE: Bevy queries should not be manually parallelized with Rayon
+    // Bevy has its own parallel scheduling system
+    for (province_entity, mut demographics, hosts_populations) in &mut provinces_query {
+        // Calculate total population
+        let population_groups: Vec<&PopulationGroup> = hosts_populations
+            .populations()
+            .iter()
+            .filter_map(|&pop_entity| populations_query.get(pop_entity).ok())
+            .collect();
+
+        demographics.total_population = population_groups.iter().map(|pop| pop.size).sum();
+
+        // Calculate average growth rate
+        if !population_groups.is_empty() {
+            demographics.growth_rate = population_groups
                 .iter()
-                .filter_map(|&pop_entity| populations_query.get(pop_entity).ok())
-                .collect();
+                .map(|pop| pop.growth_rate * (pop.size as f32))
+                .sum::<f32>()
+                / demographics.total_population as f32;
+        } else {
+            demographics.growth_rate = 0.0;
+        }
 
-            demographics.total_population = population_groups.iter().map(|pop| pop.size).sum();
+        // Update cultural composition
+        demographics.cultural_composition = calculate_cultural_composition(&population_groups);
 
-            // Calculate average growth rate
-            if !population_groups.is_empty() {
-                demographics.growth_rate = population_groups
-                    .iter()
-                    .map(|pop| pop.growth_rate * (pop.size as f32))
-                    .sum::<f32>()
-                    / demographics.total_population as f32;
-            } else {
-                demographics.growth_rate = 0.0;
-            }
-
-            // Update cultural composition
-            demographics.cultural_composition = calculate_cultural_composition(&population_groups);
-
-            // Update social stratification
-            demographics.social_stratification =
-                calculate_social_stratification(&population_groups);
-        },
-    );
+        // Update social stratification
+        demographics.social_stratification =
+            calculate_social_stratification(&population_groups);
+    }
 }
 
 /// Calculate cultural composition of a province

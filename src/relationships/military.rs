@@ -4,7 +4,6 @@
 //! and the military hierarchy within nations.
 
 use bevy::prelude::*;
-use rayon::prelude::*;
 
 // ================================================================================================
 // ARMY POSITIONING RELATIONSHIPS
@@ -225,8 +224,9 @@ pub fn update_military_status(
     armies_query: Query<&Army>,
     fortifications_query: Query<(&Fortification, &StationedIn)>,
 ) {
-    provinces_query.par_iter_mut().for_each(
-        |(province_entity, mut military_status, hosts_armies)| {
+    // NOTE: Bevy queries should not be manually parallelized with Rayon
+    // Bevy has its own parallel scheduling system
+    for (province_entity, mut military_status, hosts_armies) in &mut provinces_query {
             // Count armies and calculate total strength
             military_status.army_count = hosts_armies.army_count() as u32;
             military_status.total_strength = hosts_armies
@@ -249,8 +249,7 @@ pub fn update_military_status(
                 military_status.defensive_value,
                 military_status.army_count,
             );
-        },
-    );
+    }
 }
 
 /// Determine strategic importance based on military factors

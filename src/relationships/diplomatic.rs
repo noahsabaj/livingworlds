@@ -4,7 +4,6 @@
 //! and other diplomatic interactions that shape the political landscape.
 
 use bevy::prelude::*;
-use rayon::prelude::*;
 
 // ================================================================================================
 // ALLIANCE RELATIONSHIPS
@@ -287,25 +286,25 @@ pub fn update_diplomatic_state(
         Option<&TradePartners>,
     )>,
 ) {
-    nations_query.par_iter_mut().for_each(
-        |(nation_entity, mut diplomatic_state, allies, enemies, trade_partners)| {
-            // Count relationships using entity relationship components
-            diplomatic_state.ally_count = allies.map(|a| a.ally_count() as u32).unwrap_or(0);
+    // NOTE: Bevy queries should not be manually parallelized with Rayon
+    // Bevy has its own parallel scheduling system
+    for (nation_entity, mut diplomatic_state, allies, enemies, trade_partners) in &mut nations_query {
+        // Count relationships using entity relationship components
+        diplomatic_state.ally_count = allies.map(|a| a.ally_count() as u32).unwrap_or(0);
 
-            diplomatic_state.enemy_count = enemies.map(|e| e.enemy_count() as u32).unwrap_or(0);
+        diplomatic_state.enemy_count = enemies.map(|e| e.enemy_count() as u32).unwrap_or(0);
 
-            diplomatic_state.trade_partner_count = trade_partners
-                .map(|tp| tp.partner_count() as u32)
-                .unwrap_or(0);
+        diplomatic_state.trade_partner_count = trade_partners
+            .map(|tp| tp.partner_count() as u32)
+            .unwrap_or(0);
 
-            // Calculate diplomatic stance
-            diplomatic_state.diplomatic_stance = calculate_diplomatic_stance(
-                diplomatic_state.ally_count,
-                diplomatic_state.enemy_count,
-                diplomatic_state.trade_partner_count,
-            );
-        },
-    );
+        // Calculate diplomatic stance
+        diplomatic_state.diplomatic_stance = calculate_diplomatic_stance(
+            diplomatic_state.ally_count,
+            diplomatic_state.enemy_count,
+            diplomatic_state.trade_partner_count,
+        );
+    }
 }
 
 /// Calculate overall diplomatic stance based on relationship counts

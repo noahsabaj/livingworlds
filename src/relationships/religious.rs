@@ -4,7 +4,6 @@
 //! and the spread of faith throughout the world.
 
 use bevy::prelude::*;
-use rayon::prelude::*;
 
 // ================================================================================================
 // RELIGIOUS INFLUENCE RELATIONSHIPS
@@ -168,9 +167,9 @@ pub fn update_religious_status(
     mut provinces_query: Query<(Entity, &mut ReligiousStatus, &InfluencedByReligions)>,
     religious_influences_query: Query<&ReligiousInfluence>,
 ) {
-    provinces_query
-        .par_iter_mut()
-        .for_each(|(province_entity, mut status, influenced_by)| {
+    // NOTE: Bevy queries should not be manually parallelized with Rayon
+    // Bevy has its own parallel scheduling system
+    for (province_entity, mut status, influenced_by) in &mut provinces_query {
             status.religion_count = influenced_by.0.len() as u32;
 
             if status.religion_count == 0 {
@@ -197,7 +196,7 @@ pub fn update_religious_status(
 
             // Find dominant religion (placeholder - would need proper influence data)
             status.dominant_religion = influenced_by.0.first().copied();
-        });
+    }
 }
 
 /// Simulates religious spread between provinces
