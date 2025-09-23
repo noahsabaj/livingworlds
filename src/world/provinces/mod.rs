@@ -4,6 +4,7 @@
 
 // PRIVATE MODULES
 mod agriculture;
+mod elevation;
 mod generation;
 mod spatial;
 mod types;

@@ -373,7 +373,7 @@ pub fn detect_cultural_regions(
     }
 
     // Sort regions by strategic value (most valuable first)
-    all_regions.sort_by(|a, b| b.strategic_value.partial_cmp(&a.strategic_value).unwrap());
+    all_regions.sort_by(|a, b| b.strategic_value.total_cmp(&a.strategic_value));
 
     // Apply per-culture limits to prevent performance issues
     let mut regions_by_culture = std::collections::HashMap::new();
@@ -460,7 +460,7 @@ pub fn get_largest_regions_by_culture(regions: &[CulturalRegion]) -> Vec<&Cultur
 
     for region in regions {
         let current_largest = largest_by_culture.get(&region.culture);
-        if current_largest.is_none() || region.size > current_largest.unwrap().size {
+        if current_largest.map_or(true, |largest| region.size > largest.size) {
             largest_by_culture.insert(region.culture, region);
         }
     }
@@ -476,6 +476,6 @@ pub fn get_most_strategic_regions(
     count: usize,
 ) -> Vec<&CulturalRegion> {
     let mut sorted_regions: Vec<_> = regions.iter().collect();
-    sorted_regions.sort_by(|a, b| b.strategic_value.partial_cmp(&a.strategic_value).unwrap());
+    sorted_regions.sort_by(|a, b| b.strategic_value.total_cmp(&a.strategic_value));
     sorted_regions.into_iter().take(count).collect()
 }

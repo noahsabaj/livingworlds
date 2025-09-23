@@ -173,6 +173,7 @@ async fn generate_world_async(
                 settings.continent_count,
                 settings.ocean_coverage,
                 settings.river_density,
+                settings.climate_type,
             )
             .build_with_progress(Some(progress_callback))
         }
@@ -184,6 +185,7 @@ async fn generate_world_async(
             settings.continent_count,
             settings.ocean_coverage,
             settings.river_density,
+            settings.climate_type,
         )
         .build_with_progress(Some(progress_callback))
     };
@@ -313,7 +315,7 @@ fn generate_world_with_gpu_acceleration(
 
     // Step 4: Generate climate zones
     send_progress("Generating climate zones...", 0.4);
-    crate::world::apply_climate_to_provinces(&mut provinces, dimensions);
+    crate::world::apply_climate_to_provinces(&mut provinces, dimensions, settings.climate_type);
 
     // Step 5: Generate river systems
     send_progress("Creating river systems...", 0.5);
@@ -460,6 +462,9 @@ pub fn poll_async_world_generation(
                     &generation.settings.world_size,
                 );
                 commands.insert_resource(map_dimensions.clone());
+
+                // Store world seed for overlay rendering system
+                commands.insert_resource(crate::world::WorldSeed(world.seed));
 
                 // Create spatial index
                 let spatial_index =

@@ -112,15 +112,17 @@ pub fn coordinate_gpu_generation(
 
         GpuGenerationState::ReadingBack => {
             // Check if results are available from the shared resource
-            if elevation_data.ready && elevation_data.elevations.is_some() {
-                let elevations = elevation_data.elevations.as_ref().unwrap().clone();
-                let elevation_count = elevations.len();
-                *state = GpuGenerationState::Complete(elevations);
-                metrics.successful_operations += 1;
-                info!(
-                    "GPU generation completed successfully with {} elevations",
-                    elevation_count
-                );
+            if elevation_data.ready {
+                if let Some(elevations_ref) = elevation_data.elevations.as_ref() {
+                    let elevations = elevations_ref.clone();
+                    let elevation_count = elevations.len();
+                    *state = GpuGenerationState::Complete(elevations);
+                    metrics.successful_operations += 1;
+                    info!(
+                        "GPU generation completed successfully with {} elevations",
+                        elevation_count
+                    );
+                }
             }
         }
 

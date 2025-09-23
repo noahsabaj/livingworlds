@@ -105,35 +105,16 @@ impl Plugin for OverlayPlugin {
             .add_systems(OnExit(GameState::LoadingWorld), initialize_overlay_colors)
             .add_systems(
                 Update,
-                (
-                    handle_overlay_input,
-                    update_province_colors.run_if(resource_changed::<MapMode>),
-                )
+                update_province_colors
+                    .run_if(resource_changed::<MapMode>)
                     .run_if(in_state(GameState::InGame)),
             );
     }
 }
 
-/// Handle overlay mode cycling input (M key)
-pub fn handle_overlay_input(
-    keyboard: Res<ButtonInput<KeyCode>>,
-    mut overlay_res: ResMut<MapMode>,
-    _time: Res<Time>,
-) {
-    // M key to cycle through all map modes
-    if keyboard.just_pressed(KeyCode::KeyM) {
-        let start = std::time::Instant::now();
-        let previous = *overlay_res;
-        overlay_res.cycle();
-
-        debug!(
-            "Overlay switched from {} to {} (input lag: {:.1}ms)",
-            previous.display_name(),
-            overlay_res.display_name(),
-            start.elapsed().as_secs_f32() * MS_PER_SECOND
-        );
-    }
-}
+/// Keyboard input handling removed - map mode cycling is now handled by HUD
+/// The HUD's map_mode_display module handles Tab key for cycling and provides
+/// a dropdown UI for direct selection, avoiding duplicate keyboard handlers
 
 /// Initialize the overlay system with default terrain and pre-calculate common modes
 /// If ProvinceStorage doesn't exist (cancelled generation), skip initialization

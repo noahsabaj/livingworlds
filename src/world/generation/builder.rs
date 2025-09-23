@@ -24,6 +24,7 @@ pub struct WorldBuilder {
     continent_count: u32,
     ocean_coverage: f32,
     river_density: f32,
+    climate_type: crate::world::ClimateType,
 }
 
 impl WorldBuilder {
@@ -33,6 +34,7 @@ impl WorldBuilder {
         continent_count: u32,
         ocean_coverage: f32,
         river_density: f32,
+        climate_type: crate::world::ClimateType,
     ) -> Self {
         let rng = StdRng::seed_from_u64(seed as u64);
         let dimensions = MapDimensions::from_world_size(&size);
@@ -45,6 +47,7 @@ impl WorldBuilder {
             continent_count,
             ocean_coverage,
             river_density,
+            climate_type,
         }
     }
 
@@ -100,7 +103,7 @@ impl WorldBuilder {
 
         // Step 4: Generate climate zones
         report_progress(&format!("Generating climate zones across {} provinces...", provinces.len()), 0.4);
-        crate::world::apply_climate_to_provinces(&mut provinces, self.dimensions);
+        crate::world::apply_climate_to_provinces(&mut provinces, self.dimensions, self.climate_type);
 
         // Step 5: Generate river systems
         let target_rivers = (provinces.len() as f32 * self.river_density * 0.001) as usize;

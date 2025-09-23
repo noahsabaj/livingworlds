@@ -67,17 +67,40 @@ impl CachedOverlayColors {
         }
 
         // Check cache - zero-copy retrieval with Arc
-        if let Some(cached) = self.cache.get(&mode) {
-            // Swap current into cache, cached becomes current (no cloning!)
-            let old_current = std::mem::replace(&mut self.current, Arc::clone(cached));
-            if self.current_type != mode {
-                self.cache.insert(self.current_type, old_current);
+        // SPECIAL CASE: Don't use cached Political mode if nation colors are now available but weren't used in cache
+        let use_cache = if mode == MapMode::Political && nation_colors.is_some() {
+            // For Political mode with nation colors, only use cache if we're confident it was calculated with nation colors
+            // Since we now exclude Political from pre-calculation, any cached Political should have nation colors
+            if let Some(cached) = self.cache.get(&mode) {
+                debug!("Using cached Political mode (calculated with nation colors)");
+                true
+            } else {
+                false
             }
-            self.current_type = mode;
-            return Arc::clone(&self.current);
+        } else {
+            self.cache.contains_key(&mode)
+        };
+
+        if use_cache {
+            if let Some(cached) = self.cache.get(&mode) {
+                // Swap current into cache, cached becomes current (no cloning!)
+                let old_current = std::mem::replace(&mut self.current, Arc::clone(cached));
+                if self.current_type != mode {
+                    self.cache.insert(self.current_type, old_current);
+                }
+                self.current_type = mode;
+                return Arc::clone(&self.current);
+            }
         }
 
         info!("Calculating overlay colors for: {}", mode.display_name());
+        if mode == MapMode::Political {
+            if nation_colors.is_some() {
+                debug!("Political mode: Calculating with nation colors");
+            } else {
+                warn!("Political mode: No nation colors available - will show terrain-like colors");
+            }
+        }
         let start = std::time::Instant::now();
 
         // Calculate colors in parallel for better performance
@@ -150,8 +173,8 @@ impl CachedOverlayColors {
         // Convert to LinearRgba and use its to_f32_array() method like Bevy examples
         use bevy::color::LinearRgba;
 
-        // Pre-build color map for political mode to use in parallel chunks
-        let political_colors = if mode == MapMode::Political {
+        // Pre-build color map for political mode and terrain mode to use in parallel chunks
+        let nation_colors_map = if mode == MapMode::Political || mode == MapMode::Terrain {
             let mut map = HashMap::new();
             if let Some(registry) = nation_colors {
                 for province in &province_storage.provinces {
@@ -184,11 +207,53 @@ impl CachedOverlayColors {
                 for province in chunk {
                     // Calculate color for each province
                     let color = if mode == MapMode::Political {
-                        // Political mode ALWAYS uses pre-built color map
-                        political_colors
+                        // Political mode uses pre-built color map for nations
+                        nation_colors_map
                             .as_ref()
                             .and_then(|map| map.get(&province.id.0).copied())
-                            .unwrap_or(Color::srgb(0.15, 0.15, 0.15)) // Unclaimed/unmapped province
+                            .unwrap_or_else(|| {
+                                // For unclaimed provinces, show natural terrain colors (especially ocean)
+                                if province.terrain == crate::world::TerrainType::Ocean {
+                                    // Use natural ocean color instead of gray
+                                    world_colors.terrain(
+                                        province.terrain,
+                                        province.elevation.value(),
+                                        province.position,
+                                    )
+                                } else {
+                                    // Unclaimed land provinces use neutral gray
+                                    Color::srgb(0.15, 0.15, 0.15)
+                                }
+                            })
+                    } else if mode == MapMode::Terrain {
+                        // Terrain mode with transparent nation overlays
+                        let base_terrain_color = world_colors.terrain(
+                            province.terrain,
+                            province.elevation.value(),
+                            province.position,
+                        );
+
+                        // If province has an owner, blend with transparent nation color
+                        if let Some(nation_color) = nation_colors_map
+                            .as_ref()
+                            .and_then(|map| map.get(&province.id.0).copied())
+                        {
+                            // Create transparent nation color (15% opacity)
+                            let nation_rgba = nation_color.to_linear().to_f32_array();
+                            let terrain_rgba = base_terrain_color.to_linear().to_f32_array();
+
+                            // Blend: terrain shows through with transparent nation overlay
+                            let alpha = 0.15; // Low opacity so terrain is clearly visible
+                            Color::srgba(
+                                terrain_rgba[0] * (1.0 - alpha) + nation_rgba[0] * alpha,
+                                terrain_rgba[1] * (1.0 - alpha) + nation_rgba[1] * alpha,
+                                terrain_rgba[2] * (1.0 - alpha) + nation_rgba[2] * alpha,
+                                1.0
+                            )
+                        } else {
+                            // No owner - just show natural terrain
+                            base_terrain_color
+                        }
                     } else {
                         // All other modes use the standard calculation
                         self.calculate_province_color(mode, province, &world_colors)
@@ -221,7 +286,7 @@ impl CachedOverlayColors {
     }
 
     /// Calculate color for a single province based on map mode
-    /// NOTE: Political mode is handled separately and should never call this function
+    /// NOTE: Political and Terrain modes are handled separately and should never call this function
     fn calculate_province_color(
         &self,
         mode: MapMode,
@@ -229,17 +294,11 @@ impl CachedOverlayColors {
         world_colors: &WorldColors,
     ) -> Color {
         debug_assert!(
-            mode != MapMode::Political,
-            "Political mode should use pre-built color map"
+            mode != MapMode::Political && mode != MapMode::Terrain,
+            "Political and Terrain modes should use pre-built color maps"
         );
 
         match mode {
-            // Terrain mode - natural terrain colors with proper position for variation
-            MapMode::Terrain => world_colors.terrain(
-                province.terrain,
-                province.elevation.value(),
-                province.position,
-            ),
 
             // Climate zones based on latitude
             MapMode::Climate => {
@@ -265,20 +324,6 @@ impl CachedOverlayColors {
                 Color::srgb(0.0, agri_normalized, 0.0)
             }
 
-            // River systems
-            MapMode::Rivers => {
-                // Check if this is a river or delta terrain type
-                if matches!(province.terrain, TerrainType::River) {
-                    Color::srgb(0.0, 0.3, 0.8)
-                } else {
-                    world_colors.terrain(
-                        province.terrain,
-                        province.elevation.value(),
-                        province.position,
-                    )
-                }
-            }
-
             // Infrastructure development
             MapMode::Infrastructure => {
                 // TODO: Implement when infrastructure system is ready
@@ -289,44 +334,13 @@ impl CachedOverlayColors {
                 )
             }
 
-            // Mineral-specific modes
-            MapMode::MineralIron
-            | MapMode::MineralCopper
-            | MapMode::MineralTin
-            | MapMode::MineralGold
-            | MapMode::MineralCoal
-            | MapMode::MineralStone
-            | MapMode::MineralGems => {
-                if let Some(mineral_type) = mode.get_mineral_type() {
-                    if let Some(abundance) = province.get_mineral_abundance(mineral_type) {
-                        if mineral_type == MineralType::Stone {
-                            world_colors.stone_abundance(StoneAbundance::new(abundance))
-                        } else {
-                            world_colors.mineral_abundance(abundance)
-                        }
-                    } else {
-                        world_colors.terrain(
-                            province.terrain,
-                            province.elevation.value(),
-                            province.position,
-                        )
-                    }
-                } else {
-                    world_colors.terrain(
-                        province.terrain,
-                        province.elevation.value(),
-                        province.position,
-                    )
-                }
-            }
-
-            // All minerals combined
-            MapMode::AllMinerals => {
+            // Unified minerals mode (combining all mineral types)
+            MapMode::Minerals => {
                 let total_richness = calculate_total_richness(province);
                 world_colors.richness(total_richness)
             }
 
-            // Safety: Political mode is filtered before this function is called
+            // Safety: Political and Terrain modes are filtered before this function is called
             _ => unreachable!(
                 "Unexpected map mode in calculate_province_color: {:?}",
                 mode
@@ -340,18 +354,15 @@ impl CachedOverlayColors {
         province_storage: &ProvinceStorage,
         world_seed: u32,
     ) {
-        // Pre-calculate ALL frequently used modes during loading
+        // Pre-calculate frequently used modes during loading (excluding Political which needs nation colors)
         // This uses more memory but eliminates lag when switching
         let modes = vec![
-            MapMode::Political,
+            // Note: Political mode excluded from pre-calculation since it requires nation colors
+            // and will be calculated on-demand with proper nation data
             MapMode::Climate,
             MapMode::Population,
             MapMode::Agriculture,
-            MapMode::Rivers,
-            MapMode::AllMinerals,
-            // Add individual minerals too if memory allows
-            MapMode::MineralIron,
-            MapMode::MineralGold,
+            MapMode::Minerals,
         ];
 
         info!("Pre-calculating {} common map modes", modes.len());

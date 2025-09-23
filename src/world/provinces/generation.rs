@@ -150,8 +150,23 @@ impl<'a> ProvinceBuilder<'a> {
         let mut elevations: Vec<f32> = positions
             .par_iter()
             .map(|&position| {
-                // Generate raw elevation without redistribution
-                self.generate_single_elevation_cpu_raw(position, &continent_seeds)
+                use super::elevation::{ElevationParams, MapBounds, compute_elevation};
+
+                let params = ElevationParams {
+                    position,
+                    continent_seeds: &continent_seeds,
+                    continent_count: self.continent_count,
+                    seed: self.seed as u64,
+                    hex_size: self.utils.dimensions().hex_size,
+                    map_bounds: MapBounds {
+                        x_min: self.utils.dimensions().bounds.x_min,
+                        x_max: self.utils.dimensions().bounds.x_max,
+                        y_min: self.utils.dimensions().bounds.y_min,
+                        y_max: self.utils.dimensions().bounds.y_max,
+                    },
+                };
+
+                compute_elevation(&params, &self.noise)
             })
             .collect();
 
@@ -216,108 +231,7 @@ impl<'a> ProvinceBuilder<'a> {
             .collect()
     }
 
-    /// Generate raw elevation without redistribution
-    fn generate_single_elevation_cpu_raw(
-        &self,
-        position: Vec2,
-        continent_seeds: &[(Vec2, f32, f32)],
-    ) -> f32 {
-        // Scale position to noise space
-        let scale = 1.0 / self.utils.dimensions().hex_size;
-        let x = (position.x * scale) as f64;
-        let y = (position.y * scale) as f64;
 
-        // Use centralized noise module with preset
-        let base_elevation = self.noise.sample_terrain(x, y) as f32;
-
-        // Apply continent influence
-        let mut continent_influence = 0.0_f32;
-        for (seed_pos, strength, radius) in continent_seeds {
-            let distance = position.distance(*seed_pos);
-
-            // Add domain warping for organic shapes
-            let warp_x = self.noise.sample_scaled(
-                (position.x * 0.005) as f64,
-                (position.y * 0.005) as f64,
-                0.01,
-            ) as f32;
-            let warp_y = self.noise.sample_scaled(
-                (position.x * 0.005 + 100.0) as f64,
-                (position.y * 0.005 + 100.0) as f64,
-                0.01,
-            ) as f32;
-
-            let warp_strength = radius * 0.3;
-            let warped_distance = distance + (warp_x + warp_y) * warp_strength;
-
-            let inner_radius = radius * 0.4;
-            let outer_radius = radius * 1.2;
-            let influence = smooth_falloff(warped_distance, inner_radius, outer_radius) * strength;
-            continent_influence = continent_influence.max(influence);
-        }
-
-        // Combine base noise and continent influence WITHOUT redistribution
-        // Just return the raw combined value
-        // NO EDGE FALLOFF - let continents and noise create natural boundaries
-        let combined = base_elevation * 0.5 + continent_influence * 0.5;
-        combined.clamp(0.0, 1.0)
-    }
-
-    /// CPU fallback for single elevation generation (extracted from generate_elevation)
-    fn generate_single_elevation_cpu(&self, position: Vec2) -> f32 {
-        // Scale position to noise space (important for proper sampling)
-        let scale = 1.0 / self.utils.dimensions().hex_size;
-        let x = (position.x * scale) as f64;
-        let y = (position.y * scale) as f64;
-
-        // Use centralized noise module with preset
-        let base_elevation = self.noise.sample_terrain(x, y) as f32;
-
-        // Apply continent influence with noise-warped distance for organic shapes
-        let mut continent_influence = 0.0_f32;
-        for (seed_pos, strength, radius) in &self.continent_seeds {
-            let distance = position.distance(*seed_pos);
-
-            // Add domain warping using noise to create irregular continent shapes
-            let warp_x = self.noise.sample_scaled(
-                (position.x * 0.005) as f64,
-                (position.y * 0.005) as f64,
-                0.01,
-            ) as f32;
-            let warp_y = self.noise.sample_scaled(
-                (position.x * 0.005 + 100.0) as f64,
-                (position.y * 0.005 + 100.0) as f64,
-                0.01,
-            ) as f32;
-
-            // Apply warping to distance - creates irregular, organic continent shapes
-            let warp_strength = radius * 0.3;
-            let warped_distance = distance + (warp_x + warp_y) * warp_strength;
-
-            // Use smooth falloff with inner and outer radius for better control
-            let inner_radius = radius * 0.4;
-            let outer_radius = radius * 1.2;
-            let influence = smooth_falloff(warped_distance, inner_radius, outer_radius) * strength;
-            continent_influence = continent_influence.max(influence);
-        }
-
-        // For Earth-like worlds, we use continent-based generation without aggressive edge falloff
-        // Edge falloff creates unrealistic ring-shaped worlds
-        // Instead, let continents and noise create natural land distribution
-
-        // Combine base noise and continent influence
-        // Weight: 50% base noise, 50% continent influence (proven working balance)
-        // This replaces the old 40/40/20 split after removing edge falloff
-        let combined_elevation = base_elevation * 0.5 + continent_influence * 0.5;
-
-        // HYBRID POWER REDISTRIBUTION: Different curves for different elevation ranges
-        // This maintains both deep oceans AND high mountains without skewing the distribution
-        let redistributed = self.apply_hybrid_power_redistribution(combined_elevation);
-
-        // NO EDGE FALLOFF - creates unnatural circular patterns
-        // Let continent seeds and noise create natural boundaries
-        redistributed.clamp(0.0, 1.0)
-    }
 
     fn generate_province(&self, index: u32, sea_level: f32) -> Province {
         let province_id = ProvinceId::new(index);
@@ -389,12 +303,12 @@ impl<'a> ProvinceBuilder<'a> {
 
         // Special handling for Pangaea (single supercontinent)
         if self.continent_count == 1 {
-            // Create one massive continent in the center
+            // Create one ENORMOUS continent in the center
             let position = Vec2::new(center_x, center_y);
-            let strength = 0.95;  // Very strong influence
-            let radius = 0.7 * map_width.min(map_height);  // 70% of map size
+            let strength = 1.0;  // Maximum strength for total dominance
+            let radius = 0.9 * map_width.min(map_height);  // 90% of map size for Pangaea-scale coverage
 
-            info!("  Generating Pangaea supercontinent: radius={:.0}, strength={:.2}", radius, strength);
+            info!("  Generating Pangaea supercontinent: radius={:.0}, strength={:.2}, using 95% continent weighting", radius, strength);
             self.continent_seeds.push((position, strength, radius));
         } else {
             // Normal multi-continent generation
@@ -423,56 +337,25 @@ impl<'a> ProvinceBuilder<'a> {
         }
     }
 
-    /// Generate elevation using our centralized Perlin noise module with continent seeds
+    /// Generate elevation using the unified elevation system
     fn generate_elevation(&self, position: Vec2) -> f32 {
-        // Scale position to noise space (important for proper sampling)
-        let scale = 1.0 / self.utils.dimensions().hex_size;
-        let x = (position.x * scale) as f64;
-        let y = (position.y * scale) as f64;
+        use super::elevation::{ElevationParams, MapBounds, compute_elevation};
 
-        // Use centralized noise module with preset
-        let base_elevation = self.noise.sample_terrain(x, y) as f32;
+        let params = ElevationParams {
+            position,
+            continent_seeds: &self.continent_seeds,
+            continent_count: self.continent_count,
+            seed: self.seed as u64,
+            hex_size: self.utils.dimensions().hex_size,
+            map_bounds: MapBounds {
+                x_min: self.utils.dimensions().bounds.x_min,
+                x_max: self.utils.dimensions().bounds.x_max,
+                y_min: self.utils.dimensions().bounds.y_min,
+                y_max: self.utils.dimensions().bounds.y_max,
+            },
+        };
 
-        // Apply continent influence with noise-warped distance for organic shapes
-        let mut continent_influence = 0.0_f32;
-        for (seed_pos, strength, radius) in &self.continent_seeds {
-            let distance = position.distance(*seed_pos);
-
-            // Add domain warping using noise to create irregular continent shapes
-            // Sample noise at a scale that creates interesting perturbations
-            let warp_x = self.noise.sample_scaled(
-                (position.x * 0.005) as f64,
-                (position.y * 0.005) as f64,
-                0.01,
-            ) as f32;
-            let warp_y = self.noise.sample_scaled(
-                (position.x * 0.005 + 100.0) as f64,
-                (position.y * 0.005 + 100.0) as f64,
-                0.01,
-            ) as f32;
-
-            // Apply warping to distance - creates irregular, organic continent shapes
-            let warp_strength = radius * 0.3; // Warp up to 30% of radius
-            let warped_distance = distance + (warp_x + warp_y) * warp_strength;
-
-            // Use smooth falloff with inner and outer radius for better control
-            let inner_radius = radius * 0.4;
-            let outer_radius = radius * 1.2;
-            let influence =
-                crate::math::smooth_falloff(warped_distance, inner_radius, outer_radius) * strength;
-            continent_influence = continent_influence.max(influence);
-        }
-
-        // For Earth-like worlds, minimize edge effects to avoid ring-shaped continents
-        // Combine base noise and continent influence with proper balance for ocean coverage
-        // Weight: 50% base noise, 50% continent influence (proven working balance)
-        let combined_elevation = base_elevation * 0.5 + continent_influence * 0.5;
-
-        // HYBRID POWER REDISTRIBUTION: Preserves ocean basins while creating mountain peaks
-        let redistributed = self.apply_hybrid_power_redistribution(combined_elevation);
-
-        // NO EDGE FALLOFF - let continent seeds and noise create natural boundaries
-        redistributed.clamp(0.0, 1.0)
+        compute_elevation(&params, &self.noise)
     }
 
     /// Calculate distance from map edges for falloff (FIXED: Use radial distance)
@@ -514,7 +397,7 @@ impl<'a> ProvinceBuilder<'a> {
 
         // Step 1: Sort to find percentiles
         let mut sorted = elevations.to_vec();
-        sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        sorted.sort_by(|a, b| a.total_cmp(b));
 
         // Step 2: Find key percentiles in the distribution
         let len = sorted.len();
@@ -612,8 +495,24 @@ impl<'a> ProvinceBuilder<'a> {
         let mut elevations = Vec::with_capacity(SAMPLE_COUNT);
         for _ in 0..SAMPLE_COUNT {
             let position = self.utils.random_position(self.rng);
-            // Generate raw elevation
-            let raw = self.generate_single_elevation_cpu_raw(position, &continent_seeds);
+            // Generate elevation using unified system
+            use super::elevation::{ElevationParams, MapBounds, compute_elevation};
+
+            let params = ElevationParams {
+                position,
+                continent_seeds: &continent_seeds,
+                continent_count: self.continent_count,
+                seed: self.seed as u64,
+                hex_size: self.utils.dimensions().hex_size,
+                map_bounds: MapBounds {
+                    x_min: self.utils.dimensions().bounds.x_min,
+                    x_max: self.utils.dimensions().bounds.x_max,
+                    y_min: self.utils.dimensions().bounds.y_min,
+                    y_max: self.utils.dimensions().bounds.y_max,
+                },
+            };
+
+            let raw = compute_elevation(&params, &self.noise);
             elevations.push(raw);
         }
 
@@ -621,7 +520,7 @@ impl<'a> ProvinceBuilder<'a> {
         self.apply_adaptive_redistribution(&mut elevations);
 
         // Now find the percentile for ocean coverage
-        elevations.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        elevations.sort_by(|a, b| a.total_cmp(b));
         let ocean_index = (self.ocean_coverage * SAMPLE_COUNT as f32) as usize;
 
         // The sea level is simply the elevation at the desired percentile
@@ -832,68 +731,6 @@ impl<'a> ProvinceBuilder<'a> {
         seeds
     }
 
-    /// Generate single elevation with continent influence (for GPU integration)
-    fn generate_single_elevation_cpu_with_continents(
-        &self,
-        position: Vec2,
-        continent_seeds: &[(Vec2, f32, f32)],
-    ) -> f32 {
-        let noise = PerlinNoise::with_seed(self.seed);
-
-        // Scale position to noise space
-        let scale = 1.0 / self.utils.dimensions().hex_size;
-        let x = (position.x * scale) as f64;
-        let y = (position.y * scale) as f64;
-
-        // Base elevation from noise
-        let base_elevation = noise.sample_terrain(x, y) as f32;
-
-        // Apply continent influence
-        let mut continent_influence = 0.0_f32;
-        for (seed_pos, strength, radius) in continent_seeds {
-            let distance = position.distance(*seed_pos);
-
-            // Domain warping for more natural coastlines
-            let warp_x = noise.sample_scaled(
-                (position.x * 0.005) as f64,
-                (position.y * 0.005) as f64,
-                0.01,
-            ) as f32;
-            let warp_y = noise.sample_scaled(
-                (position.x * 0.005 + 100.0) as f64,
-                (position.y * 0.005 + 100.0) as f64,
-                0.01,
-            ) as f32;
-
-            let warp_strength = radius * 0.3;
-            let warped_distance = distance + (warp_x + warp_y) * warp_strength;
-
-            let inner_radius = radius * 0.4;
-            let outer_radius = radius * 1.2;
-            let influence = smooth_falloff(warped_distance, inner_radius, outer_radius) * strength;
-            continent_influence = continent_influence.max(influence);
-        }
-
-        // CRITICAL FIX: Earth-like worlds do NOT have edge falloff!
-        // Real planets wrap around - they don't have edges
-        // Balance base elevation and continent influence for proper ocean coverage
-        // Use consistent 50/50 balance across all generation functions
-        let combined = base_elevation * 0.5 + continent_influence * 0.5;
-
-        // HYBRID POWER REDISTRIBUTION: Balance ocean depths and mountain heights
-        let redistributed = self.apply_hybrid_power_redistribution(combined);
-
-        // Add fractal detail for natural variation
-        let detail_scale = 0.002;
-        let detail_noise = noise.sample_scaled(
-            (position.x * detail_scale) as f64,
-            (position.y * detail_scale) as f64,
-            0.15,
-        ) as f32;
-
-        // Final elevation with subtle detail - reduced to prevent over-elevation
-        (redistributed + detail_noise * 0.05).clamp(0.0, 1.0)
-    }
 
     /// Calculate edge distance for GPU integration (FIXED: Use radial distance)
     fn calculate_edge_distance_gpu(&self, position: Vec2) -> f32 {

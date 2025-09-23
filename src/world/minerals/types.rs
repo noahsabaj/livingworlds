@@ -831,6 +831,7 @@ pub fn calculate_total_richness(province: &Province) -> f32 {
     let stone_value = province.stone.value() as f32 * STONE_VALUE_WEIGHT;
     let gem_value = province.gems.value() as f32 * GEM_VALUE_WEIGHT;
 
-    (iron_value + copper_value + tin_value + gold_value + coal_value + stone_value + gem_value)
-        / MAX_ABUNDANCE
+    // Return weighted sum directly - color mapping expects 0-10 range
+    // Weights are designed to create appropriate scale without additional division
+    iron_value + copper_value + tin_value + gold_value + coal_value + stone_value + gem_value
 }
