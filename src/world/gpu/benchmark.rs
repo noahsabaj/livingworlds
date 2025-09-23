@@ -4,8 +4,7 @@
 //! the performance gains achieved by GPU acceleration over CPU computation.
 
 use super::{
-    validate_gpu_cpu_elevation_generation, GpuComputeStatus, GpuGenerationConfig,
-    GpuPerformanceMetrics, ValidationConfig, ValidationResult,
+    validate_gpu_cpu_elevation_generation, GpuComputeStatus, GpuGenerationConfig, ValidationConfig, ValidationResult,
 };
 use crate::resources::MapDimensions;
 use bevy::prelude::*;

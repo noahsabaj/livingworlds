@@ -16,6 +16,10 @@ pub struct ModManager {
     /// All discovered mods (enabled and disabled)
     pub available_mods: Vec<LoadedMod>,
 
+    /// O(1) lookup map from mod ID to index in available_mods
+    /// Prevents O(n²) when searching for mods by ID
+    pub mod_index: std::collections::HashMap<String, usize>,
+
     /// Currently active mods in load order
     pub active_mods: Vec<String>, // Mod IDs
 
@@ -51,6 +55,7 @@ impl ModManager {
         Self {
             base_config: base_config.clone(),
             available_mods: Vec::new(),
+            mod_index: std::collections::HashMap::new(),
             active_mods: Vec::new(),
             merged_config: base_config,
             mod_paths: ModPaths::default(),
@@ -170,6 +175,18 @@ impl ModManager {
                 }
             }
         }
+
+        // Rebuild the mod_index HashMap for O(1) lookups
+        self.rebuild_mod_index();
+    }
+
+    /// Rebuild the mod_index HashMap after modifying available_mods
+    /// This prevents O(n²) patterns when searching for mods by ID
+    fn rebuild_mod_index(&mut self) {
+        self.mod_index.clear();
+        for (index, loaded_mod) in self.available_mods.iter().enumerate() {
+            self.mod_index.insert(loaded_mod.manifest.id.clone(), index);
+        }
     }
 
     /// Load manifest.ron files for each discovered mod
@@ -287,10 +304,13 @@ impl ModManager {
 
     /// Check if a mod is compatible with the current game version
     pub fn is_mod_compatible(&self, mod_id: &str) -> bool {
-        if let Some(loaded_mod) = self.available_mods.iter().find(|m| m.manifest.id == mod_id) {
-            // In production, we'd check version compatibility properly
-            return loaded_mod.manifest.compatible_game_version == "*"
-                || loaded_mod.manifest.compatible_game_version == env!("CARGO_PKG_VERSION");
+        // O(1) lookup using HashMap instead of O(n) linear search
+        if let Some(&index) = self.mod_index.get(mod_id) {
+            if let Some(loaded_mod) = self.available_mods.get(index) {
+                // In production, we'd check version compatibility properly
+                return loaded_mod.manifest.compatible_game_version == "*"
+                    || loaded_mod.manifest.compatible_game_version == env!("CARGO_PKG_VERSION");
+            }
         }
         false
     }
@@ -299,15 +319,14 @@ impl ModManager {
     pub fn validate_dependencies(&self, mod_id: &str) -> Vec<String> {
         let mut missing = Vec::new();
 
-        if let Some(loaded_mod) = self.available_mods.iter().find(|m| m.manifest.id == mod_id) {
-            for dep in &loaded_mod.manifest.dependencies {
-                if !dep.optional
-                    && !self
-                        .available_mods
-                        .iter()
-                        .any(|m| m.manifest.id == dep.mod_id)
-                {
-                    missing.push(dep.mod_id.clone());
+        // O(1) lookup using HashMap instead of O(n) linear search
+        if let Some(&index) = self.mod_index.get(mod_id) {
+            if let Some(loaded_mod) = self.available_mods.get(index) {
+                for dep in &loaded_mod.manifest.dependencies {
+                    // Use HashMap for O(1) dependency check instead of O(n) .any()
+                    if !dep.optional && !self.mod_index.contains_key(&dep.mod_id) {
+                        missing.push(dep.mod_id.clone());
+                    }
                 }
             }
         }

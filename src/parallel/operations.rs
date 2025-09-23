@@ -9,7 +9,6 @@ use std::hash::Hash;
 use std::sync::Arc;
 
 use super::chunk_size::ChunkStrategy;
-use super::safety::ParallelSafetyError;
 
 /// Parallel map operation for simple transformations
 pub fn parallel_map<T, R, F>(

@@ -19,15 +19,13 @@
 //! This separation allows the core generation to be reused in tests,
 //! tools, or other contexts while keeping Bevy-specific concerns isolated.
 
-use super::clouds::{CloudBuilder, CloudSystem};
-use super::provinces::ProvinceId;
 use super::World;
 use super::{build_world_mesh, ProvinceStorage, WorldBuilder, WorldMeshHandle};
 use super::{ProvincesSpatialIndex, WorldGenerationSettings};
 use crate::loading::{set_loading_progress, LoadingState};
 use crate::states::{GameState, RequestStateTransition};
 use async_channel::{Receiver, Sender};
-use bevy::log::{debug, error, info};
+use bevy::log::{error, info};
 use bevy::prelude::*;
 use bevy::tasks::{AsyncComputeTaskPool, Task};
 use std::fmt;
@@ -89,7 +87,7 @@ const MIN_RIVER_DENSITY: f32 = 0.0;
 pub fn handle_world_generation_transition_delay(
     mut commands: Commands,
     time: Res<Time>,
-    mut timer_res: Option<ResMut<WorldGenerationTransitionDelay>>,
+    timer_res: Option<ResMut<WorldGenerationTransitionDelay>>,
     mut state_events: EventWriter<RequestStateTransition>,
 ) {
     if let Some(mut delay) = timer_res {
@@ -426,7 +424,7 @@ pub fn poll_async_world_generation(
     mut state_events: EventWriter<RequestStateTransition>,
     async_generation: Option<ResMut<AsyncWorldGeneration>>,
 ) {
-    let Some(mut generation) = async_generation else {
+    let Some(generation) = async_generation else {
         return;
     };
 
@@ -483,7 +481,7 @@ pub fn poll_async_world_generation(
 
                 // Build ownership cache from province data (optimized for large datasets)
                 info!("Building ownership cache with parallel processing...");
-                let mut ownership_cache = crate::nations::ProvinceOwnershipCache::default();
+                let ownership_cache = crate::nations::ProvinceOwnershipCache::default();
                 info!("Created ownership cache, calling optimized rebuild...");
 
                 // Skip the potentially hanging rebuild for now to test state transition

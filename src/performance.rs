@@ -173,7 +173,7 @@ impl MetricTimer {
 /// Macro for easy metric recording
 #[macro_export]
 macro_rules! measure_parallel {
-    ($name:expr, $items:expr, $op:expr) => {{
+    ($name:expr_2021, $items:expr_2021, $op:expr_2021) => {{
         let timer = $crate::performance::MetricTimer::new($name, $items);
         let result = $op;
         // Timer will be recorded when it goes out of scope if metrics are available

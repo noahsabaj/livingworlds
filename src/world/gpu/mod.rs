@@ -22,7 +22,7 @@ pub use plugin::NoiseComputePlugin;
 
 // Public exports - Resources and settings
 pub use resources::{
-    ComputeBufferHandles, ComputeMetrics, ComputeState, ErosionComputeSettings,
+    ComputeMetrics, ErosionComputeSettings,
     NoiseComputeSettings, GpuGenerationRequest,
 };
 
@@ -34,15 +34,14 @@ pub use capabilities::check_gpu_compute_support;
 
 // Public exports - Buffer types
 pub use buffers::{
-    get_completed_elevations, init_compute_buffers, process_gpu_readbacks,
-    request_elevation_readback, upload_province_positions, ComputeBindGroups, GpuElevationData,
-    GpuErosionParams, GpuNoiseParams, GpuProvinceData, GpuReadbackManager, PendingReadback,
+    get_completed_elevations,
+    request_elevation_readback, upload_province_positions, GpuElevationData,
+    GpuErosionParams, GpuNoiseParams, GpuProvinceData,
 };
 
 // Public exports - Coordination
 pub use coordinator::{
-    coordinate_gpu_generation, get_gpu_elevation_results, handle_gpu_failures,
-    monitor_gpu_timeouts, manage_gpu_generation_request, request_gpu_elevation_generation,
+    get_gpu_elevation_results, request_gpu_elevation_generation,
     GpuGenerationConfig, GpuGenerationState, GpuPerformanceMetrics,
 };
 
@@ -53,15 +52,11 @@ pub use integration::{
 
 // Public exports - Validation
 pub use validation::{
-    periodic_validation_system, run_validation_test, validate_gpu_cpu_elevation_generation,
-    ValidationConfig, ValidationHistory, ValidationMismatch, ValidationResult,
+    validate_gpu_cpu_elevation_generation,
+    ValidationConfig, ValidationResult,
 };
 
 // Public exports - Benchmarking
-pub use benchmark::{
-    benchmark_progress_system, run_gpu_benchmark, BenchmarkConfig, BenchmarkResults, BenchmarkRun,
-    BenchmarkState,
-};
 
 // Public exports - World Generation
-pub use world_generation::{gpu_province_generation_system, GpuProvinceBuilder};
+pub use world_generation::GpuProvinceBuilder;

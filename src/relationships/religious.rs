@@ -202,7 +202,7 @@ pub fn update_religious_status(
 /// Simulates religious spread between provinces
 pub fn simulate_religious_spread(
     religions_query: Query<(Entity, &Religion)>,
-    mut religious_influences_query: Query<&mut ReligiousInfluence>,
+    religious_influences_query: Query<&mut ReligiousInfluence>,
     provinces_query: Query<Entity>,
 ) {
     // Simplified religious spread simulation

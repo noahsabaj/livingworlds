@@ -2,7 +2,7 @@
 
 use bevy::log::info;
 use rayon::prelude::*;
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::collections::{HashSet, VecDeque};
 
 use super::super::rivers::RiverSystem;
 use super::super::terrain::TerrainType;

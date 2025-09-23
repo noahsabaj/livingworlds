@@ -7,7 +7,6 @@
 use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::error::Error;
 use std::path::PathBuf;
 use std::time::SystemTime;
 

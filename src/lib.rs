@@ -4,6 +4,10 @@
 //! Living Worlds civilization observer simulator. It can be used by multiple
 //! binaries, testing frameworks, and tooling.
 
+// Suppress Bevy-specific lifetime warnings that aren't actionable
+// Bevy's system parameters (Res, Query, etc.) have hidden lifetimes that are managed by the framework
+#![allow(elided_lifetimes_in_paths)]
+
 // === Module Declarations ===
 // Core systems
 pub mod components;

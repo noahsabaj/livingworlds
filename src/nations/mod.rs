@@ -3,11 +3,12 @@
 //! This module implements the political entities that control provinces,
 //! including nations, dynasties, and their interactions.
 
-pub mod generation;
-pub mod house;
-pub mod plugin;
-pub mod rendering;
-pub mod types;
+// PRIVATE MODULES - Gateway architecture compliance
+mod generation;
+mod house;
+mod plugin;
+mod rendering;
+mod types;
 
 pub use generation::{build_territories_from_provinces, spawn_nations};
 pub use house::{

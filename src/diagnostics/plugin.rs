@@ -14,11 +14,11 @@ use super::fps::display_fps;
 // Import configuration type
 use crate::DiagnosticsConfig;
 
-/// Plugin for diagnostics and performance monitoring systems
+// Plugin for diagnostics and performance monitoring systems
 ///
-/// This plugin automatically registers the FPS monitoring system and
-/// integrates with Bevy's diagnostic infrastructure. It only adds the
-/// FPS display system when DiagnosticsConfig is present as a resource.
+// This plugin automatically registers the FPS monitoring system and
+// integrates with Bevy's diagnostic infrastructure. It only adds the
+// FPS display system when DiagnosticsConfig is present as a resource.
 define_plugin!(DiagnosticsPlugin {
     // Core diagnostic infrastructure
     plugins: [FrameTimeDiagnosticsPlugin::default()],

@@ -51,7 +51,7 @@ impl WorldBuilder {
         }
     }
 
-    pub fn build(mut self) -> Result<World, WorldGenerationError> {
+    pub fn build(self) -> Result<World, WorldGenerationError> {
         self.build_with_progress(None::<fn(&str, f32)>)
     }
 
@@ -125,15 +125,15 @@ impl WorldBuilder {
                 error_type: WorldGenerationErrorType::GenerationFailed,
             })?;
 
-        // Step 7: Generate cloud system
+        // Step 7: Generate cloud system and finalize
         let cloud_count = 90; // Default cloud count
-        report_progress(&format!("Generating {} procedural clouds...", cloud_count), 0.7);
+        report_progress(&format!("Generating {} procedural clouds and finalizing world...", cloud_count), 0.75);
         let cloud_system = crate::world::CloudBuilder::new(&mut self.rng, &self.dimensions).build();
 
-        // Step 8: Final validation and packaging
-        report_progress("Finalizing world data structures...", 0.85);
+        // Add a small delay to ensure the UI can update
+        std::thread::sleep(std::time::Duration::from_millis(100));
 
-        // Step 9: Complete!
+        // Step 8: Complete!
         report_progress("World generation complete!", 0.95);
 
         Ok(World {

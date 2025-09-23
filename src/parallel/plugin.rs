@@ -6,12 +6,11 @@
 use bevy::prelude::*;
 use bevy_plugin_builder::define_plugin;
 
-use crate::infrastructure::ThreadPoolManager;
 
-/// Plugin for managing parallel operations in Living Worlds
+// Plugin for managing parallel operations in Living Worlds
 ///
-/// This plugin coordinates with Bevy's scheduler to ensure safe parallel execution
-/// and provides resources for monitoring parallel operation performance.
+// This plugin coordinates with Bevy's scheduler to ensure safe parallel execution
+// and provides resources for monitoring parallel operation performance.
 define_plugin!(ParallelPlugin {
     resources: [ParallelOperationStats],
 
@@ -25,7 +24,7 @@ define_plugin!(ParallelPlugin {
     ]
 });
 
-/// Statistics for monitoring parallel operations
+// Statistics for monitoring parallel operations
 #[derive(Resource, Default, Debug)]
 pub struct ParallelOperationStats {
     pub total_operations: u64,
@@ -55,7 +54,7 @@ impl ParallelOperationStats {
     }
 }
 
-/// Initialize the parallel processing system
+// Initialize the parallel processing system
 fn initialize_parallel_system(mut commands: Commands) {
     // Thread pool is already initialized in main.rs via ThreadPoolManager
     // This is where we'd set up any additional parallel processing infrastructure
@@ -70,7 +69,7 @@ fn initialize_parallel_system(mut commands: Commands) {
     commands.insert_resource(ParallelOperationStats::default());
 }
 
-/// Log parallel processing configuration at startup
+// Log parallel processing configuration at startup
 fn log_parallel_configuration() {
     let threads = rayon::current_num_threads();
     let total_cores = std::thread::available_parallelism()
@@ -90,7 +89,7 @@ fn log_parallel_configuration() {
     );
 }
 
-/// Monitor parallel operations and log statistics
+// Monitor parallel operations and log statistics
 fn monitor_parallel_operations(stats: Res<ParallelOperationStats>) {
     if stats.total_operations > 0 && stats.total_operations % 100 == 0 {
         log::debug!(

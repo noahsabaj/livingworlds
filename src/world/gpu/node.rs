@@ -6,9 +6,9 @@
 use bevy::{
     prelude::*,
     render::{
-        render_graph::{self, Node, NodeRunError, RenderGraphContext},
+        render_graph::{Node, NodeRunError, RenderGraphContext},
         render_resource::*,
-        renderer::{RenderContext, RenderDevice, RenderQueue},
+        renderer::{RenderContext, RenderDevice},
     },
 };
 
@@ -389,7 +389,7 @@ pub fn init_compute_pipelines(
     }
 
     use bevy::render::render_resource::binding_types::{
-        storage_buffer, storage_buffer_read_only, uniform_buffer,
+        storage_buffer, storage_buffer_read_only,
     };
 
     // Create bind group layout for noise generation

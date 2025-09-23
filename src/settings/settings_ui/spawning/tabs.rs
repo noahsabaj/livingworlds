@@ -5,7 +5,9 @@
 use crate::settings::components::TabButton;
 use crate::states::SettingsTab;
 use crate::ui::{ButtonBuilder, ButtonSize, ButtonStyle, ChildBuilder};
-use bevy::prelude::*;
+use bevy::prelude::{
+    BackgroundColor, Color, FlexDirection, Node, UiRect, Val, default,
+};
 
 /// Spawns the tab buttons row
 pub fn spawn_tab_buttons(parent: &mut ChildBuilder, current_tab: SettingsTab) {

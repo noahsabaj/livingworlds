@@ -16,7 +16,7 @@ pub fn init_default_settings(mut commands: Commands) {
 pub fn handle_generate_button(
     mut commands: Commands,
     interactions: Query<&Interaction, (Changed<Interaction>, With<GenerateButton>)>,
-    mut settings: ResMut<WorldGenerationSettings>,
+    settings: ResMut<WorldGenerationSettings>,
     mut state_events: EventWriter<RequestStateTransition>,
 ) {
     for interaction in &interactions {

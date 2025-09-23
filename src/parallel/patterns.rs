@@ -139,7 +139,7 @@ where
 /// Macro for safe parallel iteration with automatic HashMap building
 #[macro_export]
 macro_rules! parallel_with_lookup {
-    ($data:expr, $lookup_data:expr, $key_fn:expr, |$item:ident, $map:ident| $body:expr) => {{
+    ($data:expr_2021, $lookup_data:expr_2021, $key_fn:expr_2021, |$item:ident, $map:ident| $body:expr_2021) => {{
         use $crate::parallel::patterns::WithLookupMap;
         use $crate::parallel::patterns::LookupMapBuilder;
 

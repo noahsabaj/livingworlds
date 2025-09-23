@@ -178,7 +178,7 @@ impl ButtonBuilder {
         self
     }
 
-    pub fn height(mut self, height: Val) -> Self {
+    pub fn height(self, height: Val) -> Self {
         // Note: height is currently derived from size, but we can add support if needed
         self
     }

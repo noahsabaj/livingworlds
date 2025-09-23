@@ -5,7 +5,6 @@
 //!
 //! Follows the gateway architecture pattern established by the ui/ module.
 
-use crate::menus::SpawnSettingsMenuEvent;
 use bevy::prelude::*;
 
 // PRIVATE MODULES - All implementation hidden behind gateway

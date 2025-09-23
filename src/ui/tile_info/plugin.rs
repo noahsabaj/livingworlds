@@ -10,9 +10,9 @@ use bevy_plugin_builder::define_plugin;
 
 use super::{panel, setup, TileInfoRoot};
 
-/// Plugin that manages tile information display using AUTOMATION FRAMEWORK!
+// Plugin that manages tile information display using AUTOMATION FRAMEWORK!
 ///
-/// **AUTOMATION ACHIEVEMENT**: 27 lines manual → 15 lines declarative!
+// **AUTOMATION ACHIEVEMENT**: 27 lines manual → 15 lines declarative!
 define_plugin!(TileInfoPlugin {
     update: [
         panel::update_tile_info_ui

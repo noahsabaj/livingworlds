@@ -235,7 +235,7 @@ pub fn init_compute_buffers(
     // Create heightmap buffer for erosion (atomic integers)
     let width = 2000;
     let height = 1500;
-    let heightmap_size = ((width * height * std::mem::size_of::<i32>()) as u64);
+    let heightmap_size = (width * height * std::mem::size_of::<i32>()) as u64;
 
     let heightmap_buffer = render_device.create_buffer(&BufferDescriptor {
         label: Some("heightmap_atomic_buffer"),
@@ -330,7 +330,7 @@ pub fn request_elevation_readback(
     render_queue: Res<'_, RenderQueue>,
     buffer_handles: Res<'_, ComputeBufferHandles>,
     mut readback_manager: ResMut<'_, GpuReadbackManager>,
-    mut commands: Commands<'_, '_>,
+    commands: Commands<'_, '_>,
 ) {
     if let Some(ref gpu_buffer) = buffer_handles.elevations_buffer {
         let num_provinces = 3_000_000; // Will come from actual province count

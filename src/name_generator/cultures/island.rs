@@ -9,10 +9,11 @@
 //! 3. **Weighted Selection**: Realistic distribution with common/uncommon/rare patterns
 
 use super::super::core::NameGenerator;
+use crate::name_generator::data::island_data::*;
 
 /// Generate an Island-style nation name using compound pattern system
 pub fn generate_nation_name(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::island_data::*;
+    
 
     // Choose generation method: 60% weighted simple, 30% compound, 10% volcanic compound
     let generation_type = generator.random_range(0, 10);
@@ -35,7 +36,7 @@ pub fn generate_nation_name(generator: &mut NameGenerator) -> String {
 
 /// Generate an Island-style house name using compound pattern system
 pub fn generate_house_name(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::island_data::*;
+    
 
     // Choose generation method: 70% weighted simple, 30% compound
     let generation_type = generator.random_range(0, 10);
@@ -58,7 +59,7 @@ pub fn generate_house_name(generator: &mut NameGenerator) -> String {
 
 /// Generate nation name using weighted simple patterns
 fn generate_weighted_simple_nation(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::island_data::*;
+    use super::super::data::island_data::*;
 
     let root = generator.random_choice(NATION_ROOTS);
     let pattern = generator.weighted_choice(WEIGHTED_NATION_PATTERNS);
@@ -67,7 +68,7 @@ fn generate_weighted_simple_nation(generator: &mut NameGenerator) -> String {
 
 /// Generate nation name using compound patterns (Maritime/Tropical + Structure + Root)
 fn generate_compound_nation(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::island_data::*;
+    use super::super::data::island_data::*;
 
     // Focus on maritime/tropical adjectives for Island culture
     let maritime_tropical_adjectives = &[
@@ -121,7 +122,7 @@ fn generate_compound_nation(generator: &mut NameGenerator) -> String {
 
 /// Generate nation name using volcanic compound patterns
 fn generate_volcanic_compound_nation(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::island_data::*;
+    use super::super::data::island_data::*;
 
     // Focus on volcanic/geological adjectives
     let volcanic_adjectives = &[
@@ -157,7 +158,7 @@ fn generate_volcanic_compound_nation(generator: &mut NameGenerator) -> String {
 
 /// Generate house name using weighted simple patterns
 fn generate_weighted_simple_house(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::island_data::*;
+    use super::super::data::island_data::*;
 
     let house = generator.random_choice(HOUSE_NAMES);
     let pattern = generator.weighted_choice(WEIGHTED_HOUSE_PATTERNS);
@@ -166,7 +167,7 @@ fn generate_weighted_simple_house(generator: &mut NameGenerator) -> String {
 
 /// Generate house name using compound seafaring/tribal patterns
 fn generate_compound_house(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::island_data::*;
+    use super::super::data::island_data::*;
 
     // For houses, use seafaring/tribal adjectives
     let seafaring_tribal_adjectives = &[

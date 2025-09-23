@@ -4,7 +4,19 @@
       "WebSearch",
       "mcp__context7__resolve-library-id",
       "mcp__context7__get-library-docs",
-      "Read(//home/nsabaj/Pictures/**)"
+      "Read(//home/nsabaj/Pictures/**)",
+      "Bash(grep:*)",
+      "Bash(for file in src/*/mod.rs)",
+      "Bash(do if grep -E \"^pub mod \" \"$file\")",
+      "Bash(/dev/null)",
+      "Bash(then echo \"❌ VIOLATION in $file:\" grep -E \"^pub mod \" \"$file\")",
+      "Bash(then echo \"❌ VIOLATION in $file:\")",
+      "Bash(fi)",
+      "Bash(done)",
+      "mcp__filesystem__read_multiple_files",
+      "Bash(find:*)",
+      "Bash(for file in src/ui/mod.rs src/nations/mod.rs src/world/colors/mod.rs src/name_generator/data/cultures/mod.rs src/name_generator/data/mod.rs src/steam/mod.rs)",
+      "Bash(do echo \"=== $file ===\")"
     ]
   },
   "outputStyle": "Explanatory"

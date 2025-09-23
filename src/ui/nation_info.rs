@@ -5,7 +5,7 @@
 
 use crate::nations::{House, Nation, NationId};
 use crate::states::GameState;
-use crate::ui::styles::*;
+use crate::ui::*;
 use bevy::prelude::*;
 
 /// Resource tracking the currently selected nation

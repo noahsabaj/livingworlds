@@ -81,17 +81,17 @@ pub trait SafeParallelOperation {
 #[macro_export]
 macro_rules! validate_no_quadratic {
     // Detect .iter().find() pattern
-    ($expr:expr, iter().find($($args:tt)*)) => {
+    ($expr:expr_2021, iter().find($($args:tt)*)) => {
         compile_error!("O(n²) pattern detected: .iter().find() inside parallel operation. Use with_lookup_map() instead!");
     };
 
     // Detect nested loops
-    ($expr:expr, for $($inner:tt)*) => {
+    ($expr:expr_2021, for $($inner:tt)*) => {
         compile_error!("Nested loop detected in parallel operation. Consider using with_lookup_map() for O(1) lookups!");
     };
 
     // Safe pattern - pass through
-    ($expr:expr) => {
+    ($expr:expr_2021) => {
         $expr
     };
 }

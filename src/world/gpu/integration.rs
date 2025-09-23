@@ -4,8 +4,8 @@
 //! to use GPU compute when available, with automatic CPU fallback.
 
 use super::{
-    get_gpu_elevation_results, request_gpu_elevation_generation, GpuComputeStatus,
-    GpuGenerationConfig, GpuGenerationState, GpuPerformanceMetrics, NoiseComputeSettings,
+    GpuComputeStatus,
+    GpuGenerationConfig, GpuGenerationState, GpuPerformanceMetrics,
 };
 use crate::math::PerlinNoise;
 use crate::resources::MapDimensions;

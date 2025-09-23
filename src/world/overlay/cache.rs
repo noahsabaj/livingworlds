@@ -5,11 +5,10 @@
 //! we use Arc reference counting for instant overlay switching.
 
 use super::types::MapMode;
-use crate::components::MineralType;
 use crate::math::VERTICES_PER_HEX;
 use crate::nations::NationColorRegistry;
 use crate::world::minerals::calculate_total_richness;
-use crate::world::{Province, ProvinceStorage, StoneAbundance, TerrainType, WorldColors};
+use crate::world::{Province, ProvinceStorage, WorldColors};
 use bevy::log::{debug, info};
 use bevy::prelude::*;
 use rayon::prelude::*;

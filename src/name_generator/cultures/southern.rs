@@ -9,10 +9,11 @@
 //! 3. **Weighted Selection**: Realistic distribution with common/uncommon/rare patterns
 
 use super::super::core::NameGenerator;
+use crate::name_generator::data::southern_data::*;
 
 /// Generate a Southern-style nation name using compound pattern system
 pub fn generate_nation_name(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::southern_data::*;
+    
 
     // Choose generation method: 60% weighted simple, 30% compound, 10% maritime compound
     let generation_type = generator.random_range(0, 10);
@@ -35,7 +36,7 @@ pub fn generate_nation_name(generator: &mut NameGenerator) -> String {
 
 /// Generate a Southern-style house name using compound pattern system
 pub fn generate_house_name(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::southern_data::*;
+    
 
     // Choose generation method: 70% weighted simple, 30% compound
     let generation_type = generator.random_range(0, 10);
@@ -58,7 +59,7 @@ pub fn generate_house_name(generator: &mut NameGenerator) -> String {
 
 /// Generate nation name using weighted simple patterns
 fn generate_weighted_simple_nation(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::southern_data::*;
+    use super::super::data::southern_data::*;
 
     let root = generator.random_choice(NATION_ROOTS);
     let pattern = generator.weighted_choice(WEIGHTED_NATION_PATTERNS);
@@ -67,7 +68,7 @@ fn generate_weighted_simple_nation(generator: &mut NameGenerator) -> String {
 
 /// Generate nation name using compound patterns (Trade/Ancient + Structure + Root)
 fn generate_compound_nation(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::southern_data::*;
+    use super::super::data::southern_data::*;
 
     // Focus on trade/ancient adjectives for Southern culture
     let trade_ancient_adjectives = &[
@@ -119,7 +120,7 @@ fn generate_compound_nation(generator: &mut NameGenerator) -> String {
 
 /// Generate nation name using maritime compound patterns
 fn generate_maritime_compound_nation(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::southern_data::*;
+    use super::super::data::southern_data::*;
 
     // Focus on maritime/coastal adjectives
     let maritime_adjectives = &[
@@ -168,7 +169,7 @@ fn generate_maritime_compound_nation(generator: &mut NameGenerator) -> String {
 
 /// Generate house name using weighted simple patterns
 fn generate_weighted_simple_house(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::southern_data::*;
+    use super::super::data::southern_data::*;
 
     let house = generator.random_choice(HOUSE_NAMES);
     let pattern = generator.weighted_choice(WEIGHTED_HOUSE_PATTERNS);
@@ -177,7 +178,7 @@ fn generate_weighted_simple_house(generator: &mut NameGenerator) -> String {
 
 /// Generate house name using compound trade/noble patterns
 fn generate_compound_house(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::southern_data::*;
+    use super::super::data::southern_data::*;
 
     // For houses, use trade/noble adjectives
     let noble_trade_adjectives = &[

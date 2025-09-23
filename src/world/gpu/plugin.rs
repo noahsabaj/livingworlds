@@ -12,8 +12,7 @@ use bevy_plugin_builder::define_plugin;
 use super::{
     benchmark::{benchmark_progress_system, BenchmarkConfig, BenchmarkState},
     buffers::{
-        init_compute_buffers, prepare_compute_bind_groups, process_gpu_readbacks,
-        request_elevation_readback, ComputeBindGroups, GpuElevationData, GpuReadbackManager,
+        init_compute_buffers, prepare_compute_bind_groups, process_gpu_readbacks, ComputeBindGroups, GpuElevationData, GpuReadbackManager,
     },
     capabilities::check_gpu_compute_support,
     coordinator::{
@@ -27,7 +26,7 @@ use super::{
     validation::{periodic_validation_system, ValidationConfig, ValidationHistory},
 };
 
-/// GPU compute plugin for noise generation and erosion simulation
+// GPU compute plugin for noise generation and erosion simulation
 define_plugin!(NoiseComputePlugin {
     resources: [
         NoiseComputeSettings,

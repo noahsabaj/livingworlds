@@ -8,7 +8,7 @@ use super::super::provinces::Province;
 use super::types::TerrainType;
 use crate::world::ClimateType;
 use crate::math::{exponential_smooth, lerp};
-use crate::parallel::{parallel_map, parallel_zip_mutate, parallel_enumerate, ChunkStrategy};
+use crate::parallel::{parallel_map, parallel_zip_mutate, parallel_enumerate};
 use bevy::log::{debug, info};
 use bevy::prelude::Vec2;
 use std::collections::{HashMap, VecDeque};

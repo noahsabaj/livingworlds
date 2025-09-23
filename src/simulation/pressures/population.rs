@@ -2,7 +2,7 @@
 //!
 //! Population pressure drives expansion, migration, and infrastructure development.
 
-use super::types::{PressureLevel, PressureType};
+use super::types::PressureLevel;
 use crate::nations::Nation;
 use crate::world::Province;
 

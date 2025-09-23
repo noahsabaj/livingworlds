@@ -6,7 +6,6 @@
 use bevy::prelude::*;
 
 use super::manager::ModManager;
-use super::types::ModSource;
 
 /// Events for mod enable/disable operations
 #[derive(Event)]
@@ -142,7 +141,7 @@ pub fn handle_refresh_workshop_data_events(
     mut events: EventReader<RefreshWorkshopDataEvent>,
     #[cfg(feature = "steam")] steam: Option<Res<SteamClient>>,
     #[cfg(not(feature = "steam"))] _steam: Option<Res<SteamClient>>,
-    mut mod_manager: ResMut<ModManager>,
+    mod_manager: ResMut<ModManager>,
 ) {
     #[cfg(feature = "steam")]
     {

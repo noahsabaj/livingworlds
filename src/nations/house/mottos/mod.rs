@@ -17,22 +17,11 @@ mod types;
 pub use generator::generate_motto;
 
 // Advanced generation API for sophisticated use cases
-pub use generator::{
-    GenerationMethod, GenerationStatistics, MottoGenerationResult, MottoGenerator, ValidationReport,
-};
 
 // Configuration types for customization
-pub use types::{CompoundMottoConfig, MottoError, MottoRarity, MottoVariation, TraitCombination};
 
-pub use selection::{MottoSelector, RarityProbabilities, SelectionConfig, SelectionStatistics};
 
-pub use compound::{CompoundMottoGenerator, CompoundStatistics};
 
 // Data access for advanced scenarios (validation, analysis, debugging)
-pub use data::{MottoRegistry, MottoStatistics, TraitCultureStats};
 
 // Convenience API functions
-pub use api::{
-    create_generator, create_generator_with_config, get_motto_data_statistics,
-    validate_motto_system,
-};

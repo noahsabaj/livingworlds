@@ -16,9 +16,9 @@ use super::{
 // Your Steam App ID (replace with actual ID from Valve)
 const STEAM_APP_ID: u32 = 480; // Using Spacewar ID for testing - REPLACE WITH YOUR ACTUAL APP ID
 
-/// Steam integration plugin using ADVANCED CUSTOM INITIALIZATION AUTOMATION!
+// Steam integration plugin using ADVANCED CUSTOM INITIALIZATION AUTOMATION!
 ///
-/// **AUTOMATION ACHIEVEMENT**: 65 lines complex init → 45 lines declarative + custom!
+// **AUTOMATION ACHIEVEMENT**: 65 lines complex init → 45 lines declarative + custom!
 define_plugin!(SteamPlugin {
     events: [AchievementUnlockedEvent, WorkshopItemDownloadedEvent],
 

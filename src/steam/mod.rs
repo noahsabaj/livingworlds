@@ -32,7 +32,7 @@ mod types;
 mod workshop;
 
 // Achievement system is large enough for its own subdirectory
-pub mod achievements;
+mod achievements;  // PRIVATE MODULE - Gateway architecture compliance
 
 // SELECTIVE PUBLIC EXPORTS - Controlled Steam API
 
@@ -51,6 +51,11 @@ pub use leaderboards::{
 };
 pub use statistics::{increment_stat, set_stat, update_steam_stats};
 pub use workshop::{get_subscribed_items, subscribe_to_workshop_item};
+
+// Re-export achievements functionality for controlled access
+pub use achievements::{
+    get_achievement_display_name, handle_achievement_triggers, unlock_achievement,
+};
 
 // PURE GATEWAY - No Implementation Logic
 //

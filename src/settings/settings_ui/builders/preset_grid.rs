@@ -3,7 +3,7 @@
 //! Builder for creating graphics preset button grids.
 
 use crate::settings::{components::PresetButton, types::*};
-use crate::ui::{dimensions, styles::colors, ButtonBuilder, ButtonStyle, PanelBuilder, PanelStyle, ChildBuilder};
+use crate::ui::{dimensions, ButtonBuilder, ButtonStyle, PanelBuilder, PanelStyle, ChildBuilder};
 use bevy::prelude::*;
 
 /// Configuration for preset grid layout

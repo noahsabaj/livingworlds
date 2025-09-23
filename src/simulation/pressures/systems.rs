@@ -2,12 +2,12 @@
 //!
 //! This system updates all pressure types and triggers actions when thresholds are exceeded.
 
-use super::economic::{calculate_economic_pressure, resolve_economic_pressure};
+use super::economic::calculate_economic_pressure;
 use super::legitimacy::{
-    calculate_legitimacy_pressure, resolve_legitimacy_pressure, RecentEvents, RulerPersonality,
+    calculate_legitimacy_pressure, RecentEvents, RulerPersonality,
 };
-use super::military::{calculate_military_pressure, resolve_military_pressure};
-use super::population::{calculate_population_pressure, resolve_population_pressure};
+use super::military::calculate_military_pressure;
+use super::population::calculate_population_pressure;
 use super::types::{PressureType, PressureVector};
 use crate::nations::Nation;
 use crate::world::{ProvinceId, ProvinceStorage};
@@ -26,7 +26,7 @@ pub fn update_nation_pressures(
 ) {
     // NOTE: Bevy queries should not be manually parallelized with Rayon
     // Bevy has its own parallel scheduling system
-    for (mut nation, mut pressures, owns_territory) in &mut nations_query {
+    for (nation, mut pressures, owns_territory) in &mut nations_query {
             // Get provinces from all territories owned by this nation
             let mut controlled_provinces = Vec::new();
 
@@ -113,11 +113,11 @@ pub fn update_nation_pressures(
 /// Resolve pressure actions when thresholds are exceeded
 pub fn resolve_pressure_actions(
     mut nations_query: Query<(&mut Nation, &mut PressureVector, Entity)>,
-    mut commands: Commands,
+    commands: Commands,
 ) {
     // NOTE: Bevy queries should not be manually parallelized with Rayon
     // Bevy has its own parallel scheduling system
-    for (mut nation, mut pressures, entity) in &mut nations_query {
+    for (nation, mut pressures, entity) in &mut nations_query {
             // Check if enough time has passed since last resolution
             if pressures.time_since_resolution < 5.0 {
                 return; // Only resolve every 5 seconds minimum

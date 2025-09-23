@@ -4,33 +4,13 @@
 //! handling the construction of the complete Bevy application with all required
 //! plugins and configuration.
 
-use bevy::audio::AudioPlugin;
-use bevy::diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin};
 use bevy::prelude::*;
 use bevy_pkv::PkvStore;
 
 // Import configuration types from the config module (once it's created)
-use crate::{AppConfig, DiagnosticsConfig};
+use crate::AppConfig;
 
 // Import all plugins consistently
-use crate::{
-    camera::CameraPlugin,
-    loading::LoadingScreenPlugin,
-    menus::MenusPlugin,
-    modding::ModdingPlugin,
-    nations::NationPlugin,
-    relationships::RelationshipsPlugin,
-    save_load::SaveLoadPlugin,
-    settings::SettingsUIPlugin,
-    simulation::SimulationPlugin,
-    states::StatesPlugin,
-    ui::UIPlugin,
-    // World module plugins
-    world::{
-        BorderPlugin, CloudPlugin, NoiseComputePlugin, OverlayPlugin, ProvinceEventsPlugin,
-        TerrainPlugin, WorldConfigPlugin,
-    },
-};
 
 // Import from sibling modules
 use super::initialization;

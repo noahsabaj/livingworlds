@@ -3,7 +3,7 @@
 //! Focused handlers for Apply/Cancel buttons and unsaved changes dialog.
 
 use crate::settings::{components::*, persistence::save_settings, types::*};
-use crate::ui::styles::colors;
+use crate::ui::colors;
 use bevy::prelude::*;
 use bevy_pkv::PkvStore;
 

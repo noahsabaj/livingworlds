@@ -35,7 +35,7 @@ pub fn setup_steam_integration(app: &mut App) {
 ///
 /// This sets up the window configuration and conditionally disables
 /// audio based on the application configuration.
-pub fn configure_default_plugins(config: &AppConfig) -> impl PluginGroup {
+pub fn configure_default_plugins(config: &AppConfig) -> impl PluginGroup + use<> {
     let mut default_plugins = DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
             title: config.window.title.clone(),

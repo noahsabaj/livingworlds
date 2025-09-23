@@ -9,10 +9,11 @@
 //! 3. **Weighted Selection**: Realistic distribution with common/uncommon/rare patterns
 
 use super::super::core::NameGenerator;
+use crate::name_generator::data::western_data::*;
 
 /// Generate a Western-style nation name using compound pattern system
 pub fn generate_nation_name(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::western_data::*;
+    
 
     // Choose generation method: 65% weighted simple, 25% compound, 10% democratic compound
     let generation_type = generator.random_range(0, 20);
@@ -35,7 +36,7 @@ pub fn generate_nation_name(generator: &mut NameGenerator) -> String {
 
 /// Generate a Western-style house name using compound pattern system
 pub fn generate_house_name(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::western_data::*;
+    
 
     // Choose generation method: 70% weighted simple, 30% compound
     let generation_type = generator.random_range(0, 10);
@@ -58,7 +59,7 @@ pub fn generate_house_name(generator: &mut NameGenerator) -> String {
 
 /// Generate nation name using weighted simple patterns
 fn generate_weighted_simple_nation(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::western_data::*;
+    use super::super::data::western_data::*;
 
     let root = generator.random_choice(NATION_ROOTS);
     let pattern = generator.weighted_choice(WEIGHTED_NATION_PATTERNS);
@@ -67,7 +68,7 @@ fn generate_weighted_simple_nation(generator: &mut NameGenerator) -> String {
 
 /// Generate nation name using compound patterns (Royal/Noble + Structure + Root)
 fn generate_compound_nation(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::western_data::*;
+    use super::super::data::western_data::*;
 
     // Focus on royal/noble adjectives for Western culture
     let royal_adjectives = &[
@@ -121,7 +122,7 @@ fn generate_compound_nation(generator: &mut NameGenerator) -> String {
 
 /// Generate nation name using democratic compound patterns
 fn generate_democratic_compound_nation(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::western_data::*;
+    use super::super::data::western_data::*;
 
     // Focus on democratic/freedom adjectives
     let democratic_adjectives = &[
@@ -168,7 +169,7 @@ fn generate_democratic_compound_nation(generator: &mut NameGenerator) -> String 
 
 /// Generate house name using weighted simple patterns
 fn generate_weighted_simple_house(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::western_data::*;
+    use super::super::data::western_data::*;
 
     let house = generator.random_choice(HOUSE_NAMES);
     let pattern = generator.weighted_choice(WEIGHTED_HOUSE_PATTERNS);
@@ -177,7 +178,7 @@ fn generate_weighted_simple_house(generator: &mut NameGenerator) -> String {
 
 /// Generate house name using compound knightly/royal patterns
 fn generate_compound_house(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::western_data::*;
+    use super::super::data::western_data::*;
 
     // For houses, use royal/knightly adjectives
     let noble_adjectives = &[

@@ -49,12 +49,8 @@ mod registration;
 mod validation; // Proof-of-concept demonstrations
 
 // Public API exports (gateway pattern)
-pub use generation::{ControlConfig, SectionConfig, SettingGenerator};
 pub use macros::define_setting_tab;
-pub use registration::{SettingRegistrar, ValidationResult};
 
 // Re-export commonly used types for convenience
-pub use bevy::prelude::{Component, Entity};
 
 // Make sure the macro is available at crate root
-pub use macros::*;

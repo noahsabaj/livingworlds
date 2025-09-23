@@ -9,10 +9,11 @@
 //! 3. **Weighted Selection**: Realistic distribution with common/uncommon/rare patterns
 
 use super::super::core::NameGenerator;
+use crate::name_generator::data::eastern_data::*;
 
 /// Generate an Eastern-style nation name using compound pattern system
 pub fn generate_nation_name(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::eastern_data::*;
+    
 
     // Choose generation method: 60% weighted simple, 30% compound, 10% elemental compound
     let generation_type = generator.random_range(0, 10);
@@ -35,7 +36,7 @@ pub fn generate_nation_name(generator: &mut NameGenerator) -> String {
 
 /// Generate an Eastern-style house name using compound pattern system
 pub fn generate_house_name(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::eastern_data::*;
+    
 
     // Choose generation method: 70% weighted simple, 30% compound
     let generation_type = generator.random_range(0, 10);
@@ -58,7 +59,7 @@ pub fn generate_house_name(generator: &mut NameGenerator) -> String {
 
 /// Generate nation name using weighted simple patterns
 fn generate_weighted_simple_nation(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::eastern_data::*;
+    use super::super::data::eastern_data::*;
 
     // Use dynasties for Eastern naming (more appropriate than generic roots)
     let dynasty = generator.random_choice(DYNASTY_NAMES);
@@ -68,7 +69,7 @@ fn generate_weighted_simple_nation(generator: &mut NameGenerator) -> String {
 
 /// Generate nation name using compound patterns (Celestial/Honor + Structure + Dynasty)
 fn generate_compound_nation(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::eastern_data::*;
+    use super::super::data::eastern_data::*;
 
     // Focus on celestial/honor adjectives for Eastern culture
     let celestial_adjectives = &[
@@ -120,7 +121,7 @@ fn generate_compound_nation(generator: &mut NameGenerator) -> String {
 
 /// Generate nation name using elemental compound patterns
 fn generate_elemental_compound_nation(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::eastern_data::*;
+    use super::super::data::eastern_data::*;
 
     // Focus on elemental adjectives
     let elemental_adjectives = &[
@@ -170,7 +171,7 @@ fn generate_elemental_compound_nation(generator: &mut NameGenerator) -> String {
 
 /// Generate house name using weighted simple patterns
 fn generate_weighted_simple_house(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::eastern_data::*;
+    use super::super::data::eastern_data::*;
 
     let house = generator.random_choice(HOUSE_NAMES);
     let pattern = generator.weighted_choice(WEIGHTED_HOUSE_PATTERNS);
@@ -179,7 +180,7 @@ fn generate_weighted_simple_house(generator: &mut NameGenerator) -> String {
 
 /// Generate house name using compound honor/way patterns
 fn generate_compound_house(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::eastern_data::*;
+    use super::super::data::eastern_data::*;
 
     // For houses, use honor/virtue adjectives
     let honor_adjectives = &[

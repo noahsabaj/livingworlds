@@ -4,11 +4,8 @@
 //! generation and GPU compute, managing the state transitions and data flow.
 
 use super::{
-    get_completed_elevations, request_elevation_readback,
-    resources::{ComputeBufferHandles, NoiseComputeSettings, GpuGenerationRequest},
-    upload_province_positions, GpuComputeStatus, GpuElevationData,
+    resources::GpuGenerationRequest, GpuComputeStatus, GpuElevationData,
 };
-use crate::world::provinces::Province;
 use bevy::prelude::*;
 
 /// Represents the current state of GPU world generation
@@ -221,7 +218,7 @@ pub fn handle_gpu_failures(
 
 /// System to manage GPU generation request lifecycle
 pub fn manage_gpu_generation_request(
-    mut request: Option<ResMut<GpuGenerationRequest>>,
+    request: Option<ResMut<GpuGenerationRequest>>,
     state: Res<GpuGenerationState>,
     mut frame_counter: Local<u32>,
     mut has_started_computing: Local<bool>,

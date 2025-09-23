@@ -14,7 +14,6 @@ mod variations;
 pub use registry::{MottoRegistry, MottoStatistics, TraitCultureStats};
 
 // Direct data access for specialized use cases (used by registry internally)
-pub use variations::{get_fallback_motto, get_variations_for_trait};
 
 // Note: Raw variation data is NOT exposed - all access goes through the registry
 // This ensures validation, caching, and proper error handling

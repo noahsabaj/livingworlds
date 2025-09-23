@@ -12,7 +12,7 @@ use super::{
 use bevy::prelude::*;
 use bevy_plugin_builder::define_plugin;
 
-/// Plugin that manages all state-related systems using declarative syntax
+// Plugin that manages all state-related systems using declarative syntax
 define_plugin!(StatesPlugin {
     states: [GameState],
     sub_states: [MenuState],

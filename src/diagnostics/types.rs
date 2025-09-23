@@ -4,7 +4,6 @@
 //! the diagnostics system for performance monitoring and FPS display.
 
 // Re-export diagnostics configuration from config module for convenience
-pub use crate::DiagnosticsConfig;
 
 /// Diagnostic metric identifiers
 ///

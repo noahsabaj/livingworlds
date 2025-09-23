@@ -4,9 +4,7 @@
 //! including configuration types and registration helpers.
 //! Based on the proven patterns from plugin_builder/registration.rs.
 
-use crate::settings::types::{
-    AudioSettings, ControlSettings, GraphicsSettings, InterfaceSettings, SettingType,
-};
+use crate::settings::types::SettingType;
 use crate::ui::ValueFormat;
 use bevy::prelude::*;
 

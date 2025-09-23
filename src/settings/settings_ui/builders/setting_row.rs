@@ -4,7 +4,7 @@
 
 use crate::settings::{components::*, types::*};
 use crate::ui::{
-    dimensions, styles::colors, ButtonBuilder, ButtonStyle, LabelBuilder, LabelStyle, PanelBuilder,
+    dimensions, ButtonBuilder, ButtonStyle, LabelBuilder, LabelStyle, PanelBuilder,
     PanelStyle, SliderBuilder, ValueFormat, ChildBuilder,
 };
 use bevy::prelude::*;

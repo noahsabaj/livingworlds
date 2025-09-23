@@ -2,7 +2,7 @@
 //!
 //! Spawns the content for the Performance settings tab.
 
-use crate::ui::styles::colors;
+use crate::ui::colors;
 use bevy::prelude::*;
 
 /// Spawns performance settings content (placeholder for now)

@@ -3,7 +3,7 @@
 //! This is a PURE GATEWAY - no implementation code, only module organization.
 //! External modules should handle their own UI creation internally.
 
-use bevy::prelude::*;
+use bevy::prelude::ChildSpawnerCommands;
 
 // Back to ChildSpawnerCommands - this was much closer to working
 // The type mismatch was small compared to EntityCommands
@@ -25,13 +25,27 @@ mod overlay_display;
 mod performance_dashboard;
 mod plugin;
 mod sliders;
-pub mod styles;
+mod styles;  // PRIVATE MODULE - Gateway architecture compliance
 mod text_inputs;
 mod tile_info;
 mod tips;
 mod toolbar;
 
 // ESSENTIAL EXPORTS - Minimal public API
+
+// Styles module re-exports for controlled access
+pub use styles::{animations, colors, dimensions, helpers, layers};
+
+// Convenience aliases from styles module
+pub use styles::colors::{
+    BACKGROUND_MEDIUM as UI_BACKGROUND_COLOR, BORDER_DEFAULT as UI_BORDER_COLOR,
+    TEXT_PRIMARY as TEXT_COLOR_PRIMARY, TEXT_SECONDARY as TEXT_COLOR_SECONDARY,
+    TEXT_TITLE as TEXT_COLOR_HEADER,
+};
+pub use styles::dimensions::{
+    FONT_SIZE_LARGE as TEXT_SIZE_LARGE, FONT_SIZE_NORMAL as TEXT_SIZE_NORMAL,
+    FONT_SIZE_TITLE as TEXT_SIZE_TITLE,
+};
 
 // Marker components for queries
 pub use dialogs::{
@@ -91,9 +105,6 @@ pub use dialogs::CountdownText;
 // Essential preset functions
 pub use dialogs::presets as dialog_presets;
 pub use tips::get_random_tip;
-
-// Style constants and helpers (essential utilities)
-pub use styles::{colors, dimensions, helpers, layers};
 
 // Convenience functions from individual modules
 pub use sliders::slider;

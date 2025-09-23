@@ -10,9 +10,9 @@ use crate::states::GameState;
 use bevy::prelude::*;
 use bevy_plugin_builder::define_plugin;
 
-/// World configuration plugin using MASSIVE SYSTEM AUTOMATION!
+// World configuration plugin using MASSIVE SYSTEM AUTOMATION!
 ///
-/// **AUTOMATION ACHIEVEMENT**: 58 lines with 14 systems → 35 lines declarative!
+// **AUTOMATION ACHIEVEMENT**: 58 lines with 14 systems → 35 lines declarative!
 define_plugin!(WorldConfigPlugin {
     resources: [WorldGenerationSettings],
 

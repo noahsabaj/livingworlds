@@ -6,13 +6,12 @@
 use super::setup::*;
 use super::systems::*;
 use super::types::*;
-use bevy::prelude::*;
 use bevy_plugin_builder::define_plugin;
 
-/// Plugin for the Rayon performance dashboard using declarative automation.
+// Plugin for the Rayon performance dashboard using declarative automation.
 ///
-/// Note: run_if conditions with tuples trigger a compiler bug with bevy-plugin-builder,
-/// so the conditional check is handled within each system instead.
+// Note: run_if conditions with tuples trigger a compiler bug with bevy-plugin-builder,
+// so the conditional check is handled within each system instead.
 define_plugin!(PerformanceDashboardPlugin {
     resources: [DashboardVisibility],
 

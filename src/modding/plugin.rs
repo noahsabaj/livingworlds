@@ -14,9 +14,9 @@ use super::handlers::{
 use super::loader::ConfigReloadEvent;
 use super::manager::ModManager;
 
-/// The modding plugin using ADVANCED custom initialization automation!
+// The modding plugin using ADVANCED custom initialization automation!
 ///
-/// **AUTOMATION ACHIEVEMENT**: 65 lines with complex setup → ~45 lines declarative!
+// **AUTOMATION ACHIEVEMENT**: 65 lines with complex setup → ~45 lines declarative!
 define_plugin!(ModdingPlugin {
     events: [
         ConfigReloadEvent,

@@ -5,10 +5,13 @@ use super::input;
 use super::movement;
 use super::window;
 use crate::states::GameState;
-use bevy::prelude::*;
+use bevy::prelude::{
+    Camera, Camera2d, ClearColorConfig, Commands, IntoScheduleConfigs, IsDefaultUiCamera, Name, Transform,
+    default, in_state,
+};
 use bevy_plugin_builder::define_plugin;
 
-/// Camera control plugin for managing viewport and camera movement using declarative syntax
+// Camera control plugin for managing viewport and camera movement using declarative syntax
 define_plugin!(CameraPlugin {
     resources: [movement::CameraBounds, window::WindowFocusState],
 
@@ -42,7 +45,7 @@ define_plugin!(CameraPlugin {
     }
 });
 
-/// Setup the main game camera with initial position and projection
+// Setup the main game camera with initial position and projection
 pub fn setup_camera(mut commands: Commands) {
     use crate::constants::COLOR_OCEAN_BACKGROUND;
 

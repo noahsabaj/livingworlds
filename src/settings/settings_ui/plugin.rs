@@ -7,7 +7,7 @@ use crate::settings::{components::*, types::*};
 use bevy::prelude::*;
 use bevy_plugin_builder::define_plugin;
 
-/// Plugin for settings UI functionality.
+// Plugin for settings UI functionality.
 define_plugin!(SettingsUIPlugin {
     resources: [
         TempGameSettings,
@@ -57,7 +57,7 @@ define_plugin!(SettingsUIPlugin {
     ]
 });
 
-/// System to handle the SpawnSettingsMenuEvent by spawning the settings menu
+// System to handle the SpawnSettingsMenuEvent by spawning the settings menu
 fn handle_spawn_settings_menu_event(
     mut events: EventReader<SpawnSettingsMenuEvent>,
     commands: Commands,

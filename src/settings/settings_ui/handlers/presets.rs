@@ -3,7 +3,7 @@
 //! Focused handlers for graphics preset buttons and reset functionality.
 
 use crate::settings::{components::*, types::*};
-use crate::ui::styles::colors;
+use crate::ui::colors;
 use bevy::ecs::system::ParamSet;
 use bevy::prelude::*;
 

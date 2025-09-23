@@ -8,7 +8,6 @@
 //! - **Automated Implementation**: 15 lines of declarative configuration
 //! - **Reduction**: 60%+ elimination of boilerplate code
 
-use bevy::app::AppExit;
 use bevy::prelude::*;
 
 use crate::menus::types::{MenuAction, MenuButton, SpawnSaveBrowserEvent, SpawnSettingsMenuEvent};

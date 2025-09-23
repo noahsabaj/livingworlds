@@ -77,37 +77,37 @@ pub fn generate_city_name(
 pub fn get_cultural_place_style(generator: &mut NameGenerator, culture: Culture) -> String {
     match culture {
         Culture::Western => {
-            use super::data::cultures::western_data::*;
+            use super::data::western_data::*;
             let prefix = generator.random_choice(PLACE_PREFIXES);
             let suffix = generator.random_choice(PLACE_SUFFIXES);
             format!("{}{}", capitalize_first(prefix), suffix)
         }
         Culture::Eastern => {
-            use super::data::cultures::eastern_data::*;
+            use super::data::eastern_data::*;
             generator.random_choice(PLACE_NAMES).to_string()
         }
         Culture::Northern => {
-            use super::data::cultures::northern_data::*;
+            use super::data::northern_data::*;
             generator.random_choice(PLACE_NAMES).to_string()
         }
         Culture::Southern => {
-            use super::data::cultures::southern_data::*;
+            use super::data::southern_data::*;
             generator.random_choice(PLACE_NAMES).to_string()
         }
         Culture::Desert => {
-            use super::data::cultures::desert_data::*;
+            use super::data::desert_data::*;
             generator.random_choice(PLACE_NAMES).to_string()
         }
         Culture::Island => {
-            use super::data::cultures::island_data::*;
+            use super::data::island_data::*;
             generator.random_choice(PLACE_NAMES).to_string()
         }
         Culture::Ancient => {
-            use super::data::cultures::ancient_data::*;
+            use super::data::ancient_data::*;
             generator.random_choice(PLACE_NAMES).to_string()
         }
         Culture::Mystical => {
-            use super::data::cultures::mystical_data::*;
+            use super::data::mystical_data::*;
             generator.random_choice(PLACE_NAMES).to_string()
         }
     }

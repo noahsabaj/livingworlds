@@ -9,9 +9,9 @@ use bevy_plugin_builder::define_plugin;
 
 use super::{mineral_legend, setup};
 
-/// Plugin that manages overlay display UI - now focused solely on mineral legend
+// Plugin that manages overlay display UI - now focused solely on mineral legend
 ///
-/// Map mode display is handled by HUD to avoid duplication
+// Map mode display is handled by HUD to avoid duplication
 define_plugin!(OverlayDisplayPlugin {
     update: [
         mineral_legend::update_mineral_legend_visibility

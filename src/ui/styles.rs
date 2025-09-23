@@ -3,7 +3,6 @@
 //! This module provides a single source of truth for all UI styling,
 //! ensuring visual consistency across the entire game interface.
 
-use bevy::prelude::Color;
 
 /// Standardized color palette with semantic naming
 pub mod colors {

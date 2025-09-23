@@ -2,11 +2,11 @@
 //!
 //! Handles clicking on provinces to select their owning nation
 
-use crate::nations::{Nation, NationId};
+use crate::nations::Nation;
 use crate::resources::MapMode;
 use crate::ui::nation_info::SelectedNation;
 use crate::ui::SelectedProvinceInfo;
-use crate::world::{ProvinceStorage, ProvincesSpatialIndex};
+use crate::world::ProvinceStorage;
 use bevy::prelude::*;
 
 /// System to handle nation selection when clicking on provinces
@@ -88,7 +88,7 @@ pub fn highlight_selected_nation_territory(
     selected_nation: Res<SelectedNation>,
     provinces: Res<ProvinceStorage>,
     ownership_cache: Res<crate::nations::ProvinceOwnershipCache>,
-    mut cached_colors: ResMut<crate::resources::CachedOverlayColors>,
+    cached_colors: ResMut<crate::resources::CachedOverlayColors>,
     map_mode: Res<MapMode>,
 ) {
     // Only highlight in political mode

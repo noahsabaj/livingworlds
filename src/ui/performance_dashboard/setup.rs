@@ -2,7 +2,7 @@
 
 use super::super::ChildBuilder;
 use super::types::*;
-use crate::ui::styles::{colors, dimensions};
+use crate::ui::{colors, dimensions};
 use bevy::prelude::*;
 
 /// Setup the performance dashboard UI

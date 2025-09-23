@@ -31,7 +31,7 @@ pub fn get_cultural_person_name(
 ) -> (String, String) {
     match culture {
         Culture::Western => {
-            use super::data::cultures::western_data::*;
+            use super::data::western_data::*;
             let first = match gender {
                 Gender::Male => generator.random_choice(MALE_NAMES),
                 Gender::Female => generator.random_choice(FEMALE_NAMES),
@@ -41,7 +41,7 @@ pub fn get_cultural_person_name(
             (first.to_string(), surname.to_string())
         }
         Culture::Eastern => {
-            use super::data::cultures::eastern_data::*;
+            use super::data::eastern_data::*;
             let first = match gender {
                 Gender::Male => generator.random_choice(MALE_NAMES),
                 Gender::Female => generator.random_choice(FEMALE_NAMES),
@@ -51,7 +51,7 @@ pub fn get_cultural_person_name(
             (first.to_string(), surname.to_string())
         }
         Culture::Northern => {
-            use super::data::cultures::northern_data::*;
+            use super::data::northern_data::*;
             let first = match gender {
                 Gender::Male => generator.random_choice(MALE_NAMES),
                 Gender::Female => generator.random_choice(FEMALE_NAMES),
@@ -62,7 +62,7 @@ pub fn get_cultural_person_name(
             (first.to_string(), surname.to_string())
         }
         Culture::Southern => {
-            use super::data::cultures::southern_data::*;
+            use super::data::southern_data::*;
             let first = match gender {
                 Gender::Male => generator.random_choice(MALE_NAMES),
                 Gender::Female => generator.random_choice(FEMALE_NAMES),
@@ -72,7 +72,7 @@ pub fn get_cultural_person_name(
             (first.to_string(), surname.to_string())
         }
         Culture::Desert => {
-            use super::data::cultures::desert_data::*;
+            use super::data::desert_data::*;
             let first = match gender {
                 Gender::Male => generator.random_choice(MALE_NAMES),
                 Gender::Female => generator.random_choice(FEMALE_NAMES),
@@ -82,7 +82,7 @@ pub fn get_cultural_person_name(
             (first.to_string(), surname.to_string())
         }
         Culture::Island => {
-            use super::data::cultures::island_data::*;
+            use super::data::island_data::*;
             let first = match gender {
                 Gender::Male => generator.random_choice(MALE_NAMES),
                 Gender::Female => generator.random_choice(FEMALE_NAMES),
@@ -92,7 +92,7 @@ pub fn get_cultural_person_name(
             (first.to_string(), surname.to_string())
         }
         Culture::Ancient => {
-            use super::data::cultures::ancient_data::*;
+            use super::data::ancient_data::*;
             let first = match gender {
                 Gender::Male => generator.random_choice(MALE_NAMES),
                 Gender::Female => generator.random_choice(FEMALE_NAMES),
@@ -103,7 +103,7 @@ pub fn get_cultural_person_name(
             (first.to_string(), surname.to_string())
         }
         Culture::Mystical => {
-            use super::data::cultures::mystical_data::*;
+            use super::data::mystical_data::*;
             let first = match gender {
                 Gender::Male => generator.random_choice(MALE_NAMES),
                 Gender::Female => generator.random_choice(FEMALE_NAMES),

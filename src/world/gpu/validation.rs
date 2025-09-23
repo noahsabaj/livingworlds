@@ -266,7 +266,7 @@ fn compare_elevation_results(
 
 /// System to run periodic validation during development
 pub fn periodic_validation_system(
-    mut validation_history: ResMut<ValidationHistory>,
+    validation_history: ResMut<ValidationHistory>,
     validation_config: Res<ValidationConfig>,
     gpu_status: Res<GpuComputeStatus>,
     gpu_config: Res<GpuGenerationConfig>,

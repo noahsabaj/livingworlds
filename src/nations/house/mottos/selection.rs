@@ -8,7 +8,7 @@ use rand::distributions::WeightedIndex;
 use rand::prelude::*;
 use rand::Rng;
 
-use super::super::traits::{DominantTrait, HouseTraits};
+use super::super::traits::DominantTrait;
 use super::data::MottoRegistry;
 use super::types::{MottoError, MottoVariation};
 use crate::name_generator::Culture;

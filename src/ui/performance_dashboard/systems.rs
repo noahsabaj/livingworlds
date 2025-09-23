@@ -3,7 +3,7 @@
 use super::super::ChildBuilder;
 use super::types::*;
 use crate::performance::RayonMetrics;
-use crate::ui::styles::colors;
+use crate::ui::colors;
 use bevy::prelude::*;
 
 /// Toggle dashboard visibility with F12 key
@@ -38,7 +38,7 @@ pub fn toggle_dashboard_visibility(
 /// Update thread utilization display
 pub fn update_thread_utilization(
     metrics: Res<RayonMetrics>,
-    mut query: Query<&Children, With<ThreadUtilizationDisplay>>,
+    query: Query<&Children, With<ThreadUtilizationDisplay>>,
     mut text_query: Query<&mut Text>,
     mut node_query: Query<&mut Node>,
 ) {

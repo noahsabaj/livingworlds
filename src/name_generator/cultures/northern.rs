@@ -9,10 +9,11 @@
 //! 3. **Weighted Selection**: Realistic distribution with common/uncommon/rare patterns
 
 use super::super::core::NameGenerator;
+use crate::name_generator::data::northern_data::*;
 
 /// Generate a Northern-style nation name using compound pattern system
 pub fn generate_nation_name(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::northern_data::*;
+    use super::super::data::northern_data::*;
 
     // Choose generation method: 60% weighted simple, 30% compound, 10% winter compound
     let generation_type = generator.random_range(0, 10);
@@ -49,7 +50,7 @@ pub fn generate_nation_name(generator: &mut NameGenerator) -> String {
 
 /// Generate a Northern-style house name using compound pattern system
 pub fn generate_house_name(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::northern_data::*;
+    
 
     // Choose generation method: 70% weighted simple, 30% compound
     let generation_type = generator.random_range(0, 10);
@@ -72,7 +73,7 @@ pub fn generate_house_name(generator: &mut NameGenerator) -> String {
 
 /// Generate house name using weighted simple patterns
 fn generate_weighted_simple_house(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::northern_data::*;
+    use super::super::data::northern_data::*;
 
     let house = generator.random_choice(HOUSE_NAMES);
     let pattern = generator.weighted_choice(WEIGHTED_HOUSE_PATTERNS);
@@ -81,7 +82,7 @@ fn generate_weighted_simple_house(generator: &mut NameGenerator) -> String {
 
 /// Generate house name using compound warrior/winter patterns
 fn generate_compound_house(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::northern_data::*;
+    use super::super::data::northern_data::*;
 
     // For houses, use warrior/winter adjectives
     let warrior_winter_adjectives = &[

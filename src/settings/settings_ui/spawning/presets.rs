@@ -3,7 +3,7 @@
 //! Handles creation of the graphics quality preset buttons.
 
 use crate::settings::{components::*, types::*};
-use crate::ui::{styles::colors, ChildBuilder};
+use crate::ui::{colors, ChildBuilder};
 use bevy::prelude::*;
 
 /// Spawns the graphics preset buttons

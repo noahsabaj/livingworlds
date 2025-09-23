@@ -12,16 +12,16 @@ mod systems;
 mod types;
 
 // PUBLIC EXPORTS
-pub use types::{PressureLevel, PressureThreshold, PressureType, PressureVector};
+pub use types::{PressureLevel, PressureType, PressureVector};
 
-pub use population::{calculate_population_pressure, PopulationPressure};
+pub use population::calculate_population_pressure;
 
-pub use economic::{calculate_economic_pressure, EconomicPressure};
+pub use economic::calculate_economic_pressure;
 
-pub use military::{calculate_military_pressure, MilitaryPressure};
+pub use military::calculate_military_pressure;
 
 pub use legitimacy::{
-    calculate_legitimacy_pressure, LegitimacyPressure, RecentEvents, RulerPersonality,
+    calculate_legitimacy_pressure, RecentEvents, RulerPersonality,
 };
 
 pub use systems::{

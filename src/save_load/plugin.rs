@@ -12,7 +12,7 @@ use crate::states::GameState;
 use bevy::prelude::*;
 use bevy_plugin_builder::define_plugin;
 
-/// Save/Load plugin using REVOLUTIONARY declarative automation
+// Save/Load plugin using REVOLUTIONARY declarative automation
 define_plugin!(SaveLoadPlugin {
     resources: [SaveGameList, SaveBrowserState, SaveDialogState, AutoSaveTimer],
 

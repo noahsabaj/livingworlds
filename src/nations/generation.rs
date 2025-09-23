@@ -25,7 +25,7 @@ pub fn spawn_nations(
     let mut rng = StdRng::seed_from_u64(seed as u64);
     let mut nations = Vec::new();
     let mut houses = Vec::new();
-    let mut nation_registry = NationRegistry::default();
+    let nation_registry = NationRegistry::default();
 
     // Find suitable capital locations
     let capital_provinces = select_capital_provinces(provinces, settings.nation_count, &mut rng);
@@ -38,7 +38,7 @@ pub fn spawn_nations(
     info!("Spawning {} nations with capitals", capital_provinces.len());
 
     // Pre-generate seeds for parallel nation creation (avoids RNG contention)
-    let nation_seeds: Vec<u64> = (0..capital_provinces.len()).map(|_| rng.gen()).collect();
+    let nation_seeds: Vec<u64> = (0..capital_provinces.len()).map(|_| rng.r#gen()).collect();
 
     // Create nations with ruling houses in parallel
     let nation_registry_arc = Arc::new(nation_registry);
@@ -133,7 +133,7 @@ fn select_capital_provinces(
             .collect();
 
         // Find candidates that meet distance requirements
-        let mut valid_candidates: Vec<usize> = scores
+        let valid_candidates: Vec<usize> = scores
             .into_iter()
             .filter(|&(_, dist)| dist >= min_distance_squared || selected_capitals.is_empty())
             .map(|(idx, _)| idx)

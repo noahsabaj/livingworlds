@@ -4,10 +4,9 @@ use super::{
     buttons, components::ProgressBarPlugin, dialogs, hud, loading, nation_info, overlay_display,
     performance_dashboard, sliders, text_inputs, tile_info,
 };
-use bevy::prelude::*;
 use bevy_plugin_builder::define_plugin;
 
-/// The main UI plugin orchestrator
+// The main UI plugin orchestrator
 define_plugin!(UIPlugin {
     plugins: [
         buttons::ButtonPlugin,

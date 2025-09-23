@@ -9,13 +9,12 @@ use rayon::prelude::*;
 
 // Import from sibling modules through super (gateway pattern)
 use super::input::handle_time_controls;
-use super::pressures::{apply_pressure_effects, resolve_pressure_actions, update_nation_pressures};
 use super::time::{
     advance_game_time, resume_from_pause_menu, track_year_changes, NewYearEvent,
     SimulationSpeedChanged,
 };
 
-/// Timer for pressure system updates
+// Timer for pressure system updates
 #[derive(Resource)]
 pub struct PressureSystemTimer {
     pub timer: Timer,
@@ -29,7 +28,7 @@ impl Default for PressureSystemTimer {
     }
 }
 
-/// Plugin that manages the simulation time system using AUTOMATION FRAMEWORK
+// Plugin that manages the simulation time system using AUTOMATION FRAMEWORK
 define_plugin!(SimulationPlugin {
     resources: [GameTime, PressureSystemTimer],
 
@@ -49,7 +48,7 @@ define_plugin!(SimulationPlugin {
     }
 });
 
-/// Structure to hold nation pressure calculation data
+// Structure to hold nation pressure calculation data
 #[derive(Clone)]
 struct NationPressureData {
     entity: Entity,
@@ -58,7 +57,7 @@ struct NationPressureData {
     territory_entities: Vec<Entity>,
 }
 
-/// Run pressure systems on a timer with parallel processing
+// Run pressure systems on a timer with parallel processing
 fn run_pressure_systems_on_timer(
     time: Res<Time>,
     mut timer: ResMut<PressureSystemTimer>,
@@ -203,7 +202,7 @@ fn run_pressure_systems_on_timer(
     }
 }
 
-/// Determine ruler personality from nation/house traits
+// Determine ruler personality from nation/house traits
 fn determine_ruler_personality(
     nation: &crate::nations::Nation,
 ) -> crate::simulation::pressures::RulerPersonality {

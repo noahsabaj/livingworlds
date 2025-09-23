@@ -3,7 +3,7 @@
 use super::super::{ChildBuilder, LabelBuilder, PanelBuilder, PanelStyle};
 use crate::components::MineralType;
 use crate::resources::MapMode;
-use crate::ui::styles::colors;
+use crate::ui::colors;
 use bevy::prelude::*;
 
 /// Marker component for the mineral legend container

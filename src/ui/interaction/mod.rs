@@ -23,4 +23,3 @@ pub use handlers::{
 };
 
 // Re-export the UI interaction automation macros
-pub use crate::{define_marker_interactions, define_ui_interactions};

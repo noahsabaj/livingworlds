@@ -3,7 +3,7 @@
 //! This module creates the main configuration panel using UI builders.
 
 use super::super::components::{
-    AdvancedToggle, AdvancedToggleText, BackButton, GenerateButton, WorldConfigRoot,
+    AdvancedToggle, BackButton, GenerateButton, WorldConfigRoot,
 };
 use super::super::types::WorldGenerationSettings;
 use crate::ui::colors;

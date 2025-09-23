@@ -5,7 +5,6 @@
 //!
 //! Follows the gateway architecture pattern established by the ui/ module.
 
-use bevy::prelude::*;
 
 // PRIVATE MODULES - All implementation hidden behind gateway
 mod builders;
@@ -26,8 +25,6 @@ pub use builders::{PresetGridBuilder, SettingRowBuilder, SettingSectionBuilder};
 pub use plugin::SettingsUIPlugin;
 
 // Essential components for external queries (minimal exposure)
-pub use handlers::SettingsUIComponents;
 
 // Events for settings UI interactions
 mod events;
-pub use events::{PresetAppliedEvent, SettingsUIEvent, TabSwitchEvent};

@@ -4,7 +4,9 @@
 
 use crate::settings::components::{ApplyButton, CancelButton};
 use crate::ui::{ButtonBuilder, ButtonSize, ButtonStyle, ChildBuilder};
-use bevy::prelude::*;
+use bevy::prelude::{
+    BackgroundColor, Color, FlexDirection, JustifyContent, Node, UiRect, Val, default,
+};
 
 /// Spawns the apply/cancel buttons at the bottom of the settings menu
 pub fn spawn_apply_cancel_buttons(parent: &mut ChildBuilder) {

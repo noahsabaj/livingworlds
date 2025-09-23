@@ -9,10 +9,11 @@
 //! 3. **Weighted Selection**: Realistic distribution with common/uncommon/rare patterns
 
 use super::super::core::NameGenerator;
+use crate::name_generator::data::desert_data::*;
 
 /// Generate a Desert-style nation name using compound pattern system
 pub fn generate_nation_name(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::desert_data::*;
+    
 
     // Choose generation method: 60% weighted simple, 30% compound, 10% trade compound
     let generation_type = generator.random_range(0, 10);
@@ -35,7 +36,7 @@ pub fn generate_nation_name(generator: &mut NameGenerator) -> String {
 
 /// Generate a Desert-style house name using compound pattern system
 pub fn generate_house_name(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::desert_data::*;
+    
 
     // Choose generation method: 70% weighted simple, 30% compound
     let generation_type = generator.random_range(0, 10);
@@ -58,7 +59,7 @@ pub fn generate_house_name(generator: &mut NameGenerator) -> String {
 
 /// Generate nation name using weighted simple patterns
 fn generate_weighted_simple_nation(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::desert_data::*;
+    use super::super::data::desert_data::*;
 
     let root = generator.random_choice(NATION_ROOTS);
     let pattern = generator.weighted_choice(WEIGHTED_NATION_PATTERNS);
@@ -67,7 +68,7 @@ fn generate_weighted_simple_nation(generator: &mut NameGenerator) -> String {
 
 /// Generate nation name using compound patterns (Desert/Nomadic + Structure + Root)
 fn generate_compound_nation(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::desert_data::*;
+    use super::super::data::desert_data::*;
 
     // Focus on desert/nomadic adjectives for Desert culture
     let desert_nomadic_adjectives = &[
@@ -120,7 +121,7 @@ fn generate_compound_nation(generator: &mut NameGenerator) -> String {
 
 /// Generate nation name using trade compound patterns
 fn generate_trade_compound_nation(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::desert_data::*;
+    use super::super::data::desert_data::*;
 
     // Focus on trade/wealth adjectives
     let trade_wealth_adjectives = &[
@@ -169,7 +170,7 @@ fn generate_trade_compound_nation(generator: &mut NameGenerator) -> String {
 
 /// Generate house name using weighted simple patterns
 fn generate_weighted_simple_house(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::desert_data::*;
+    use super::super::data::desert_data::*;
 
     let house = generator.random_choice(HOUSE_NAMES);
     let pattern = generator.weighted_choice(WEIGHTED_HOUSE_PATTERNS);
@@ -178,7 +179,7 @@ fn generate_weighted_simple_house(generator: &mut NameGenerator) -> String {
 
 /// Generate house name using compound tribal/trade patterns
 fn generate_compound_house(generator: &mut NameGenerator) -> String {
-    use super::super::data::cultures::desert_data::*;
+    use super::super::data::desert_data::*;
 
     // For houses, use tribal/trade adjectives
     let tribal_trade_adjectives = &[

@@ -12,12 +12,12 @@ use super::{
     population::*, religious::*,
 };
 
-/// Plugin that registers all relationship systems - AUTOMATED WITH DECLARATIVE MAGIC!
+// Plugin that registers all relationship systems - AUTOMATED WITH DECLARATIVE MAGIC!
 ///
-/// This plugin replaces manual relationship tracking with automatic
-/// bidirectional entity relationships throughout Living Worlds.
+// This plugin replaces manual relationship tracking with automatic
+// bidirectional entity relationships throughout Living Worlds.
 ///
-/// **AUTOMATION ACHIEVEMENT**: 173 lines of manual registration → ~50 lines declarative!
+// **AUTOMATION ACHIEVEMENT**: 173 lines of manual registration → ~50 lines declarative!
 define_plugin!(RelationshipsPlugin {
     events: [
         // Cultural events (2)
@@ -94,16 +94,16 @@ define_plugin!(RelationshipsPlugin {
     }
 });
 
-/// Resource that enables debug relationship printing
-/// Add this resource to enable relationship debugging
+// Resource that enables debug relationship printing
+// Add this resource to enable relationship debugging
 #[derive(Resource, Default)]
 pub struct DebugRelationships {
     pub enabled: bool,
     pub print_interval_seconds: f32,
 }
 
-/// System for debugging relationship states
-/// Only runs when DebugRelationships resource exists
+// System for debugging relationship states
+// Only runs when DebugRelationships resource exists
 fn debug_relationships(
     time: Res<Time>,
     mut debug_res: ResMut<DebugRelationships>,

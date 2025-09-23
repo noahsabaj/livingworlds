@@ -6,7 +6,7 @@
 use super::{spawn_apply_cancel_buttons, spawn_tab_buttons};
 use crate::settings::{components::*, types::*};
 use crate::states::{CurrentSettingsTab, SettingsTab};
-use crate::ui::{styles::colors, ChildBuilder};
+use crate::ui::{colors, ChildBuilder};
 use bevy::prelude::*;
 
 /// Main function to spawn the settings menu UI

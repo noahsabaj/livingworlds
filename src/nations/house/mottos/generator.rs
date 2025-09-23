@@ -5,7 +5,6 @@
 //! It maintains the same public interface as the original system while leveraging
 //! the new modular architecture.
 
-use rand::prelude::*;
 use rand::Rng;
 
 use super::super::traits::{DominantTrait, HouseTraits};

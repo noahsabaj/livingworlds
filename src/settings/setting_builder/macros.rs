@@ -3,7 +3,6 @@
 //! This module contains the main `define_setting_tab!` macro that generates
 //! complete settings UI and event handling from declarative syntax.
 
-use bevy::prelude::default;
 
 /// Define a settings tab declaratively, eliminating UI spawning and event handling boilerplate.
 ///
@@ -95,11 +94,8 @@ macro_rules! generate_setting_tab {
                 parent: &mut bevy::prelude::ChildSpawnerCommands,
                 settings: &$settings_type
             ) {
-                use crate::ui::{
-                    SliderBuilder, ButtonBuilder, PanelBuilder, LabelBuilder,
-                    ButtonStyle, ValueFormat, PanelStyle
-                };
-                use crate::settings::{components::*, types::SettingType};
+                
+                
                 use bevy::prelude::default;
 
                 parent.spawn((
@@ -116,7 +112,7 @@ macro_rules! generate_setting_tab {
 
             // Generate event handling system
             pub fn [<handle_ $tab_name:lower _interactions>](
-                mut temp_settings: bevy::prelude::ResMut<crate::settings::types::TempGameSettings>,
+                temp_settings: bevy::prelude::ResMut<crate::settings::types::TempGameSettings>,
                 // Add standard interaction queries here
                 mut cycle_buttons: bevy::prelude::Query<
                     (&bevy::prelude::Interaction, &crate::settings::components::CycleButton, &bevy::prelude::Children),
@@ -131,7 +127,7 @@ macro_rules! generate_setting_tab {
                     bevy::prelude::Changed<crate::ui::Slider>
                 >,
                 // Add text query for updating UI
-                mut text_query: bevy::prelude::Query<&mut bevy::prelude::Text>,
+                text_query: bevy::prelude::Query<&mut bevy::prelude::Text>,
             ) {
                 $crate::generate_event_handlers!(temp_settings, cycle_buttons, toggle_buttons, sliders, text_query);
             }
@@ -164,7 +160,7 @@ macro_rules! generate_sections {
                     font_size: 20.0,
                     ..default()
                 },
-                bevy::prelude::TextColor(crate::ui::styles::colors::TEXT_PRIMARY),
+                bevy::prelude::TextColor(crate::ui::colors::TEXT_PRIMARY),
             ));
 
             // Generate controls within this section
@@ -266,7 +262,7 @@ macro_rules! generate_controls {
 /// Helper macro to create toggle row (replicates existing pattern)
 #[macro_export]
 macro_rules! create_toggle_row {
-    ($parent:ident, $label:literal, $enabled:expr, $setting_type:expr) => {
+    ($parent:ident, $label:literal, $enabled:expr_2021, $setting_type:expr_2021) => {
         $parent
             .spawn((
                 bevy::prelude::Node {
@@ -286,7 +282,7 @@ macro_rules! create_toggle_row {
                         font_size: 18.0,
                         ..default()
                     },
-                    bevy::prelude::TextColor(crate::ui::styles::colors::TEXT_PRIMARY),
+                    bevy::prelude::TextColor(crate::ui::colors::TEXT_PRIMARY),
                 ));
 
                 // Toggle button

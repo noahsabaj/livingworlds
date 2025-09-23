@@ -127,7 +127,7 @@ impl GpuProvinceBuilder {
         let provinces = self.generate_provinces_from_elevations(positions, elevations, sea_level);
 
         // Apply post-processing (same as original ProvinceBuilder)
-        let mut final_provinces = self.apply_post_processing(provinces);
+        let final_provinces = self.apply_post_processing(provinces);
 
         info!(
             "✨ Province generation complete with {} provinces",
@@ -326,23 +326,23 @@ impl GpuProvinceBuilder {
         // Earth-like continent distribution with varied sizes
         for i in 0..self.continent_count {
             // Distribute continents across entire map, not clustered in center
-            let angle = (i as f32 / self.continent_count as f32) * std::f32::consts::TAU + rng.gen::<f32>() * 0.5;
-            let distance = (0.2 + rng.gen::<f32>() * 0.6) * world_width.min(world_height) * 0.4;
+            let angle = (i as f32 / self.continent_count as f32) * std::f32::consts::TAU + rng.r#gen::<f32>() * 0.5;
+            let distance = (0.2 + rng.r#gen::<f32>() * 0.6) * world_width.min(world_height) * 0.4;
 
-            let x = angle.cos() * distance + (rng.gen::<f32>() - 0.5) * world_width * 0.3;
-            let y = angle.sin() * distance + (rng.gen::<f32>() - 0.5) * world_height * 0.3;
+            let x = angle.cos() * distance + (rng.r#gen::<f32>() - 0.5) * world_width * 0.3;
+            let y = angle.sin() * distance + (rng.r#gen::<f32>() - 0.5) * world_height * 0.3;
 
             // Vary continent sizes for realism
-            let size_roll = rng.gen::<f32>();
+            let size_roll = rng.r#gen::<f32>();
             let (strength, radius) = if size_roll < 0.3 {
                 // Small islands - reduced strength for better ocean coverage
-                (0.15 + rng.gen::<f32>() * 0.15, 50.0 + rng.gen::<f32>() * 100.0)
+                (0.15 + rng.r#gen::<f32>() * 0.15, 50.0 + rng.r#gen::<f32>() * 100.0)
             } else if size_roll < 0.7 {
                 // Medium continents - moderate strength
-                (0.3 + rng.gen::<f32>() * 0.25, 150.0 + rng.gen::<f32>() * 150.0)
+                (0.3 + rng.r#gen::<f32>() * 0.25, 150.0 + rng.r#gen::<f32>() * 150.0)
             } else {
                 // Large continents - still prominent but not overwhelming
-                (0.45 + rng.gen::<f32>() * 0.3, 250.0 + rng.gen::<f32>() * 200.0)
+                (0.45 + rng.r#gen::<f32>() * 0.3, 250.0 + rng.r#gen::<f32>() * 200.0)
             };
 
             seeds.push((Vec2::new(x, y), strength, radius));
@@ -465,7 +465,7 @@ impl GpuProvinceBuilder {
         sea_level: f32,
     ) -> Vec<Province> {
         use crate::world::provinces::{Abundance, Agriculture, Distance, Elevation, ProvinceId};
-        use crate::world::terrain::TerrainType;
+        
         use rayon::prelude::*;
 
         assert_eq!(positions.len(), elevations.len());

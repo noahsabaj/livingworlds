@@ -7,7 +7,7 @@ use bevy_plugin_builder::define_plugin;
 
 use super::{control_hints, map_mode_display, setup, speed_display, time_display, HudRoot};
 
-/// Plugin that manages all HUD elements.
+// Plugin that manages all HUD elements.
 define_plugin!(HudPlugin {
     resources: [
         map_mode_display::MapModeDropdownState

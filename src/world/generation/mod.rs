@@ -24,4 +24,3 @@ pub use errors::{WorldGenerationError, WorldGenerationErrorType};
 pub use utils::GenerationUtils;
 
 // Re-export the plugin from plugin.rs
-pub use plugin::GenerationPlugin;

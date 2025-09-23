@@ -50,13 +50,13 @@ impl RaceConditionDetector {
 
     /// Check for potential race conditions
     pub fn check_for_races(&self) -> usize {
-        if let Ok(tracker) = self.access_tracker.lock() {
+        match self.access_tracker.lock() { Ok(tracker) => {
             tracker
                 .values()
                 .filter(|accesses| accesses.len() > 5)
                 .count()
-        } else {
+        } _ => {
             0
-        }
+        }}
     }
 }

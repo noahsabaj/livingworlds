@@ -6,21 +6,19 @@
 use bevy::prelude::Vec2;
 use log::info;
 use rand::{rngs::StdRng, Rng, SeedableRng};
-use rayon::prelude::*;
 use std::collections::HashMap;
+// Use our parallel module instead of direct rayon imports for O(n²) prevention
+use crate::parallel::{parallel_map, parallel_enumerate};
 
 use super::super::terrain::TerrainType;
 use super::{Abundance, Agriculture, Distance, Elevation, Province, ProvinceId};
 use crate::math::{
-    calculate_grid_position, get_neighbor_positions, normalized_edge_distance, smooth_falloff,
+    calculate_grid_position, smooth_falloff,
     smoothstep, PerlinNoise,
 };
 use crate::resources::MapDimensions;
 use crate::world::generation::GenerationUtils;
-use crate::world::gpu::{
-    extract_province_positions, gpu_accelerated_province_generation, GpuComputeStatus,
-    GpuGenerationConfig, GpuGenerationState, GpuPerformanceMetrics,
-};
+use crate::world::gpu::extract_province_positions;
 use std::f32::consts::TAU;
 
 /// Default ocean coverage percentage (0.0 to 1.0)
@@ -146,10 +144,10 @@ impl<'a> ProvinceBuilder<'a> {
         // which uses GpuProvinceBuilder for full GPU acceleration
         info!("  Using CPU elevation generation (full GPU path available via GpuProvinceBuilder)");
 
-        // Use existing CPU generation logic
-        let mut elevations: Vec<f32> = positions
-            .par_iter()
-            .map(|&position| {
+        // Use existing CPU generation logic with our parallel module for O(n²) prevention
+        let mut elevations: Vec<f32> = parallel_map(
+            &positions,
+            |&position| {
                 use super::elevation::{ElevationParams, MapBounds, compute_elevation};
 
                 let params = ElevationParams {
@@ -167,8 +165,9 @@ impl<'a> ProvinceBuilder<'a> {
                 };
 
                 compute_elevation(&params, &self.noise)
-            })
-            .collect();
+            },
+            "elevation_generation"  // Operation name for logging
+        );
 
         // Apply adaptive redistribution to the entire elevation set
         // This ensures proper ocean/land balance and guarantees river sources
@@ -191,25 +190,28 @@ impl<'a> ProvinceBuilder<'a> {
         );
 
         // Generate provinces in parallel using pre-computed elevations
-        positions
-            .into_par_iter()
-            .zip(elevations.into_par_iter())
-            .enumerate()
-            .map(|(index, (position, elevation))| {
+        // First combine positions and elevations, then use parallel_enumerate for O(n²) prevention
+        let position_elevation_pairs: Vec<_> = positions.into_iter()
+            .zip(elevations.into_iter())
+            .collect();
+
+        parallel_enumerate(
+            &position_elevation_pairs,
+            |index, (position, elevation)| {
                 let province_id = ProvinceId::new(index as u32);
                 let (col, row) = self.utils.id_to_grid_coords(province_id);
 
                 // Determine terrain type based on elevation
-                let terrain = self.classify_terrain(elevation, sea_level);
+                let terrain = self.classify_terrain(*elevation, sea_level);
                 let neighbors = self.calculate_hex_neighbors(col as u32, row as u32);
                 let neighbor_indices = self.utils.get_neighbor_indices(col, row);
 
                 Province {
                     id: ProvinceId::new(index as u32),
-                    position,
+                    position: *position,
                     owner: None,
                     culture: None,
-                    elevation: Elevation::new(elevation),
+                    elevation: Elevation::new(*elevation),
                     terrain,
                     population: 0,
                     max_population: 1000,
@@ -227,8 +229,9 @@ impl<'a> ProvinceBuilder<'a> {
                     version: 0,
                     dirty: false,
                 }
-            })
-            .collect()
+            },
+            "province_generation"
+        )
     }
 
 
@@ -706,23 +709,23 @@ impl<'a> ProvinceBuilder<'a> {
         // Earth-like continent distribution with varied sizes
         for i in 0..self.continent_count {
             // Distribute continents across entire map, not clustered in center
-            let angle = (i as f32 / self.continent_count as f32) * std::f32::consts::TAU + rng.gen::<f32>() * 0.5;
-            let distance = (0.2 + rng.gen::<f32>() * 0.6) * world_width.min(world_height) * 0.4;
+            let angle = (i as f32 / self.continent_count as f32) * std::f32::consts::TAU + rng.r#gen::<f32>() * 0.5;
+            let distance = (0.2 + rng.r#gen::<f32>() * 0.6) * world_width.min(world_height) * 0.4;
 
-            let x = angle.cos() * distance + (rng.gen::<f32>() - 0.5) * world_width * 0.3;
-            let y = angle.sin() * distance + (rng.gen::<f32>() - 0.5) * world_height * 0.3;
+            let x = angle.cos() * distance + (rng.r#gen::<f32>() - 0.5) * world_width * 0.3;
+            let y = angle.sin() * distance + (rng.r#gen::<f32>() - 0.5) * world_height * 0.3;
 
             // Vary continent sizes for realism
-            let size_roll = rng.gen::<f32>();
+            let size_roll = rng.r#gen::<f32>();
             let (strength, radius) = if size_roll < 0.3 {
                 // Small islands - reduced strength for better ocean coverage
-                (0.15 + rng.gen::<f32>() * 0.15, 50.0 + rng.gen::<f32>() * 100.0)
+                (0.15 + rng.r#gen::<f32>() * 0.15, 50.0 + rng.r#gen::<f32>() * 100.0)
             } else if size_roll < 0.7 {
                 // Medium continents - moderate strength
-                (0.3 + rng.gen::<f32>() * 0.25, 150.0 + rng.gen::<f32>() * 150.0)
+                (0.3 + rng.r#gen::<f32>() * 0.25, 150.0 + rng.r#gen::<f32>() * 150.0)
             } else {
                 // Large continents - still prominent but not overwhelming
-                (0.45 + rng.gen::<f32>() * 0.3, 250.0 + rng.gen::<f32>() * 200.0)
+                (0.45 + rng.r#gen::<f32>() * 0.3, 250.0 + rng.r#gen::<f32>() * 200.0)
             };
 
             seeds.push((Vec2::new(x, y), strength, radius));

@@ -15,5 +15,11 @@ mod world;
 pub use geographical::*;
 pub use world::*;
 
-// Include and re-export cultures module
-pub mod cultures; // This will load the cultures/mod.rs file
+// Include cultures module as private with controlled re-exports
+mod cultures;  // PRIVATE MODULE - Gateway architecture compliance
+
+// Re-export cultures data through controlled interface
+pub use cultures::{
+    ancient_data, desert_data, eastern_data, island_data,
+    mystical_data, northern_data, southern_data, western_data,
+};
