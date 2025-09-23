@@ -93,11 +93,13 @@ where
         F: Fn(D::Item) -> R + Send + Sync + 'static,
         R: Send,
     {
+        let operation = std::sync::Arc::new(operation);
         ExecutableOperation {
             data: self.data,
             operation: Box::new(move |data| {
+                let op = operation.clone();
                 data.into_par_iter()
-                    .map(operation)
+                    .map(move |item| op(item))
                     .collect()
             }),
             builder: self.builder,
@@ -113,8 +115,8 @@ where
     where
         I: IntoIterator<Item = V>,
         F: Fn(&V) -> K,
-        K: Hash + Eq + Send + Sync,
-        V: Send + Sync,
+        K: Hash + Eq + Send + Sync + 'static,
+        V: Send + Sync + 'static,
     {
         let lookup_map: HashMap<K, V> = items
             .into_iter()
@@ -140,8 +142,8 @@ impl<D, K, V> LookupMapBuilder<D, K, V>
 where
     D: IntoParallelIterator + Send + Sync,
     D::Item: Send,
-    K: Hash + Eq + Send + Sync,
-    V: Send + Sync,
+    K: Hash + Eq + Send + Sync + 'static,
+    V: Send + Sync + 'static,
 {
     /// Execute a parallel operation with access to the lookup map
     pub fn parallel_map<F, R>(self, operation: F) -> ExecutableOperation<D, R>
@@ -150,13 +152,15 @@ where
         R: Send,
     {
         let map = self.lookup_map;
+        let operation = std::sync::Arc::new(operation);
         ExecutableOperation {
             data: self.data,
             operation: Box::new(move |data| {
                 let map_ref = Arc::clone(&map);
+                let op = operation.clone();
                 data.into_par_iter()
                     .map(move |item| {
-                        operation(item, &map_ref)
+                        op(item, &map_ref)
                     })
                     .collect()
             }),

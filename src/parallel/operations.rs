@@ -187,7 +187,7 @@ pub fn parallel_fold<T, A, F, R>(
 ) -> A
 where
     T: Send + Sync,
-    A: Send + Clone,
+    A: Send + Sync + Clone,
     F: Fn(A, &T) -> A + Send + Sync,
     R: Fn(A, A) -> A + Send + Sync,
 {

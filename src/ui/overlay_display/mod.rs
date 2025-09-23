@@ -23,3 +23,4 @@ pub use plugin::OverlayDisplayPlugin;
 
 // Re-export marker components for external use
 pub use mineral_legend::MineralLegendContainer;
+pub use overlay_text::MapModeText;
