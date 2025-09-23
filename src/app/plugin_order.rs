@@ -12,6 +12,7 @@ use crate::{
     menus::MenusPlugin,
     modding::ModdingPlugin,
     nations::NationPlugin,
+    parallel::ParallelPlugin,
     relationships::RelationshipsPlugin,
     save_load::SaveLoadPlugin,
     settings::SettingsUIPlugin,
@@ -44,6 +45,7 @@ pub fn register_all_plugins(app: &mut App) {
 /// Register core system plugins (required by other plugins)
 fn register_core_systems(app: &mut App) {
     app.add_plugins(StatesPlugin) // State management (required by menus, world_config, etc.)
+        .add_plugins(ParallelPlugin) // Parallel processing infrastructure (single source of truth for Rayon)
         .add_plugins(RelationshipsPlugin) // Entity relationships (required by nations, world systems)
         .add_plugins(ModdingPlugin) // Mod system (loads configs early)
         .add_plugins(ProvinceEventsPlugin); // Province change events

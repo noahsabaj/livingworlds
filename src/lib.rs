@@ -39,6 +39,7 @@ pub mod ui;
 pub mod camera;
 pub mod modding;
 pub mod name_generator;
+pub mod parallel; // Parallel processing infrastructure (single source of truth for Rayon)
 pub mod plugin_builder; // Internal development utilities (main functionality moved to bevy-plugin-builder crate)
 pub mod relationships; // Entity relationship system (Bevy 0.16)
 pub mod save_load;

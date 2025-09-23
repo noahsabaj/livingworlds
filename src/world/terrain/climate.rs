@@ -6,20 +6,27 @@
 
 use super::super::provinces::Province;
 use super::types::TerrainType;
+use crate::world::ClimateType;
 use crate::math::{exponential_smooth, lerp};
+use crate::parallel::{parallel_map, parallel_zip_mutate, parallel_enumerate, ChunkStrategy};
 use bevy::log::{debug, info};
 use bevy::prelude::Vec2;
-use rayon::prelude::*;
 use std::collections::{HashMap, VecDeque};
 use std::f32::consts::PI;
 
-// CONSTANTS - Climate parameters based on Earth
+// Climate temperature parameters
 
-/// Base temperature at equator (Celsius)
-const EQUATOR_TEMP: f32 = 30.0;
-
-/// Base temperature at poles (Celsius)
-const POLE_TEMP: f32 = -30.0;
+/// Get base temperatures for a given climate type
+fn get_climate_temperatures(climate_type: ClimateType) -> (f32, f32) {
+    // Returns (equator_temp, pole_temp) in Celsius
+    match climate_type {
+        ClimateType::Desert => (40.0, -10.0),      // Hot overall, less polar cold
+        ClimateType::Arctic => (15.0, -45.0),      // Cold overall
+        ClimateType::Tropical => (35.0, -20.0),    // Warm overall
+        ClimateType::Temperate => (25.0, -35.0),   // Mild
+        ClimateType::Mixed => (30.0, -30.0),       // Earth-like default
+    }
+}
 
 /// Temperature lapse rate (degrees C per meter of elevation)
 const LAPSE_RATE: f32 = 0.0065;
@@ -126,13 +133,16 @@ pub struct ClimateSystem {
     pub climates: Vec<Climate>,
     /// World dimensions
     dimensions: crate::resources::MapDimensions,
+    /// Climate type for temperature calculations
+    climate_type: ClimateType,
 }
 
 impl ClimateSystem {
-    pub fn new(dimensions: crate::resources::MapDimensions, province_count: usize) -> Self {
+    pub fn new(dimensions: crate::resources::MapDimensions, province_count: usize, climate_type: ClimateType) -> Self {
         Self {
             climates: vec![Climate::default(); province_count],
             dimensions,
+            climate_type,
         }
     }
 
@@ -212,14 +222,18 @@ impl ClimateSystem {
         let bounds = self.dimensions.bounds;
         let hex_size = self.dimensions.hex_size;
 
-        provinces
-            .par_iter()
-            .zip(self.climates.par_iter_mut())
-            .for_each(|(province, climate)| {
+        // Get temperature parameters for the climate type
+        let (equator_temp, pole_temp) = get_climate_temperatures(self.climate_type);
+
+        // Use safe parallel mutation with monitoring
+        parallel_zip_mutate(
+            &mut self.climates,
+            provinces,
+            |climate, province| {
                 // Calculate temperature
                 let latitude = (province.position.y - bounds.y_min) / (bounds.y_max - bounds.y_min);
                 let lat_from_equator = (latitude - 0.5).abs() * 2.0;
-                let base_temp = lerp(EQUATOR_TEMP, POLE_TEMP, lat_from_equator);
+                let base_temp = lerp(equator_temp, pole_temp, lat_from_equator);
 
                 // Apply elevation cooling
                 let elevation_m = province.elevation.value() * 5000.0;
@@ -256,7 +270,9 @@ impl ClimateSystem {
                 if province.terrain != TerrainType::Ocean {
                     climate.wind_strength *= 0.7;
                 }
-            });
+            },
+            "Temperature and wind calculation"
+        );
     }
 
     /// Propagate moisture from oceans inland
@@ -294,9 +310,11 @@ impl ClimateSystem {
                 let start_idx = batch_idx * batch_size;
                 let end_idx = (start_idx + batch_size).min(provinces.len());
 
-                let batch_rainfall: Vec<(usize, f32)> = (start_idx..end_idx)
-                    .into_par_iter()
-                    .map(|idx| {
+                // Use safe parallel operation for batch processing
+                let batch_indices: Vec<usize> = (start_idx..end_idx).collect();
+                let batch_rainfall: Vec<(usize, f32)> = parallel_map(
+                    &batch_indices,
+                    |&idx| {
                         let province = &provinces[idx];
                         let climate = &self.climates[idx];
 
@@ -323,8 +341,9 @@ impl ClimateSystem {
                         rainfall = rainfall.min(3000.0);
 
                         (idx, rainfall)
-                    })
-                    .collect();
+                    },
+                    "Rainfall batch calculation"
+                );
 
                 for (idx, rainfall) in batch_rainfall {
                     // Blend with existing value for smoother propagation
@@ -366,10 +385,10 @@ impl ClimateSystem {
             .collect();
         let hex_size = self.dimensions.hex_size;
 
-        let rain_shadows: Vec<usize> = provinces
-            .par_iter()
-            .enumerate()
-            .filter_map(|(idx, province)| {
+        // Use safe parallel enumeration for rain shadow detection
+        let rain_shadow_results = parallel_enumerate(
+            provinces,
+            |idx, province| {
                 let (wind_dir, _wind_strength) = wind_data[idx];
 
                 let (sin_wind, cos_wind) = wind_dir.sin_cos();
@@ -393,7 +412,14 @@ impl ClimateSystem {
                     }
                 }
                 None
-            })
+            },
+            "Rain shadow detection"
+        );
+
+        // Filter out None values to get actual rain shadow indices
+        let rain_shadows: Vec<usize> = rain_shadow_results
+            .into_iter()
+            .flatten()
             .collect();
 
         // Apply rain shadow reduction
@@ -409,10 +435,10 @@ impl ClimateSystem {
     fn calculate_humidity(&mut self, provinces: &[Province]) {
         info!("    Calculating humidity levels...");
 
-        let humidity_values: Vec<(usize, f32, f32)> = provinces
-            .par_iter()
-            .enumerate()
-            .filter_map(|(idx, _province)| {
+        // Use safe parallel enumeration for humidity calculation
+        let humidity_results = parallel_enumerate(
+            provinces,
+            |idx, _province| {
                 let climate = &self.climates[idx];
                 // Humidity based on rainfall and temperature
                 let base_humidity = (climate.rainfall / 2000.0).min(1.0);
@@ -432,7 +458,14 @@ impl ClimateSystem {
                 let continentality = (climate.ocean_distance / 1000.0).min(1.0);
 
                 Some((idx, humidity, continentality))
-            })
+            },
+            "Humidity calculation"
+        );
+
+        // Filter out None values and collect humidity data
+        let humidity_values: Vec<(usize, f32, f32)> = humidity_results
+            .into_iter()
+            .flatten()
             .collect();
 
         for (idx, humidity, continentality) in humidity_values {
@@ -529,6 +562,7 @@ impl ClimateSystem {
 pub fn apply_climate_to_provinces(
     provinces: &mut [crate::world::Province],
     dimensions: crate::resources::MapDimensions,
+    climate_type: ClimateType,
 ) {
     // Count how many provinces actually need climate calculations
     let land_provinces = provinces
@@ -536,12 +570,13 @@ pub fn apply_climate_to_provinces(
         .filter(|p| p.terrain != crate::world::TerrainType::Ocean)
         .count();
     info!(
-        "    Calculating climate for {} land provinces (skipping {} ocean provinces)",
+        "    Calculating climate for {} land provinces (skipping {} ocean provinces) with {:?} climate",
         land_provinces,
-        provinces.len() - land_provinces
+        provinces.len() - land_provinces,
+        climate_type
     );
 
-    let mut climate_system = ClimateSystem::new(dimensions, provinces.len());
+    let mut climate_system = ClimateSystem::new(dimensions, provinces.len(), climate_type);
     climate_system.simulate(provinces);
 
     // Apply climate results to provinces by setting terrain types based on biomes
