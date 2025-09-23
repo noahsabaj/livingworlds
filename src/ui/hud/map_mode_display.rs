@@ -44,35 +44,43 @@ fn get_all_map_modes() -> Vec<MapMode> {
 
 /// Spawn the map mode display UI element
 pub fn spawn_map_mode_display(parent: &mut ChildBuilder) {
-    // Container for map mode display with dropdown
+    // Main container for the entire map mode display
     parent.spawn((
         Node {
             flex_direction: FlexDirection::Column,
             align_items: AlignItems::End,
             row_gap: Val::Px(4.0),
-            position_type: PositionType::Relative,
             ..default()
         },
         MapModeDisplay,
-    )).with_children(|container| {
+    )).with_children(|main_container| {
         // Label showing "Map Mode:"
         LabelBuilder::new("Map Mode:")
             .style(LabelStyle::Caption)
             .font_size(14.0)
             .color(Color::srgba(0.8, 0.8, 0.8, 1.0))
-            .build(container);
+            .build(main_container);
 
-        // Main button showing current mode
-        let button_entity = ButtonBuilder::new("Political Map")
-            .style(ButtonStyle::Secondary)
-            .width(Val::Px(160.0))
-            .build(container);
+        // Container for button and dropdown (allows overflow for dropdown)
+        main_container.spawn((
+            Node {
+                position_type: PositionType::Relative,
+                overflow: Overflow::visible(),  // Allow dropdown to overflow container
+                ..default()
+            },
+        )).with_children(|button_container| {
+            // Main button showing current mode
+            let button_entity = ButtonBuilder::new("Political Map")
+                .style(ButtonStyle::Secondary)
+                .width(Val::Px(160.0))
+                .build(button_container);
 
-        // Add marker to identify this button
-        container.commands().entity(button_entity).insert(MapModeButton);
+            // Add marker to identify this button
+            button_container.commands().entity(button_entity).insert(MapModeButton);
 
-        // Dropdown container (initially hidden)
-        spawn_dropdown_menu(container);
+            // Dropdown container (initially hidden)
+            spawn_dropdown_menu(button_container);
+        });
     });
 }
 
@@ -81,7 +89,8 @@ fn spawn_dropdown_menu(parent: &mut ChildBuilder) {
     parent.spawn((
         Node {
             position_type: PositionType::Absolute,
-            top: Val::Px(53.0), // Button height (45px) + spacing (8px)
+            top: Val::Percent(100.0), // Position at bottom of parent container
+            margin: UiRect::top(Val::Px(4.0)), // Small gap from button
             right: Val::Px(0.0),
             width: Val::Px(160.0),
             flex_direction: FlexDirection::Column,
