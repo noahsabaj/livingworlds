@@ -236,13 +236,4 @@ pub mod helpers {
 }
 
 // Convenience aliases for commonly used constants
-pub use colors::{
-    BACKGROUND_MEDIUM as UI_BACKGROUND_COLOR, BORDER_DEFAULT as UI_BORDER_COLOR,
-    TEXT_PRIMARY as TEXT_COLOR_PRIMARY, TEXT_SECONDARY as TEXT_COLOR_SECONDARY,
-    TEXT_TITLE as TEXT_COLOR_HEADER,
-};
 
-pub use dimensions::{
-    FONT_SIZE_LARGE as TEXT_SIZE_LARGE, FONT_SIZE_NORMAL as TEXT_SIZE_NORMAL,
-    FONT_SIZE_TITLE as TEXT_SIZE_TITLE,
-};

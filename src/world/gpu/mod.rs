@@ -34,14 +34,12 @@ pub use capabilities::check_gpu_compute_support;
 
 // Public exports - Buffer types
 pub use buffers::{
-    get_completed_elevations,
-    request_elevation_readback, upload_province_positions, GpuElevationData,
+    GpuElevationData,
     GpuErosionParams, GpuNoiseParams, GpuProvinceData,
 };
 
 // Public exports - Coordination
 pub use coordinator::{
-    get_gpu_elevation_results, request_gpu_elevation_generation,
     GpuGenerationConfig, GpuGenerationState, GpuPerformanceMetrics,
 };
 

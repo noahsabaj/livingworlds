@@ -11,7 +11,7 @@ mod variations;
 // Public re-exports - carefully controlled API surface
 
 // Primary data access - the registry is the main interface
-pub use registry::{MottoRegistry, MottoStatistics, TraitCultureStats};
+pub use registry::{MottoRegistry, MottoStatistics};
 
 // Direct data access for specialized use cases (used by registry internally)
 

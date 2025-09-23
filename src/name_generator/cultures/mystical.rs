@@ -9,7 +9,6 @@
 //! 3. **Weighted Selection**: Realistic distribution with common/uncommon/rare patterns
 
 use super::super::core::NameGenerator;
-use crate::name_generator::data::mystical_data::*;
 
 /// Generate a Mystical-style nation name using compound pattern system
 pub fn generate_nation_name(generator: &mut NameGenerator) -> String {
