@@ -9,7 +9,8 @@ use bevy::text::Text2d;
 use std::collections::HashMap;
 
 use super::types::{Nation, NationId};
-use crate::world::{MapMode, ProvinceStorage, WorldMeshHandle};
+use crate::resources::MapMode;
+use crate::world::{ProvinceStorage, WorldMeshHandle};
 
 /// System to update province colors based on nation ownership
 /// Only runs when map mode changes to Political
@@ -69,20 +70,24 @@ pub fn update_nation_colors(
 }
 
 /// System to render nation borders (thicker lines between different nations)
-/// ONLY runs when explicitly enabled and zoomed in
+/// Always renders in Terrain mode, or when B key is pressed in other modes
 pub fn render_nation_borders(
     mut gizmos: Gizmos,
     province_storage: Res<ProvinceStorage>,
     camera: Query<(&Camera, &Transform)>,
     keyboard: Res<ButtonInput<KeyCode>>,
+    current_map_mode: Res<crate::world::MapMode>,
 ) {
-    // Only render if B key is pressed (disabled by default for performance)
-    if !keyboard.pressed(KeyCode::KeyB) {
+    // Render borders in Terrain mode OR when B key is pressed in other modes
+    let should_render_borders = *current_map_mode == crate::world::MapMode::Terrain
+        || keyboard.pressed(KeyCode::KeyB);
+
+    if !should_render_borders {
         return;
     }
 
     // Only render borders when zoomed in enough
-    let Ok((_camera, camera_transform)) = camera.get_single() else {
+    let Ok((_camera, camera_transform)) = camera.single() else {
         return;
     };
 
@@ -133,19 +138,57 @@ pub fn render_nation_borders(
     }
 }
 
-/// System to display nation names on the map
-/// DISABLED FOR PERFORMANCE - uncomment when needed
+/// System to display nation names on the map (optimized)
+/// Only spawns labels once and keeps them persistent
 pub fn render_nation_labels(
-    _commands: Commands,
-    _nations: Query<&Nation>,
-    _province_storage: Res<ProvinceStorage>,
-    _existing_labels: Query<Entity, With<NationLabel>>,
-    _camera: Query<(&Camera, &Transform)>,
+    mut commands: Commands,
+    nations: Query<&Nation>,
+    province_storage: Res<ProvinceStorage>,
+    existing_labels: Query<Entity, With<NationLabel>>,
+    camera: Query<(&Camera, &Transform)>,
 ) {
-    // DISABLED FOR PERFORMANCE
-    // This system was spawning/despawning text entities every frame
-    // TODO: Implement proper label caching with change detection
-    return;
+    // Check if labels already exist - only spawn once for performance
+    if !existing_labels.is_empty() {
+        return;
+    }
+
+    // Check zoom level - only show labels when reasonably zoomed in
+    let Ok((_, camera_transform)) = camera.single() else {
+        return;
+    };
+
+    let zoom_level = camera_transform.translation.z.abs();
+
+    // Show labels at most zoom levels (more generous than before)
+    if zoom_level > 8000.0 {
+        return;
+    }
+
+    // Create persistent labels for each nation at their capital
+    for nation in nations.iter() {
+        // Find capital province using the province_by_id index
+        let Some(&capital_idx) = province_storage.province_by_id.get(&crate::world::ProvinceId::new(nation.capital_province)) else {
+            continue;
+        };
+
+        let capital = &province_storage.provinces[capital_idx];
+
+        // Spawn persistent text label at capital position
+        commands.spawn((
+            Text2d::new(&nation.name),
+            TextFont {
+                font_size: 28.0,
+                ..default()
+            },
+            TextColor(Color::WHITE),
+            Transform::from_translation(Vec3::new(
+                capital.position.x,
+                capital.position.y,
+                10.0, // Above provinces
+            )),
+            NationLabel,
+        ));
+    }
 
     /*
     // Check zoom level

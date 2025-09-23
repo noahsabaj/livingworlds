@@ -100,7 +100,7 @@ mod tests {
             ((manual_lines - declarative_lines) as f32 / manual_lines as f32) * 100.0;
 
         assert!(reduction_percent > 60.0, "Code reduction should exceed 60%");
-        println!(
+        info!(
             "AUDIO AUTOMATION ACHIEVEMENT: {}% code reduction!",
             reduction_percent as u32
         );

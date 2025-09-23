@@ -133,7 +133,7 @@ impl CompoundMottoGenerator {
         }
 
         // Sort by combined strength, strongest first
-        combinations.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap());
+        combinations.sort_by(|a, b| b.2.total_cmp(&a.2));
         combinations
     }
 

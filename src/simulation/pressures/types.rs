@@ -88,7 +88,7 @@ impl PressureVector {
     pub fn highest_pressure(&self) -> Option<(PressureType, PressureLevel)> {
         self.pressures
             .iter()
-            .max_by(|a, b| a.1.partial_cmp(b.1).unwrap())
+            .max_by(|a, b| a.1.0.total_cmp(&b.1.0))
             .map(|(&t, &l)| (t, l))
     }
 

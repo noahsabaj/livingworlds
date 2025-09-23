@@ -19,11 +19,21 @@ pub fn handle_keyboard_navigation(
     settings_root: Query<Entity, With<SettingsMenuRoot>>,
     mut commands: Commands,
 ) {
+    // Only process input if settings menu is actually open
+    let settings_entity = match settings_root.get_single() {
+        Ok(entity) => {
+            debug!("⚙️ Settings menu open, processing navigation input");
+            entity
+        },
+        Err(_) => {
+            trace!("⚙️ No settings menu open, skipping navigation input");
+            return; // No settings menu open, skip all input processing
+        }
+    };
+
     // ESC to close settings
     if keyboard.just_pressed(KeyCode::Escape) {
-        if let Ok(entity) = settings_root.single() {
-            commands.entity(entity).despawn();
-        }
+        commands.entity(settings_entity).despawn();
         return;
     }
 
@@ -63,6 +73,9 @@ pub fn handle_keyboard_navigation(
 
     // Enter/Space to activate focused element
     if keyboard.just_pressed(KeyCode::Enter) || keyboard.just_pressed(KeyCode::Space) {
+        if keyboard.just_pressed(KeyCode::Space) {
+            debug!("⚙️ Space key detected in settings navigation");
+        }
         // First find the focused entity
         let mut focused_entity = None;
         for (entity, focusable, _, interaction) in &param_set.p0() {

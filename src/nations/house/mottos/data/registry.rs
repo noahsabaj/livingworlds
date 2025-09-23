@@ -59,7 +59,9 @@ impl MottoRegistry {
             self.variation_cache.insert(key, variations);
         }
 
-        Ok(self.variation_cache.get(&key).unwrap())
+        self.variation_cache.get(&key)
+            .map(|v| v.as_slice())
+            .ok_or_else(|| MottoError::NoEligibleVariations { trait_type, culture: culture.clone() })
     }
 
     /// Get eligible variations based on trait value and prestige

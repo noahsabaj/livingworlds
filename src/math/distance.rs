@@ -215,7 +215,7 @@ pub fn find_closest(target: Vec2, points: &[Vec2]) -> Option<(usize, f32)> {
         .iter()
         .enumerate()
         .map(|(idx, &pos)| (idx, target.distance(pos)))
-        .min_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
+        .min_by(|a, b| a.1.total_cmp(&b.1))
 }
 
 /// Find all points within a radius

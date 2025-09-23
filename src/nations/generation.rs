@@ -124,7 +124,7 @@ fn select_capital_provinces(
                         .map(|&other_idx: &usize| {
                             position.distance_squared(provinces[other_idx].position)
                         })
-                        .min_by(|a: &f32, b: &f32| a.partial_cmp(b).unwrap())
+                        .min_by(|a: &f32, b: &f32| a.total_cmp(b))
                         .unwrap_or(f32::MAX)
                 };
 
@@ -152,11 +152,11 @@ fn select_capital_provinces(
                     let min_dist = selected_capitals
                         .iter()
                         .map(|&other| provinces[other].position.distance_squared(pos))
-                        .min_by(|a, b| a.partial_cmp(b).unwrap())
+                        .min_by(|a, b| a.total_cmp(b))
                         .unwrap_or(0.0);
                     (idx, min_dist)
                 })
-                .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap())
+                .max_by(|a, b| a.1.total_cmp(&b.1))
                 .map(|(idx, _)| idx)
                 .unwrap_or(remaining_candidates[rng.gen_range(0..remaining_candidates.len())]);
             best
@@ -573,10 +573,19 @@ pub fn build_territories_from_provinces(
             acc1
         });
 
+    // CRITICAL FIX: Build HashMap for O(1) province lookups to prevent O(n²) complexity
+    // This prevents the "Green Ocean Disaster" pattern of linear search inside parallel loops
+    let province_lookup: HashMap<u32, &Province> = provinces
+        .iter()
+        .map(|p| (p.id.value(), p))
+        .collect();
+    let province_lookup = Arc::new(province_lookup);
+
     // Parallel territory building: Process each nation's provinces in parallel
     let nation_territories: HashMap<NationId, Vec<Territory>> = provinces_by_nation
         .par_iter()
         .map(|(&nation_id, province_indices)| {
+            let province_map = Arc::clone(&province_lookup);
             let mut territories = Vec::new();
             let mut visited = HashSet::with_capacity(province_indices.len());
 
@@ -603,9 +612,8 @@ pub fn build_territories_from_provinces(
                         continue;
                     }
 
-                    if let Some(current_province) =
-                        provinces.iter().find(|p| p.id.value() == current_id)
-                    {
+                    // O(1) HashMap lookup instead of O(n) linear search!
+                    if let Some(&current_province) = province_map.get(&current_id) {
                         if current_province.owner == Some(nation_id) {
                             visited.insert(current_id);
                             territory_provinces.insert(current_id);

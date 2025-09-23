@@ -93,13 +93,13 @@ impl RayonMetrics {
         let slowest_op = self
             .recent_operations
             .iter()
-            .max_by(|a, b| a.duration_ms.partial_cmp(&b.duration_ms).unwrap())
+            .max_by(|a, b| a.duration_ms.total_cmp(&b.duration_ms))
             .cloned();
 
         let fastest_op = self
             .recent_operations
             .iter()
-            .min_by(|a, b| a.duration_ms.partial_cmp(&b.duration_ms).unwrap())
+            .min_by(|a, b| a.duration_ms.total_cmp(&b.duration_ms))
             .cloned();
 
         MetricsSummary {

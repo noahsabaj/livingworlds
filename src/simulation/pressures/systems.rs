@@ -12,7 +12,6 @@ use super::types::{PressureType, PressureVector};
 use crate::nations::Nation;
 use crate::world::{ProvinceId, ProvinceStorage};
 use bevy::prelude::*;
-use rayon::prelude::*;
 
 /// Update all pressure levels for nations
 pub fn update_nation_pressures(
@@ -25,9 +24,9 @@ pub fn update_nation_pressures(
     province_storage: Res<ProvinceStorage>,
     time: Res<Time>,
 ) {
-    nations_query
-        .par_iter_mut()
-        .for_each(|(mut nation, mut pressures, owns_territory)| {
+    // NOTE: Bevy queries should not be manually parallelized with Rayon
+    // Bevy has its own parallel scheduling system
+    for (mut nation, mut pressures, owns_territory) in &mut nations_query {
             // Get provinces from all territories owned by this nation
             let mut controlled_provinces = Vec::new();
 
@@ -108,7 +107,7 @@ pub fn update_nation_pressures(
             // Record trend and update time
             pressures.record_trend();
             pressures.time_since_resolution += time.delta_secs();
-        });
+    }
 }
 
 /// Resolve pressure actions when thresholds are exceeded
@@ -116,9 +115,9 @@ pub fn resolve_pressure_actions(
     mut nations_query: Query<(&mut Nation, &mut PressureVector, Entity)>,
     mut commands: Commands,
 ) {
-    nations_query
-        .par_iter_mut()
-        .for_each(|(mut nation, mut pressures, entity)| {
+    // NOTE: Bevy queries should not be manually parallelized with Rayon
+    // Bevy has its own parallel scheduling system
+    for (mut nation, mut pressures, entity) in &mut nations_query {
             // Check if enough time has passed since last resolution
             if pressures.time_since_resolution < 5.0 {
                 return; // Only resolve every 5 seconds minimum
@@ -163,7 +162,7 @@ pub fn resolve_pressure_actions(
                 // Reset resolution timer
                 pressures.time_since_resolution = 0.0;
             }
-        });
+    }
 }
 
 /// Apply gradual effects of pressures (stability, growth, etc.)
@@ -171,9 +170,9 @@ pub fn apply_pressure_effects(
     mut nations_query: Query<(&mut Nation, &PressureVector)>,
     time: Res<Time>,
 ) {
-    nations_query
-        .par_iter_mut()
-        .for_each(|(mut nation, pressures)| {
+    // NOTE: Bevy queries should not be manually parallelized with Rayon
+    // Bevy has its own parallel scheduling system
+    for (mut nation, pressures) in &mut nations_query {
             let total_pressure = pressures.total_magnitude();
 
             // High pressure reduces stability
@@ -192,7 +191,7 @@ pub fn apply_pressure_effects(
             if pressures.is_worsening() {
                 // Future: affect ruler legitimacy
             }
-        });
+    }
 }
 
 /// Determine ruler personality from nation/house traits
