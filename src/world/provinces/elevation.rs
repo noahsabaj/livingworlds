@@ -92,15 +92,19 @@ fn calculate_continent_influence(
     for (seed_pos, strength, radius) in continent_seeds {
         let distance = position.distance(*seed_pos);
 
-        // Domain warping for organic continent shapes
+        // Domain warping for organic continent shapes with aspect ratio correction
+        // Apply the same correction as main noise sampling: account for hex grid spacing
+        let x_correction = 1.0 / 1.5;  // Hex X spacing correction
+        let y_correction = 1.0 / 1.732050808;  // Hex Y spacing correction (1/SQRT_3)
+
         let warp_x = noise.sample_scaled(
-            (position.x * 0.005) as f64,
-            (position.y * 0.005) as f64,
+            (position.x * x_correction * 0.005) as f64,
+            (position.y * y_correction * 0.005) as f64,
             0.01,
         ) as f32;
         let warp_y = noise.sample_scaled(
-            (position.x * 0.005 + 100.0) as f64,
-            (position.y * 0.005 + 100.0) as f64,
+            (position.x * x_correction * 0.005 + 100.0) as f64,
+            (position.y * y_correction * 0.005 + 100.0) as f64,
             0.01,
         ) as f32;
 
