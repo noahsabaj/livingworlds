@@ -1,7 +1,7 @@
 //! Setup and cleanup systems for overlay display
 
 use super::super::{PanelBuilder, PanelStyle};
-use super::{mineral_legend, overlay_text, OverlayDisplayRoot};
+use super::{mineral_legend, OverlayDisplayRoot};
 use bevy::prelude::*;
 
 /// Setup the overlay display UI
@@ -25,10 +25,7 @@ pub fn setup_overlay_display(mut commands: Commands) {
                 .padding(UiRect::all(Val::Px(8.0)))
                 .width(Val::Px(180.0))
                 .build_with_children(parent, |panel| {
-                    // Add overlay text display
-                    overlay_text::spawn_overlay_text(panel);
-
-                    // Add mineral legend
+                    // Only add mineral legend - map mode display is handled by HUD
                     mineral_legend::spawn_mineral_legend(panel);
                 });
         });

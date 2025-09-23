@@ -24,20 +24,37 @@ pub fn spawn_speed_display(parent: &mut ChildBuilder) {
 /// Update the speed display when it changes
 pub fn update_speed_display(
     game_time: Res<GameTime>,
-    mut query: Query<&mut Text, With<GameSpeedDisplay>>,
+    speed_display_query: Query<&Children, With<GameSpeedDisplay>>,
+    mut text_query: Query<&mut Text>,
 ) {
-    if let Ok(mut text) = query.single_mut() {
-        if game_time.paused {
-            **text = "PAUSED".to_string();
+    // Only update if GameTime has changed
+    if game_time.is_changed() {
+        debug!("🎛️ Speed display updating: paused={}, speed={}x", game_time.paused, game_time.speed);
+
+        // Find the speed display entity and get its children
+        if let Ok(children) = speed_display_query.get_single() {
+            // Look for the Text component in the children
+            for child in children.iter() {
+                if let Ok(mut text) = text_query.get_mut(child) {
+                    if game_time.paused {
+                        **text = "Speed: Paused".to_string();
+                    } else {
+                        let speed_text = match game_time.speed {
+                            s if s <= 0.0 => "Paused".to_string(),
+                            s if s == 1.0 => "1x".to_string(),
+                            s if s == 3.0 => "3x".to_string(),
+                            s if s == 6.0 => "6x".to_string(),
+                            s if s == 9.0 => "9x".to_string(),
+                            s => format!("{:.0}x", s), // Handle any other speed values
+                        };
+                        **text = format!("Speed: {}", speed_text);
+                    }
+                    debug!("🎛️ Speed display updated to: {}", text.as_str());
+                    break; // Found and updated the text
+                }
+            }
         } else {
-            let speed_text = match game_time.speed {
-                s if s <= 0.0 => "Paused",
-                s if s <= 1.0 => "Normal",
-                s if s <= 3.0 => "Fast (3x)",
-                s if s <= 6.0 => "Faster (6x)",
-                _ => "Fastest (9x)",
-            };
-            **text = format!("Speed: {}", speed_text);
+            warn!("🎛️ Speed display component not found!");
         }
     }
 }

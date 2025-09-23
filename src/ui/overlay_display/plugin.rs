@@ -7,16 +7,15 @@ use crate::states::GameState;
 use bevy::prelude::*;
 use bevy_plugin_builder::define_plugin;
 
-use super::{mineral_legend, overlay_text, setup};
+use super::{mineral_legend, setup};
 
-/// Plugin that manages overlay display UI using ADVANCED AUTOMATION!
+/// Plugin that manages overlay display UI - now focused solely on mineral legend
 ///
-/// **AUTOMATION ACHIEVEMENT**: 30 lines manual → 15 lines declarative!
+/// Map mode display is handled by HUD to avoid duplication
 define_plugin!(OverlayDisplayPlugin {
     update: [
-        (overlay_text::update_overlay_display,
-         mineral_legend::update_mineral_legend_visibility
-            .run_if(resource_changed::<crate::resources::MapMode>))
+        mineral_legend::update_mineral_legend_visibility
+            .run_if(resource_changed::<crate::resources::MapMode>)
             .run_if(in_state(GameState::InGame))
     ],
 

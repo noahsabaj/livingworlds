@@ -1,7 +1,7 @@
 //! HUD setup and cleanup systems
 
 use super::super::{PanelBuilder, PanelStyle};
-use super::{control_hints, speed_display, time_display, HudRoot};
+use super::{control_hints, map_mode_display, speed_display, time_display, HudRoot};
 use bevy::prelude::*;
 
 /// Setup all HUD elements
@@ -32,6 +32,9 @@ pub fn setup_hud(mut commands: Commands) {
 
                     // Add speed display
                     speed_display::spawn_speed_display(panel);
+
+                    // Add map mode display
+                    map_mode_display::spawn_map_mode_display(panel);
 
                     // Add control hints
                     control_hints::spawn_control_hints(panel);

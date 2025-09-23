@@ -8,6 +8,7 @@ use bevy::prelude::*;
 
 // Submodules - all private, exposed through plugin
 mod control_hints;
+mod map_mode_display;
 mod plugin;
 mod setup;
 mod speed_display;
