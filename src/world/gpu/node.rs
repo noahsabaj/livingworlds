@@ -406,7 +406,8 @@ pub fn init_compute_pipelines(
                     ty: BindingType::Buffer {
                         ty: BufferBindingType::Uniform,
                         has_dynamic_offset: false,
-                        min_binding_size: Some(std::num::NonZeroU64::new(std::mem::size_of::<super::buffers::GpuNoiseParams>() as u64).unwrap()),
+                        min_binding_size: Some(std::num::NonZeroU64::new(std::mem::size_of::<super::buffers::GpuNoiseParams>() as u64)
+                            .expect("GpuNoiseParams size should be non-zero")),
                     },
                     count: None,
                 }, // params
@@ -428,7 +429,8 @@ pub fn init_compute_pipelines(
                     ty: BindingType::Buffer {
                         ty: BufferBindingType::Uniform,
                         has_dynamic_offset: false,
-                        min_binding_size: Some(std::num::NonZeroU64::new(std::mem::size_of::<super::buffers::GpuErosionParams>() as u64).unwrap()),
+                        min_binding_size: Some(std::num::NonZeroU64::new(std::mem::size_of::<super::buffers::GpuErosionParams>() as u64)
+                            .expect("GpuErosionParams size should be non-zero")),
                     },
                     count: None,
                 },

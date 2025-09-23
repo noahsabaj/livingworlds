@@ -355,11 +355,13 @@ pub fn detect_cultural_regions(
     // Process each province as a potential region seed
     for (start_idx, province) in provinces.iter().enumerate() {
         // Skip if already visited or has no culture
-        if visited[start_idx] || province.culture.is_none() {
+        if visited[start_idx] {
             continue;
         }
 
-        let culture = province.culture.unwrap();
+        let Some(culture) = province.culture else {
+            continue;
+        };
 
         // Find connected component using BFS flood-fill
         let region_provinces =

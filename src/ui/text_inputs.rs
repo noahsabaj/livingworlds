@@ -247,8 +247,8 @@ fn build_text_input_with_extras<M>(
                     BorderRadius::all(Val::Px(5.0)),
                     TextInput,
                     TextInputValue(
-                        if builder.value.is_empty() && builder.placeholder.is_some() {
-                            builder.placeholder.clone().unwrap()
+                        if builder.value.is_empty() {
+                            builder.placeholder.clone().unwrap_or_default()
                         } else {
                             builder.value.clone()
                         },
@@ -317,8 +317,8 @@ fn build_text_input_with_extras<M>(
             BorderRadius::all(Val::Px(5.0)),
             TextInput,
             TextInputValue(
-                if builder.value.is_empty() && builder.placeholder.is_some() {
-                    builder.placeholder.unwrap()
+                if builder.value.is_empty() {
+                    builder.placeholder.unwrap_or_default()
                 } else {
                     builder.value
                 },

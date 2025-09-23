@@ -95,9 +95,10 @@ pub fn prepare_compute_bind_groups(
     let mut bind_groups = ComputeBindGroups::default();
 
     // Prepare noise generation bind group
-    if buffer_handles.positions_buffer.is_some()
-        && buffer_handles.elevations_buffer.is_some()
-    {
+    if let (Some(positions_buffer), Some(elevations_buffer)) = (
+        buffer_handles.positions_buffer.as_ref(),
+        buffer_handles.elevations_buffer.as_ref(),
+    ) {
         // Create uniform buffer for noise parameters
         let params = GpuNoiseParams {
             seed: noise_settings.seed,
@@ -125,16 +126,8 @@ pub fn prepare_compute_bind_groups(
             Some("noise_compute_bind_group"),
             &pipeline.noise_layout,
             &BindGroupEntries::sequential((
-                buffer_handles
-                    .positions_buffer
-                    .as_ref()
-                    .unwrap()
-                    .as_entire_buffer_binding(),
-                buffer_handles
-                    .elevations_buffer
-                    .as_ref()
-                    .unwrap()
-                    .as_entire_buffer_binding(),
+                positions_buffer.as_entire_buffer_binding(),
+                elevations_buffer.as_entire_buffer_binding(),
                 uniform_buffer.as_entire_buffer_binding(),
             )),
         );
@@ -144,9 +137,10 @@ pub fn prepare_compute_bind_groups(
     }
 
     // Prepare erosion simulation bind group
-    if buffer_handles.heightmap_buffer.is_some()
-        && buffer_handles.droplet_starts_buffer.is_some()
-    {
+    if let (Some(heightmap_buffer), Some(droplet_starts_buffer)) = (
+        buffer_handles.heightmap_buffer.as_ref(),
+        buffer_handles.droplet_starts_buffer.as_ref(),
+    ) {
         // Create uniform buffer for erosion parameters
         let params = GpuErosionParams {
             width: 2000, // Will come from actual dimensions
@@ -175,33 +169,23 @@ pub fn prepare_compute_bind_groups(
             usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
         });
 
+        // Use elevations_buffer if available, otherwise fallback to heightmap
+        let elevation_buffer = buffer_handles
+            .elevations_buffer
+            .as_ref()
+            .unwrap_or(heightmap_buffer);
+
         // Create bind group with all five bindings (including elevation buffers)
         let bind_group = render_device.create_bind_group(
             Some("erosion_compute_bind_group"),
             &pipeline.erosion_layout,
             &BindGroupEntries::sequential((
-                buffer_handles
-                    .heightmap_buffer
-                    .as_ref()
-                    .unwrap()
-                    .as_entire_buffer_binding(),
-                buffer_handles
-                    .droplet_starts_buffer
-                    .as_ref()
-                    .unwrap()
-                    .as_entire_buffer_binding(),
+                heightmap_buffer.as_entire_buffer_binding(),
+                droplet_starts_buffer.as_entire_buffer_binding(),
                 uniform_buffer.as_entire_buffer_binding(),
                 // Use elevations_buffer for both input and output (they're the same in our case)
-                buffer_handles
-                    .elevations_buffer
-                    .as_ref()
-                    .unwrap_or(&buffer_handles.heightmap_buffer.as_ref().unwrap())  // Fallback to heightmap if no elevations
-                    .as_entire_buffer_binding(),
-                buffer_handles
-                    .elevations_buffer
-                    .as_ref()
-                    .unwrap_or(&buffer_handles.heightmap_buffer.as_ref().unwrap())  // Fallback to heightmap if no elevations
-                    .as_entire_buffer_binding(),
+                elevation_buffer.as_entire_buffer_binding(),
+                elevation_buffer.as_entire_buffer_binding(),
             )),
         );
 
