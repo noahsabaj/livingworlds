@@ -47,10 +47,13 @@ impl MapBounds {
 /// This is the Single Source of Truth for elevation generation. Any changes to the
 /// elevation algorithm should be made here and ONLY here.
 pub fn compute_elevation(params: &ElevationParams, noise: &PerlinNoise) -> f32 {
-    // Scale position to noise space
-    let scale = 1.0 / params.hex_size;
-    let x = (params.position.x * scale) as f64;
-    let y = (params.position.y * scale) as f64;
+    // Scale position to noise space with proper hexagonal aspect ratio correction
+    // Hexagons have x spacing of 1.5 * hex_size and y spacing of SQRT_3 * hex_size
+    // We need to normalize by these different factors to get uniform noise sampling
+    let x_scale = 1.0 / (params.hex_size * 1.5);
+    let y_scale = 1.0 / (params.hex_size * 1.732050808); // SQRT_3
+    let x = (params.position.x * x_scale) as f64;
+    let y = (params.position.y * y_scale) as f64;
 
     // Sample base terrain noise
     let base_elevation = noise.sample_terrain(x, y) as f32;

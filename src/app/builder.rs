@@ -77,8 +77,7 @@ pub fn build_app_with_config(config: AppConfig) -> Result<App, AppBuildError> {
     info!("Initializing game plugins");
     plugin_order::register_all_plugins(&mut app);
 
-    // Performance monitoring (conditional - only in debug builds)
-    #[cfg(debug_assertions)]
+    // Performance monitoring (now active in all builds for dashboard compatibility)
     app.add_plugins(crate::performance::PerformanceMonitoringPlugin);
 
     // Parallel safety validation (conditional - only in debug builds)
