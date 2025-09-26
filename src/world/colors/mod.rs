@@ -22,7 +22,9 @@
 
 // PRIVATE MODULES - No direct access allowed
 mod biomes;
+mod climate;
 mod dynamic;
+mod infrastructure;
 mod minerals;
 mod providers;
 mod terrain;
@@ -41,6 +43,12 @@ pub use providers::{ColorProvider, Colorable};
 pub use utils::{SafeColor, StoneAbundance};
 
 // Theme constants (read-only access)
-pub mod theme_colors {
-    pub use super::theme::*;
-}
+pub use theme::*;
+
+// Climate visualization functions
+pub use climate::composite_climate_color;
+
+// Infrastructure visualization functions
+pub use infrastructure::{
+    composite_infrastructure_color, development_level_color, infrastructure_gradient_color,
+};

@@ -49,7 +49,7 @@ impl CachedOverlayColors {
         province_storage: &ProvinceStorage,
         world_seed: u32,
     ) -> Arc<Vec<[f32; 4]>> {
-        self.get_or_calculate_with_nations(mode, province_storage, world_seed, None)
+        self.get_or_calculate_with_nations(mode, province_storage, world_seed, None, None, None)
     }
 
     /// Get colors with optional nation color registry for political mode
@@ -59,6 +59,8 @@ impl CachedOverlayColors {
         province_storage: &ProvinceStorage,
         world_seed: u32,
         nation_colors: Option<&NationColorRegistry>,
+        climate_storage: Option<&crate::world::terrain::ClimateStorage>,
+        infrastructure_storage: Option<&crate::world::InfrastructureStorage>,
     ) -> Arc<Vec<[f32; 4]>> {
         // If requesting current overlay, return Arc clone (just increments refcount)
         if mode == self.current_type {
@@ -108,6 +110,8 @@ impl CachedOverlayColors {
             province_storage,
             world_seed,
             nation_colors,
+            climate_storage,
+            infrastructure_storage,
         ));
 
         debug!(
@@ -151,7 +155,7 @@ impl CachedOverlayColors {
         province_storage: &ProvinceStorage,
         world_seed: u32,
     ) -> Vec<[f32; 4]> {
-        self.calculate_colors_parallel_with_nations(mode, province_storage, world_seed, None)
+        self.calculate_colors_parallel_with_nations(mode, province_storage, world_seed, None, None, None)
     }
 
     /// Calculate colors with optional nation colors for political mode
@@ -161,6 +165,8 @@ impl CachedOverlayColors {
         province_storage: &ProvinceStorage,
         world_seed: u32,
         nation_colors: Option<&NationColorRegistry>,
+        climate_storage: Option<&crate::world::terrain::ClimateStorage>,
+        infrastructure_storage: Option<&crate::world::InfrastructureStorage>,
     ) -> Vec<[f32; 4]> {
         // Use actual world seed for deterministic color generation
         let world_colors = WorldColors::new(world_seed);
@@ -255,7 +261,7 @@ impl CachedOverlayColors {
                         }
                     } else {
                         // All other modes use the standard calculation
-                        self.calculate_province_color(mode, province, &world_colors)
+                        self.calculate_province_color(mode, province, &world_colors, climate_storage, infrastructure_storage)
                     };
                     let color_array = LinearRgba::from(color).to_f32_array();
 
@@ -291,6 +297,8 @@ impl CachedOverlayColors {
         mode: MapMode,
         province: &Province,
         world_colors: &WorldColors,
+        climate_storage_opt: Option<&crate::world::terrain::ClimateStorage>,
+        infrastructure_storage_opt: Option<&crate::world::InfrastructureStorage>,
     ) -> Color {
         debug_assert!(
             mode != MapMode::Political && mode != MapMode::Terrain,
@@ -299,15 +307,34 @@ impl CachedOverlayColors {
 
         match mode {
 
-            // Climate zones based on latitude
+            // Climate zones based on actual climate data
             MapMode::Climate => {
-                // TODO: Implement climate zones when climate system is ready
-                // For now, use terrain colors as placeholder
-                world_colors.terrain(
-                    province.terrain,
-                    province.elevation.value(),
-                    province.position,
-                )
+                // Use stored climate data if available
+                if let Some(climate_storage) = climate_storage_opt {
+                    if let Some(climate) = climate_storage.get(province.id) {
+                        // Generate color from actual climate data
+                        crate::world::colors::composite_climate_color(
+                            climate.temperature,
+                            climate.rainfall,
+                            climate.zone,
+                            climate_storage.normalized_temperature(climate.temperature),
+                        )
+                    } else {
+                        // Fallback for provinces without climate data (e.g., ocean)
+                        world_colors.terrain(
+                            province.terrain,
+                            province.elevation.value(),
+                            province.position,
+                        )
+                    }
+                } else {
+                    // Fallback if climate storage not available
+                    world_colors.terrain(
+                        province.terrain,
+                        province.elevation.value(),
+                        province.position,
+                    )
+                }
             }
 
             // Population density heat map
@@ -325,12 +352,28 @@ impl CachedOverlayColors {
 
             // Infrastructure development
             MapMode::Infrastructure => {
-                // TODO: Implement when infrastructure system is ready
-                world_colors.terrain(
-                    province.terrain,
-                    province.elevation.value(),
-                    province.position,
-                )
+                // Use stored infrastructure data if available
+                if let Some(infra_storage) = infrastructure_storage_opt {
+                    if let Some(infra) = infra_storage.get(province.id) {
+                        // Generate color from infrastructure metrics
+                        crate::world::colors::composite_infrastructure_color(
+                            infra.connectivity,
+                            infra.road_density,
+                            infra.trade_volume,
+                            infra.is_hub,
+                        )
+                    } else {
+                        // Fallback for provinces without infrastructure (wilderness)
+                        crate::world::colors::infrastructure_gradient_color(0.0)
+                    }
+                } else {
+                    // Fallback if infrastructure storage not available
+                    world_colors.terrain(
+                        province.terrain,
+                        province.elevation.value(),
+                        province.position,
+                    )
+                }
             }
 
             // Unified minerals mode (combining all mineral types)

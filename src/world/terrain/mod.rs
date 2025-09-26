@@ -10,6 +10,7 @@
 // PRIVATE MODULES
 mod climate;
 mod erosion;
+mod storage;
 mod types;
 
 // PUBLIC EXPORTS - The only way to access terrain functionality
@@ -25,3 +26,6 @@ pub use climate::Biome;
 // Generation functions (these modules use direct functions, not builders)
 pub use climate::apply_climate_to_provinces;
 pub use erosion::apply_erosion_to_provinces;
+
+// Climate storage for runtime visualization
+pub use storage::{ClimateStorage, ClimateZone as StoredClimateZone, ProvinceClimate};

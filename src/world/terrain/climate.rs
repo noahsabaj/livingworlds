@@ -558,12 +558,12 @@ impl ClimateSystem {
     }
 }
 
-/// Apply climate data to provinces during world generation
+/// Apply climate data to provinces during world generation and return storage for runtime
 pub fn apply_climate_to_provinces(
     provinces: &mut [crate::world::Province],
     dimensions: crate::resources::MapDimensions,
     climate_type: ClimateType,
-) {
+) -> super::storage::ClimateStorage {
     // Count how many provinces actually need climate calculations
     let land_provinces = provinces
         .iter()
@@ -578,6 +578,9 @@ pub fn apply_climate_to_provinces(
 
     let mut climate_system = ClimateSystem::new(dimensions, provinces.len(), climate_type);
     climate_system.simulate(provinces);
+
+    // Create climate storage for runtime visualization
+    let mut storage = super::storage::ClimateStorage::new();
 
     // Apply climate results to provinces by setting terrain types based on biomes
     // LAZY: Skip ocean provinces entirely for biome calculations
@@ -594,7 +597,23 @@ pub fn apply_climate_to_provinces(
         {
             province.terrain = biome_to_terrain(biome, province.elevation.value());
         }
+
+        // Store climate data for runtime visualization
+        let climate = &climate_system.climates[idx];
+        let province_climate = super::storage::ProvinceClimate {
+            temperature: climate.temperature,
+            rainfall: climate.rainfall,
+            humidity: climate.humidity,
+            zone: super::storage::ClimateZone::from_climate_data(
+                climate.temperature,
+                climate.rainfall,
+                province.elevation.value(),
+            ),
+        };
+        storage.insert(province.id, province_climate);
     }
+
+    storage
 }
 
 fn biome_to_terrain(biome: Biome, elevation: f32) -> crate::world::TerrainType {

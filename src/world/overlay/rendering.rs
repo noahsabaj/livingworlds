@@ -26,6 +26,8 @@ pub fn update_province_colors(
     mut meshes: ResMut<Assets<Mesh>>,
     time: Res<Time>,
     nation_colors: Option<Res<crate::nations::NationColorRegistry>>,
+    climate_storage: Option<Res<crate::world::terrain::ClimateStorage>>,
+    infrastructure_storage: Option<Res<crate::world::InfrastructureStorage>>,
 ) {
     let start = std::time::Instant::now();
     trace!(
@@ -44,16 +46,14 @@ pub fn update_province_colors(
     let mesh_lookup_time = start.elapsed();
 
     // Get Arc to colors - NO CLONING, just reference counting!
-    let colors_arc = if let Some(registry) = nation_colors {
-        cached_colors.get_or_calculate_with_nations(
-            *overlay,
-            &province_storage,
-            world_seed.0,
-            Some(registry.as_ref()),
-        )
-    } else {
-        cached_colors.get_or_calculate(*overlay, &province_storage, world_seed.0)
-    };
+    let colors_arc = cached_colors.get_or_calculate_with_nations(
+        *overlay,
+        &province_storage,
+        world_seed.0,
+        nation_colors.as_ref().map(|r| r.as_ref()),
+        climate_storage.as_ref().map(|r| r.as_ref()),
+        infrastructure_storage.as_ref().map(|r| r.as_ref()),
+    );
 
     let _selection_time = start.elapsed() - mesh_lookup_time;
 

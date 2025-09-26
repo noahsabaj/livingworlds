@@ -103,7 +103,7 @@ impl WorldBuilder {
 
         // Step 4: Generate climate zones
         report_progress(&format!("Generating climate zones across {} provinces...", provinces.len()), 0.4);
-        crate::world::apply_climate_to_provinces(&mut provinces, self.dimensions, self.climate_type);
+        let climate_storage = crate::world::apply_climate_to_provinces(&mut provinces, self.dimensions, self.climate_type);
 
         // Step 5: Generate river systems
         let target_rivers = (provinces.len() as f32 * self.river_density * 0.001) as usize;
@@ -140,6 +140,8 @@ impl WorldBuilder {
             provinces,
             rivers: river_system,
             clouds: cloud_system,
+            climate_storage,
+            infrastructure_storage: super::super::InfrastructureStorage::new(),
             seed: self.seed,
         })
     }

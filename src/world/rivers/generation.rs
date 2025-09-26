@@ -194,8 +194,8 @@ fn trace_river_path(
 
                 if province.terrain == TerrainType::Ocean {
                     delta_tiles.push(province.id);
-                    if !river_path.is_empty() {
-                        delta_tiles.push(*river_path.last().unwrap());
+                    if let Some(&last_province) = river_path.last() {
+                        delta_tiles.push(last_province);
                     }
                     return (river_path, delta_tiles, flow);
                 }

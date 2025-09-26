@@ -10,7 +10,7 @@ use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
 
 /// Main world data structure containing all world state
-#[derive(Debug, Clone)]
+#[derive(Resource, Debug, Clone, Reflect)]
 pub struct World {
     /// All provinces in the world
     pub provinces: Vec<Province>,
@@ -20,6 +20,12 @@ pub struct World {
 
     /// Cloud system with atmospheric data
     pub clouds: CloudSystem,
+
+    /// Climate data storage for runtime visualization
+    pub climate_storage: super::terrain::ClimateStorage,
+
+    /// Infrastructure data storage for runtime visualization
+    pub infrastructure_storage: super::InfrastructureStorage,
 
     /// World generation seed for reproducibility
     pub seed: u32,
@@ -32,6 +38,8 @@ impl World {
             provinces,
             rivers: RiverSystem::default(),
             clouds: CloudSystem::new(),
+            climate_storage: super::terrain::ClimateStorage::new(),
+            infrastructure_storage: super::InfrastructureStorage::new(),
             seed,
         }
     }

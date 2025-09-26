@@ -25,6 +25,7 @@ mod clouds; // Cloud system (data, generation, rendering)
 mod colors; // Color system (themes, providers, calculations)
 mod cultural; // Geographic-cultural assignment system
 mod gpu; // GPU compute acceleration for world generation
+mod infrastructure; // Infrastructure and development systems
 mod mesh; // World mesh rendering
 mod minerals; // Mineral resources
 mod overlay;
@@ -58,6 +59,9 @@ pub use terrain::{
     ClimateZone, TerrainEntity, TerrainPlugin, TerrainType,
 };
 
+// === Infrastructure Feature ===
+pub use infrastructure::{analyze_infrastructure, InfrastructureStorage, ProvinceInfrastructure};
+
 // === Provinces Feature ===
 pub use provinces::{
     calculate_agriculture_values, calculate_ocean_depths, Abundance, Agriculture, Distance,
@@ -81,7 +85,7 @@ pub use mesh::{build_world_mesh, MeshBuildStats, MeshBuilder, ProvinceStorage, W
 pub use overlay::{update_province_colors, CachedOverlayColors, MapMode, OverlayPlugin};
 
 // === Color System ===
-pub use colors::{theme_colors, ColorProvider, Colorable, SafeColor, StoneAbundance, WorldColors};
+pub use colors::{ColorProvider, Colorable, SafeColor, StoneAbundance, WorldColors};
 
 // === Cultural Assignment ===
 pub use cultural::{

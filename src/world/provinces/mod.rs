@@ -5,7 +5,7 @@
 // PRIVATE MODULES
 mod agriculture;
 mod elevation;
-mod generation;
+mod generation;  // Now points to the new generation/ subfolder
 mod spatial;
 mod types;
 
@@ -16,12 +16,9 @@ pub use types::{
     Abundance, Agriculture, Distance, Elevation, HexDirection, Province, ProvinceEntity, ProvinceId,
 };
 
-// Generation functions
-pub use generation::precompute_neighbor_indices;
-
 // Spatial indexing
 pub use spatial::{ProvincesSpatialIndex, WorldBounds};
 
 // Generation and processing
 pub use agriculture::calculate as calculate_agriculture_values;
-pub use generation::{calculate_ocean_depths, ProvinceBuilder};
+pub use generation::{ProvinceBuilder, calculate_ocean_depths, precompute_neighbor_indices};

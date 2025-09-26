@@ -313,7 +313,7 @@ fn generate_world_with_gpu_acceleration(
 
     // Step 4: Generate climate zones
     send_progress("Generating climate zones...", 0.4);
-    crate::world::apply_climate_to_provinces(&mut provinces, dimensions, settings.climate_type);
+    let climate_storage = crate::world::apply_climate_to_provinces(&mut provinces, dimensions, settings.climate_type);
 
     // Step 5: Generate river systems
     send_progress("Creating river systems...", 0.5);
@@ -346,6 +346,8 @@ fn generate_world_with_gpu_acceleration(
         provinces,
         rivers: river_system,
         clouds: cloud_system,
+        climate_storage,
+        infrastructure_storage: crate::world::InfrastructureStorage::new(),
         seed: settings.seed,
     })
 }
@@ -431,12 +433,15 @@ pub fn poll_async_world_generation(
     // Check for progress updates (non-blocking)
     while let Ok(progress) = generation.progress_receiver.try_recv() {
         if progress.completed {
-            if let Some(world) = progress.world_data {
+            if let Some(mut world) = progress.world_data {
                 info!("Async world generation completed, building mesh...");
 
                 // Build mesh and add to assets
                 let mesh_handle = build_world_mesh(&world.provinces, &mut meshes, world.seed);
                 commands.insert_resource(WorldMeshHandle(mesh_handle));
+
+                // Store climate data for runtime visualization
+                commands.insert_resource(world.climate_storage.clone());
 
                 // Create province storage (mutable for nation assignment)
                 let mut province_storage = ProvinceStorage::from_provinces(world.provinces.clone());
@@ -469,15 +474,16 @@ pub fn poll_async_world_generation(
                     ProvincesSpatialIndex::build(&province_storage.provinces, &map_dimensions);
                 commands.insert_resource(spatial_index);
 
-                // Spawn nations with ruling houses
+                // Spawn nations with ruling houses and governance
                 let nation_settings = crate::nations::NationGenerationSettings::default();
                 info!("About to call spawn_nations...");
-                let (nations, houses) = crate::nations::spawn_nations(
+                let (nations, houses, governments) = crate::nations::spawn_nations(
                     &mut province_storage.provinces,
                     &nation_settings,
                     world.seed,
                 );
-                info!("spawn_nations completed! Got {} nations and {} houses", nations.len(), houses.len());
+                info!("spawn_nations completed! Got {} nations, {} houses, and {} governments",
+                      nations.len(), houses.len(), governments.len());
 
                 // Build ownership cache from province data (optimized for large datasets)
                 info!("Building ownership cache with parallel processing...");
@@ -519,11 +525,25 @@ pub fn poll_async_world_generation(
 
                 info!("Simplified territories created successfully");
 
+                // Analyze and generate infrastructure data
+                info!("Analyzing infrastructure networks...");
+                let infrastructure_storage = crate::world::analyze_infrastructure(
+                    &province_storage.provinces,
+                    &province_storage,
+                );
+                info!("Infrastructure analysis complete: {} provinces with infrastructure data",
+                      infrastructure_storage.infrastructure.len());
+
+                // Store infrastructure in world and as a resource
+                world.infrastructure_storage = infrastructure_storage.clone();
+                commands.insert_resource(infrastructure_storage);
+
                 // Spawn nation entities with OwnsTerritory component for Entity Relationships
                 // NOTE: We DON'T spawn 3M province entities - that would kill performance!
                 info!("Spawning {} nation entities...", nations.len());
                 let mut nation_entities = std::collections::HashMap::new();
-                for nation in &nations {
+                for (i, nation) in nations.iter().enumerate() {
+                    let government_type = governments[i];
                     let nation_entity = commands
                         .spawn((
                             crate::nations::NationBundle {
@@ -531,8 +551,27 @@ pub fn poll_async_world_generation(
                                 transform: Transform::default(),
                                 visibility: Visibility::default(),
                                 pressure_vector: crate::simulation::PressureVector::default(),
+                                history: crate::nations::create_initial_history(
+                                    &nation.name,
+                                    "Western".to_string(), // TODO: Use actual culture
+                                    0, // TODO: Use actual game year
+                                    &mut rand::thread_rng(),
+                                ),
                             },
                             crate::nations::OwnsTerritory::default(), // Will be populated by Entity Relationships
+                            crate::nations::Governance {
+                                government_type,
+                                stability: 0.75,
+                                reform_pressure: 0.0,
+                                tradition_strength: government_type.mechanics().reform_resistance,
+                                last_transition: None,
+                                days_in_power: 0,
+                                legitimacy: 0.75,  // Start with decent legitimacy
+                                legitimacy_trend: 0.0,
+                                legitimacy_factors: crate::nations::LegitimacyFactors::for_government_type(government_type),
+                            },
+                            crate::nations::PoliticalPressure::default(),
+                            crate::nations::GovernmentHistory::new(government_type),
                         ))
                         .id();
 

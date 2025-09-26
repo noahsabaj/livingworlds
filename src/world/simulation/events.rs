@@ -202,29 +202,28 @@ pub struct BatchMineralDiscovery {
     pub discoveries: Vec<ProvinceMineralsChanged>,
 }
 
-/// Plugin that registers all province event types
-pub struct ProvinceEventsPlugin;
+use bevy_plugin_builder::define_plugin;
 
-impl Plugin for ProvinceEventsPlugin {
-    fn build(&self, app: &mut App) {
-        app
-            // Individual change events
-            .add_event::<ProvincePopulationChanged>()
-            .add_event::<ProvinceTerrainChanged>()
-            .add_event::<ProvinceMineralsChanged>()
-            .add_event::<ProvinceAgricultureChanged>()
-            .add_event::<ProvinceFreshWaterChanged>()
-            .add_event::<ProvinceChanged>()
-            // Batch events
-            .add_event::<BatchPopulationUpdate>()
-            .add_event::<BatchMineralDiscovery>()
-            // Debug logging system (only in debug builds)
-            .add_systems(
-                Update,
-                log_province_changes.run_if(resource_exists::<DebugProvinceEvents>),
-            );
-    }
-}
+/// Plugin that registers all province event types
+define_plugin!(ProvinceEventsPlugin {
+    events: [
+        // Individual change events
+        ProvincePopulationChanged,
+        ProvinceTerrainChanged,
+        ProvinceMineralsChanged,
+        ProvinceAgricultureChanged,
+        ProvinceFreshWaterChanged,
+        ProvinceChanged,
+        // Batch events
+        BatchPopulationUpdate,
+        BatchMineralDiscovery
+    ],
+
+    // Debug logging system (only in debug builds)
+    update: [
+        log_province_changes.run_if(resource_exists::<DebugProvinceEvents>)
+    ]
+});
 
 /// Resource to enable debug logging of province events
 #[derive(Resource, Default)]
