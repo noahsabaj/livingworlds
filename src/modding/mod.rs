@@ -20,7 +20,7 @@ mod loader;
 mod manager;
 mod plugin;
 mod types;
-mod ui;
+mod ui;  // Now a subfolder with gateway architecture!
 
 // CONTROLLED PUBLIC EXPORTS - Gateway Interface
 
