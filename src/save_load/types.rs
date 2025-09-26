@@ -3,9 +3,11 @@
 //! This module contains all the data structures used for saving and loading game state.
 
 use crate::resources::{GameTime, MapDimensions, MapMode, WorldSize, WorldTension};
+use crate::nations::laws::{NationLaws, LawRegistry};
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use std::collections::HashMap;
 
 /// Directory where save files are stored
 pub const SAVE_DIRECTORY: &str = "saves";
@@ -46,4 +48,6 @@ pub struct SaveGameData {
     pub world_tension: WorldTension,
     pub map_mode: MapMode,
     pub provinces: Vec<crate::world::Province>,
+    /// Nation laws data - entity IDs will be remapped on load
+    pub nation_laws: HashMap<crate::nations::NationId, NationLaws>,
 }

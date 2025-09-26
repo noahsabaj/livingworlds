@@ -91,7 +91,7 @@ impl CapitalOf {
 // ================================================================================================
 
 /// A person/house rules over a nation
-/// Enables dynasty and succession mechanics
+/// Enables house and succession mechanics
 ///
 /// This allows for implementing royal families, successions, and political intrigue.
 #[derive(Component, Debug, Clone)]

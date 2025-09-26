@@ -32,6 +32,7 @@ mod administrative; // Governor and provincial administration relationships
 mod cultural; // Cultural region and provincial cultural membership
 mod diplomatic; // Inter-nation diplomatic relationships
 mod infrastructure; // Roads, trade routes, and physical connections
+mod legislative; // Legislative and law enactment relationships
 mod military; // Army positioning and military structures
 mod plugin; // Bevy plugin for relationships system
 mod political; // Core political relationships (nation ownership, capitals)
@@ -112,6 +113,30 @@ pub use cultural::{
     CulturalTensionEvent,
     CulturalUnificationEvent,
     FragmentationCause,
+};
+
+// ================================================================================================
+// LEGISLATIVE RELATIONSHIPS - Laws and governance
+// ================================================================================================
+
+pub use legislative::{
+    // Legislative relationship components
+    EnactedBy,
+    EnactedLaws,
+    ProposedFor,
+    ProposedLaws,
+    RepealedBy,
+    RepealedLaws,
+    ConflictsWith,
+    ConflictedBy,
+    // Law entity components
+    LawEntity,
+    ProposalStatus,
+    RepealInfo,
+    // Legislative events
+    LawEnactedEvent,
+    LawProposedEvent,
+    LawRepealedEvent,
 };
 
 // ================================================================================================

@@ -47,7 +47,11 @@ define_plugin!(RelationshipsPlugin {
         // Population events (3)
         MigrationEvent,
         PopulationChangeEvent,
-        DemographicShiftEvent
+        DemographicShiftEvent,
+        // Legislative events (3)
+        LawEnactedEvent,
+        LawProposedEvent,
+        LawRepealedEvent
     ],
 
     update: [

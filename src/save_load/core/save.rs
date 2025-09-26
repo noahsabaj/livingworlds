@@ -8,7 +8,9 @@ use crate::resources::{
     GameTime, MapDimensions, MapMode, WorldName, WorldSeed, WorldSize, WorldTension,
 };
 use crate::world::ProvinceStorage;
+use crate::nations::{Nation, laws::NationLaws};
 use bevy::prelude::*;
+use std::collections::HashMap;
 use bevy::tasks::IoTaskPool;
 use chrono::Local;
 use rayon::prelude::*;
@@ -27,6 +29,7 @@ pub fn handle_save_game(
     world_tension: Option<Res<WorldTension>>,
     map_mode: Option<Res<MapMode>>,
     province_storage: Option<Res<ProvinceStorage>>,
+    nations_query: Query<(&Nation, &NationLaws)>,
 ) {
     for event in save_events.read() {
         info!("Saving game to slot: {}", event.slot_name);
@@ -60,6 +63,11 @@ pub fn handle_save_game(
                     }
                 })
                 .unwrap_or_default(),
+            // Collect nation laws data
+            nation_laws: nations_query
+                .iter()
+                .map(|(nation, laws)| (nation.id, laws.clone()))
+                .collect(),
         };
 
         // Serialize and compress
