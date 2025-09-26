@@ -33,6 +33,9 @@ pub mod world; // World representation and rendering
 pub mod nations;
 pub mod simulation;
 
+// Content creation and viral moments
+pub mod content_creation;
+
 // UI and menus
 pub mod loading;
 pub mod menus;
@@ -51,6 +54,10 @@ pub mod save_load;
 // Steam integration (only when feature is enabled)
 #[cfg(feature = "steam")]
 pub mod steam;
+
+// Test utilities (only available in test builds)
+#[cfg(test)]
+pub mod test_utils;
 
 // === Configuration Constants ===
 /// Default window width in pixels

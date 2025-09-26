@@ -8,10 +8,10 @@
 //! # Architecture
 //!
 //! This main.rs follows Living Worlds' gateway architecture principles:
-//! - Infrastructure management → `infrastructure::` module
-//! - Command-line processing → `cli::` module
-//! - Development mode setup → `states::` module
-//! - Application building → `app::` module (via lib.rs gateway)
+//! - Infrastructure management: `infrastructure::` module
+//! - Command-line processing: `cli::` module
+//! - Development mode setup: `states::` module
+//! - Application building: `app::` module (via lib.rs gateway)
 //!
 //! All implementation details are delegated to these specialized modules,
 //! keeping main.rs focused solely on orchestration and error handling.
