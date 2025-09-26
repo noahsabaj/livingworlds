@@ -17,7 +17,11 @@ mod northern;
 mod southern;
 mod western;
 
-// Re-export culture data through a controlled interface
+// Re-export culture data through namespaced modules
+// NOTE: These MUST be modules (not direct exports) to prevent naming conflicts.
+// Each culture exports the same constant names (MALE_NAMES, FEMALE_NAMES, etc.)
+// so we need namespace separation. This is NOT a gateway violation - it's
+// necessary namespace management.
 pub mod western_data {
     pub use super::western::*;
 }

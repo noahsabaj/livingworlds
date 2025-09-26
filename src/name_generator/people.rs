@@ -117,22 +117,17 @@ pub fn get_cultural_person_name(
 }
 
 /// Get role-based title that varies by culture and gender
+///
+/// IMPORTANT: PersonRole::Ruler will panic - use governance system instead
 pub fn get_role_title(role: PersonRole, gender: Gender, culture: Culture) -> String {
     match role {
-        PersonRole::Ruler => match (culture, gender) {
-            (Culture::Western, Gender::Male) => "King",
-            (Culture::Western, Gender::Female) => "Queen",
-            (Culture::Eastern, Gender::Male) => "Emperor",
-            (Culture::Eastern, Gender::Female) => "Empress",
-            (Culture::Northern, _) => "Jarl",
-            (Culture::Southern, _) => "Consul",
-            (Culture::Desert, Gender::Male) => "Sultan",
-            (Culture::Desert, Gender::Female) => "Sultana",
-            (Culture::Island, _) => "Chief",
-            (Culture::Ancient, _) => "Pharaoh",
-            (Culture::Mystical, _) => "Archmage",
-            _ => "Sovereign",
-        },
+        PersonRole::Ruler => {
+            panic!(
+                "get_role_title() called with PersonRole::Ruler - \
+                use governance::get_ruler_title() instead. \
+                Ruler titles are based on government type, not culture."
+            );
+        }
         PersonRole::General => match culture {
             Culture::Eastern => "Shogun",
             Culture::Northern => "Warlord",
