@@ -138,99 +138,211 @@ pub fn render_nation_borders(
     }
 }
 
-/// System to display nation names on the map (optimized)
-/// Only spawns labels once and keeps them persistent
-pub fn render_nation_labels(
+/// System to spawn territory-spanning nation labels with dynamic sizing
+pub fn spawn_nation_labels(
     mut commands: Commands,
     nations: Query<&Nation>,
     province_storage: Res<ProvinceStorage>,
+    ownership_cache: Res<super::types::ProvinceOwnershipCache>,
+    mut territory_cache: ResMut<super::territory_analysis::TerritoryMetricsCache>,
     existing_labels: Query<Entity, With<NationLabel>>,
-    camera: Query<(&Camera, &Transform)>,
 ) {
-    // Check if labels already exist - only spawn once for performance
-    if !existing_labels.is_empty() {
+    // Clear existing labels when ownership changes
+    if territory_cache.cache_version != ownership_cache.version {
+        for entity in existing_labels.iter() {
+            commands.entity(entity).despawn();
+        }
+    } else if !existing_labels.is_empty() {
+        // Labels already exist and ownership hasn't changed
         return;
     }
 
-    // Check zoom level - only show labels when reasonably zoomed in
-    let Ok((_, camera_transform)) = camera.single() else {
-        return;
-    };
-
-    let zoom_level = camera_transform.translation.z.abs();
-
-    // Show labels at most zoom levels (more generous than before)
-    if zoom_level > 8000.0 {
-        return;
-    }
-
-    // Create persistent labels for each nation at their capital
+    // Create labels for each nation based on territory analysis
     for nation in nations.iter() {
-        // Find capital province using the province_by_id index
-        let Some(&capital_idx) = province_storage.province_by_id.get(&crate::world::ProvinceId::new(nation.capital_province)) else {
+        let Some(metrics) = territory_cache.get_or_calculate(
+            nation.id,
+            &ownership_cache,
+            &province_storage,
+        ) else {
             continue;
         };
 
-        let capital = &province_storage.provinces[capital_idx];
+        // Skip nations with no territory
+        if metrics.province_count == 0 {
+            continue;
+        }
 
-        // Spawn persistent text label at capital position
-        commands.spawn((
-            Text2d::new(&nation.name),
-            TextFont {
-                font_size: 28.0,
-                ..default()
-            },
-            TextColor(Color::WHITE),
-            Transform::from_translation(Vec3::new(
-                capital.position.x,
-                capital.position.y,
-                10.0, // Above provinces
-            )),
-            NationLabel,
-        ));
+        let base_font_size = metrics.optimal_base_font_size();
+
+        // For disconnected empires, optionally create multiple labels
+        if !metrics.is_contiguous && metrics.clusters.len() > 1 {
+            // Only label major clusters (>20% of total territory)
+            for (idx, cluster) in metrics.clusters.iter().enumerate() {
+                if cluster.relative_size >= 0.2 {
+                    let cluster_width = cluster.bounds.1.x - cluster.bounds.0.x;
+                    let cluster_font_size = base_font_size * cluster.relative_size;
+
+                    commands.spawn((
+                        Text2d::new(if idx == 0 {
+                            nation.name.clone()
+                        } else {
+                            // Secondary clusters get abbreviated names or nothing
+                            format!("{} (Colony)", &nation.name[..nation.name.len().min(10)])
+                        }),
+                        TextFont {
+                            font_size: cluster_font_size,
+                            ..default()
+                        },
+                        TextColor(Color::srgba(1.0, 1.0, 1.0, if idx == 0 { 1.0 } else { 0.7 })),
+                        Transform::from_translation(Vec3::new(
+                            cluster.centroid.x,
+                            cluster.centroid.y,
+                            10.0, // Above provinces
+                        )),
+                        NationLabel {
+                            nation_id: nation.id,
+                            base_font_size: cluster_font_size,
+                            territory_bounds: cluster.bounds,
+                            centroid: cluster.centroid,
+                            province_count: cluster.province_ids.len(),
+                            is_primary: idx == 0,
+                        },
+                    ));
+                }
+            }
+        } else {
+            // Single contiguous territory - one label at centroid
+            commands.spawn((
+                Text2d::new(&nation.name),
+                TextFont {
+                    font_size: base_font_size,
+                    ..default()
+                },
+                TextColor(Color::WHITE),
+                Transform::from_translation(Vec3::new(
+                    metrics.centroid.x,
+                    metrics.centroid.y,
+                    10.0,
+                )),
+                NationLabel {
+                    nation_id: nation.id,
+                    base_font_size,
+                    territory_bounds: metrics.bounds,
+                    centroid: metrics.centroid,
+                    province_count: metrics.province_count,
+                    is_primary: true,
+                },
+            ));
+        }
     }
+}
 
-    /*
-    // Check zoom level
-    let Ok((_, camera_transform)) = camera.get_single() else {
+/// System to dynamically update nation label sizes based on camera zoom
+pub fn update_nation_label_sizes(
+    camera_query: Query<(&Camera, &Transform), Changed<Transform>>,
+    mut label_query: Query<(&NationLabel, &mut TextFont, &mut TextColor)>,
+) {
+    let Ok((_, camera_transform)) = camera_query.get_single() else {
         return;
     };
 
     let zoom_level = camera_transform.translation.z.abs();
 
-    // Only show labels when zoomed in enough
-    if zoom_level > 3000.0 {
-        return;
+    // Calculate zoom factor for font scaling
+    // Closer zoom = larger text relative to territory
+    // Further zoom = smaller text to avoid overlap
+    let zoom_factor = if zoom_level < 500.0 {
+        1.5 // Very close - make text larger
+    } else if zoom_level < 1000.0 {
+        1.2
+    } else if zoom_level < 2000.0 {
+        1.0
+    } else if zoom_level < 4000.0 {
+        0.8
+    } else if zoom_level < 6000.0 {
+        0.6
+    } else {
+        0.4 // Very far - make text smaller
+    };
+
+    for (label, mut font, mut color) in label_query.iter_mut() {
+        // Scale font based on zoom and territory size
+        let scaled_size = label.base_font_size * zoom_factor;
+        font.font_size = scaled_size.clamp(8.0, 200.0);
+
+        // Adjust opacity based on importance and zoom
+        let importance_factor = if label.province_count > 100 {
+            1.0 // Empires always visible
+        } else if label.province_count > 50 {
+            0.9 // Major powers
+        } else if label.province_count > 20 {
+            0.8 // Regional powers
+        } else if label.province_count > 5 {
+            0.7 // Small nations
+        } else {
+            0.6 // Tiny nations
+        };
+
+        // Fade out small nations at far zoom levels
+        let zoom_opacity = if zoom_level > 5000.0 && label.province_count < 20 {
+            0.0 // Hide small nations when very zoomed out
+        } else if zoom_level > 3000.0 && label.province_count < 10 {
+            0.3 // Fade tiny nations
+        } else {
+            1.0
+        };
+
+        let final_opacity = importance_factor * zoom_opacity * if label.is_primary { 1.0 } else { 0.7 };
+        *color = TextColor(Color::srgba(1.0, 1.0, 1.0, final_opacity));
     }
-
-    // Create label for each nation at its capital
-    for nation in nations.iter() {
-        let capital_idx = nation.capital_province as usize;
-        if capital_idx >= province_storage.provinces.len() {
-            continue;
-        }
-
-        let capital = &province_storage.provinces[capital_idx];
-
-        // Spawn text label at capital position
-        commands.spawn((
-            Text2d::new(&nation.name),
-            TextFont {
-                font_size: 24.0,
-                ..default()
-            },
-            TextColor(Color::WHITE),
-            Transform::from_translation(Vec3::new(
-                capital.position.x,
-                capital.position.y,
-                10.0, // Above provinces
-            )),
-            NationLabel,
-        ));
-    }
-    */
 }
 
-/// Marker component for nation label entities
+/// System to hide/show labels based on zoom level (LOD)
+pub fn update_label_visibility(
+    camera_query: Query<(&Camera, &Transform), Changed<Transform>>,
+    mut label_query: Query<(&NationLabel, &mut Visibility)>,
+) {
+    let Ok((_, camera_transform)) = camera_query.get_single() else {
+        return;
+    };
+
+    let zoom_level = camera_transform.translation.z.abs();
+
+    for (label, mut visibility) in label_query.iter_mut() {
+        // Visibility thresholds based on nation size
+        let should_show = if label.province_count > 100 {
+            zoom_level < 10000.0 // Empires visible at all reasonable zoom levels
+        } else if label.province_count > 50 {
+            zoom_level < 8000.0 // Major powers
+        } else if label.province_count > 20 {
+            zoom_level < 6000.0 // Regional powers
+        } else if label.province_count > 5 {
+            zoom_level < 4000.0 // Small nations
+        } else {
+            zoom_level < 2000.0 // Tiny nations only when close
+        };
+
+        *visibility = if should_show {
+            Visibility::Visible
+        } else {
+            Visibility::Hidden
+        };
+    }
+}
+
+/// Enhanced nation label component with territory awareness
 #[derive(Component)]
-pub struct NationLabel;
+pub struct NationLabel {
+    /// The nation this label represents
+    pub nation_id: super::types::NationId,
+    /// Base font size calculated from territory
+    pub base_font_size: f32,
+    /// Territory bounds for this nation
+    pub territory_bounds: (Vec2, Vec2),
+    /// Centroid of the territory
+    pub centroid: Vec2,
+    /// Number of provinces (for importance weighting)
+    pub province_count: usize,
+    /// Whether this is a main label or secondary (for disconnected territories)
+    pub is_primary: bool,
+}

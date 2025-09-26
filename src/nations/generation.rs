@@ -16,12 +16,12 @@ use crate::world::{Province, TerrainType};
 use super::house::{generate_motto, House, HouseTraits, Ruler, RulerPersonality};
 use super::types::*;
 
-/// Spawn nations into the world with territory and ruling houses
+/// Spawn nations into the world with territory, ruling houses, and governance
 pub fn spawn_nations(
     provinces: &mut [Province],
     settings: &NationGenerationSettings,
     seed: u32,
-) -> (Vec<Nation>, Vec<House>) {
+) -> (Vec<Nation>, Vec<House>, Vec<super::governance::GovernmentType>) {
     let mut rng = StdRng::seed_from_u64(seed as u64);
     let mut nations = Vec::new();
     let mut houses = Vec::new();
@@ -32,7 +32,7 @@ pub fn spawn_nations(
 
     if capital_provinces.is_empty() {
         warn!("No suitable provinces found for nation capitals!");
-        return (nations, houses);
+        return (nations, houses, Vec::new());
     }
 
     info!("Spawning {} nations with capitals", capital_provinces.len());
@@ -40,9 +40,9 @@ pub fn spawn_nations(
     // Pre-generate seeds for parallel nation creation (avoids RNG contention)
     let nation_seeds: Vec<u64> = (0..capital_provinces.len()).map(|_| rng.r#gen()).collect();
 
-    // Create nations with ruling houses in parallel
+    // Create nations with ruling houses and governance in parallel
     let nation_registry_arc = Arc::new(nation_registry);
-    let (nations_vec, houses_vec): (Vec<Nation>, Vec<House>) = capital_provinces
+    let nation_data: Vec<(Nation, House, super::governance::GovernmentType)> = capital_provinces
         .par_iter()
         .zip(nation_seeds.par_iter())
         .map(|(&capital_idx, &nation_seed)| {
@@ -54,21 +54,26 @@ pub fn spawn_nations(
                 settings,
             )
         })
-        .unzip();
+        .collect();
 
-    nations = nations_vec;
-    houses = houses_vec;
+    let mut governments = Vec::new();
+    for (nation, house, government) in nation_data {
+        nations.push(nation);
+        houses.push(house);
+        governments.push(government);
+    }
 
     // Assign territory using growth algorithm
     assign_territory_to_nations(&mut nations, provinces, settings.nation_density);
 
     info!(
-        "Successfully spawned {} nations with {} ruling houses",
+        "Successfully spawned {} nations with {} ruling houses and {} governments",
         nations.len(),
-        houses.len()
+        houses.len(),
+        governments.len()
     );
 
-    (nations, houses)
+    (nations, houses, governments)
 }
 
 /// Select suitable provinces to be nation capitals using parallel evaluation
@@ -179,21 +184,35 @@ fn calculate_min_capital_distance(province_count: usize, nation_count: u32) -> f
     radius * radius * 0.5 // Squared distance, with some overlap allowed
 }
 
-/// Create a nation with its ruling house (parallel version)
+/// Create a nation with its ruling house and governance (parallel version)
 fn create_nation_with_house_parallel(
     registry: &Arc<NationRegistry>,
     capital_idx: usize,
     capital_position: Vec2,
     seed: u64,
     settings: &NationGenerationSettings,
-) -> (Nation, House) {
+) -> (Nation, House, super::governance::GovernmentType) {
     let mut rng = StdRng::seed_from_u64(seed);
     let nation_id = registry.create_nation_id(); // Thread-safe with atomic operations
 
     // Generate nation name using the name generator (thread-local)
     let mut name_gen = NameGenerator::with_seed(seed);
     let culture = pick_culture_for_location(capital_position, &mut rng);
-    let nation_name = name_gen.generate(NameType::Nation { culture });
+
+    // Determine government type based on culture and development
+    let development_level = super::governance::DevelopmentLevel::from(settings.starting_development);
+    let government_type = super::governance::suggest_government_for_culture(
+        culture,
+        development_level,
+        &mut rng,
+    );
+
+    // Generate governance-aware nation name and ruler title
+    let (nation_name, ruler_title) = super::governance::generate_governance_aware_name(
+        &mut name_gen,
+        culture,
+        &government_type,
+    );
 
     // Generate adjective from nation name
     let adjective = generate_adjective(&nation_name);
@@ -205,7 +224,6 @@ fn create_nation_with_house_parallel(
         culture,
         role: crate::name_generator::PersonRole::Ruler,
     });
-    let ruler_title = pick_ruler_title(settings.starting_development);
 
     // Create personality influenced by aggression setting
     let mut personality = NationPersonality::random(&mut rng);
@@ -250,23 +268,37 @@ fn create_nation_with_house_parallel(
         prestige: 0.5 + rng.gen_range(-0.3..0.3),
     };
 
-    (nation, house)
+    (nation, house, government_type)
 }
 
-/// Create a nation with its ruling house (legacy sequential version)
+/// Create a nation with its ruling house and governance (legacy sequential version)
 fn create_nation_with_house(
     registry: &mut NationRegistry,
     capital_idx: usize,
     capital_position: Vec2,
     rng: &mut StdRng,
     settings: &NationGenerationSettings,
-) -> (Nation, House) {
+) -> (Nation, House, super::governance::GovernmentType) {
     let nation_id = registry.create_nation_id();
 
     // Generate nation name using the name generator
     let mut name_gen = NameGenerator::new();
     let culture = pick_culture_for_location(capital_position, rng);
-    let nation_name = name_gen.generate(NameType::Nation { culture });
+
+    // Determine government type based on culture and development
+    let development_level = super::governance::DevelopmentLevel::from(settings.starting_development);
+    let government_type = super::governance::suggest_government_for_culture(
+        culture,
+        development_level,
+        rng,
+    );
+
+    // Generate governance-aware nation name and ruler title
+    let (nation_name, ruler_title) = super::governance::generate_governance_aware_name(
+        &mut name_gen,
+        culture,
+        &government_type,
+    );
 
     // Generate adjective from nation name
     let adjective = generate_adjective(&nation_name);
@@ -278,7 +310,6 @@ fn create_nation_with_house(
         culture,
         role: crate::name_generator::PersonRole::Ruler,
     });
-    let ruler_title = pick_ruler_title(settings.starting_development);
 
     // Create personality influenced by aggression setting
     let mut personality = NationPersonality::random(rng);
@@ -323,7 +354,7 @@ fn create_nation_with_house(
         prestige: 0.5 + rng.gen_range(-0.3..0.3),
     };
 
-    (nation, house)
+    (nation, house, government_type)
 }
 
 /// Pick a culture based on geographic location
@@ -361,14 +392,7 @@ fn generate_adjective(nation_name: &str) -> String {
 }
 
 /// Pick a ruler title based on development level
-fn pick_ruler_title(development: StartingDevelopment) -> String {
-    match development {
-        StartingDevelopment::Primitive => "Chief".to_string(),
-        StartingDevelopment::Medieval => "King".to_string(),
-        StartingDevelopment::Renaissance => "Duke".to_string(),
-        StartingDevelopment::Mixed => "Lord".to_string(),
-    }
-}
+// Ruler titles are now determined by government type via the governance system
 
 /// Generate a unique color for a nation
 fn generate_nation_color(nation_id: u32, rng: &mut StdRng) -> Color {

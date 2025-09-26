@@ -11,6 +11,11 @@ mod mottos;
 mod traits;
 mod types;
 
+// New drama engine modules
+mod characters;
+mod drama;
+mod plugin;
+
 // Public re-exports - carefully controlled API surface
 
 // Core types
@@ -21,3 +26,19 @@ pub use traits::{DominantTrait, HouseArchetype, HouseTraits};
 
 // Motto generation (only the public function, not internals)
 pub use mottos::generate_motto;
+
+// Character and drama system exports
+pub use characters::{
+    Character, CharacterId, CharacterRole, DetailedPersonality,
+    Quirk, Secret, Scandal, LifeEvent, Achievement,
+    FamilyMember, FamilyBranch, RelationshipType,
+    HasRelationship, RelatedTo, RelationshipMetadata
+};
+
+pub use drama::{
+    DramaEvent, DramaEventId, DramaEventType, EventImportance,
+    EventVisibility, EventConsequence, generate_drama_events
+};
+
+// Plugin exports
+pub use plugin::{DramaEnginePlugin, spawn_house_family, CharacterRegistry};

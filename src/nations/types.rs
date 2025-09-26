@@ -1,4 +1,4 @@
-//! Core nation and dynasty types
+//! Core nation and house types
 //!
 //! This module defines the fundamental structures for nations and dynasties,
 //! representing the political entities that control provinces in the world.
@@ -21,7 +21,7 @@ impl NationId {
     }
 }
 
-/// A political entity that controls territory and has a ruling dynasty
+/// A political entity that controls territory and has a ruling house
 #[derive(Debug, Clone, Component, Serialize, Deserialize, Reflect)]
 pub struct Nation {
     pub id: NationId,
@@ -77,6 +77,8 @@ pub struct NationBundle {
     pub transform: Transform,
     pub visibility: Visibility,
     pub pressure_vector: crate::simulation::PressureVector,
+    pub history: super::NationHistory,
+    pub laws: super::laws::NationLaws,
 }
 
 /// Resource tracking all nations
