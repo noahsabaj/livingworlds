@@ -15,6 +15,7 @@
 //! This creates a hierarchical gateway system ensuring clean module boundaries.
 
 // PRIVATE modules - internal implementation details
+mod history_update;
 mod input;
 mod plugin;
 mod pressures;
@@ -37,6 +38,12 @@ pub use time::{GameTime, NewYearEvent, SimulationSpeedChanged};
 pub use pressures::{
     apply_pressure_effects, resolve_pressure_actions, update_nation_pressures, PressureLevel,
     PressureType, PressureVector,
+};
+
+// History update system exports
+pub use history_update::{
+    update_nation_histories, track_battle_outcomes, track_war_status,
+    BattleEvent, WarStatusEvent,
 };
 
 // Note: Input handling is internal only - no public exports needed

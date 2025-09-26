@@ -32,13 +32,23 @@ impl Default for PressureSystemTimer {
 define_plugin!(SimulationPlugin {
     resources: [GameTime, PressureSystemTimer],
 
-    events: [SimulationSpeedChanged, NewYearEvent],
+    events: [
+        SimulationSpeedChanged,
+        NewYearEvent,
+        super::history_update::BattleEvent,
+        super::history_update::WarStatusEvent,
+        crate::nations::NationActionEvent
+    ],
 
     update: [
         // Time management systems - chained for precise ordering
         (handle_time_controls, advance_game_time, track_year_changes)
             .chain()
             .run_if(in_state(GameState::InGame)),
+        // History tracking systems
+        super::history_update::update_nation_histories.run_if(in_state(GameState::InGame)),
+        super::history_update::track_battle_outcomes.run_if(in_state(GameState::InGame)),
+        super::history_update::track_war_status.run_if(in_state(GameState::InGame)),
         // PERFORMANCE: Pressure systems run periodically, not every frame!
         run_pressure_systems_on_timer.run_if(in_state(GameState::InGame))
     ],

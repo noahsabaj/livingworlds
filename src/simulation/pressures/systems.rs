@@ -19,6 +19,7 @@ pub fn update_nation_pressures(
         &mut Nation,
         &mut PressureVector,
         &crate::nations::OwnsTerritory,
+        Option<&crate::nations::NationHistory>,
     )>,
     territories_query: Query<&crate::nations::Territory>,
     province_storage: Res<ProvinceStorage>,
@@ -26,7 +27,7 @@ pub fn update_nation_pressures(
 ) {
     // NOTE: Bevy queries should not be manually parallelized with Rayon
     // Bevy has its own parallel scheduling system
-    for (nation, mut pressures, owns_territory) in &mut nations_query {
+    for (nation, mut pressures, owns_territory, history_opt) in &mut nations_query {
             // Get provinces from all territories owned by this nation
             let mut controlled_provinces = Vec::new();
 
@@ -84,13 +85,25 @@ pub fn update_nation_pressures(
             // Calculate legitimacy pressures
             let ruler_personality = determine_ruler_personality(&nation);
             let economic_health = 1.0 - econ_pressure.treasury_shortage.value();
-            let recent_events = RecentEvents {
-                victories: 0, // TODO: track victories
-                defeats: 0,
-                ruler_age: 45, // TODO: track ruler age
-                has_heir: true,
-                years_of_peace: 5, // TODO: track war/peace
-                years_of_war: 0,
+            let recent_events = if let Some(history) = history_opt {
+                RecentEvents {
+                    victories: history.total_victories,
+                    defeats: history.total_defeats,
+                    ruler_age: history.ruler.age,
+                    has_heir: history.ruler.has_heir,
+                    years_of_peace: history.years_at_peace,
+                    years_of_war: history.years_at_war,
+                }
+            } else {
+                // Fallback for nations without history (shouldn't happen in normal gameplay)
+                RecentEvents {
+                    victories: 0,
+                    defeats: 0,
+                    ruler_age: 45,
+                    has_heir: true,
+                    years_of_peace: 5,
+                    years_of_war: 0,
+                }
             };
 
             let legit_pressure = calculate_legitimacy_pressure(
@@ -112,12 +125,19 @@ pub fn update_nation_pressures(
 
 /// Resolve pressure actions when thresholds are exceeded
 pub fn resolve_pressure_actions(
-    mut nations_query: Query<(&mut Nation, &mut PressureVector, Entity)>,
-    commands: Commands,
+    mut nations_query: Query<(
+        &mut Nation,
+        &mut PressureVector,
+        Option<&crate::nations::NationHistory>,
+        Entity
+    )>,
+    province_storage: Res<ProvinceStorage>,
+    mut events: EventWriter<crate::nations::NationActionEvent>,
+    time: Res<Time>,
 ) {
     // NOTE: Bevy queries should not be manually parallelized with Rayon
     // Bevy has its own parallel scheduling system
-    for (nation, mut pressures, entity) in &mut nations_query {
+    for (mut nation, mut pressures, history_opt, entity) in &mut nations_query {
             // Check if enough time has passed since last resolution
             if pressures.time_since_resolution < 5.0 {
                 return; // Only resolve every 5 seconds minimum
@@ -131,32 +151,70 @@ pub fn resolve_pressure_actions(
                 }
 
                 // Resolve based on pressure type
-                match pressure_type {
-                    PressureType::PopulationOvercrowding => {
-                        info!(
-                            "{}: Population pressure at {:.1}",
-                            nation.name,
-                            level.value()
-                        );
-                        // TODO: Trigger expansion
+                // Use the action system if history is available
+                if let Some(history) = history_opt {
+                    // Handle actions based on pressure type
+                    match pressure_type {
+                        PressureType::PopulationOvercrowding => {
+                            crate::nations::handle_population_pressure(
+                                &mut nation,
+                                history,
+                                level,
+                                &province_storage,
+                                &mut events,
+                            );
+                        }
+                        PressureType::EconomicStrain => {
+                            crate::nations::handle_economic_pressure(
+                                &mut nation,
+                                history,
+                                level,
+                                &mut events,
+                            );
+                        }
+                        PressureType::MilitaryVulnerability => {
+                            crate::nations::handle_military_pressure(
+                                &mut nation,
+                                history,
+                                level,
+                                &mut events,
+                            );
+                        }
+                        PressureType::LegitimacyCrisis => {
+                            crate::nations::handle_legitimacy_pressure(
+                                &mut nation,
+                                history,
+                                level,
+                                &mut events,
+                            );
+                        }
+                        _ => {}
                     }
-                    PressureType::EconomicStrain => {
-                        info!("{}: Economic pressure at {:.1}", nation.name, level.value());
-                        // TODO: Raise taxes or raid
+                } else {
+                    // Fallback to simple logging if no history
+                    match pressure_type {
+                        PressureType::PopulationOvercrowding => {
+                            info!(
+                                "{}: Population pressure at {:.1} (no history)",
+                                nation.name,
+                                level.value()
+                            );
+                        }
+                        PressureType::EconomicStrain => {
+                            info!("{}: Economic pressure at {:.1} (no history)", nation.name, level.value());
+                        }
+                        PressureType::MilitaryVulnerability => {
+                            info!("{}: Military pressure at {:.1} (no history)", nation.name, level.value());
+                        }
+                        PressureType::LegitimacyCrisis => {
+                            info!(
+                                "{}: Legitimacy pressure at {:.1} (no history)",
+                                nation.name,
+                                level.value()
+                            );
+                        }
+                        _ => {}
                     }
-                    PressureType::MilitaryVulnerability => {
-                        info!("{}: Military pressure at {:.1}", nation.name, level.value());
-                        // TODO: Build army or seek alliance
-                    }
-                    PressureType::LegitimacyCrisis => {
-                        info!(
-                            "{}: Legitimacy pressure at {:.1}",
-                            nation.name,
-                            level.value()
-                        );
-                        // TODO: Public works or reforms
-                    }
-                    _ => {}
                 }
 
                 // Reset resolution timer
