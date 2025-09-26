@@ -8,8 +8,8 @@ use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
 use bevy::ecs::schedule::common_conditions::resource_exists;
 use bevy::prelude::*;
 
-// Import configuration types from the config module (once it's created)
-use crate::{AppConfig, DiagnosticsConfig};
+// Import configuration types from the config module
+use crate::config::{AppConfig, DiagnosticsConfig};
 
 // Import diagnostics from the diagnostics module
 use crate::diagnostics::display_fps;

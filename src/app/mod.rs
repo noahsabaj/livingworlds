@@ -28,10 +28,13 @@
 // Private module declarations - implementation details hidden from external code
 mod builder;
 mod initialization;
-mod plugin_order;
+mod plugins;
 
 // Public exports - controlled API surface following gateway pattern
 pub use builder::{build_app, build_app_with_config};
 
 // Re-export error type for application building operations
 pub use builder::AppBuildError;
+
+// Export the revolutionary GamePlugins aggregator
+pub use plugins::GamePlugins;

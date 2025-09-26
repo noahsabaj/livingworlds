@@ -7,14 +7,14 @@
 use bevy::prelude::*;
 use bevy_pkv::PkvStore;
 
-// Import configuration types from the config module (once it's created)
-use crate::AppConfig;
+// Import configuration types from the config module
+use crate::config::AppConfig;
 
 // Import all plugins consistently
 
 // Import from sibling modules
 use super::initialization;
-use super::plugin_order;
+use super::plugins::GamePlugins;
 
 // === Error Types ===
 /// Errors that can occur during app building
@@ -32,20 +32,11 @@ pub enum AppBuildError {
 /// This sets up the engine, window, and all game systems but doesn't
 /// include game-specific resources or startup systems.
 ///
-/// # Plugin Initialization Order
+/// # Plugin Initialization
 ///
-/// The plugins are initialized in a specific order to ensure proper dependencies:
-/// 1. **Steam** (if enabled) - Must be before rendering plugins
-/// 2. **States** - Core state management, required by most other plugins
-/// 3. **Modding** - Loads mod configurations early
-/// 4. **Province Events** - Event system for province changes
-/// 5. **Menus** - UI menus (depends on States)
-/// 6. **World Config** - World generation configuration UI
-/// 7. **Loading Screen** - Unified loading UI
-/// 8. **Settings** - Game settings management
-/// 9. **Simulation & Game Systems** - Core gameplay plugins
-/// 10. **UI & Camera** - User interface and camera controls
-/// 11. **Borders** - GPU-instanced border rendering (visual layer)
+/// All game plugins are registered through the declarative GamePlugins aggregator,
+/// which uses bevy-plugin-builder to ensure proper dependency order and compile-time
+/// validation. See GamePlugins in plugins.rs for the complete plugin list and ordering.
 ///
 /// # Errors
 ///
@@ -73,16 +64,10 @@ pub fn build_app_with_config(config: AppConfig) -> Result<App, AppBuildError> {
     // Initialize storage - PkvStore::new returns PkvStore directly, not Result
     app.insert_resource(PkvStore::new("LivingWorlds", "LivingWorlds"));
 
-    // Add all Living Worlds game plugins in dependency order
-    info!("Initializing game plugins");
-    plugin_order::register_all_plugins(&mut app);
-
-    // Performance monitoring (now active in all builds for dashboard compatibility)
-    app.add_plugins(crate::performance::PerformanceMonitoringPlugin);
-
-    // Parallel safety validation (conditional - only in debug builds)
-    #[cfg(debug_assertions)]
-    app.add_plugins(crate::safety::ParallelSafetyPlugin);
+    // Add all Living Worlds game plugins using revolutionary aggregation!
+    // GamePlugins handles ALL plugin registration including conditional debug plugins
+    info!("Initializing game plugins with declarative automation");
+    app.add_plugins(GamePlugins);
 
     Ok(app)
 }
