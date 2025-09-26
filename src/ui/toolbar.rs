@@ -277,7 +277,7 @@ pub fn toolbar() -> ToolbarBuilder {
     ToolbarBuilder::new()
 }
 
-pub mod presets {
+mod presets {
     use super::*;
 
     pub fn editor_toolbar(parent: &mut ChildBuilder) -> Entity {

@@ -32,11 +32,8 @@ pub fn despawn_entities<T: Component>(mut commands: Commands, query: Query<Entit
     }
 }
 
-/// Convenience alias for UI-specific cleanup (same function, clearer intent for UI contexts).
-///
-/// Use this alias when the context makes it clear you're cleaning up UI entities.
-/// Functionally identical to `despawn_entities` but provides semantic clarity.
-pub use despawn_entities as despawn_ui_entities;
+// Note: despawn_ui_entities is now provided by bevy-ui-builders crate
+// This module only provides the generic despawn_entities function for non-UI cleanup
 
 #[cfg(test)]
 mod tests {

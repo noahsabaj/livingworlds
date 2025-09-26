@@ -49,6 +49,7 @@ pub mod colors {
     pub const BACKGROUND_MEDIUM: Color = Color::srgb(0.08, 0.08, 0.1);
     pub const BACKGROUND_LIGHT: Color = Color::srgb(0.12, 0.12, 0.15);
     pub const SURFACE: Color = Color::srgb(0.1, 0.1, 0.12); // Surface color for panels
+    pub const SURFACE_DARK: Color = Color::srgb(0.07, 0.07, 0.09); // Darker surface for nested panels
 
     // Additional surface colors commonly used in UI
     pub const SURFACE_HOVER: Color = Color::srgb(0.2, 0.22, 0.25);
@@ -127,6 +128,12 @@ pub mod dimensions {
     pub const PADDING_MEDIUM: f32 = 10.0;
     pub const PADDING_LARGE: f32 = 15.0;
     pub const PANEL_PADDING: f32 = 12.0; // Standard padding for panels
+
+    // Spacing values (for gaps between elements)
+    pub const SPACING_TINY: f32 = 4.0;
+    pub const SPACING_SMALL: f32 = 8.0;
+    pub const SPACING_MEDIUM: f32 = 16.0;
+    pub const SPACING_LARGE: f32 = 24.0;
 
     // Corner radius (for future rounded corners)
     pub const CORNER_RADIUS: f32 = 4.0;

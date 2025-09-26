@@ -1,7 +1,7 @@
 //! Main UI plugin implementation
 
 use super::{
-    buttons, components::ProgressBarPlugin, dialogs, hud, loading, nation_info, overlay_display,
+    buttons, components::ProgressBarPlugin, dialogs, hud, law_browser, loading, nation_info, overlay_display,
     performance_dashboard, sliders, text_inputs, tile_info,
 };
 use bevy_plugin_builder::define_plugin;
@@ -19,6 +19,8 @@ define_plugin!(UIPlugin {
         overlay_display::OverlayDisplayPlugin,
         tile_info::TileInfoPlugin,
         nation_info::NationInfoPlugin,
-        performance_dashboard::PerformanceDashboardPlugin
+        performance_dashboard::PerformanceDashboardPlugin,
+        law_browser::LawBrowserPlugin,
+        nation_laws_panel::NationLawsPanelPlugin
     ]
 });

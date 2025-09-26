@@ -10,26 +10,24 @@ use bevy::prelude::ChildSpawnerCommands;
 pub type ChildBuilder<'a> = ChildSpawnerCommands<'a>;
 
 // PRIVATE MODULES - All implementation hidden
-mod builders;
-mod buttons;
-mod cleanup;
-mod components;
-mod dialogs;
-mod form;
-mod hud;
-mod interaction;
-mod loading;
-mod nation_info;
-mod nation_selection;
-mod overlay_display;
-mod performance_dashboard;
-mod plugin;
-mod sliders;
-mod styles;  // PRIVATE MODULE - Gateway architecture compliance
-mod text_inputs;
-mod tile_info;
-mod tips;
-mod toolbar;
+mod builder_extensions; // Compatibility layer for with_marker functionality
+mod builders;          // Convenience functions
+mod cleanup;           // Generic cleanup utilities
+mod dialogs;           // Game-specific dialogs
+mod hud;               // Heads-up display
+mod interaction;       // UI interaction systems
+mod law_browser;       // Law browsing UI
+mod loading;           // Loading indicators
+mod nation_laws_panel; // Nation laws display
+mod nation_info;       // Nation information panel
+mod nation_selection;  // Nation selection UI
+mod overlay_display;   // Map overlay displays
+mod performance_dashboard; // Performance monitoring
+mod plugin;            // Main UI plugin
+mod styles;            // Centralized styling
+mod tile_info;         // Tile information display
+mod tips;              // Game tips system
+mod toolbar;           // Main toolbar
 
 // ESSENTIAL EXPORTS - Minimal public API
 
@@ -51,6 +49,9 @@ pub use styles::dimensions::{
 pub use dialogs::{
     CancelButton, ConfirmButton, DiscardButton, KeepButton, RevertButton, SaveButton,
 };
+
+// Nation info markers
+pub use nation_info::ViewLawsButton;
 
 // State markers
 pub use dialogs::{
@@ -77,27 +78,37 @@ pub use overlay_display::{MapModeText, MineralLegendContainer};
 pub use performance_dashboard::{DashboardVisibility, PerformancePanel};
 pub use tile_info::{TileInfoPanel, TileInfoText};
 
-// Builder components and types
-pub use buttons::{ButtonBuilder, ButtonSize, ButtonStyle, StyledButton};
-pub use components::{
+// Builder components and types - NOW FROM EXTERNAL CRATE!
+// Re-export from bevy-ui-builders for compatibility
+pub use bevy_ui_builders::{
+    // Button system - ButtonBuilder replaced with wrapper for with_marker support
+    ButtonSize, ButtonStyle, StyledButton,
+    // Dialog system
+    DialogBuilder, DialogType,
     // Label system
-    LabelBuilder,
-    LabelStyle,
-    Orientation,
+    LabelBuilder, LabelStyle,
     // Panel system
-    PanelBuilder,
-    PanelStyle,
+    PanelBuilder, PanelStyle,
     // Progress bar system
-    ProgressBar,
-    ProgressBarBuilder,
-    ProgressBarPlugin,
+    ProgressBar, ProgressBarBuilder, ProgressBarStyle,
     // Separator system
-    SeparatorBuilder,
+    SeparatorBuilder, SeparatorStyle, Orientation,
+    // Slider system
+    Slider, SliderBuilder, ValueFormat, slider,
+    // Text input system
+    TextInputBuilder, FocusGroupId, text_input,
+    // Form system
+    FormBuilder, FieldType, ValidationRule,
+    // Cleanup utilities
+    despawn_ui_entities,
 };
-pub use dialogs::{DialogBuilder, DialogOverlay, DialogType};
+
+// Keep local-only components for now
+pub use dialogs::DialogOverlay;
 pub use loading::{LoadingIndicatorBuilder, LoadingSize, LoadingStyle};
-pub use sliders::{Slider, SliderBuilder, ValueFormat};
-pub use text_inputs::{FocusGroupId, TextInputBuilder};
+
+// Compatibility wrappers for with_marker functionality
+pub use builder_extensions::ButtonBuilder;
 
 // CountdownText comes from dialogs module, not components
 pub use dialogs::CountdownText;
@@ -106,12 +117,17 @@ pub use dialogs::CountdownText;
 pub use dialogs::presets as dialog_presets;
 pub use tips::get_random_tip;
 
-// Convenience functions from individual modules
-pub use sliders::slider;
-pub use text_inputs::text_input;
+// Convenience functions now come from bevy-ui-builders
+// The slider and text_input functions are available through the crate
 
-// Generic cleanup system
-pub use cleanup::{despawn_entities, despawn_ui_entities};
+// Generic cleanup system (despawn_ui_entities comes from bevy-ui-builders)
+pub use cleanup::despawn_entities;
+
+// Law browser exports
+pub use law_browser::{LawBrowserPlugin, spawn_law_browser};
+
+// Nation laws panel exports
+pub use nation_laws_panel::{NationLawsPanelPlugin, NationLawsPanelState};
 
 // Main plugin (implementation in plugin.rs)
 pub use plugin::UIPlugin;

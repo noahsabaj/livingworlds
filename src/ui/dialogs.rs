@@ -410,7 +410,7 @@ impl DialogBuilder {
 }
 
 /// Helper functions for creating common dialogs
-pub mod presets {
+mod presets {
     use super::*;
 
     pub fn exit_confirmation_dialog(commands: &mut Commands) -> Entity {
