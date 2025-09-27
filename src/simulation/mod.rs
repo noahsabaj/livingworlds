@@ -32,7 +32,7 @@ pub use plugin::SimulationPlugin;
 pub use tension::WorldTension;
 
 // Time-related exports that other systems need
-pub use time::{GameTime, NewYearEvent, SimulationSpeedChanged};
+pub use time::{GameTime, NewYearEvent, SimulationSpeed, SimulationSpeedChanged};
 
 // Pressure system exports for civilization behaviors
 pub use pressures::{

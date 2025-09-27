@@ -1,11 +1,8 @@
 //! Time control input handling (refactored to eliminate duplication)
 
-use crate::resources::GameTime;
 use bevy::prelude::*;
-// Access sibling modules through parent gateway
-use super::speed_mapping::SPEED_PAUSED;
+use crate::simulation::{GameTime, SimulationSpeed, SimulationSpeedChanged};
 use super::speed_mapping::{get_next_speed_level, get_previous_speed_level, handle_speed_keys};
-use crate::simulation::SimulationSpeedChanged;
 
 /// Handle keyboard input for time control
 /// Space for pause/resume, number keys 1-5 for speed control, +/- for speed increment/decrement
@@ -17,8 +14,8 @@ pub fn handle_time_controls(
     // Debug: System is being called
     trace!("🎛️ handle_time_controls system running");
 
-    let old_speed = game_time.speed;
-    let was_paused = game_time.paused;
+    let old_speed = game_time.get_speed();
+    let was_paused = game_time.is_paused();
     let mut speed_changed = false;
 
     // Debug: Check for any speed-related key presses
@@ -32,21 +29,12 @@ pub fn handle_time_controls(
     }
 
     // Handle direct speed selection (keys 1-5)
-    if let Some((new_speed, _speed_name)) = handle_speed_keys(&keyboard) {
-        if new_speed == SPEED_PAUSED {
-            if !game_time.paused {
-                game_time.speed_before_pause = game_time.speed;
-            }
-            game_time.paused = true;
-        } else {
-            game_time.paused = false;
-            game_time.speed_before_pause = new_speed;
-        }
-        game_time.speed = new_speed;
+    if let Some(new_speed) = handle_speed_keys(&keyboard) {
+        game_time.set_speed(new_speed);
         speed_changed = true;
 
         #[cfg(feature = "debug-simulation")]
-        debug!("Simulation speed: {}", speed_name);
+        debug!("Simulation speed: {}", new_speed.name());
     }
 
     // Handle speed increment (+ or numpad +)
@@ -59,15 +47,14 @@ pub fn handle_time_controls(
 
     if plus_pressed {
         debug!("🎛️ Plus key detected in time controls");
-        let new_speed = get_next_speed_level(game_time.speed, game_time.paused);
+        let current_speed = game_time.get_speed();
+        let new_speed = get_next_speed_level(current_speed);
 
-        if new_speed != game_time.speed || game_time.paused {
-            game_time.paused = false;
-            game_time.speed = new_speed;
-            game_time.speed_before_pause = new_speed;
+        if new_speed != current_speed {
+            game_time.set_speed(new_speed);
             speed_changed = true;
 
-            info!("🎛️ Speed increased to: {}x", new_speed);
+            info!("🎛️ Speed increased to: {}", new_speed.name());
         }
     }
 
@@ -77,57 +64,41 @@ pub fn handle_time_controls(
 
     if minus_pressed {
         debug!("🎛️ Minus key detected in time controls");
-        let new_speed = get_previous_speed_level(game_time.speed);
+        let current_speed = game_time.get_speed();
+        let new_speed = get_previous_speed_level(current_speed);
 
-        if new_speed != game_time.speed {
-            if new_speed == SPEED_PAUSED {
-                game_time.paused = true;
-                game_time.speed_before_pause = 1.0; // Default to normal when unpausing
-            } else {
-                game_time.paused = false;
-                game_time.speed_before_pause = new_speed;
-            }
-            game_time.speed = new_speed;
+        if new_speed != current_speed {
+            game_time.set_speed(new_speed);
             speed_changed = true;
 
-            info!("🎛️ Speed decreased to: {}x", new_speed);
+            info!("🎛️ Speed decreased to: {}", new_speed.name());
         }
     }
 
     // Handle pause toggle (Space key)
     if keyboard.just_pressed(KeyCode::Space) {
         debug!("🎛️ Space key processing in time controls");
-        game_time.paused = !game_time.paused;
-        if game_time.paused {
-            game_time.speed_before_pause = game_time.speed;
-            game_time.speed = SPEED_PAUSED;
-        } else {
-            // Restore the speed we had before pausing
-            game_time.speed = game_time.speed_before_pause;
-        }
+        game_time.toggle_pause();
         speed_changed = true;
 
         info!(
-            "🎛️ Simulation {} (speed: {}x)",
-            if game_time.paused {
+            "🎛️ Simulation {} (speed: {})",
+            if game_time.is_paused() {
                 "paused"
             } else {
                 "resumed"
             },
-            if game_time.paused {
-                0.0
-            } else {
-                game_time.speed
-            }
+            game_time.get_speed().name()
         );
     }
 
     // Send event if speed changed
-    if speed_changed && (old_speed != game_time.speed || was_paused != game_time.paused) {
-        info!("🎛️ Sending speed change event: {} -> {}, paused: {}", old_speed, game_time.speed, game_time.paused);
+    if speed_changed && (old_speed != game_time.get_speed() || was_paused != game_time.is_paused()) {
+        info!("🎛️ Sending speed change event: {} -> {}, paused: {}",
+            old_speed.name(), game_time.get_speed().name(), game_time.is_paused());
         speed_events.write(SimulationSpeedChanged {
-            new_speed: game_time.speed,
-            is_paused: game_time.paused,
+            new_speed: game_time.get_speed().multiplier(),
+            is_paused: game_time.is_paused(),
         });
     }
 }

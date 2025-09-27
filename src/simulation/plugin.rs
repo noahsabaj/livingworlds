@@ -10,8 +10,8 @@ use rayon::prelude::*;
 // Import from sibling modules through super (gateway pattern)
 use super::input::handle_time_controls;
 use super::time::{
-    advance_game_time, resume_from_pause_menu, track_year_changes, NewYearEvent,
-    SimulationSpeedChanged,
+    advance_simulation_ticks, interpolate_visual_time, resume_from_pause_menu, track_year_changes,
+    GameTick, NewYearEvent, SimulationSpeed, SimulationSpeedChanged, VisualTime,
 };
 
 // Timer for pressure system updates
@@ -30,7 +30,7 @@ impl Default for PressureSystemTimer {
 
 // Plugin that manages the simulation time system using AUTOMATION FRAMEWORK
 define_plugin!(SimulationPlugin {
-    resources: [GameTime, PressureSystemTimer],
+    resources: [GameTime, PressureSystemTimer, VisualTime],
 
     events: [
         SimulationSpeedChanged,
@@ -40,11 +40,18 @@ define_plugin!(SimulationPlugin {
         crate::nations::NationActionEvent
     ],
 
+    // DETERMINISTIC SIMULATION: Time advances in FixedUpdate at consistent rate
+    fixed_update: [
+        // Core simulation tick advancement (deterministic)
+        advance_simulation_ticks.run_if(in_state(GameState::InGame)),
+        track_year_changes.run_if(in_state(GameState::InGame))
+    ],
+
     update: [
-        // Time management systems - chained for precise ordering
-        (handle_time_controls, advance_game_time, track_year_changes)
-            .chain()
-            .run_if(in_state(GameState::InGame)),
+        // Input handling (frame-dependent is OK for input)
+        handle_time_controls.run_if(in_state(GameState::InGame)),
+        // Visual interpolation for smooth display
+        interpolate_visual_time.run_if(in_state(GameState::InGame)),
         // History tracking systems
         super::history_update::update_nation_histories.run_if(in_state(GameState::InGame)),
         super::history_update::track_battle_outcomes.run_if(in_state(GameState::InGame)),
