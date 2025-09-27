@@ -117,26 +117,29 @@ pub fn spawn_test_laws(
 
 /// System to force enact a law via keyboard shortcut (for testing)
 pub fn force_enact_law(
-    keys: Res<ButtonInput<KeyCode>>,
+    mut shortcut_events: EventReader<crate::ui::shortcuts::ShortcutEvent>,
     mut nations_query: Query<(Entity, &mut NationLaws)>,
     registry: Res<LawRegistry>,
     mut events: EventWriter<LawEnactmentEvent>,
 ) {
-    // Shift+E to force enact a random law on the first nation
-    if keys.pressed(KeyCode::ShiftLeft) && keys.just_pressed(KeyCode::KeyE) {
-        if let Some((entity, mut nation_laws)) = nations_query.iter_mut().next() {
-            // Pick a random law that's not active
-            let all_laws = crate::nations::laws::definitions::get_all_laws();
-            for law in all_laws {
-                if !nation_laws.is_active(law.id) {
-                    LawDebugCommands::force_enact(
-                        entity,
-                        law.id,
-                        &mut nation_laws,
-                        &registry,
-                        &mut events,
-                    );
-                    break;
+    use crate::ui::shortcuts::ShortcutId;
+
+    for event in shortcut_events.read() {
+        if event.shortcut_id == ShortcutId::DebugForceEnactLaw {
+            if let Some((entity, mut nation_laws)) = nations_query.iter_mut().next() {
+                // Pick a random law that's not active
+                let all_laws = crate::nations::laws::definitions::get_all_laws();
+                for law in all_laws {
+                    if !nation_laws.is_active(law.id) {
+                        LawDebugCommands::force_enact(
+                            entity,
+                            law.id,
+                            &mut nation_laws,
+                            &registry,
+                            &mut events,
+                        );
+                        break;
+                    }
                 }
             }
         }
@@ -145,23 +148,26 @@ pub fn force_enact_law(
 
 /// System to force repeal a law via keyboard shortcut (for testing)
 pub fn force_repeal_law(
-    keys: Res<ButtonInput<KeyCode>>,
+    mut shortcut_events: EventReader<crate::ui::shortcuts::ShortcutEvent>,
     mut nations_query: Query<(Entity, &mut NationLaws)>,
     registry: Res<LawRegistry>,
     mut events: EventWriter<LawRepealEvent>,
 ) {
-    // Shift+R to force repeal a random active law on the first nation
-    if keys.pressed(KeyCode::ShiftLeft) && keys.just_pressed(KeyCode::KeyR) {
-        if let Some((entity, mut nation_laws)) = nations_query.iter_mut().next() {
-            // Pick a random active law
-            if let Some(&law_id) = nation_laws.active_laws.iter().next() {
-                LawDebugCommands::force_repeal(
-                    entity,
-                    law_id,
-                    &mut nation_laws,
-                    &registry,
-                    &mut events,
-                );
+    use crate::ui::shortcuts::ShortcutId;
+
+    for event in shortcut_events.read() {
+        if event.shortcut_id == ShortcutId::DebugForceRepealLaw {
+            if let Some((entity, mut nation_laws)) = nations_query.iter_mut().next() {
+                // Pick a random active law
+                if let Some(&law_id) = nation_laws.active_laws.iter().next() {
+                    LawDebugCommands::force_repeal(
+                        entity,
+                        law_id,
+                        &mut nation_laws,
+                        &registry,
+                        &mut events,
+                    );
+                }
             }
         }
     }
@@ -169,22 +175,25 @@ pub fn force_repeal_law(
 
 /// System to trigger a test proposal via keyboard shortcut
 pub fn trigger_law_proposal(
-    keys: Res<ButtonInput<KeyCode>>,
+    mut shortcut_events: EventReader<crate::ui::shortcuts::ShortcutEvent>,
     mut nations_query: Query<&mut NationLaws>,
 ) {
-    // Shift+P to trigger a test proposal on the first nation
-    if keys.pressed(KeyCode::ShiftLeft) && keys.just_pressed(KeyCode::KeyP) {
-        if let Some(mut nation_laws) = nations_query.iter_mut().next() {
-            // Find a law that's not active or proposed
-            let test_law_id = LawId::new(5000); // Some military law
-            if !nation_laws.is_active(test_law_id) &&
-               !nation_laws.proposed_laws.iter().any(|p| p.law_id == test_law_id) {
-                LawDebugCommands::trigger_proposal(
-                    &mut nation_laws,
-                    test_law_id,
-                    PressureType::MilitaryVulnerability,
-                    0.45,
-                );
+    use crate::ui::shortcuts::ShortcutId;
+
+    for event in shortcut_events.read() {
+        if event.shortcut_id == ShortcutId::DebugTriggerProposal {
+            if let Some(mut nation_laws) = nations_query.iter_mut().next() {
+                // Find a law that's not active or proposed
+                let test_law_id = LawId::new(5000); // Some military law
+                if !nation_laws.is_active(test_law_id) &&
+                   !nation_laws.proposed_laws.iter().any(|p| p.law_id == test_law_id) {
+                    LawDebugCommands::trigger_proposal(
+                        &mut nation_laws,
+                        test_law_id,
+                        PressureType::MilitaryVulnerability,
+                        0.45,
+                    );
+                }
             }
         }
     }

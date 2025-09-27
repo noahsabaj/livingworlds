@@ -5,16 +5,38 @@
 use bevy::prelude::*;
 
 use super::definitions;
+use super::loader::LoadedLaws;
 use super::registry::LawRegistry;
 use super::types::LawId;
 
 /// Initialize the law registry with all defined laws
-pub fn initialize_law_registry(mut registry: ResMut<LawRegistry>) {
+/// This now supports both hardcoded laws (for compatibility) and loaded laws (preferred)
+pub fn initialize_law_registry(
+    mut registry: ResMut<LawRegistry>,
+    loaded_laws: Option<Res<LoadedLaws>>,
+) {
     info!("Initializing law registry...");
 
-    // Register all laws from the definitions module
-    for law in definitions::get_all_laws() {
-        registry.register_law(law.clone());
+    // Prefer loaded laws from data files if available
+    if let Some(loaded) = loaded_laws {
+        if !loaded.by_id.is_empty() {
+            // Use data-driven laws from RON files
+            for law in loaded.all() {
+                registry.register_law(law.clone());
+            }
+            info!("Registered {} laws from data files", loaded.by_id.len());
+        } else {
+            // Fall back to hardcoded laws during transition period
+            warn!("No loaded laws found, falling back to hardcoded definitions");
+            for law in definitions::get_all_laws() {
+                registry.register_law(law.clone());
+            }
+        }
+    } else {
+        // Use hardcoded laws if loader not available
+        for law in definitions::get_all_laws() {
+            registry.register_law(law.clone());
+        }
     }
 
     // Register exclusive groups (mutually exclusive laws)

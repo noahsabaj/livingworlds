@@ -7,6 +7,7 @@ use bevy_plugin_builder::define_plugin;
 use crate::nations::{Nation, laws::NationLaws};
 use crate::ui::{colors, dimensions};
 use crate::ui::SelectedNation;
+use crate::ui::shortcuts::{ShortcutEvent, ShortcutId};
 
 /// Marker for law debug overlay
 #[derive(Component)]
@@ -29,25 +30,28 @@ define_plugin!(LawDebugPlugin {
     ]
 });
 
-/// Toggle debug overlay with F3 key
+/// Toggle debug overlay using shortcuts registry
 pub fn toggle_law_debug_overlay(
-    keys: Res<ButtonInput<KeyCode>>,
+    mut shortcut_events: EventReader<ShortcutEvent>,
     mut state: ResMut<LawDebugOverlayState>,
     mut commands: Commands,
     overlay_query: Query<Entity, With<LawDebugOverlay>>,
 ) {
-    if keys.just_pressed(KeyCode::F3) {
-        state.enabled = !state.enabled;
+    for event in shortcut_events.read() {
+        // Check for any debug-related shortcuts (F3 was the original key)
+        if let ShortcutId::ToggleDebugOverlay = event.shortcut_id {
+            state.enabled = !state.enabled;
 
-        if state.enabled {
-            spawn_debug_overlay(&mut commands);
-            info!("Law debug overlay enabled");
-        } else {
-            // Remove overlay
-            for entity in &overlay_query {
-                commands.entity(entity).despawn_recursive();
+            if state.enabled {
+                spawn_debug_overlay(&mut commands);
+                info!("Law debug overlay enabled");
+            } else {
+                // Remove overlay
+                for entity in &overlay_query {
+                    commands.entity(entity).despawn_recursive();
+                }
+                info!("Law debug overlay disabled");
             }
-            info!("Law debug overlay disabled");
         }
     }
 }
