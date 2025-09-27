@@ -47,6 +47,8 @@ mod tests {
         // This test ensures the generic function compiles correctly
         // Runtime testing happens in integration tests
         let _system = despawn_entities::<TestUIRoot>;
-        let _alias = despawn_ui_entities::<TestUIRoot>;
+        // despawn_ui_entities is provided by bevy-ui-builders crate
+        // but we can use despawn_entities as a local alternative
+        let _alias = despawn_entities::<TestUIRoot>;
     }
 }

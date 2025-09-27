@@ -6,9 +6,12 @@
 
 #![allow(dead_code)] // Preserve UI utility functions for future use
 
-use super::{ChildBuilder, colors, dimensions};
-use crate::math::fast_sin;
+use super::{
+    animation::{Animation, AnimationTarget, AnimationRepeatMode, EasingFunction},
+    colors, dimensions, ChildBuilder,
+};
 use bevy::prelude::*;
+use std::time::Duration;
 
 /// Component for loading indicators
 #[derive(Component)]
@@ -18,26 +21,8 @@ pub struct LoadingIndicator {
     pub animated: bool,
 }
 
-/// Component for rotating spinners
-#[derive(Component)]
-pub struct LoadingSpinner {
-    pub speed: f32, // Rotations per second
-}
-
-/// Component for pulsing indicators
-#[derive(Component)]
-pub struct LoadingPulse {
-    pub speed: f32,     // Pulses per second
-    pub intensity: f32, // 0.0 to 1.0
-}
-
-/// Component for animated dots (...)
-#[derive(Component)]
-pub struct LoadingDots {
-    pub max_dots: usize,
-    pub current_dots: usize,
-    pub timer: Timer,
-}
+// Animation components are now handled by the animation system
+// No manual timer/speed tracking needed!
 
 /// Style of loading indicator
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -224,7 +209,18 @@ fn spawn_spinner(
     ));
 
     if animated {
-        entity_commands.insert(LoadingSpinner { speed: 1.0 });
+        // Use our animation system for rotation
+        entity_commands.insert(
+            Animation::new(
+                AnimationTarget::Rotation {
+                    from: Quat::IDENTITY,
+                    to: Quat::from_rotation_z(std::f32::consts::TAU)
+                },
+                Duration::from_secs(1)
+            )
+            .with_easing(EasingFunction::Linear)
+            .with_repeat(AnimationRepeatMode::Loop),
+        );
     }
 
     entity_commands.id()
@@ -258,11 +254,13 @@ fn spawn_dots(
     ));
 
     if animated {
-        entity_commands.insert(LoadingDots {
-            max_dots: 3,
-            current_dots: 1,
-            timer: Timer::from_seconds(0.5, TimerMode::Repeating),
-        });
+        // For text changes, we'll use AnimationSequence (to be added later)
+        // For now, use a scale animation to indicate loading
+        entity_commands.insert(
+            Animation::new(AnimationTarget::Opacity { from: 0.3, to: 1.0 }, Duration::from_millis(500))
+                .with_easing(EasingFunction::Linear)
+                .with_repeat(AnimationRepeatMode::PingPong),
+        );
     }
 
     entity_commands.id()
@@ -297,10 +295,18 @@ fn spawn_pulse(
     ));
 
     if animated {
-        entity_commands.insert(LoadingPulse {
-            speed: 2.0,
-            intensity: 0.5,
-        });
+        // Use our animation system for scale pulsing
+        entity_commands.insert(
+            Animation::new(
+                AnimationTarget::Scale {
+                    from: Vec3::splat(0.8),
+                    to: Vec3::splat(1.2)
+                },
+                Duration::from_millis(500)
+            )
+            .with_easing(EasingFunction::EaseInOut)
+            .with_repeat(AnimationRepeatMode::PingPong),
+        );
     }
 
     entity_commands.id()
@@ -350,56 +356,19 @@ fn spawn_indeterminate_bar(
         .id()
 }
 
-/// System to animate rotating spinners
-pub fn animate_loading_spinners(
-    time: Res<Time>,
-    mut query: Query<(&mut Transform, &LoadingSpinner)>,
-) {
-    for (mut transform, spinner) in &mut query {
-        let rotation = time.elapsed_secs() * spinner.speed * std::f32::consts::TAU;
-        transform.rotation = Quat::from_rotation_z(rotation);
-    }
-}
+// Spinner animation now handled by Animation component - no manual system needed!
 
-/// System to animate pulsing indicators
-pub fn animate_loading_pulses(time: Res<Time>, mut query: Query<(&mut TextColor, &LoadingPulse)>) {
-    for (mut text_color, pulse) in &mut query {
-        let alpha = fast_sin(time.elapsed_secs() * pulse.speed * std::f32::consts::TAU);
-        let intensity = pulse.intensity;
+// Pulse animation now handled by Animation component - no manual system needed!
 
-        // Pulse between full opacity and reduced opacity
-        let current_alpha = 1.0 - (alpha * 0.5 + 0.5) * intensity;
-        text_color.0.set_alpha(current_alpha);
-    }
-}
-
-/// System to animate dots
-pub fn animate_loading_dots(time: Res<Time>, mut query: Query<(&mut Text, &mut LoadingDots)>) {
-    for (mut text, mut dots) in &mut query {
-        dots.timer.tick(time.delta());
-
-        if dots.timer.finished() {
-            dots.current_dots = (dots.current_dots % dots.max_dots) + 1;
-
-            let dot_string = "•".repeat(dots.current_dots);
-            text.0 = dot_string;
-        }
-    }
-}
+// Dots animation can be handled with AnimationSequence for complex text changes
 
 /// Plugin that manages loading indicator animations
 pub struct LoadingIndicatorPlugin;
 
 impl Plugin for LoadingIndicatorPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            Update,
-            (
-                animate_loading_spinners,
-                animate_loading_pulses,
-                animate_loading_dots,
-            ),
-        );
+        // Animation systems removed - animations are now handled by the Animation plugin!
+        // Just attach Animation components to entities that need animation.
     }
 }
 
