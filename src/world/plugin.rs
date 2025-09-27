@@ -7,7 +7,6 @@ use bevy_plugin_builder::define_plugin;
 use super::{BorderPlugin, CloudPlugin, OverlayPlugin, TerrainPlugin, WorldConfigPlugin};
 use super::{ProvincesSpatialIndex};
 use super::events::{WorldGeneratedEvent, ProvinceSelectedEvent};
-use super::systems::{handle_province_selection, initialize_world_systems, update_world_bounds_camera, WorldState};
 
 /// Main world plugin using REVOLUTIONARY plugin aggregation automation!
 ///
@@ -21,11 +20,7 @@ define_plugin!(WorldPlugin {
         WorldConfigPlugin
     ],
 
-    resources: [ProvincesSpatialIndex, WorldState],
+    resources: [ProvincesSpatialIndex],
 
-    events: [WorldGeneratedEvent, ProvinceSelectedEvent],
-
-    startup: [initialize_world_systems],
-
-    update: [(handle_province_selection, update_world_bounds_camera).chain()]
+    events: [WorldGeneratedEvent, ProvinceSelectedEvent]
 });

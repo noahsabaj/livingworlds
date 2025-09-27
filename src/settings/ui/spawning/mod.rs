@@ -13,5 +13,5 @@ mod tabs;
 pub use menu::spawn_settings_menu;
 
 // Internal spawning utilities (used by menu.rs)
-pub(in crate::settings::settings_ui) use apply_cancel::spawn_apply_cancel_buttons;
-pub(in crate::settings::settings_ui) use tabs::spawn_tab_buttons;
+pub(in crate::settings::ui) use apply_cancel::spawn_apply_cancel_buttons;
+pub(in crate::settings::ui) use tabs::spawn_tab_buttons;

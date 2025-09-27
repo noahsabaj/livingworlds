@@ -117,28 +117,28 @@ fn spawn_content_area(
         ))
         .with_children(|content| match current_tab {
             SettingsTab::Graphics => {
-                crate::settings::settings_ui::content::spawn_graphicstabdeclarative_content(
+                crate::settings::ui::content::spawn_graphicstabdeclarative_content(
                     content,
                     &temp_settings.graphics,
                 )
             }
             SettingsTab::Audio => {
-                crate::settings::settings_ui::content::spawn_audiotabdeclarative_content(
+                crate::settings::ui::content::spawn_audiotabdeclarative_content(
                     content,
                     &temp_settings.audio,
                 )
             }
             SettingsTab::Interface => {
-                crate::settings::settings_ui::content::spawn_interfacetabdeclarative_content(
+                crate::settings::ui::content::spawn_interfacetabdeclarative_content(
                     content,
                     &temp_settings.interface,
                 )
             }
             SettingsTab::Performance => {
-                crate::settings::settings_ui::content::spawn_performance_content(content)
+                crate::settings::ui::content::spawn_performance_content(content)
             }
             SettingsTab::Controls => {
-                crate::settings::settings_ui::content::spawn_controlstabdeclarative_content(
+                crate::settings::ui::content::spawn_controlstabdeclarative_content(
                     content,
                     &temp_settings.controls,
                 )

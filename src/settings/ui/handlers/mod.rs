@@ -11,7 +11,6 @@
 
 // PRIVATE MODULES - Implementation hidden (NON-OBSOLETE HANDLERS ONLY)
 mod apply_cancel;
-mod events;
 mod presets;
 mod tabs;
 mod validation;
@@ -22,7 +21,6 @@ pub use apply_cancel::{
     update_apply_exit_button_hover,
 };
 
-pub use events::handle_spawn_settings_menu_event;
 
 pub use presets::{handle_preset_buttons, handle_reset_button};
 

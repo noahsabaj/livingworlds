@@ -2,7 +2,6 @@
 //!
 //! Plugin for managing settings user interface and event handling.
 
-use super::handlers::handle_spawn_settings_menu_event;
 use crate::settings::{components::*, types::*};
 use bevy::prelude::*;
 use bevy_plugin_builder::define_plugin;
@@ -27,8 +26,6 @@ define_plugin!(SettingsUIPlugin {
     startup: [crate::settings::persistence::load_settings],
 
     update: [
-        // Main spawning system
-        handle_spawn_settings_menu_event,
         // High-level handlers
         (
             super::handlers::handle_tab_buttons,

@@ -39,7 +39,6 @@ mod events; // World events
 mod generation; // World generation orchestrator
 mod plugin; // Main world plugin (Bevy integration)
 mod setup; // World setup and generation systems
-mod systems; // World systems
 mod ui; // World configuration UI
 
 // SELECTIVE PUBLIC EXPORTS - The controlled API surface
@@ -69,9 +68,9 @@ pub use provinces::{
     Elevation, HexDirection, Province, ProvinceBuilder, ProvinceEntity, ProvinceId,
     ProvincesSpatialIndex, WorldBounds,
     // Province events (moved from simulation module)
-    ProvincePopulationChanged, ProvinceTerrainChanged, ProvinceOwnershipChanged,
-    ProvinceInfrastructureChanged, ProvinceMineralDiscovered, ProvinceAgriculturalEvent,
-    ProvinceDevelopmentChanged,
+    ProvincePopulationChanged, ProvinceTerrainChanged, ProvinceMineralsChanged,
+    ProvinceAgricultureChanged, ProvinceFreshWaterChanged, ProvinceChanged,
+    BatchPopulationUpdate, BatchMineralDiscovery, ProvinceEventsPlugin,
 };
 
 // === Rivers Feature ===

@@ -5,7 +5,6 @@
 
 // PRIVATE modules - internal implementation
 mod calculations;
-mod systems;
 mod types;
 
 // Public exports

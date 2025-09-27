@@ -13,7 +13,7 @@ mod navigation;
 mod persistence;
 mod resolution;
 mod setting_builder; // NEW: Declarative settings automation system
-mod settings_ui;
+mod ui;
 mod types;
 
 // CONTROLLED EXPORTS - Minimal public API
@@ -36,7 +36,7 @@ pub use components::{
 pub use persistence::{load_settings, save_settings};
 
 // Settings UI builders (eating our own dog food)
-pub use settings_ui::{
+pub use ui::{
     spawn_settings_menu, PresetGridBuilder, SettingRowBuilder, SettingSectionBuilder,
 };
 
@@ -44,5 +44,5 @@ pub use settings_ui::{
 pub use setting_builder::define_setting_tab;
 
 // Main plugin - Clean architecture with no legacy wrappers
-pub use settings_ui::SettingsUIPlugin;
+pub use ui::SettingsUIPlugin;
 

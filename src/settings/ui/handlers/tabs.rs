@@ -3,7 +3,7 @@
 //! This handler has been transformed using the `define_ui_interactions!` macro,
 //! eliminating 20+ lines of repetitive button interaction boilerplate.
 
-use crate::settings::{components::*, settings_ui::spawning::spawn_settings_menu, types::*};
+use crate::settings::{components::*, ui::spawning::spawn_settings_menu, types::*};
 use crate::states::CurrentSettingsTab;
 use crate::ui::define_ui_interactions;
 use bevy::prelude::*;

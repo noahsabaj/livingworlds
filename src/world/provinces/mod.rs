@@ -26,7 +26,7 @@ pub use generation::{ProvinceBuilder, calculate_ocean_depths, precompute_neighbo
 
 // Province events
 pub use events::{
-    ProvincePopulationChanged, ProvinceTerrainChanged, ProvinceOwnershipChanged,
-    ProvinceInfrastructureChanged, ProvinceMineralDiscovered, ProvinceAgriculturalEvent,
-    ProvinceDevelopmentChanged,
+    ProvincePopulationChanged, ProvinceTerrainChanged, ProvinceMineralsChanged,
+    ProvinceAgricultureChanged, ProvinceFreshWaterChanged, ProvinceChanged,
+    BatchPopulationUpdate, BatchMineralDiscovery, ProvinceEventsPlugin,
 };
