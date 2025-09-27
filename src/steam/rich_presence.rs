@@ -24,7 +24,7 @@ pub fn update_rich_presence(
         crate::states::GameState::LoadingWorld => "Loading World",
         crate::states::GameState::InGame => {
             if let Some(time) = game_time {
-                let year = 1000 + (time.current_date / 365.0) as i32;
+                let year = time.current_year() as i32;
                 &format!("Observing Year {}", year)
             } else {
                 "Observing History"

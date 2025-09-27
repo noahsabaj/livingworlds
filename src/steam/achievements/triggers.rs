@@ -45,7 +45,7 @@ pub fn handle_achievement_triggers(
     }
 
     // Simulation time achievements
-    let years = game_time.current_date / 365.0;
+    let years = game_time.current_year() as f32;
     if years >= 1000.0 {
         unlock_achievement(
             &user_stats,

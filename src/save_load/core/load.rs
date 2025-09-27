@@ -52,7 +52,7 @@ pub fn handle_load_game(
                                 info!("Successfully loaded save from {}", save_data.timestamp);
                                 info!(
                                     "Game time: {} days, World size: {:?}",
-                                    save_data.game_time.current_date, save_data.world_size
+                                    save_data.game_time.current_day(), save_data.world_size
                                 );
 
                                 // Initialize loading screen
@@ -68,7 +68,7 @@ pub fn handle_load_game(
                                         .and_then(|n| n.to_str())
                                         .unwrap_or("Save")
                                         .to_string(),
-                                    save_data.game_time.current_date,
+                                    save_data.game_time.current_day() as f32,
                                     file_size,
                                 );
                                 commands.insert_resource(loading_state);
