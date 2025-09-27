@@ -7,7 +7,8 @@
 
 use super::utils::SafeColor;
 use crate::math::lerp;
-use crate::resources::{GameTime, WeatherSystem};
+use crate::simulation::GameTime;
+use crate::resources::WeatherSystem;
 use bevy::prelude::Color;
 
 /// Apply time of day color adjustments
@@ -22,7 +23,7 @@ use bevy::prelude::Color;
 /// # Returns
 /// Color adjusted for time of day effects
 pub fn apply_time_of_day(base_color: Color, game_time: &GameTime) -> Color {
-    let hours = (game_time.current_date % 1.0) * 24.0;
+    let hours = game_time.hour_of_day();
 
     // Dawn/dusk tinting
     let dawn_dusk_factor = if (5.0..7.0).contains(&hours) || (17.0..19.0).contains(&hours) {

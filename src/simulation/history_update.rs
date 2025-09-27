@@ -4,7 +4,7 @@
 
 use bevy::prelude::*;
 use crate::nations::{Nation, NationHistory};
-use crate::simulation::time::GameTime;
+use crate::simulation::GameTime;
 
 /// Update nation histories each game year
 pub fn update_nation_histories(
@@ -12,7 +12,7 @@ pub fn update_nation_histories(
     game_time: Res<GameTime>,
     mut last_year: Local<u32>,
 ) {
-    let current_year = (game_time.current_date / 365.0) as u32; // Convert days to years
+    let current_year = game_time.current_year();
 
     // Only update once per year
     if current_year <= *last_year {
@@ -61,7 +61,7 @@ pub fn update_nation_histories(
                             crate::name_generator::Gender::Female
                         },
                         culture: crate::name_generator::Culture::Western, // TODO: Use actual culture
-                        role: crate::name_generator::PersonRole::Ruler,
+                        role: crate::name_generator::PersonRole::Noble,
                     })
             );
 
