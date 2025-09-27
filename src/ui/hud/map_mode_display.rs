@@ -187,18 +187,22 @@ pub fn handle_dropdown_item_clicks(
 
 /// Handle closing dropdown when clicking outside or pressing Escape
 pub fn handle_dropdown_close(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    mut shortcut_events: EventReader<crate::ui::shortcuts::ShortcutEvent>,
     mouse: Res<ButtonInput<MouseButton>>,
     mut dropdown_state: ResMut<MapModeDropdownState>,
     mut dropdown_query: Query<&mut Node, With<MapModeDropdown>>,
 ) {
+    use crate::ui::shortcuts::ShortcutId;
+
     // Close on Escape key
-    if dropdown_state.is_open && keyboard.just_pressed(KeyCode::Escape) {
-        dropdown_state.is_open = false;
-        if let Ok(mut dropdown_node) = dropdown_query.single_mut() {
-            dropdown_node.display = Display::None;
+    for event in shortcut_events.read() {
+        if dropdown_state.is_open && (event.shortcut_id == ShortcutId::Escape || event.shortcut_id == ShortcutId::OpenMainMenu) {
+            dropdown_state.is_open = false;
+            if let Ok(mut dropdown_node) = dropdown_query.single_mut() {
+                dropdown_node.display = Display::None;
+            }
+            return;
         }
-        return;
     }
 
     // Close on mouse click outside dropdown
@@ -220,21 +224,25 @@ pub fn handle_dropdown_close(
 
 /// Handle keyboard shortcut for quick Political ↔ Terrain switching (Tab key)
 pub fn handle_map_mode_shortcut(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    mut shortcut_events: EventReader<crate::ui::shortcuts::ShortcutEvent>,
     mut current_map_mode: ResMut<MapMode>,
     mut dropdown_state: ResMut<MapModeDropdownState>,
 ) {
-    if keyboard.just_pressed(KeyCode::Tab) {
-        // Quick toggle between Political and Terrain (most common switch)
-        *current_map_mode = match *current_map_mode {
-            MapMode::Political => MapMode::Terrain,
-            _ => MapMode::Political,
-        };
+    use crate::ui::shortcuts::ShortcutId;
 
-        // Close dropdown when using keyboard shortcut to avoid UI desync
-        dropdown_state.is_open = false;
-        dropdown_state.clicked_this_frame = false;
+    for event in shortcut_events.read() {
+        if event.shortcut_id == ShortcutId::MapModeToggle {
+            // Quick toggle between Political and Terrain (most common switch)
+            *current_map_mode = match *current_map_mode {
+                MapMode::Political => MapMode::Terrain,
+                _ => MapMode::Political,
+            };
 
-        debug!("Map mode quick-switched to: {:?}", *current_map_mode);
+            // Close dropdown when using keyboard shortcut to avoid UI desync
+            dropdown_state.is_open = false;
+            dropdown_state.clicked_this_frame = false;
+
+            debug!("Map mode quick-switched to: {:?}", *current_map_mode);
+        }
     }
 }

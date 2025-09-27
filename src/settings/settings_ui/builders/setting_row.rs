@@ -4,8 +4,9 @@
 
 use crate::settings::{components::*, types::*};
 use crate::ui::{
-    dimensions, ButtonBuilder, ButtonStyle, LabelBuilder, LabelStyle, PanelBuilder,
-    PanelStyle, SliderBuilder, ValueFormat, ChildBuilder,
+    dimensions, ButtonBuilder, ButtonStyle,
+    LabelBuilder, LabelStyle, PanelBuilder, PanelStyle, SliderBuilder,
+    ValueFormat, ChildBuilder,
 };
 use bevy::prelude::*;
 
@@ -14,6 +15,7 @@ use bevy::prelude::*;
 pub enum ControlType {
     Cycle {
         current_value: String,
+        options: Vec<String>,
     },
     Toggle {
         enabled: bool,
@@ -41,12 +43,14 @@ impl SettingRowBuilder {
         label: impl Into<String>,
         setting_type: SettingType,
         current_value: impl Into<String>,
+        options: Vec<String>,
     ) -> Self {
         Self {
             label: label.into(),
             setting_type,
             control_type: ControlType::Cycle {
                 current_value: current_value.into(),
+                options,
             },
             width: Val::Percent(100.0),
             height: Val::Px(40.0),
@@ -124,10 +128,12 @@ impl SettingRowBuilder {
 
                 // Control on the right
                 match control_type {
-                    ControlType::Cycle { current_value } => {
-                        ButtonBuilder::new(format!("< {} >", current_value))
+                    ControlType::Cycle { current_value, options: _ } => {
+                        // TODO: Implement dropdown when available, using button for now
+                        ButtonBuilder::new(&current_value)
                             .style(ButtonStyle::Secondary)
                             .width(Val::Px(200.0))
+                            .height(Val::Px(30.0))
                             .with_marker(CycleButton { setting_type })
                             .build(row);
                     }

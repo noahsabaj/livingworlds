@@ -146,13 +146,20 @@ pub fn {function_name}(
             ControlType::Cycle => {
                 format!(
                     r#"
-            // Cycle control: {label}
-            crate::ui::ButtonBuilder::new(format!("< {{}} >", settings.{field}.as_str()))
-                .style(crate::ui::ButtonStyle::Secondary)
-                .with_marker(crate::settings::components::CycleButton {{
-                    setting_type: crate::settings::types::SettingType::{setting_type:?}
-                }})
-                .build(section);
+            // Cycle control: {label} using dropdown component
+            {{
+                let options = settings.{field}.get_all_options();
+                let current_value = settings.{field}.as_str();
+                let selected_index = options.iter().position(|opt| opt == &current_value).unwrap_or(0);
+
+                crate::ui::dropdown::DropdownBuilder::new(options)
+                    .width(bevy::prelude::Val::Px(200.0))
+                    .selected_index(selected_index)
+                    .with_marker(crate::settings::components::CycleButton {{
+                        setting_type: crate::settings::types::SettingType::{setting_type:?}
+                    }})
+                    .build(section);
+            }}
 "#,
                     label = control.label,
                     field = control.field_name,
