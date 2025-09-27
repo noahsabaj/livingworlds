@@ -8,8 +8,8 @@ use bevy_plugin_builder::define_plugin;
 
 // Import all relationship modules
 use super::{
-    administrative::*, cultural::*, diplomatic::*, infrastructure::*, military::*, political::*,
-    population::*, religious::*,
+    administrative::*, cultural::*, diplomatic::*, infrastructure::*, legislative::*, military::*,
+    political::*, population::*, religious::*,
 };
 
 // Plugin that registers all relationship systems - AUTOMATED WITH DECLARATIVE MAGIC!

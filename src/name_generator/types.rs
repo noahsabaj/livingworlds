@@ -61,7 +61,7 @@ pub enum Culture {
 }
 
 /// Gender for person name generation
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect, Serialize, Deserialize)]
 pub enum Gender {
     Male,
     Female,
@@ -88,6 +88,10 @@ pub enum PersonRole {
     Priest,
     /// Adventurers and discoverers
     Explorer,
+    /// Court advisors and counselors
+    Advisor,
+    /// Nobility and aristocrats
+    Noble,
     /// Regular citizens
     Commoner,
 }

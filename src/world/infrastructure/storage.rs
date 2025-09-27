@@ -9,7 +9,7 @@ use crate::world::ProvinceId;
 use std::collections::HashMap;
 
 /// Infrastructure data for a single province
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Reflect)]
 pub struct ProvinceInfrastructure {
     /// Overall connectivity score (0.0 = isolated, 1.0 = major hub)
     pub connectivity: f32,
@@ -80,7 +80,7 @@ impl ProvinceInfrastructure {
 }
 
 /// Resource storing infrastructure data for all provinces
-#[derive(Resource, Default, Debug, Clone)]
+#[derive(Resource, Default, Debug, Clone, Reflect)]
 pub struct InfrastructureStorage {
     /// Infrastructure data indexed by province ID
     pub infrastructure: HashMap<ProvinceId, ProvinceInfrastructure>,

@@ -47,7 +47,7 @@ bevy = { version = "0.16.1", default-features = false, features = [
 bevy-plugin-builder = "0.1.2"
 
 # UI builders - our own published crate!
-bevy-ui-builders = { version = "0.1.3", features = ["all_builders"] }
+bevy-ui-builders = { version = "0.1.8", features = ["all_builders"] }
 
 # Keep our procedural approach - no GLTF or external assets needed!
 serde = { version = "1.0", features = ["derive"] }
@@ -56,9 +56,6 @@ bincode = "1.3"
 async-channel = "2.3" # For async progress reporting in world generation
 thiserror = "1.0"
 anyhow = "1.0"
-
-# UI text input for search bars and text fields
-bevy_simple_text_input = "0.11"
 
 # Save system features
 zstd = "0.13"  # Compression for save files
@@ -209,4 +206,3 @@ criterion = { version = "0.5", features = ["html_reports"] }
 # Test utilities
 tempfile = "3.8"           # Temporary files for save/load tests
 insta = "1.34"             # Snapshot testing for complex outputs
-

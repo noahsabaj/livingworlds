@@ -180,12 +180,12 @@ macro_rules! generate_controls {
 
     // Cycle control (enum cycling)
     ($section:ident, $settings:ident, cycle: $label:literal => $field:ident $(, $($rest:tt)*)?) => {
-        crate::ui::ButtonBuilder::new(format!("< {} >", $settings.$field.as_str()))
+        let button = crate::ui::ButtonBuilder::new(format!("< {} >", $settings.$field.as_str()))
             .style(crate::ui::ButtonStyle::Secondary)
-            .with_marker(crate::settings::components::CycleButton {
-                setting_type: $crate::field_to_setting_type!($field)
-            })
             .build_in($section);
+        $section.commands().entity(button).insert(crate::settings::components::CycleButton {
+            setting_type: $crate::field_to_setting_type!($field)
+        });
 
         $crate::generate_controls!($section, $settings, $($($rest)*)?);
     };
@@ -198,28 +198,24 @@ macro_rules! generate_controls {
 
     // Slider control with range and format (simple format like Percentage)
     ($section:ident, $settings:ident, slider: $label:literal => $field:ident ($min:literal..$max:literal, $format:ident) $(, $($rest:tt)*)?) => {
-        crate::ui::SliderBuilder::new($min, $max)
-            .with_label($label)
-            .with_value($settings.$field)
-            .with_format(crate::ui::ValueFormat::$format)
-            .with_marker(crate::settings::components::SettingsSlider {
-                setting_type: $crate::field_to_setting_type!($field)
-            })
+        let slider = crate::ui::SliderBuilder::new($min..$max)
+
             .build_in($section);
+        $section.commands().entity(slider).insert(crate::settings::components::SettingsSlider {
+            setting_type: $crate::field_to_setting_type!($field)
+        });
 
         $crate::generate_controls!($section, $settings, $($($rest)*)?);
     };
 
     // Slider control with range and format (function format like Decimal(1))
     ($section:ident, $settings:ident, slider: $label:literal => $field:ident ($min:literal..$max:literal, $format:ident($param:literal)) $(, $($rest:tt)*)?) => {
-        crate::ui::SliderBuilder::new($min, $max)
-            .with_label($label)
-            .with_value($settings.$field)
-            .with_format(crate::ui::ValueFormat::$format($param))
-            .with_marker(crate::settings::components::SettingsSlider {
-                setting_type: $crate::field_to_setting_type!($field)
-            })
+        let slider = crate::ui::SliderBuilder::new($min..$max)
+            
             .build_in($section);
+        $section.commands().entity(slider).insert(crate::settings::components::SettingsSlider {
+            setting_type: $crate::field_to_setting_type!($field)
+        });
 
         $crate::generate_controls!($section, $settings, $($($rest)*)?);
     };
@@ -237,12 +233,12 @@ macro_rules! generate_controls {
             bevy::prelude::BackgroundColor(bevy::prelude::Color::NONE),
         )).with_children(|preset_row| {
             $(
-                crate::ui::ButtonBuilder::new(stringify!($preset))
+                let button = crate::ui::ButtonBuilder::new(stringify!($preset))
                     .style(crate::ui::ButtonStyle::Secondary)
-                    .with_marker(crate::settings::components::PresetButton {
-                        preset: crate::settings::types::GraphicsPreset::$preset
-                    })
                     .build(preset_row);
+                preset_row.commands().entity(button).insert(crate::settings::components::PresetButton {
+                    preset: crate::settings::types::GraphicsPreset::$preset
+                });
             )*
         });
 
@@ -286,17 +282,17 @@ macro_rules! create_toggle_row {
                 ));
 
                 // Toggle button
-                crate::ui::ButtonBuilder::new(if $enabled { "✓" } else { "" })
+                let button = crate::ui::ButtonBuilder::new(if $enabled { "✓" } else { "" })
                     .style(if $enabled {
                         crate::ui::ButtonStyle::Success
                     } else {
                         crate::ui::ButtonStyle::Secondary
                     })
-                    .with_marker(crate::settings::components::ToggleButton {
-                        setting_type: $setting_type,
-                        enabled: $enabled,
-                    })
                     .build(row);
+                row.commands().entity(button).insert(crate::settings::components::ToggleButton {
+                    setting_type: $setting_type,
+                    enabled: $enabled,
+                });
             });
     };
 }

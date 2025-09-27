@@ -4,8 +4,8 @@
 //! without requiring graphics, audio, or other heavy subsystems.
 
 use bevy::prelude::*;
-use crate::nations::laws::registry::LawRegistry;
-use crate::simulation::time::resources::GameTime;
+use crate::nations::LawRegistry;
+use crate::simulation::time::GameTime;
 
 /// Create a minimal Bevy app for testing without graphics/audio
 pub fn create_test_app() -> App {
@@ -26,8 +26,8 @@ pub fn create_law_test_app() -> App {
     let mut app = create_test_app();
 
     // Add law-specific events
-    app.add_event::<crate::nations::laws::types::LawEnactmentEvent>()
-       .add_event::<crate::nations::laws::types::LawRepealEvent>();
+    app.add_event::<crate::nations::LawEnactmentEvent>()
+       .add_event::<crate::nations::LawRepealEvent>();
 
     // Initialize law registry with test laws
     let mut registry = LawRegistry::new();

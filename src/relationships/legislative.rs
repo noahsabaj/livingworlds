@@ -143,10 +143,10 @@ impl ConflictedBy {
 /// Component for law entities containing law data
 #[derive(Component, Debug, Clone)]
 pub struct LawEntity {
-    pub law_id: crate::nations::laws::LawId,
+    pub law_id: crate::nations::LawId,
     pub name: String,
-    pub category: crate::nations::laws::LawCategory,
-    pub effects: crate::nations::laws::LawEffects,
+    pub category: crate::nations::LawCategory,
+    pub effects: crate::nations::LawEffects,
     pub enacted_date: Option<i32>, // Game year when enacted
 }
 

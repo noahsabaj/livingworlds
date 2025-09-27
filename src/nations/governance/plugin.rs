@@ -16,6 +16,10 @@ define_plugin!(GovernancePlugin {
         GovernanceSettings,
     ],
 
+    events: [
+        super::transitions::GovernmentTransition,
+    ],
+
     update: [
         update_political_pressure.run_if(in_state(crate::states::GameState::InGame)),
         update_government_legitimacy.run_if(in_state(crate::states::GameState::InGame)),

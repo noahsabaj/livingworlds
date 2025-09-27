@@ -6,7 +6,9 @@
 use super::handlers;
 use super::layout;
 use super::types::WorldGenerationSettings;
+use super::components::WorldConfigRoot;
 use crate::states::GameState;
+use crate::ui::despawn_entities;
 use bevy::prelude::*;
 use bevy_plugin_builder::define_plugin;
 
@@ -48,6 +50,6 @@ define_plugin!(WorldConfigPlugin {
     },
 
     on_exit: {
-        GameState::WorldConfiguration => [layout::despawn_world_config_ui]
+        GameState::WorldConfiguration => [despawn_entities::<WorldConfigRoot>]
     }
 });

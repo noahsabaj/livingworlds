@@ -40,9 +40,9 @@ pub fn handle_error_dialog_buttons(
     dialog_query: Query<Entity, With<crate::ui::WorldGenerationErrorDialog>>,
     confirm_button_query: Query<
         &Interaction,
-        (Changed<Interaction>, With<crate::ui::ConfirmButton>),
+        (Changed<Interaction>, With<bevy_ui_builders::ConfirmButton>),
     >,
-    cancel_button_query: Query<&Interaction, (Changed<Interaction>, With<crate::ui::CancelButton>)>,
+    cancel_button_query: Query<&Interaction, (Changed<Interaction>, With<bevy_ui_builders::CancelButton>)>,
 ) {
     for interaction in &confirm_button_query {
         if *interaction == Interaction::Pressed {

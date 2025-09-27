@@ -46,9 +46,3 @@ pub use setting_builder::define_setting_tab;
 // Main plugin - Clean architecture with no legacy wrappers
 pub use settings_ui::SettingsUIPlugin;
 
-/// Helper function to despawn the settings menu
-pub fn despawn_settings_menu(mut commands: Commands, query: Query<Entity, With<SettingsMenuRoot>>) {
-    for entity in &query {
-        commands.entity(entity).despawn();
-    }
-}

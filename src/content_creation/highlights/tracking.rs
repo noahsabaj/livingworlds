@@ -77,13 +77,17 @@ fn calculate_viral_score(event: &DramaEvent) -> f32 {
         DramaEventType::PersonalDuel { .. } => 0.4,
         DramaEventType::DisgracedLeader { .. } => 0.45,
         DramaEventType::HeroicSacrifice { .. } => 0.55,
+
+        // Catch-all for any other drama event types
+        _ => 0.5,
     };
 
     // Boost score based on consequences
     let consequence_boost = (event.consequences.len() as f32 * 0.05).min(0.2);
 
     // Boost for important characters
-    let importance_boost = if event.involves_ruler { 0.15 } else { 0.0 };
+    // TODO: Check if event involves ruler when that field is available
+    let importance_boost = 0.0;
 
     (base_score + consequence_boost + importance_boost).min(1.0)
 }

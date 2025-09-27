@@ -4,7 +4,7 @@
 
 use bevy::prelude::*;
 use crate::nations::laws::{LawId, NationLaws, LawRegistry, LawEnactmentEvent, LawRepealEvent};
-use crate::nations::Nation;
+use crate::nations::{Nation, NationId};
 use crate::simulation::PressureType;
 
 /// Debug commands for manipulating laws
@@ -24,8 +24,11 @@ impl LawDebugCommands {
             nation_laws.enact_law(law_id, &law.effects, 0);
 
             events.send(LawEnactmentEvent {
-                nation_entity,
+                nation_id: NationId(0), // Debug nation ID
+                nation_name: format!("Debug Nation {:?}", nation_entity),
                 law_id,
+                law_name: law.name.clone(),
+                category: law.category,
             });
 
             info!("DEBUG: Force enacted law {:?} for nation", law_id);
@@ -37,15 +40,24 @@ impl LawDebugCommands {
         nation_entity: Entity,
         law_id: LawId,
         nation_laws: &mut NationLaws,
+        registry: &LawRegistry,
         events: &mut EventWriter<LawRepealEvent>,
     ) {
         if nation_laws.is_active(law_id) {
+            // For debug, we'll use 0 years active since we don't track this currently
+            let years_active = 0;
             nation_laws.repeal_law(law_id, 0);  // year = 0 for debug
 
-            events.send(LawRepealEvent {
-                nation_entity,
-                law_id,
-            });
+            if let Some(law) = registry.get_law(law_id) {
+                events.send(LawRepealEvent {
+                    nation_id: NationId(0), // Debug nation ID
+                    nation_name: format!("Debug Nation {:?}", nation_entity),
+                    law_id,
+                    law_name: law.name.clone(),
+                    category: law.category,
+                    years_active,
+                });
+            }
 
             info!("DEBUG: Force repealed law {:?} for nation", law_id);
         }
@@ -93,8 +105,8 @@ pub fn spawn_test_laws(
         }
 
         // Add some proposed laws
-        nation_laws.propose_law(test_law_ids[3], 0.6, 30.0, Some(PressureType::Social));
-        nation_laws.propose_law(test_law_ids[4], 0.4, 30.0, Some(PressureType::Cultural));
+        nation_laws.propose_law(test_law_ids[3], 0.6, 30.0, Some(PressureType::CulturalDivision));
+        nation_laws.propose_law(test_law_ids[4], 0.4, 30.0, Some(PressureType::CulturalDivision));
 
         // Add the component to the nation
         commands.entity(nation_entity).insert(nation_laws);
@@ -135,6 +147,7 @@ pub fn force_enact_law(
 pub fn force_repeal_law(
     keys: Res<ButtonInput<KeyCode>>,
     mut nations_query: Query<(Entity, &mut NationLaws)>,
+    registry: Res<LawRegistry>,
     mut events: EventWriter<LawRepealEvent>,
 ) {
     // Shift+R to force repeal a random active law on the first nation
@@ -146,6 +159,7 @@ pub fn force_repeal_law(
                     entity,
                     law_id,
                     &mut nation_laws,
+                    &registry,
                     &mut events,
                 );
             }
@@ -168,7 +182,7 @@ pub fn trigger_law_proposal(
                 LawDebugCommands::trigger_proposal(
                     &mut nation_laws,
                     test_law_id,
-                    PressureType::Military,
+                    PressureType::MilitaryVulnerability,
                     0.45,
                 );
             }

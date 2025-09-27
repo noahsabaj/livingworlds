@@ -1,7 +1,9 @@
 //! River system data structures
 
+use bevy::reflect::Reflect;
+
 /// River system containing flow and delta information
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Reflect)]
 pub struct RiverSystem {
     /// Province IDs that contain river tiles
     pub river_tiles: Vec<u32>,

@@ -3,8 +3,6 @@
 //! Gateway for all tab content creation functionality. Each tab has its own
 //! focused module for spawning appropriate content.
 //!
-//! ## REVOLUTIONARY TRANSFORMATION
-//!
 //! All manual implementations have been replaced with declarative versions using
 //! the define_setting_tab! macro. This eliminates 400+ lines of repetitive code
 //! while providing complete field coverage and type safety.

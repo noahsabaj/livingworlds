@@ -5,7 +5,7 @@
 use bevy::prelude::*;
 use bevy_plugin_builder::define_plugin;
 use crate::nations::{Nation, laws::NationLaws};
-use crate::ui::styles::{colors, dimensions};
+use crate::ui::{colors, dimensions};
 use crate::ui::SelectedNation;
 
 /// Marker for law debug overlay
@@ -172,7 +172,7 @@ fn update_law_debug_overlay(
                     text.0 = "Proposed laws: 0".to_string();
                 } else {
                     let avg_support = nation_laws.proposed_laws.iter()
-                        .map(|p| p.support_percentage)
+                        .map(|p| p.current_support)
                         .sum::<f32>() / nation_laws.proposed_laws.len() as f32;
                     text.0 = format!("Proposed laws: {} (avg support: {:.0}%)",
                         nation_laws.proposed_laws.len(),
@@ -192,8 +192,8 @@ fn update_law_debug_overlay(
                 if effects.stability_change.abs() > 0.001 {
                     effect_parts.push(format!("Stab: {:+.0}%", effects.stability_change * 100.0));
                 }
-                if effects.military_strength_modifier.abs() > 0.001 {
-                    effect_parts.push(format!("Mil: {:+.0}%", effects.military_strength_modifier * 100.0));
+                if effects.army_morale_modifier.abs() > 0.001 {
+                    effect_parts.push(format!("Mil: {:+.0}%", effects.army_morale_modifier * 100.0));
                 }
 
                 if effect_parts.is_empty() {

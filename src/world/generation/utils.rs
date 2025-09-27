@@ -172,21 +172,21 @@ impl GenerationUtils {
     ///
     /// This is the canonical implementation for random position sampling
     /// used across all generation systems.
-    pub fn random_position(&self, rng: &mut StdRng) -> Vec2 {
+    pub fn random_position<R: Rng>(&self, rng: &mut R) -> Vec2 {
         let x = rng.gen_range(self.dimensions.bounds.x_min..self.dimensions.bounds.x_max);
         let y = rng.gen_range(self.dimensions.bounds.y_min..self.dimensions.bounds.y_max);
         Vec2::new(x, y)
     }
 
     /// Generate random position within custom bounds
-    pub fn random_position_in_bounds(&self, rng: &mut StdRng, min: Vec2, max: Vec2) -> Vec2 {
+    pub fn random_position_in_bounds<R: Rng>(&self, rng: &mut R, min: Vec2, max: Vec2) -> Vec2 {
         let x = rng.gen_range(min.x..max.x);
         let y = rng.gen_range(min.y..max.y);
         Vec2::new(x, y)
     }
 
     /// Generate random grid coordinates
-    pub fn random_grid_coords(&self, rng: &mut StdRng) -> (i32, i32) {
+    pub fn random_grid_coords<R: Rng>(&self, rng: &mut R) -> (i32, i32) {
         let col = rng.gen_range(0..self.dimensions.provinces_per_row as i32);
         let row = rng.gen_range(0..self.dimensions.provinces_per_col as i32);
         (col, row)

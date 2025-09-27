@@ -11,6 +11,9 @@ use crate::nations::governance::{CrisisFactors, GovernmentCategory, GovernmentTy
 /// Comprehensive legitimacy tracking with positive and negative factors
 #[derive(Component, Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct LegitimacyFactors {
+    /// Base legitimacy value
+    pub base_legitimacy: f32,
+
     // ========== POSITIVE LEGITIMACY SOURCES ==========
     /// Electoral legitimacy (for democracies)
     pub electoral_mandate: Option<ElectoralMandate>,
@@ -135,6 +138,7 @@ pub struct SeparatistMovement {
 impl Default for LegitimacyFactors {
     fn default() -> Self {
         Self {
+            base_legitimacy: 1.0,
             electoral_mandate: None,
             divine_approval: None,
             revolutionary_fervor: None,

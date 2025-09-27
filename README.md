@@ -19,7 +19,7 @@ Living Worlds is a fully procedural civilization OBSERVER - like Fantasy Map Sim
   - Small: 1,000,000 provinces (1250x800)
   - Medium: 2,000,000 provinces (1600x1250)
   - Large: 3,000,000 provinces (2000x1500)
-- **Mega-Mesh Rendering**: Revolutionary performance breakthrough
+- **Mega-Mesh Rendering**: Performance breakthrough
   - **60+ FPS** on all world sizes up to 3,000,000 provinces
   - Single mesh with millions of vertices handled efficiently
   - One GPU draw call for entire world

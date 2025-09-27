@@ -84,7 +84,8 @@ pub fn handle_apply_changes(
 
         // Transition to loading state for soft reset
         state_events.send(RequestStateTransition {
-            target: GameState::LoadingWorld,
+            from: GameState::InGame, // Assuming we're in game when applying mods
+            to: GameState::LoadingWorld,
         });
     }
 }

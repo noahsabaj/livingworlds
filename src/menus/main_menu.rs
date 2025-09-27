@@ -6,7 +6,7 @@
 use super::types::{MenuAction, MenuButton, SpawnSaveBrowserEvent, SpawnSettingsMenuEvent};
 use crate::save_load::{scan_save_files_internal, SaveGameList};
 use crate::states::{GameState, RequestStateTransition};
-use crate::ui::{ButtonBuilder, ButtonSize, ButtonStyle, PanelBuilder, PanelStyle};
+use crate::ui::{despawn_entities, ButtonBuilder, ButtonSize, ButtonStyle, PanelBuilder, PanelStyle};
 use bevy::app::AppExit;
 use bevy::prelude::*;
 
@@ -16,7 +16,7 @@ pub struct MainMenuPlugin;
 impl Plugin for MainMenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(GameState::MainMenu), spawn_main_menu)
-            .add_systems(OnExit(GameState::MainMenu), despawn_main_menu)
+            .add_systems(OnExit(GameState::MainMenu), despawn_entities::<MainMenuRoot>)
             .add_systems(
                 Update,
                 (handle_button_interactions, handle_exit_confirmation_dialog)
@@ -135,14 +135,6 @@ fn spawn_main_menu(mut commands: Commands, mut save_list: ResMut<SaveGameList>) 
         });
 }
 
-/// Despawns the main menu UI
-fn despawn_main_menu(mut commands: Commands, query: Query<Entity, With<MainMenuRoot>>) {
-    debug!("Despawning main menu UI");
-    for entity in &query {
-        commands.entity(entity).despawn();
-    }
-}
-
 /// Handles button click interactions in the main menu
 fn handle_button_interactions(
     mut interactions: Query<(&Interaction, &MenuButton), (Changed<Interaction>, With<Button>)>,
@@ -197,7 +189,7 @@ fn handle_exit_confirmation_dialog(
     mut interactions: Query<
         (
             &Interaction,
-            AnyOf<(&crate::ui::ConfirmButton, &crate::ui::CancelButton)>,
+            AnyOf<(&bevy_ui_builders::ConfirmButton, &bevy_ui_builders::CancelButton)>,
         ),
         Changed<Interaction>,
     >,

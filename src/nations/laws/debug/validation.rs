@@ -113,10 +113,10 @@ pub fn validate_law_consistency(
             }
 
             // Validate support percentage
-            if proposal.support_percentage < 0.0 || proposal.support_percentage > 1.0 {
+            if proposal.current_support < 0.0 || proposal.current_support > 1.0 {
                 report.errors.push(format!(
                     "Nation {:?} has invalid support percentage {:.2} for law {:?}",
-                    entity, proposal.support_percentage, proposal.law_id
+                    entity, proposal.current_support, proposal.law_id
                 ));
             }
         }
@@ -138,7 +138,7 @@ pub fn validate_law_consistency(
             // Check if effects are non-zero when no laws are active
             if effects.tax_efficiency_modifier.abs() > 0.001 ||
                effects.stability_change.abs() > 0.001 ||
-               effects.military_strength_modifier.abs() > 0.001 {
+               effects.army_morale_modifier.abs() > 0.001 {
                 report.warnings.push(format!(
                     "Nation {:?} has non-zero combined effects but no active laws",
                     entity

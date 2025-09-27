@@ -10,6 +10,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 
+use crate::diagnostics::{TimedOperation, log_nation_state_change, log_memory_usage, debug_context};
 use crate::name_generator::{Culture, NameGenerator, NameType};
 use crate::world::{Province, TerrainType};
 // Distance calculations use Bevy's Vec2 methods directly
@@ -22,25 +23,34 @@ pub fn spawn_nations(
     settings: &NationGenerationSettings,
     seed: u32,
 ) -> (Vec<Nation>, Vec<House>, Vec<super::governance::GovernmentType>) {
+    let total_timer = TimedOperation::start_with_level("Nation Generation", crate::diagnostics::LogLevel::Info);
+
+    info!("Starting nation generation - Target: {} nations, Density: {}, Seed: {}",
+          settings.nation_count, settings.nation_density, seed);
+
     let mut rng = StdRng::seed_from_u64(seed as u64);
     let mut nations = Vec::new();
     let mut houses = Vec::new();
     let nation_registry = NationRegistry::default();
 
     // Find suitable capital locations
+    let capital_timer = TimedOperation::start("Capital Selection");
     let capital_provinces = select_capital_provinces(provinces, settings.nation_count, &mut rng);
+    let capital_time = capital_timer.complete_with_context(format!("{} capitals selected", capital_provinces.len()));
 
     if capital_provinces.is_empty() {
         warn!("No suitable provinces found for nation capitals!");
         return (nations, houses, Vec::new());
     }
 
+    debug!("Selected capital provinces: {:?}", capital_provinces.iter().take(10).collect::<Vec<_>>());
     info!("Spawning {} nations with capitals", capital_provinces.len());
 
     // Pre-generate seeds for parallel nation creation (avoids RNG contention)
     let nation_seeds: Vec<u64> = (0..capital_provinces.len()).map(|_| rng.r#gen()).collect();
 
     // Create nations with ruling houses and governance in parallel
+    let nation_creation_timer = TimedOperation::start("Nation Creation");
     let nation_registry_arc = Arc::new(nation_registry);
     let nation_data: Vec<(Nation, House, super::governance::GovernmentType)> = capital_provinces
         .par_iter()
@@ -55,23 +65,42 @@ pub fn spawn_nations(
             )
         })
         .collect();
+    let creation_time = nation_creation_timer.complete_with_context(format!("{} nations created", nation_data.len()));
 
     let mut governments = Vec::new();
     for (nation, house, government) in nation_data {
+        debug!("Created nation: {} (ID: {}) with house {} and {:?} government",
+               nation.name, nation.id.value(), house.name, government);
         nations.push(nation);
         houses.push(house);
         governments.push(government);
     }
 
     // Assign territory using growth algorithm
+    let territory_timer = TimedOperation::start("Territory Assignment");
+    // Count provinces that are already assigned (should be 0 initially)
+    let initial_province_count: usize = provinces.iter().filter(|p| p.owner.is_some()).count();
     assign_territory_to_nations(&mut nations, provinces, settings.nation_density);
-
-    info!(
-        "Successfully spawned {} nations with {} ruling houses and {} governments",
-        nations.len(),
-        houses.len(),
-        governments.len()
+    // Count provinces that now have owners
+    let final_province_count: usize = provinces.iter().filter(|p| p.owner.is_some()).count();
+    let territory_time = territory_timer.complete_with_context(
+        format!("{} -> {} provinces assigned", initial_province_count, final_province_count)
     );
+
+    // Log memory usage
+    let nation_memory = nations.len() * std::mem::size_of::<Nation>()
+        + houses.len() * std::mem::size_of::<House>()
+        + governments.len() * std::mem::size_of::<super::governance::GovernmentType>();
+    log_memory_usage("Nation Data", nation_memory);
+
+    let total_time = total_timer.complete();
+
+    info!("Nation Generation Summary:");
+    info!("  Nations created: {}", nations.len());
+    info!("  Ruling houses: {}", houses.len());
+    info!("  Governments: {}", governments.len());
+    info!("  Average territory: {:.1} provinces/nation", final_province_count as f32 / nations.len() as f32);
+    info!("  Total time: {:.2}ms", total_time);
 
     (nations, houses, governments)
 }
@@ -222,7 +251,7 @@ fn create_nation_with_house_parallel(
     let ruler_name = name_gen.generate(NameType::Person {
         gender: crate::name_generator::Gender::Male,
         culture,
-        role: crate::name_generator::PersonRole::Ruler,
+        role: crate::name_generator::PersonRole::Noble,
     });
 
     // Create personality influenced by aggression setting
@@ -308,7 +337,7 @@ fn create_nation_with_house(
     let ruler_name = name_gen.generate(NameType::Person {
         gender: crate::name_generator::Gender::Male,
         culture,
-        role: crate::name_generator::PersonRole::Ruler,
+        role: crate::name_generator::PersonRole::Noble,
     });
 
     // Create personality influenced by aggression setting

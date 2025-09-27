@@ -26,7 +26,7 @@ pub use types::{
 
 pub use naming::{
     generate_governance_aware_name, get_ruler_title, get_structure_name,
-    suggest_government_for_culture, DevelopmentLevel,
+    suggest_government_for_culture, DevelopmentLevel, build_nation_name,
 };
 
 pub use transitions::{can_transition, transition_government, GovernmentTransition};

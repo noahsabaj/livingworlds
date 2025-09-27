@@ -225,7 +225,6 @@ pub enum Scandal {
 /// Following the same pattern as our political relationships in /src/relationships/political.rs
 /// When applied to a Character entity, automatically creates `RelatedTo` on the target entity
 #[derive(Component, Debug, Clone)]
-#[relationship(relationship_target = RelatedTo)]
 pub struct HasRelationship(pub Entity);
 
 /// Additional relationship metadata stored separately
@@ -237,10 +236,9 @@ pub struct RelationshipMetadata {
 }
 
 /// Reverse relationship: A character is related to by other characters
-/// Automatically maintained by Bevy when `HasRelationship` is added
+/// Must be maintained manually when `HasRelationship` is added
 #[derive(Component, Debug, Clone, Default)]
-#[relationship_target(relationship = HasRelationship, linked_spawn)]
-pub struct RelatedTo(Vec<Entity>); // Private for safety - Bevy handles internal access
+pub struct RelatedTo(pub Vec<Entity>); // Public since we need to maintain it manually
 
 impl RelatedTo {
     /// Get read-only access to characters that have relationships with this one
@@ -323,7 +321,7 @@ impl Character {
 
         let gender = if rng.gen_bool(0.5) { Gender::Male } else { Gender::Female };
         let person_role = match role {
-            CharacterRole::Ruler => PersonRole::Ruler,
+            CharacterRole::Ruler => PersonRole::Noble,
             CharacterRole::General => PersonRole::General,
             CharacterRole::Advisor => PersonRole::Advisor,
             _ => PersonRole::Noble,

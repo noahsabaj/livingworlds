@@ -94,7 +94,7 @@ impl GovernmentHistory {
     }
 
     /// Get the current government type
-    pub fn current_government(&self) -> Option<GovernmentType> {
+    pub fn government_type(&self) -> Option<GovernmentType> {
         self.changes
             .last()
             .map(|change| change.to)

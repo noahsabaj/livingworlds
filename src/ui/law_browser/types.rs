@@ -1,7 +1,7 @@
 //! Law browser UI types and markers
 
 use bevy::prelude::*;
-use crate::nations::laws::types::{LawId, LawCategory};
+use crate::nations::{LawId, LawCategory};
 
 /// Resource tracking law browser state
 #[derive(Resource, Default)]

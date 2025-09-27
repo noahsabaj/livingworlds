@@ -1,11 +1,4 @@
-//! Game Plugins Aggregator - Revolutionary Plugin Registration Automation!
-//!
-//! This module demonstrates the ULTIMATE power of bevy-plugin-builder:
-//! 80+ lines of imperative plugin registration to ~30 lines of pure declarative beauty!
-//!
-//! Using the aggregation feature of define_plugin!, we eliminate an entire file
-//! (plugin_order.rs) and transform manual registration into compile-time validated,
-//! declarative plugin management.
+//! Game Plugins Aggregator
 
 use bevy::prelude::*;
 use bevy_plugin_builder::define_plugin;
@@ -18,7 +11,7 @@ use crate::{
     loading::LoadingScreenPlugin,
     menus::MenusPlugin,
     modding::ModdingPlugin,
-    nations::{DramaEnginePlugin, GovernancePlugin, NationPlugin},
+    nations::{DramaEnginePlugin, NationPlugin},
     parallel::ParallelPlugin,
     performance::PerformanceMonitoringPlugin,
     relationships::RelationshipsPlugin,
@@ -27,62 +20,45 @@ use crate::{
     simulation::SimulationPlugin,
     states::StatesPlugin,
     ui::UIPlugin,
-    world::{NoiseComputePlugin, ProvinceEventsPlugin, WorldConfigPlugin, WorldPlugin},
+    world::{NoiseComputePlugin, ProvinceEventsPlugin, WorldPlugin},
 };
 
-// Import external UI builders plugin - dogfooding our own crate!
-use bevy_ui_builders::UiBuilderPlugin;
-
-/// Master plugin that aggregates all Living Worlds game plugins in dependency order.
-///
-/// **AUTOMATION ACHIEVEMENT**: 80+ lines to ~30 lines (63% reduction!)
-///
-/// This plugin ensures proper initialization order:
-/// 1. Core systems (States, Parallel, Relationships)
-/// 2. Foundation (Modding, Events)
-/// 3. UI systems (Menus, Settings, Loading)
-/// 4. World and simulation
-/// 5. Interface and controls
-/// 6. Monitoring and diagnostics
 define_plugin!(GamePlugins {
     plugins: [
         // === Core Systems (required by most other plugins) ===
-        StatesPlugin,           // State management foundation
-        ParallelPlugin,         // Rayon parallel processing
-        RelationshipsPlugin,    // Entity relationship system
+        StatesPlugin,
+        ParallelPlugin,
+        RelationshipsPlugin,
 
         // === Foundation Systems ===
-        ModdingPlugin,          // Mod loading and management
-        ProvinceEventsPlugin,   // Province change events
+        ModdingPlugin,
+        ProvinceEventsPlugin,
 
         // === UI Foundation (depend on States) ===
-        MenusPlugin,            // Main and pause menus
-        WorldConfigPlugin,      // World generation UI
-        LoadingScreenPlugin,    // Loading UI
-        SettingsUIPlugin,       // Settings interface
+        MenusPlugin,
+        LoadingScreenPlugin,
+        SettingsUIPlugin,
 
         // === World and Simulation ===
-        WorldPlugin,            // Aggregates Cloud, Terrain, Border, Overlay
-        NoiseComputePlugin,     // GPU compute acceleration
-        GovernancePlugin,       // Political systems
-        NationPlugin,           // Nation management
-        DramaEnginePlugin,      // Character drama system
-        SimulationPlugin,       // Core simulation
-        SaveLoadPlugin,         // Save/load functionality
+        WorldPlugin,
+        NoiseComputePlugin,
+        NationPlugin,
+        DramaEnginePlugin,
+        SimulationPlugin,
+        SaveLoadPlugin,
 
         // === Interface and Controls ===
-        UiBuilderPlugin,        // External UI builders (dogfooding our own crate!)
-        UIPlugin,               // Aggregates all UI sub-plugins
-        CameraPlugin,           // Camera controls
-        ContentCreationPlugin,  // Viral moment detection
+        UIPlugin,
+        CameraPlugin,
+        ContentCreationPlugin,
 
         // === Monitoring and Diagnostics ===
-        DiagnosticsPlugin,      // FPS and performance display
-        PerformanceMonitoringPlugin  // Rayon metrics
+        DiagnosticsPlugin,
+        PerformanceMonitoringPlugin
     ],
 
     // Custom initialization for conditional plugins
-    custom_init: |app| {
+    custom_init: |app: &mut bevy::app::App| {
         // Add parallel safety validation in debug builds
         #[cfg(debug_assertions)]
         {

@@ -5,7 +5,7 @@
 use super::super::components::*;
 use super::super::types::*;
 use crate::ui::{colors, dimensions};
-use crate::ui::{slider, ValueFormat};
+use crate::ui::{SliderBuilder, ValueFormat};
 use crate::ui::{PanelBuilder, PanelStyle};
 use bevy::prelude::*;
 
@@ -97,32 +97,17 @@ fn spawn_geography_column(parent: &mut ChildSpawnerCommands) {
                 });
 
             // Use our slider builders
-            slider(1.0, 12.0)
-                .with_label("Continents")
-                .with_value(7.0)
-                .integer()
-                .with_width(Val::Percent(100.0))
-                .with_marker(ContinentSlider)
-                .with_value_marker(ContinentValueText)
+            let slider_entity = SliderBuilder::new(1.0..12.0)
                 .build(column);
+            column.commands().entity(slider_entity).insert(ContinentSlider);
 
-            slider(30.0, 80.0)
-                .with_label("Ocean Coverage")
-                .with_value(60.0)
-                .with_format(ValueFormat::Custom(|v| format!("{}%", v as i32)))
-                .with_width(Val::Percent(100.0))
-                .with_marker(OceanSlider)
-                .with_value_marker(OceanValueText)
+            let slider_entity = SliderBuilder::new(30.0..80.0)
                 .build(column);
+            column.commands().entity(slider_entity).insert(OceanSlider);
 
-            slider(0.5, 2.0)
-                .with_label("River Density")
-                .with_value(1.0)
-                .with_format(ValueFormat::Custom(|v| format!("{:.1}x", v)))
-                .with_width(Val::Percent(100.0))
-                .with_marker(RiverSlider)
-                .with_value_marker(RiverValueText)
+            let slider_entity = SliderBuilder::new(0.5..2.0)
                 .build(column);
+            column.commands().entity(slider_entity).insert(RiverSlider);
 
             // Climate Type Selection
             PanelBuilder::new()
@@ -209,23 +194,13 @@ fn spawn_civilizations_column(parent: &mut ChildSpawnerCommands) {
                 });
 
             // Use our slider builders
-            slider(2.0, 20.0)
-                .with_label("Starting Nations")
-                .with_value(8.0)
-                .integer()
-                .with_width(Val::Percent(100.0))
-                .with_marker(StartingNationsSlider)
-                .with_value_marker(StartingNationsValueText)
+            let slider_entity = SliderBuilder::new(2.0..20.0)
                 .build(column);
+            column.commands().entity(slider_entity).insert(StartingNationsSlider);
 
-            slider(0.5, 2.0)
-                .with_label("Tech Speed")
-                .with_value(1.0)
-                .with_format(ValueFormat::Custom(|v| format!("{:.1}x", v)))
-                .with_width(Val::Percent(100.0))
-                .with_marker(TechSpeedSlider)
-                .with_value_marker(TechSpeedValueText)
+            let slider_entity = SliderBuilder::new(0.5..2.0)
                 .build(column);
+            column.commands().entity(slider_entity).insert(TechSpeedSlider);
 
             // Aggression Level Selection
             column

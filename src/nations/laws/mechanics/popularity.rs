@@ -16,7 +16,7 @@ pub fn evaluate_law_popularity(
     let base_pop = law.base_popularity;
 
     // Government affinity affects elite support
-    let gov_category = governance.current_government.category();
+    let gov_category = governance.government_type.category();
     let gov_affinity = law.government_affinity
         .get(&gov_category)
         .copied()

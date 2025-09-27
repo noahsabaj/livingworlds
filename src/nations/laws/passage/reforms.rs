@@ -53,7 +53,7 @@ pub fn emergency_law_powers(
         return powers;
     }
 
-    match governance.current_government.category() {
+    match governance.government_type.category() {
         GovernmentCategory::Democratic => {
             // Democracies can temporarily suspend some rights
             if nation.stability < 0.3 {

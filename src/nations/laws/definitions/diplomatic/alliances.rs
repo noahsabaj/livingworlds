@@ -17,7 +17,7 @@ pub static ALLIANCE_LAWS: Lazy<Vec<Law>> = Lazy::new(|| {
             description: "Mutual defense pacts with other nations".to_string(),
             effects: LawEffects {
                 diplomatic_reputation_change: 0.15,
-                military_strength_modifier: 0.1,
+                army_morale_modifier: 0.1,
                 maintenance_cost_modifier: 0.05,
                 stability_change: 0.05,
                 ..Default::default()

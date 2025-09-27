@@ -79,7 +79,7 @@ pub fn handle_unsaved_changes_dialog(
             AnyOf<(
                 &crate::ui::SaveButton,
                 &crate::ui::DiscardButton,
-                &crate::ui::CancelButton,
+                &bevy_ui_builders::CancelButton,
             )>,
         ),
         Changed<Interaction>,

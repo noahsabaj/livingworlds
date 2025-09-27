@@ -45,6 +45,7 @@ fn handle_view_laws_button(
             } else {
                 // Close panel
                 despawn_ui_entities::<NationLawsPanel>(commands, panel_query);
+                break; // Only handle the first interaction
             }
         }
     }
@@ -61,6 +62,7 @@ fn handle_close_button(
         if *interaction == Interaction::Pressed {
             state.is_open = false;
             despawn_ui_entities::<NationLawsPanel>(commands, panel_query);
+            break; // Only handle the first pressed button
         }
     }
 }
@@ -69,21 +71,29 @@ fn handle_close_button(
 fn handle_repeal_buttons(
     mut interaction_query: Query<(&Interaction, &RepealLawButton), Changed<Interaction>>,
     selected_nation: Res<SelectedNation>,
-    mut nation_laws_query: Query<&mut crate::nations::laws::NationLaws>,
-    mut events: EventWriter<crate::nations::laws::LawRepealEvent>,
+    mut nation_laws_query: Query<&mut crate::nations::NationLaws>,
+    registry: Res<crate::nations::LawRegistry>,
+    mut events: EventWriter<crate::nations::LawRepealEvent>,
 ) {
     for (interaction, button) in &mut interaction_query {
         if *interaction == Interaction::Pressed {
             if let Some(nation_entity) = selected_nation.entity {
                 if let Ok(mut nation_laws) = nation_laws_query.get_mut(nation_entity) {
-                    // Send repeal event
-                    events.send(crate::nations::laws::LawRepealEvent {
-                        nation_entity,
-                        law_id: button.law_id,
-                    });
+                    // Get law details from registry for the event
+                    if let Some(law) = registry.get_law(button.law_id) {
+                        // Send repeal event with all required fields
+                        events.send(crate::nations::LawRepealEvent {
+                            nation_id: crate::nations::NationId(0), // TODO: Get actual nation ID
+                            nation_name: "Selected Nation".to_string(), // TODO: Get actual nation name
+                            law_id: button.law_id,
+                            law_name: law.name.clone(),
+                            category: law.category,
+                            years_active: 0, // TODO: Track years active
+                        });
 
-                    // Immediate UI feedback
-                    info!("Repealing law {:?} for nation", button.law_id);
+                        // Immediate UI feedback
+                        info!("Repealing law {:?} for nation", button.law_id);
+                    }
                 }
             }
         }
@@ -95,7 +105,7 @@ fn handle_support_oppose_buttons(
     support_query: Query<(&Interaction, &SupportLawButton), Changed<Interaction>>,
     oppose_query: Query<(&Interaction, &OpposeLawButton), Changed<Interaction>>,
     selected_nation: Res<SelectedNation>,
-    mut nation_laws_query: Query<&mut crate::nations::laws::NationLaws>,
+    mut nation_laws_query: Query<&mut crate::nations::NationLaws>,
 ) {
     // Handle support buttons
     for (interaction, button) in &support_query {
@@ -104,7 +114,7 @@ fn handle_support_oppose_buttons(
                 if let Ok(mut nation_laws) = nation_laws_query.get_mut(nation_entity) {
                     if let Some(proposal) = nation_laws.proposed_laws.get_mut(button.proposal_index) {
                         // Increase support (simulate player influence)
-                        proposal.support_percentage = (proposal.support_percentage + 0.1).min(1.0);
+                        proposal.current_support = (proposal.current_support + 0.1).min(1.0);
                         info!("Supporting law proposal at index {}", button.proposal_index);
                     }
                 }
@@ -119,7 +129,7 @@ fn handle_support_oppose_buttons(
                 if let Ok(mut nation_laws) = nation_laws_query.get_mut(nation_entity) {
                     if let Some(proposal) = nation_laws.proposed_laws.get_mut(button.proposal_index) {
                         // Decrease support (simulate player influence)
-                        proposal.support_percentage = (proposal.support_percentage - 0.1).max(0.0);
+                        proposal.current_support = (proposal.current_support - 0.1).max(0.0);
                         info!("Opposing law proposal at index {}", button.proposal_index);
                     }
                 }

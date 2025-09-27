@@ -6,6 +6,7 @@
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+use std::fmt;
 
 /// Unique identifier for a nation
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Component, Reflect)]
@@ -180,6 +181,16 @@ pub enum NationDensity {
     Sparse,     // Large empires
     Balanced,   // Mix of sizes
     Fragmented, // Many small states
+}
+
+impl fmt::Display for NationDensity {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            NationDensity::Sparse => write!(f, "Sparse"),
+            NationDensity::Balanced => write!(f, "Balanced"),
+            NationDensity::Fragmented => write!(f, "Fragmented"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

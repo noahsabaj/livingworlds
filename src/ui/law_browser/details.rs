@@ -1,8 +1,7 @@
 //! Law details panel UI
 
 use bevy::prelude::*;
-use crate::nations::laws::registry::LawRegistry;
-use crate::nations::laws::types::{LawEffects, LawPrerequisite};
+use crate::nations::{LawRegistry, LawEffects, LawPrerequisite};
 use crate::ui::styles::{colors, dimensions};
 use super::types::*;
 
@@ -28,7 +27,7 @@ pub fn spawn_law_details_panel(parent: &mut ChildSpawnerCommands) {
         panel.spawn((
             Text::new("Select a law to view details"),
             TextFont {
-                font_size: typography::TEXT_SIZE_LARGE,
+                font_size: dimensions::FONT_SIZE_LARGE,
                 ..default()
             },
             TextColor(colors::TEXT_PRIMARY),
@@ -39,7 +38,7 @@ pub fn spawn_law_details_panel(parent: &mut ChildSpawnerCommands) {
         panel.spawn((
             Text::new(""),
             TextFont {
-                font_size: typography::TEXT_SIZE_BODY,
+                font_size: dimensions::FONT_SIZE_NORMAL,
                 ..default()
             },
             TextColor(colors::TEXT_SECONDARY),
@@ -61,7 +60,7 @@ pub fn spawn_law_details_panel(parent: &mut ChildSpawnerCommands) {
         panel.spawn((
             Text::new("EFFECTS"),
             TextFont {
-                font_size: typography::TEXT_SIZE_SMALL,
+                font_size: dimensions::FONT_SIZE_SMALL,
                 ..default()
             },
             TextColor(colors::TEXT_TERTIARY),
@@ -82,7 +81,7 @@ pub fn spawn_law_details_panel(parent: &mut ChildSpawnerCommands) {
         panel.spawn((
             Text::new("PREREQUISITES"),
             TextFont {
-                font_size: typography::TEXT_SIZE_SMALL,
+                font_size: dimensions::FONT_SIZE_SMALL,
                 ..default()
             },
             TextColor(colors::TEXT_TERTIARY),
@@ -103,7 +102,7 @@ pub fn spawn_law_details_panel(parent: &mut ChildSpawnerCommands) {
         panel.spawn((
             Text::new("CONFLICTS WITH"),
             TextFont {
-                font_size: typography::TEXT_SIZE_SMALL,
+                font_size: dimensions::FONT_SIZE_SMALL,
                 ..default()
             },
             TextColor(colors::TEXT_TERTIARY),
@@ -151,7 +150,7 @@ pub fn update_law_details(
 
             // Clear and rebuild effects container
             if let Ok(container) = effects_container.get_single() {
-                commands.entity(container).despawn_descendants();
+                commands.entity(container).despawn_recursive();
                 commands.entity(container).with_children(|parent| {
                     spawn_effect_items(parent, &law.effects);
                 });
@@ -159,7 +158,7 @@ pub fn update_law_details(
 
             // Clear and rebuild prerequisites container
             if let Ok(container) = prereq_container.get_single() {
-                commands.entity(container).despawn_descendants();
+                commands.entity(container).despawn_recursive();
                 commands.entity(container).with_children(|parent| {
                     for prereq in &law.prerequisites {
                         spawn_prerequisite_item(parent, prereq);
@@ -169,14 +168,14 @@ pub fn update_law_details(
 
             // Clear and rebuild conflicts container
             if let Ok(container) = conflicts_container.get_single() {
-                commands.entity(container).despawn_descendants();
+                commands.entity(container).despawn_recursive();
                 commands.entity(container).with_children(|parent| {
                     for &conflict_id in &law.conflicts_with {
                         if let Some(conflict_law) = registry.get_law(conflict_id) {
                             parent.spawn((
                                 Text::new(format!("• {}", conflict_law.name)),
                                 TextFont {
-                                    font_size: typography::TEXT_SIZE_SMALL,
+                                    font_size: dimensions::FONT_SIZE_SMALL,
                                     ..default()
                                 },
                                 TextColor(colors::TEXT_SECONDARY),
@@ -207,7 +206,7 @@ fn spawn_effect_items(parent: &mut ChildSpawnerCommands, effects: &LawEffects) {
                 parent.spawn((
                     Text::new(format!("• {} {}{:.0}{}", $name, sign, $field * 100.0, $format)),
                     TextFont {
-                        font_size: typography::TEXT_SIZE_SMALL,
+                        font_size: dimensions::FONT_SIZE_SMALL,
                         ..default()
                     },
                     TextColor(color),
@@ -226,7 +225,7 @@ fn spawn_effect_items(parent: &mut ChildSpawnerCommands, effects: &LawEffects) {
     spawn_effect!(effects.revolt_risk_change, "Revolt Risk", "%");
     spawn_effect!(effects.corruption_change, "Corruption", "%");
     spawn_effect!(effects.technology_rate_modifier, "Technology Rate", "%");
-    spawn_effect!(effects.military_strength_modifier, "Military Strength", "%");
+    spawn_effect!(effects.army_morale_modifier, "Military Strength", "%");
     spawn_effect!(effects.maintenance_cost_modifier, "Maintenance Cost", "%");
     spawn_effect!(effects.administrative_efficiency_modifier, "Admin Efficiency", "%");
     spawn_effect!(effects.diplomatic_reputation_change, "Diplomatic Reputation", "%");
@@ -238,7 +237,7 @@ fn spawn_effect_items(parent: &mut ChildSpawnerCommands, effects: &LawEffects) {
 /// Spawn prerequisite display item
 fn spawn_prerequisite_item(parent: &mut ChildSpawnerCommands, prereq: &LawPrerequisite) {
     let text = match prereq {
-        LawPrerequisite::GovernmentCategory(cat) => format!("• {} government", cat.name()),
+        LawPrerequisite::GovernmentCategory(cat) => format!("• {:?} government", cat),
         LawPrerequisite::RequiresLaw(_) => "• Requires another law".to_string(),
         LawPrerequisite::TechnologyLevel(level) => format!("• Technology level {}", level),
         LawPrerequisite::MinimumStability(stab) => format!("• Minimum {:.0}% stability", stab * 100.0),
@@ -246,13 +245,13 @@ fn spawn_prerequisite_item(parent: &mut ChildSpawnerCommands, prereq: &LawPrereq
         LawPrerequisite::YearReached(year) => format!("• Year {} or later", year),
         LawPrerequisite::MinimumProvinces(count) => format!("• At least {} provinces", count),
         LawPrerequisite::Custom(desc) => format!("• {}", desc),
-        LawPrerequisite::HasLaw(_) => "• Requires specific law".to_string(),
+        LawPrerequisite::RequiresLaw(_) => "• Requires specific law".to_string(),
     };
 
     parent.spawn((
         Text::new(text),
         TextFont {
-            font_size: typography::TEXT_SIZE_SMALL,
+            font_size: dimensions::FONT_SIZE_SMALL,
             ..default()
         },
         TextColor(colors::TEXT_SECONDARY),

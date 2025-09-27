@@ -23,16 +23,20 @@ pub use market::MARKET_LAWS;
 // pub use welfare::WELFARE_LAWS;
 
 use crate::nations::laws::types::Law;
+use once_cell::sync::Lazy;
+
+/// All economic laws combined
+pub static ECONOMIC_LAWS: Lazy<Vec<Law>> = Lazy::new(|| {
+    let mut laws = Vec::new();
+    laws.extend(TAX_LAWS.iter().cloned());
+    laws.extend(TRADE_LAWS.iter().cloned());
+    laws.extend(LABOR_LAWS.iter().cloned());
+    laws.extend(CURRENCY_LAWS.iter().cloned());
+    laws.extend(MARKET_LAWS.iter().cloned());
+    laws
+});
 
 /// Get all economic laws
 pub fn get_all_economic_laws() -> Vec<&'static Law> {
-    let mut laws = Vec::new();
-    laws.extend(TAX_LAWS.iter());
-    laws.extend(TRADE_LAWS.iter());
-    laws.extend(LABOR_LAWS.iter());
-    laws.extend(CURRENCY_LAWS.iter());
-    laws.extend(MARKET_LAWS.iter());
-    // laws.extend(BANKING_LAWS.iter());
-    // laws.extend(WELFARE_LAWS.iter());
-    laws
+    ECONOMIC_LAWS.iter().collect()
 }

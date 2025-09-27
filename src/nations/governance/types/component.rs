@@ -16,6 +16,7 @@ pub struct Governance {
     pub stability: f32,                        // 0.0-1.0
     pub reform_pressure: f32,                  // Pressure to change government
     pub tradition_strength: f32,               // Resistance to change
+    pub institution_strength: f32,             // State apparatus strength (0.0-1.0) - depletes with transitions
     pub last_transition: Option<u32>,          // Game time of last change
     pub days_in_power: u32,                    // Days since last government change
     pub legitimacy: f32,                       // Cached legitimacy value (0.0-1.0)

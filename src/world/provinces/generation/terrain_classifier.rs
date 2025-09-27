@@ -62,7 +62,7 @@ impl TerrainClassifier {
     pub fn determine_biome(terrain: TerrainType, moisture: f32, _temperature: f32) -> TerrainType {
         // Climate-based biome modifications
         match terrain {
-            TerrainType::Chaparral if moisture < 0.3 => TerrainType::Desert,
+            TerrainType::Chaparral if moisture < 0.3 => TerrainType::SubtropicalDesert,
             TerrainType::TemperateGrassland if moisture < 0.2 => TerrainType::Savanna,
             TerrainType::TemperateDeciduousForest if moisture < 0.25 => TerrainType::TemperateGrassland,
             _ => terrain,

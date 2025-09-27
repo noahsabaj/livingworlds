@@ -100,11 +100,11 @@ pub fn spawn_world_config_ui(mut commands: Commands, settings: Res<WorldGenerati
                     super::spawn_preset_section(content);
 
                     // Advanced Settings Toggle - using ButtonBuilder properly
-                    ButtonBuilder::new("Show Advanced Settings")
+                    let button = ButtonBuilder::new("Show Advanced Settings")
                         .style(ButtonStyle::Secondary)
                         .size(ButtonSize::Large)
-                        .with_marker(AdvancedToggle)  // Only use the marker needed for interaction
                         .build(content);
+                    content.commands().entity(button).insert(AdvancedToggle);
 
                     // Advanced Settings Panel
                     super::spawn_advanced_panel(content);
@@ -138,29 +138,20 @@ pub fn spawn_world_config_ui(mut commands: Commands, settings: Res<WorldGenerati
                     },
                 )).with_children(|buttons| {
                     // Back button
-                    ButtonBuilder::new("Back")
+                    let button = ButtonBuilder::new("Back")
                         .style(ButtonStyle::Secondary)
                         .size(ButtonSize::Large)
-                        .with_marker(BackButton)
                         .build(buttons);
+                    buttons.commands().entity(button).insert(BackButton);
 
                     // Generate World button
-                    ButtonBuilder::new("Generate World")
+                    let button = ButtonBuilder::new("Generate World")
                         .style(ButtonStyle::Primary)
                         .size(ButtonSize::Large)
-                        .with_marker(GenerateButton)
                         .build(buttons);
+                    buttons.commands().entity(button).insert(GenerateButton);
                 });
             });
     });
 }
 
-pub fn despawn_world_config_ui(
-    mut commands: Commands,
-    query: Query<Entity, With<WorldConfigRoot>>,
-) {
-    for entity in &query {
-        commands.entity(entity).despawn();
-    }
-    debug!("Despawned world configuration UI");
-}

@@ -91,10 +91,10 @@ impl HighlightReel {
     }
 
     /// Get the most viral highlights
-    pub fn get_top(&self, count: usize) -> Vec<&Highlight> {
+    pub fn get_top(&self, count: usize) -> Vec<Highlight> {
         let mut sorted = self.highlights.clone();
         sorted.sort_by(|a, b| b.viral_score.partial_cmp(&a.viral_score).unwrap());
-        sorted.iter().take(count).collect()
+        sorted.into_iter().take(count).collect()
     }
 }
 

@@ -72,7 +72,7 @@ fn spawn_panel_header(parent: &mut ChildSpawnerCommands) {
             header.spawn((
                 Text::new("NATION LAWS"),
                 TextFont {
-                    font_size: typography::TEXT_SIZE_TITLE,
+                    font_size: dimensions::FONT_SIZE_TITLE,
                     ..default()
                 },
                 TextColor(colors::TEXT_TITLE),
@@ -99,7 +99,7 @@ fn spawn_panel_header(parent: &mut ChildSpawnerCommands) {
                     button.spawn((
                         Text::new("×"),
                         TextFont {
-                            font_size: typography::TEXT_SIZE_LARGE,
+                            font_size: dimensions::FONT_SIZE_LARGE,
                             ..default()
                         },
                         TextColor(colors::TEXT_PRIMARY),
@@ -128,7 +128,7 @@ fn spawn_combined_effects_section(parent: &mut ChildSpawnerCommands) {
             section.spawn((
                 Text::new("COMBINED LAW EFFECTS"),
                 TextFont {
-                    font_size: typography::TEXT_SIZE_SMALL,
+                    font_size: dimensions::FONT_SIZE_SMALL,
                     ..default()
                 },
                 TextColor(colors::TEXT_TERTIARY),
@@ -138,7 +138,7 @@ fn spawn_combined_effects_section(parent: &mut ChildSpawnerCommands) {
             section.spawn((
                 Text::new("No laws enacted"),
                 TextFont {
-                    font_size: typography::TEXT_SIZE_SMALL,
+                    font_size: dimensions::FONT_SIZE_SMALL,
                     ..default()
                 },
                 TextColor(colors::TEXT_SECONDARY),
@@ -164,7 +164,7 @@ fn spawn_active_laws_section(parent: &mut ChildSpawnerCommands) {
             section.spawn((
                 Text::new("ACTIVE LAWS"),
                 TextFont {
-                    font_size: typography::TEXT_SIZE_BODY,
+                    font_size: dimensions::FONT_SIZE_NORMAL,
                     ..default()
                 },
                 TextColor(colors::TEXT_PRIMARY),
@@ -203,7 +203,7 @@ fn spawn_proposed_laws_section(parent: &mut ChildSpawnerCommands) {
             section.spawn((
                 Text::new("PROPOSED LAWS"),
                 TextFont {
-                    font_size: typography::TEXT_SIZE_BODY,
+                    font_size: dimensions::FONT_SIZE_NORMAL,
                     ..default()
                 },
                 TextColor(colors::TEXT_PRIMARY),

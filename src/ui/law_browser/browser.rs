@@ -3,9 +3,7 @@
 use bevy::prelude::*;
 use bevy_plugin_builder::define_plugin;
 
-use crate::nations::laws::definitions::get_all_laws;
-use crate::nations::laws::registry::LawRegistry;
-use crate::nations::laws::types::LawCategory;
+use crate::nations::{get_all_laws, LawRegistry, LawCategory};
 use crate::states::GameState;
 use crate::ui::despawn_ui_entities;
 use crate::ui::styles::{colors, dimensions};
@@ -137,7 +135,7 @@ fn spawn_header(parent: &mut ChildSpawnerCommands) {
             header.spawn((
                 Text::new("LAW CODEX"),
                 TextFont {
-                    font_size: typography::TEXT_SIZE_TITLE,
+                    font_size: dimensions::FONT_SIZE_TITLE,
                     ..default()
                 },
                 TextColor(colors::TEXT_TITLE),
@@ -163,7 +161,7 @@ fn spawn_header(parent: &mut ChildSpawnerCommands) {
                     button.spawn((
                         Text::new("X"),
                         TextFont {
-                            font_size: typography::TEXT_SIZE_BODY,
+                            font_size: dimensions::FONT_SIZE_NORMAL,
                             ..default()
                         },
                         TextColor(colors::TEXT_PRIMARY),
@@ -203,7 +201,7 @@ fn update_laws_list(
 
     if let Ok(container) = container_query.get_single() {
         // Clear existing laws
-        commands.entity(container).despawn_descendants();
+        commands.entity(container).despawn_recursive();
 
         // Get laws for selected category
         if let Some(category) = selected_category.0 {
@@ -223,7 +221,7 @@ fn update_laws_list(
 }
 
 /// Spawn a single law item in the list
-fn spawn_law_item(parent: &mut ChildSpawnerCommands, law_id: crate::nations::laws::types::LawId, name: &str, description: &str) {
+fn spawn_law_item(parent: &mut ChildSpawnerCommands, law_id: crate::nations::LawId, name: &str, description: &str) {
     parent
         .spawn((
             Button,
@@ -245,7 +243,7 @@ fn spawn_law_item(parent: &mut ChildSpawnerCommands, law_id: crate::nations::law
             item.spawn((
                 Text::new(name),
                 TextFont {
-                    font_size: typography::TEXT_SIZE_BODY,
+                    font_size: dimensions::FONT_SIZE_NORMAL,
                     ..default()
                 },
                 TextColor(colors::TEXT_PRIMARY),
@@ -259,7 +257,7 @@ fn spawn_law_item(parent: &mut ChildSpawnerCommands, law_id: crate::nations::law
                     description.to_string()
                 }),
                 TextFont {
-                    font_size: typography::TEXT_SIZE_SMALL,
+                    font_size: dimensions::FONT_SIZE_SMALL,
                     ..default()
                 },
                 TextColor(colors::TEXT_SECONDARY),
@@ -302,6 +300,7 @@ fn handle_close_button(
         if *interaction == Interaction::Pressed {
             state.is_open = false;
             despawn_ui_entities::<LawBrowserRoot>(commands, browser_query);
+            break; // Only handle the first pressed button
         }
     }
 }

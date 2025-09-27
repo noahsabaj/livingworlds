@@ -42,11 +42,10 @@
 //! 15 lines of declarative configuration.
 
 // Private implementation modules
-mod examples;
 mod generation;
 mod macros;
 mod registration;
-mod validation; // Proof-of-concept demonstrations
+mod validation;
 
 // Public API exports (gateway pattern)
 pub use macros::define_setting_tab;

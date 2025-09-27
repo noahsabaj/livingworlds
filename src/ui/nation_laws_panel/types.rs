@@ -25,7 +25,7 @@ pub struct ProposedLawsContainer;
 /// Marker for an active law item
 #[derive(Component)]
 pub struct ActiveLawItem {
-    pub law_id: crate::nations::laws::LawId,
+    pub law_id: crate::nations::LawId,
 }
 
 /// Marker for a proposed law item
@@ -57,7 +57,7 @@ pub struct ClosePanelButton;
 /// Marker for repeal button
 #[derive(Component)]
 pub struct RepealLawButton {
-    pub law_id: crate::nations::laws::LawId,
+    pub law_id: crate::nations::LawId,
 }
 
 /// Marker for support button

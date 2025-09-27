@@ -352,9 +352,9 @@ pub fn {spawn_fn_name}(
                 format!(
                     r#"
             // Slider: {label}
-            crate::ui::SliderBuilder::new({min}, {max})
+            crate::ui::SliderBuilder::new({min}..{max})
                 .with_label("{label}")
-                .with_value(settings.{field})
+                
                 .with_format(crate::ui::ValueFormat::{format:?})
                 .with_marker(crate::settings::components::SettingsSlider {{
                     setting_type: crate::settings::types::SettingType::{setting_type:?}
@@ -362,7 +362,6 @@ pub fn {spawn_fn_name}(
                 .build(section);
 "#,
                     label = control.label,
-                    field = control.field_name,
                     min = min,
                     max = max,
                     format = format,

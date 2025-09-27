@@ -15,7 +15,7 @@ mod presets;
 mod root;
 
 // CONTROLLED PUBLIC EXPORTS - Only what plugin needs
-pub use root::{despawn_world_config_ui, spawn_world_config_ui};
+pub use root::spawn_world_config_ui;
 
 // INTERNAL EXPORTS - For use by sibling modules ONLY through this gateway
 pub(super) use advanced::spawn_advanced_panel;

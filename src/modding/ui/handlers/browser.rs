@@ -3,7 +3,7 @@
 //! This module handles the events for opening and closing the mod browser UI.
 
 use crate::modding::manager::ModManager;
-use crate::modding::ui::spawning::browser::spawn_mod_browser;
+use crate::modding::ui::spawning::spawn_mod_browser;
 use crate::modding::ui::state::ModBrowserState;
 use crate::modding::ui::types::{
     CloseModBrowserButton, CloseModBrowserEvent, ModBrowserRoot, OpenModBrowserEvent,

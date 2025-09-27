@@ -18,6 +18,9 @@ pub fn update_law_debates_system(
     let delta_days = 1.0; // Assuming 1 day per update
 
     for (nation, mut nation_laws) in &mut nations {
+        // Collect status updates to apply after retain_mut
+        let mut status_updates = Vec::new();
+
         // Update proposed laws
         nation_laws.proposed_laws.retain_mut(|proposed| {
             proposed.debate_days_remaining -= delta_days;
@@ -26,17 +29,22 @@ pub fn update_law_debates_system(
             proposed.current_support += random::<f32>() * 0.02 - 0.01;
             proposed.current_support = proposed.current_support.clamp(0.0, 1.0);
 
-            // Update status in the map
-            nation_laws.law_status.insert(
+            // Collect status update to apply later
+            status_updates.push((
                 proposed.law_id,
                 LawStatus::Proposed {
                     support: proposed.current_support,
                     days_remaining: proposed.debate_days_remaining,
                 },
-            );
+            ));
 
             // Keep if debate is ongoing
             proposed.debate_days_remaining > 0.0
         });
+
+        // Apply status updates after retain_mut completes
+        for (law_id, status) in status_updates {
+            nation_laws.law_status.insert(law_id, status);
+        }
     }
 }

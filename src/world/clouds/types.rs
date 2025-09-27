@@ -4,6 +4,7 @@
 //! CloudSystem, CloudData, and CloudLayer.
 
 use bevy::prelude::{Component, Resource, Vec2};
+use bevy::reflect::Reflect;
 
 /// Marker component for cloud entities
 ///
@@ -13,7 +14,7 @@ use bevy::prelude::{Component, Resource, Vec2};
 pub struct CloudEntity;
 
 /// System managing all clouds in the world
-#[derive(Debug, Clone, Default, Resource)]
+#[derive(Debug, Clone, Default, Resource, Reflect)]
 pub struct CloudSystem {
     /// All clouds in the system
     pub clouds: Vec<CloudData>,
@@ -42,7 +43,7 @@ impl CloudSystem {
 /// Individual cloud instance data
 ///
 /// Represents a single cloud with its position, appearance, and movement.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Reflect)]
 pub struct CloudData {
     /// World position of the cloud
     pub position: Vec2,
@@ -101,7 +102,7 @@ impl CloudData {
 }
 
 /// Cloud layer types for atmospheric stratification
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Reflect)]
 pub enum CloudLayer {
     /// High altitude clouds (cirrus-like)
     High = 0,

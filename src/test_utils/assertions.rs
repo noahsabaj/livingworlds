@@ -3,8 +3,7 @@
 //! Common assertion helpers for testing game state.
 
 use bevy::prelude::*;
-use crate::nations::laws::registry::NationLaws;
-use crate::nations::laws::types::LawId;
+use crate::nations::{NationLaws, LawId};
 
 /// Assert that a nation has a specific law active
 pub fn assert_law_active(app: &App, nation: Entity, law_id: LawId) {

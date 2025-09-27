@@ -26,6 +26,7 @@
 // Private module declarations - implementation details hidden from external code
 mod error_context;
 mod fps;
+mod logging;
 mod plugin;
 mod types;
 
@@ -35,4 +36,13 @@ pub use error_context::{
     GenerationMetrics, GpuStatus, PerformanceMetrics,
 };
 pub use fps::display_fps;
+pub use logging::{
+    // Core utilities
+    LogLevel, TimedOperation, BatchLogger, PerformanceAggregator,
+    // Logging functions
+    log_world_gen_step, log_world_gen_progress, log_nation_decision,
+    log_nation_state_change, log_simulation_update, log_performance_warning,
+    log_memory_usage, log_relationship_operation, log_law_event,
+    log_error_with_context, debug_context,
+};
 pub use plugin::DiagnosticsPlugin;

@@ -3,7 +3,7 @@
 //! Shows detailed information about the currently selected nation including
 //! ruler, House, statistics, and controlled provinces.
 
-use crate::nations::{House, Nation, NationId};
+use crate::nations::{House, Nation, NationId, get_structure_name};
 use crate::states::GameState;
 use crate::ui::*;
 use crate::ui::styles::colors;
@@ -455,7 +455,7 @@ pub fn update_nation_info_panel(
     // Update government type if governance component exists
     if let Ok(governance) = governance_query.get(entity) {
         if let Ok(mut text) = government_text.single_mut() {
-            text.0 = format!("Government: {}", governance.government_type.structure_name());
+            text.0 = format!("Government: {}", get_structure_name(&governance.government_type));
         }
 
         // Calculate and display legitimacy with rich breakdown

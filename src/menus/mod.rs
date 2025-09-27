@@ -24,7 +24,7 @@ mod interactions_example;
 mod main_menu;
 mod pause_menu;
 mod plugin;
-mod types; // Revolutionary UI automation demonstration
+mod types; // UI automation demonstration
 
 // SELECTIVE PUBLIC EXPORTS - Controlled menu API
 

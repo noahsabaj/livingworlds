@@ -38,6 +38,9 @@ pub struct LawEffects {
     pub centralization_change: f32,
     pub reform_resistance_change: f32,
     pub diplomatic_reputation_change: f32,
+    pub administrative_efficiency_modifier: f32,
+    pub maintenance_cost_modifier: f32,
+    pub revolt_risk_change: f32,
 
     // Pressure modifiers - how this law affects various pressures
     pub pressure_modifiers: HashMap<PressureType, f32>,
@@ -72,6 +75,9 @@ impl Default for LawEffects {
             centralization_change: 0.0,
             reform_resistance_change: 0.0,
             diplomatic_reputation_change: 0.0,
+            administrative_efficiency_modifier: 0.0,
+            maintenance_cost_modifier: 0.0,
+            revolt_risk_change: 0.0,
             pressure_modifiers: HashMap::new(),
             allows_slavery: None,
             allows_free_speech: None,
@@ -150,6 +156,15 @@ impl LawEffects {
         self.reform_resistance_change += other.reform_resistance_change;
         self.diplomatic_reputation_change += other.diplomatic_reputation_change;
 
+        // Administrative modifiers with diminishing returns
+        self.administrative_efficiency_modifier = Self::apply_diminishing_returns(
+            self.administrative_efficiency_modifier, other.administrative_efficiency_modifier
+        );
+        self.maintenance_cost_modifier = Self::apply_diminishing_returns(
+            self.maintenance_cost_modifier, other.maintenance_cost_modifier
+        );
+        self.revolt_risk_change += other.revolt_risk_change;
+
         // Merge pressure modifiers
         for (pressure_type, modifier) in &other.pressure_modifiers {
             *self.pressure_modifiers.entry(*pressure_type).or_insert(0.0) += modifier;
@@ -168,6 +183,13 @@ impl LawEffects {
         if let Some(val) = other.allows_religious_freedom {
             self.allows_religious_freedom = Some(self.allows_religious_freedom.unwrap_or(false) || val);
         }
+    }
+
+    /// Combine with another law's effects, returning a new instance
+    pub fn combine_with(&self, other: &LawEffects) -> Self {
+        let mut result = self.clone();
+        result.add_with_diminishing_returns(other);
+        result
     }
 
     /// Subtract effects (for repeals) without diminishing returns
@@ -196,6 +218,9 @@ impl LawEffects {
         self.centralization_change -= other.centralization_change;
         self.reform_resistance_change -= other.reform_resistance_change;
         self.diplomatic_reputation_change -= other.diplomatic_reputation_change;
+        self.administrative_efficiency_modifier -= other.administrative_efficiency_modifier;
+        self.maintenance_cost_modifier -= other.maintenance_cost_modifier;
+        self.revolt_risk_change -= other.revolt_risk_change;
 
         // Subtract pressure modifiers
         for (pressure_type, modifier) in &other.pressure_modifiers {

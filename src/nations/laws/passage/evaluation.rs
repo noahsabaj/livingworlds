@@ -69,10 +69,10 @@ pub fn evaluate_law_passage(
 
         // Calculate proposal score
         let popularity = evaluate_law_popularity(law, nation, governance, current_year);
-        let weights = calculate_popularity_weights(governance.current_government);
+        let weights = calculate_popularity_weights(governance.government_type);
         let weighted_support = popularity.weighted_support(&weights);
 
-        let gov_affinity = get_government_law_affinity(law, governance.current_government);
+        let gov_affinity = get_government_law_affinity(law, governance.government_type);
         let pressure_urgency = pressure_level.value();
 
         let score = weighted_support * 0.4
@@ -89,9 +89,9 @@ pub fn evaluate_law_passage(
         LawProposal {
             law_id,
             initial_support: popularity.weighted_support(
-                &calculate_popularity_weights(governance.current_government)
+                &calculate_popularity_weights(governance.government_type)
             ),
-            debate_days: calculate_debate_duration(law.complexity, governance.current_government),
+            debate_days: calculate_debate_duration(law.complexity, governance.government_type),
             pressure_motivation: pressure_type,
             conflicts_to_repeal: Vec::new(),
         }
@@ -108,7 +108,7 @@ pub fn check_prerequisites(
     for prereq in prerequisites {
         match prereq {
             LawPrerequisite::GovernmentCategory(required_category) => {
-                if governance.current_government.category() != *required_category {
+                if governance.government_type.category() != *required_category {
                     return false;
                 }
             }

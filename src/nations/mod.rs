@@ -26,7 +26,7 @@ pub use governance::{
     GovernmentTransition, GovernmentHistory, GovernmentChange, InstitutionalControl,
     LegitimacyEvent, LegitimacyEventType, LegitimacyFactors, LegitimacyWeights,
     MilitaryVictory, PoliticalPressure, RevolutionaryFervor, SeparatistMovement,
-    generate_governance_aware_name, get_ruler_title, get_structure_name,
+    generate_governance_aware_name, get_ruler_title, get_structure_name, build_nation_name,
 };
 pub use history::{
     BattleOutcome, HistoricalEvent, NationHistory, RulerInfo, RulerTraits, SuccessionType,
@@ -40,7 +40,8 @@ pub use house::{
 };
 pub use laws::{
     LawPlugin, Law, LawId, LawCategory, LawEffects, LawStatus, LawRegistry, NationLaws,
-    LawEnactmentEvent, LawRepealEvent,
+    LawEnactmentEvent, LawRepealEvent, get_all_laws, get_category_laws, get_law_by_id,
+    LawPrerequisite,
 };
 pub use plugin::NationPlugin;
 pub use territory_analysis::{NationSizeCategory, TerritoryMetrics, TerritoryMetricsCache};

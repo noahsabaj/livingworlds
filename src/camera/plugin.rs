@@ -19,15 +19,12 @@ define_plugin!(CameraPlugin {
 
     update: [
         (
-            // Input systems
             input::handle_keyboard_movement,
             input::handle_mouse_wheel_zoom,
             input::handle_mouse_drag,
             input::handle_edge_panning,
             input::handle_camera_reset,
-            // Window management
             window::handle_window_focus,
-            // Movement and interpolation
             movement::apply_smooth_movement,
             movement::apply_camera_bounds,
         ).chain().run_if(in_state(GameState::InGame))

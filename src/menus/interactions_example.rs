@@ -1,12 +1,4 @@
-//! Main Menu Interactions - Revolutionary UI Automation Example
-//!
-//! This module demonstrates the `define_ui_interactions!` macro in action,
-//! eliminating 40+ lines of repetitive button interaction boilerplate.
-//!
-//! ## Before vs After Comparison
-//! - **Manual Implementation**: 40+ lines of repetitive query, loop, and match code
-//! - **Automated Implementation**: 15 lines of declarative configuration
-//! - **Reduction**: 60%+ elimination of boilerplate code
+//! Main Menu Interactions
 
 use bevy::prelude::*;
 

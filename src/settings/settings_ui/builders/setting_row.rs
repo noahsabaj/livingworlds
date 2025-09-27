@@ -153,8 +153,7 @@ impl SettingRowBuilder {
                         format,
                     } => {
                         // Use SliderBuilder for proper slider creation
-                        SliderBuilder::new(min, max)
-                            .with_value(value)
+                        SliderBuilder::new(min..max)
                             .width(Val::Px(200.0))
                             .with_format(format)
                             .with_marker(SettingsSlider { setting_type })

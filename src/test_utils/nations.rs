@@ -3,9 +3,7 @@
 //! Functions for spawning and manipulating test nations.
 
 use bevy::prelude::*;
-use crate::nations::{Nation, NationId};
-use crate::nations::laws::registry::NationLaws;
-use crate::nations::governance::types::GovernmentType;
+use crate::nations::{Nation, NationId, NationLaws, GovernmentType};
 
 /// Spawn a test nation with configurable parameters
 pub fn spawn_test_nation(

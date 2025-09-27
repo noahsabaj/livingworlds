@@ -366,7 +366,7 @@ pub fn create_initial_history(
         .generate(crate::name_generator::NameType::Person {
             gender,
             culture: crate::name_generator::Culture::Western, // TODO: Map culture string to enum
-            role: crate::name_generator::PersonRole::Ruler,
+            role: crate::name_generator::PersonRole::Noble,
         }));
 
     let mut history = NationHistory::new(founding_year, culture.clone(), ruler_name.clone());

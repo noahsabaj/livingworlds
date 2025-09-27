@@ -187,7 +187,6 @@ impl<'a> ProvinceBuilder<'a> {
                     neighbor_indices,
                     version: 0,
                     dirty: false,
-                    ocean_depth: Distance::default(),
                 }
             },
             "province_generation",

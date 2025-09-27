@@ -4,6 +4,7 @@
 //! government types, preventing contradictions like anarchist "kingdoms".
 
 use crate::nations::governance::types::{GovernmentType, GovernmentCategory};
+use super::generator::get_structure_name;
 
 /// Check if a nation name contains words that contradict its government type
 pub fn validate_name_consistency(name: &str, government: GovernmentType) -> Result<(), String> {
@@ -18,7 +19,7 @@ pub fn validate_name_consistency(name: &str, government: GovernmentType) -> Resu
         if name_lower.contains(word) {
             return Err(format!(
                 "Name '{}' contains '{}' which contradicts {} government type",
-                name, word, government.structure_name()
+                name, word, get_structure_name(&government)
             ));
         }
     }
@@ -78,7 +79,7 @@ fn get_forbidden_words(category: GovernmentCategory) -> &'static [&'static str] 
             "totalitarian", "dictator",
         ],
 
-        GovernmentCategory::Fascist => &[
+        GovernmentCategory::Autocratic => &[
             "democratic", "free", "liberal", "anarchist", "commune",
             "cooperative", "collective" // except for some specific fascist types
         ],

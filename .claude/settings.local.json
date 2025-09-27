@@ -23,7 +23,8 @@
       "Bash(then echo \"=== $file ===\")",
       "mcp__filesystem__read_file",
       "Read(///**)",
-      "WebFetch(domain:docs.rs)"
+      "WebFetch(domain:docs.rs)",
+      "mcp__filesystem__directory_tree"
     ]
   },
   "outputStyle": "Explanatory"

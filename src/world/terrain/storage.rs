@@ -9,7 +9,7 @@ use crate::world::ProvinceId;
 use std::collections::HashMap;
 
 /// Simplified climate data for runtime visualization
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Reflect)]
 pub struct ProvinceClimate {
     /// Average annual temperature in Celsius
     pub temperature: f32,
@@ -22,7 +22,7 @@ pub struct ProvinceClimate {
 }
 
 /// Climate zone classification for visualization
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Reflect)]
 pub enum ClimateZone {
     Arctic,      // < -10°C
     Subarctic,   // -10°C to 0°C
@@ -59,7 +59,7 @@ impl ClimateZone {
 }
 
 /// Resource storing climate data for all provinces
-#[derive(Resource, Default, Debug, Clone)]
+#[derive(Resource, Default, Debug, Clone, Reflect)]
 pub struct ClimateStorage {
     /// Climate data indexed by province ID
     pub climates: HashMap<ProvinceId, ProvinceClimate>,

@@ -7,7 +7,7 @@ use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
 /// Current status of a law in a nation
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Reflect)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Reflect)]
 pub enum LawStatus {
     /// Law is not enacted
     Inactive,

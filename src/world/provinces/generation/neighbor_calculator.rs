@@ -55,8 +55,8 @@ pub fn precompute_neighbor_indices(provinces: &mut Vec<Province>) {
 
     // Populate neighbor indices for each province
     for province in provinces.iter_mut() {
-        // Clear and resize the neighbor_indices vector
-        province.neighbor_indices = vec![None; 6];
+        // Clear and resize the neighbor_indices array
+        province.neighbor_indices = [None; 6];
 
         for (i, neighbor_id_opt) in province.neighbors.iter().enumerate() {
             if let Some(neighbor_id) = neighbor_id_opt {

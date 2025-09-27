@@ -18,67 +18,65 @@ pub fn handle_nation_selection(
     mut selected_nation: ResMut<SelectedNation>,
     map_mode: Res<MapMode>,
 ) {
-    // Only select nations in political mode
-    if *map_mode != MapMode::Political {
-        // Clear selection when not in political mode
-        if selected_nation.entity.is_some() {
-            selected_nation.entity = None;
-            selected_nation.nation_id = None;
-            info!("Cleared nation selection (not in political mode)");
-        }
-        return;
-    }
-
-    // Check for new click
-    if !mouse_button.just_pressed(MouseButton::Left) {
-        return;
-    }
-
-    // Get selected province
-    let Some(province_id) = selected_province_info.province_id else {
-        // Clicked on empty space - clear selection
-        if selected_nation.entity.is_some() {
-            selected_nation.entity = None;
-            selected_nation.nation_id = None;
-            info!("Cleared nation selection");
-        }
-        return;
-    };
-
-    // Get province data
-    let province_id_typed = crate::world::ProvinceId::new(province_id);
-    let Some(&province_idx) = provinces.province_by_id.get(&province_id_typed) else {
-        warn!("Province ID {} not found in storage", province_id);
-        return;
-    };
-    let province = &provinces.provinces[province_idx];
-
-    // Check if province has an owner
-    if let Some(owner_id) = province.owner {
-        // Find nation entity with this ID
-        for (entity, nation) in nations_query.iter() {
-            if nation.id == owner_id {
-                // Select this nation
-                if selected_nation.nation_id != Some(owner_id) {
-                    selected_nation.entity = Some(entity);
-                    selected_nation.nation_id = Some(owner_id);
-                    info!("Selected nation: {} (ID: {:?})", nation.name, owner_id);
-                }
-                return;
+    // Only process selection on actual mouse click
+    if mouse_button.just_pressed(MouseButton::Left) {
+        // Only select nations in political mode
+        if *map_mode != MapMode::Political {
+            // Clear selection when not in political mode
+            if selected_nation.entity.is_some() {
+                selected_nation.entity = None;
+                selected_nation.nation_id = None;
+                info!("Cleared nation selection (not in political mode)");
             }
+            return;
         }
 
-        // Owner not found in entities (shouldn't happen)
-        warn!(
-            "Province owned by nation {:?} but entity not found",
-            owner_id
-        );
-    } else {
-        // Clicked on unclaimed province - clear selection
-        if selected_nation.entity.is_some() {
-            selected_nation.entity = None;
-            selected_nation.nation_id = None;
-            info!("Cleared nation selection (unclaimed province)");
+        // Get selected province
+        let Some(province_id) = selected_province_info.province_id else {
+            // Clicked on empty space - clear selection
+            if selected_nation.entity.is_some() {
+                selected_nation.entity = None;
+                selected_nation.nation_id = None;
+                info!("Cleared nation selection");
+            }
+            return;
+        };
+
+        // Get province data
+        let province_id_typed = crate::world::ProvinceId::new(province_id);
+        let Some(&province_idx) = provinces.province_by_id.get(&province_id_typed) else {
+            warn!("Province ID {} not found in storage", province_id);
+            return;
+        };
+        let province = &provinces.provinces[province_idx];
+
+        // Check if province has an owner
+        if let Some(owner_id) = province.owner {
+            // Find nation entity with this ID
+            for (entity, nation) in nations_query.iter() {
+                if nation.id == owner_id {
+                    // Select this nation
+                    if selected_nation.nation_id != Some(owner_id) {
+                        selected_nation.entity = Some(entity);
+                        selected_nation.nation_id = Some(owner_id);
+                        info!("Selected nation: {} (ID: {:?})", nation.name, owner_id);
+                    }
+                    return;
+                }
+            }
+
+            // Owner not found in entities (shouldn't happen)
+            warn!(
+                "Province owned by nation {:?} but entity not found",
+                owner_id
+            );
+        } else {
+            // Clicked on unclaimed province - clear selection
+            if selected_nation.entity.is_some() {
+                selected_nation.entity = None;
+                selected_nation.nation_id = None;
+                info!("Cleared nation selection (unclaimed province)");
+            }
         }
     }
 }

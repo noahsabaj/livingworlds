@@ -17,13 +17,18 @@ pub use war_conduct::WAR_CONDUCT_LAWS;
 // pub use weapons::WEAPONS_LAWS;
 
 use crate::nations::laws::types::Law;
+use once_cell::sync::Lazy;
+
+/// All military laws combined
+pub static MILITARY_LAWS: Lazy<Vec<Law>> = Lazy::new(|| {
+    let mut laws = Vec::new();
+    laws.extend(CONSCRIPTION_LAWS.iter().cloned());
+    laws.extend(ORGANIZATION_LAWS.iter().cloned());
+    laws.extend(WAR_CONDUCT_LAWS.iter().cloned());
+    laws
+});
 
 /// Get all military laws
 pub fn get_all_military_laws() -> Vec<&'static Law> {
-    let mut laws = Vec::new();
-    laws.extend(CONSCRIPTION_LAWS.iter());
-    laws.extend(ORGANIZATION_LAWS.iter());
-    laws.extend(WAR_CONDUCT_LAWS.iter());
-    // laws.extend(WEAPONS_LAWS.iter());
-    laws
+    MILITARY_LAWS.iter().collect()
 }

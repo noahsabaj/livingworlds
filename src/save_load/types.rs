@@ -3,7 +3,7 @@
 //! This module contains all the data structures used for saving and loading game state.
 
 use crate::resources::{GameTime, MapDimensions, MapMode, WorldSize, WorldTension};
-use crate::nations::laws::{NationLaws, LawRegistry};
+use crate::nations::{NationLaws, LawRegistry};
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;

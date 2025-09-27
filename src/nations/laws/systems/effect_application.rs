@@ -3,7 +3,7 @@
 //! Applies the combined effects of enacted laws to nation attributes every frame.
 
 use bevy::prelude::*;
-use crate::nations::{Nation, Governance, Economy};
+use crate::nations::{Nation, Governance};
 use crate::nations::laws::{NationLaws, LawEffects};
 use crate::relationships::{EnactedLaws, LawEntity};
 
@@ -95,9 +95,9 @@ pub fn apply_law_effects_to_nations(
         }
 
         // Apply military strength modifier
-        if effects.military_strength_modifier.abs() > 0.001 {
+        if effects.army_morale_modifier.abs() > 0.001 {
             nation.military_strength = (nation.military_strength
-                * (1.0 + effects.military_strength_modifier))
+                * (1.0 + effects.army_morale_modifier))
                 .clamp(0.0, 100000.0);
         }
 

@@ -5,7 +5,6 @@
 //! Laws create observable effects on nation behavior, economy, and social dynamics.
 
 // PRIVATE MODULES - Gateway architecture compliance
-mod categories; // TODO: Remove once definitions/ is fully migrated
 mod debug;
 mod definitions;
 mod initialization;
@@ -35,11 +34,9 @@ pub use types::{
     LawEnactmentEvent, LawRepealEvent,
 };
 
-pub use categories::{
-    EconomicLaw, MilitaryLaw, SocialLaw, ReligiousLaw, CriminalLaw,
-    PropertyLaw, ImmigrationLaw, EnvironmentalLaw, TechnologyLaw,
-    CulturalLaw, AdministrativeLaw, DiplomaticLaw, get_all_laws,
-    get_category_laws, get_law_by_id,
+pub use definitions::{
+    get_all_laws, get_category_laws, get_law_by_id,
+    ECONOMIC_LAWS, MILITARY_LAWS, SOCIAL_LAWS,
 };
 
 pub use registry::{

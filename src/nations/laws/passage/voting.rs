@@ -26,7 +26,7 @@ pub fn trigger_law_vote(
     let mut final_support = proposed_law.current_support;
 
     // Government affinity affects the vote
-    let gov_affinity = get_government_law_affinity(law, governance.current_government);
+    let gov_affinity = get_government_law_affinity(law, governance.government_type);
     final_support += gov_affinity * 0.2;
 
     // Stability affects willingness to change
@@ -42,7 +42,7 @@ pub fn trigger_law_vote(
 
     // Determine threshold based on government type and law complexity
     let threshold = calculate_passage_threshold(
-        governance.current_government,
+        governance.government_type,
         law.complexity,
         law.is_constitutional,
     );
@@ -86,7 +86,7 @@ pub fn calculate_passage_threshold(
         LawComplexity::Revolutionary => 0.2,
     };
 
-    let constitutional_modifier = if is_constitutional { 0.15 } else { 0.0 };
+    let constitutional_modifier: f32 = if is_constitutional { 0.15 } else { 0.0 };
 
     (base_threshold + complexity_modifier + constitutional_modifier).clamp(0.2, 0.9)
 }

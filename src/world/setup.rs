@@ -557,6 +557,7 @@ pub fn poll_async_world_generation(
                                     0, // TODO: Use actual game year
                                     &mut rand::thread_rng(),
                                 ),
+                                laws: crate::nations::NationLaws::default(),
                             },
                             crate::nations::OwnsTerritory::default(), // Will be populated by Entity Relationships
                             crate::nations::Governance {
@@ -564,6 +565,7 @@ pub fn poll_async_world_generation(
                                 stability: 0.75,
                                 reform_pressure: 0.0,
                                 tradition_strength: government_type.mechanics().reform_resistance,
+                                institution_strength: 1.0,  // Strong institutions at game start
                                 last_transition: None,
                                 days_in_power: 0,
                                 legitimacy: 0.75,  // Start with decent legitimacy

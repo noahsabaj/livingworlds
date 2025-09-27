@@ -4,9 +4,10 @@
 //! When pressures exceed thresholds, nations take actions to relieve them.
 
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
 /// Different types of pressure that nations experience
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum PressureType {
     /// Too many people for available resources
     PopulationOvercrowding,

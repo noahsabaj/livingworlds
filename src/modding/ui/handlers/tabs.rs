@@ -47,7 +47,7 @@ pub fn handle_tab_switching(
 
         // Clear and rebuild content area
         for entity in &content_query {
-            commands.entity(entity).despawn_descendants();
+            commands.entity(entity).despawn_recursive();
             commands.entity(entity).with_children(|parent| {
                 spawn_tab_content(
                     parent,
@@ -74,13 +74,12 @@ pub fn update_tab_buttons(
         return;
     }
 
-    for (tab_button, mut styled_button, mut bg_color, mut border_color) in &mut tab_query {
+    for (tab_button, _styled_button, mut bg_color, mut border_color) in &mut tab_query {
         if tab_button.tab == state.current_tab {
-            styled_button.style = ButtonStyle::Primary;
+            // Style is immutable after creation - update colors directly
             *bg_color = BackgroundColor(colors::PRIMARY);
             *border_color = BorderColor(colors::PRIMARY.lighter(0.2));
         } else {
-            styled_button.style = ButtonStyle::Secondary;
             *bg_color = BackgroundColor(colors::SECONDARY);
             *border_color = BorderColor(colors::BORDER_DEFAULT);
         }

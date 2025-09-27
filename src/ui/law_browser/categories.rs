@@ -1,7 +1,7 @@
 //! Law category tabs UI
 
 use bevy::prelude::*;
-use crate::nations::laws::types::LawCategory;
+use crate::nations::LawCategory;
 use crate::ui::styles::colors;
 use crate::ui::styles::dimensions;
 // typography module removed - not needed
@@ -73,7 +73,7 @@ fn spawn_category_tab(
         button.spawn((
             Text::new(category.name()),
             TextFont {
-                font_size: typography::TEXT_SIZE_SMALL,
+                font_size: dimensions::FONT_SIZE_SMALL,
                 ..default()
             },
             TextColor(if is_selected {
@@ -111,7 +111,7 @@ pub fn update_category_tab_visuals(
         });
 
         // Update text color
-        for &child in children.iter() {
+        for child in children.iter() {
             if let Ok(mut text_color) = texts.get_mut(child) {
                 *text_color = TextColor(if is_selected {
                     colors::TEXT_PRIMARY

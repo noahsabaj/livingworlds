@@ -3,7 +3,7 @@
 //! Populates the panel with current law data from the selected nation.
 
 use bevy::prelude::*;
-use crate::nations::laws::{LawRegistry, NationLaws, LawEffects};
+use crate::nations::{LawRegistry, NationLaws, LawEffects};
 use crate::ui::styles::{colors, dimensions};
 use crate::ui::SelectedNation;
 use super::types::*;
@@ -26,7 +26,7 @@ pub fn update_active_laws_list(
     };
 
     // Clear existing laws
-    commands.entity(container).despawn_descendants();
+    commands.entity(container).despawn_recursive();
 
     // Get nation's laws if selected
     let Some(nation_entity) = selected_nation.entity else {
@@ -35,7 +35,7 @@ pub fn update_active_laws_list(
             parent.spawn((
                 Text::new("No nation selected"),
                 TextFont {
-                    font_size: typography::TEXT_SIZE_SMALL,
+                    font_size: dimensions::FONT_SIZE_SMALL,
                     ..default()
                 },
                 TextColor(colors::TEXT_TERTIARY),
@@ -50,7 +50,7 @@ pub fn update_active_laws_list(
             parent.spawn((
                 Text::new("No laws enacted"),
                 TextFont {
-                    font_size: typography::TEXT_SIZE_SMALL,
+                    font_size: dimensions::FONT_SIZE_SMALL,
                     ..default()
                 },
                 TextColor(colors::TEXT_TERTIARY),
@@ -61,27 +61,24 @@ pub fn update_active_laws_list(
 
     // Update combined effects text
     if let Ok(effects_entity) = combined_effects_text.get_single() {
-        // CRITICAL FIX: Store parent before despawning to avoid panic
-        let parent_entity = effects_entity.parent();
+        // Simply despawn and respawn in the container
         commands.entity(effects_entity).despawn();
 
-        // Spawn new combined effects text
+        // Spawn new combined effects text directly in container
         let effects = &nation_laws.combined_effects;
         let effects_text = format_combined_effects(effects);
 
-        if let Some(parent) = parent_entity {
-            commands.entity(parent).with_children(|parent| {
-                parent.spawn((
-                    Text::new(effects_text),
-                    TextFont {
-                        font_size: typography::TEXT_SIZE_SMALL,
-                        ..default()
-                    },
-                    TextColor(colors::TEXT_SECONDARY),
-                    CombinedEffectsText,
-                ));
-            });
-        }
+        commands.entity(container).with_children(|parent| {
+            parent.spawn((
+                Text::new(effects_text),
+                TextFont {
+                    font_size: dimensions::FONT_SIZE_SMALL,
+                    ..default()
+                },
+                TextColor(colors::TEXT_SECONDARY),
+                CombinedEffectsText,
+            ));
+        });
     }
 
     // Spawn active law items
@@ -90,7 +87,7 @@ pub fn update_active_laws_list(
             parent.spawn((
                 Text::new("No laws enacted"),
                 TextFont {
-                    font_size: typography::TEXT_SIZE_SMALL,
+                    font_size: dimensions::FONT_SIZE_SMALL,
                     ..default()
                 },
                 TextColor(colors::TEXT_TERTIARY),
@@ -124,7 +121,7 @@ pub fn update_proposed_laws_list(
     };
 
     // Clear existing proposals
-    commands.entity(container).despawn_descendants();
+    commands.entity(container).despawn_recursive();
 
     // Get nation's laws if selected
     let Some(nation_entity) = selected_nation.entity else {
@@ -141,7 +138,7 @@ pub fn update_proposed_laws_list(
             parent.spawn((
                 Text::new("No laws under debate"),
                 TextFont {
-                    font_size: typography::TEXT_SIZE_SMALL,
+                    font_size: dimensions::FONT_SIZE_SMALL,
                     ..default()
                 },
                 TextColor(colors::TEXT_TERTIARY),
@@ -155,8 +152,8 @@ pub fn update_proposed_laws_list(
                         parent,
                         index,
                         &law.name,
-                        proposal.support_percentage,
-                        proposal.debate_duration
+                        proposal.current_support,
+                        proposal.debate_days_remaining
                     );
                 }
             }
@@ -167,7 +164,7 @@ pub fn update_proposed_laws_list(
 /// Spawn an active law item
 fn spawn_active_law_item(
     parent: &mut ChildSpawnerCommands,
-    law_id: crate::nations::laws::LawId,
+    law_id: crate::nations::LawId,
     name: &str,
     category: &str,
 ) {
@@ -201,7 +198,7 @@ fn spawn_active_law_item(
                 info.spawn((
                     Text::new(name),
                     TextFont {
-                        font_size: typography::TEXT_SIZE_BODY,
+                        font_size: dimensions::FONT_SIZE_NORMAL,
                         ..default()
                     },
                     TextColor(colors::TEXT_PRIMARY),
@@ -211,7 +208,7 @@ fn spawn_active_law_item(
                 info.spawn((
                     Text::new(format!("[{}]", category)),
                     TextFont {
-                        font_size: typography::TEXT_SIZE_SMALL,
+                        font_size: dimensions::FONT_SIZE_SMALL,
                         ..default()
                     },
                     TextColor(colors::TEXT_TERTIARY),
@@ -222,8 +219,12 @@ fn spawn_active_law_item(
             item.spawn((
                 Button,
                 Node {
-                    padding: UiRect::horizontal(Val::Px(dimensions::SPACING_SMALL)),
-                    padding: UiRect::vertical(Val::Px(dimensions::SPACING_TINY)),
+                    padding: UiRect::new(
+                        Val::Px(dimensions::SPACING_SMALL),  // left
+                        Val::Px(dimensions::SPACING_SMALL),  // right
+                        Val::Px(dimensions::SPACING_TINY),   // top
+                        Val::Px(dimensions::SPACING_TINY)    // bottom
+                    ),
                     border: UiRect::all(Val::Px(dimensions::BORDER_WIDTH_THIN)),
                     ..default()
                 },
@@ -235,7 +236,7 @@ fn spawn_active_law_item(
                 button.spawn((
                     Text::new("Repeal"),
                     TextFont {
-                        font_size: typography::TEXT_SIZE_SMALL,
+                        font_size: dimensions::FONT_SIZE_SMALL,
                         ..default()
                     },
                     TextColor(colors::TEXT_PRIMARY),
@@ -271,7 +272,7 @@ fn spawn_proposed_law_item(
             item.spawn((
                 Text::new(name),
                 TextFont {
-                    font_size: typography::TEXT_SIZE_BODY,
+                    font_size: dimensions::FONT_SIZE_NORMAL,
                     ..default()
                 },
                 TextColor(colors::TEXT_PRIMARY),
@@ -309,7 +310,7 @@ fn spawn_proposed_law_item(
                 Text::new(format!("Support: {:.0}% | Debate: {:.0} days",
                     support * 100.0, debate_duration)),
                 TextFont {
-                    font_size: typography::TEXT_SIZE_SMALL,
+                    font_size: dimensions::FONT_SIZE_SMALL,
                     ..default()
                 },
                 TextColor(colors::TEXT_SECONDARY),
@@ -344,7 +345,7 @@ fn spawn_proposed_law_item(
                     button.spawn((
                         Text::new("Support"),
                         TextFont {
-                            font_size: typography::TEXT_SIZE_SMALL,
+                            font_size: dimensions::FONT_SIZE_SMALL,
                             ..default()
                         },
                         TextColor(colors::TEXT_PRIMARY),
@@ -369,7 +370,7 @@ fn spawn_proposed_law_item(
                     button.spawn((
                         Text::new("Oppose"),
                         TextFont {
-                            font_size: typography::TEXT_SIZE_SMALL,
+                            font_size: dimensions::FONT_SIZE_SMALL,
                             ..default()
                         },
                         TextColor(colors::TEXT_PRIMARY),
@@ -395,7 +396,7 @@ fn format_combined_effects(effects: &LawEffects) -> String {
     add_effect(effects.stability_change, "Stability: ", "%");
     add_effect(effects.happiness_modifier, "Happiness: ", "%");
     add_effect(effects.industrial_output_modifier, "Industry: ", "%");
-    add_effect(effects.military_strength_modifier, "Military: ", "%");
+    add_effect(effects.army_morale_modifier, "Army Morale: ", "%");
     add_effect(effects.technology_rate_modifier, "Tech: ", "%");
 
     if parts.is_empty() {

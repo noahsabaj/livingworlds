@@ -4,6 +4,7 @@
 //! including expansion, taxation, military recruitment, and reforms.
 
 use bevy::prelude::*;
+use crate::diagnostics::{log_nation_decision, log_nation_state_change};
 use crate::simulation::{PressureType, PressureLevel};
 use crate::world::{ProvinceId, ProvinceStorage};
 use super::{Nation, NationId, NationHistory};
@@ -194,23 +195,55 @@ pub fn handle_population_pressure(
     // Determine expansion aggressiveness based on history and personality
     let expansion_desire = calculate_expansion_desire(nation, history, pressure);
 
+    log_nation_decision(
+        nation.id.value(),
+        &nation.name,
+        "Population Pressure Response",
+        &format!("Expansion desire: {:.2}, Pressure: {:.1}", expansion_desire, pressure.value())
+    );
+
     if expansion_desire > 0.5 {
         // Find suitable target provinces
         let targets = find_expansion_targets(nation, province_storage);
 
         if !targets.is_empty() {
+            log_nation_decision(
+                nation.id.value(),
+                &nation.name,
+                "Expansion Decision",
+                &format!("Targeting {} provinces for expansion", targets.len())
+            );
+
             events.send(NationActionEvent::ExpansionAttempt {
                 nation_id: nation.id,
                 nation_name: nation.name.clone(),
-                target_provinces: targets,
+                target_provinces: targets.clone(),
                 pressure_level: pressure.value(),
             });
+
+            log_nation_state_change(
+                nation.id.value(),
+                &nation.name,
+                "Peaceful",
+                "Expanding",
+                &format!("Population pressure ({:.1}) triggered expansion", pressure.value())
+            );
 
             info!(
                 "{} initiates expansion due to population pressure",
                 nation.name
             );
+        } else {
+            debug!(
+                "{}: No viable expansion targets despite pressure",
+                nation.name
+            );
         }
+    } else {
+        debug!(
+            "{}: Expansion desire too low ({:.2}) to act on population pressure",
+            nation.name, expansion_desire
+        );
     }
 }
 
@@ -231,8 +264,23 @@ pub fn handle_economic_pressure(
     let has_military_strength = nation.military_strength > 0.6;
     let recent_defeats = history.has_recent_defeats();
 
+    log_nation_decision(
+        nation.id.value(),
+        &nation.name,
+        "Economic Pressure Analysis",
+        &format!("Aggression: {:.2}, Military: {:.2}, Recent defeats: {}",
+                 nation.personality.aggression, nation.military_strength, recent_defeats)
+    );
+
     if is_aggressive && has_military_strength && !recent_defeats {
         // Attempt to raid neighbors
+        log_nation_decision(
+            nation.id.value(),
+            &nation.name,
+            "Economic Response",
+            "Choosing aggressive approach - will attempt raids"
+        );
+
         events.send(NationActionEvent::RaidAttempt {
             nation_id: nation.id,
             nation_name: nation.name.clone(),
@@ -240,11 +288,27 @@ pub fn handle_economic_pressure(
             pressure_level: pressure.value(),
         });
 
+        log_nation_state_change(
+            nation.id.value(),
+            &nation.name,
+            "Economically Stressed",
+            "Raiding",
+            &format!("Economic pressure ({:.1}) triggered raiding", pressure.value())
+        );
+
         info!("{} considers raiding neighbors for resources", nation.name);
     } else {
         // Raise taxes
         let old_rate: f32 = 0.2; // TODO: Track actual tax rate
         let new_rate = (old_rate * 1.2).min(0.5); // 20% increase, max 50%
+
+        log_nation_decision(
+            nation.id.value(),
+            &nation.name,
+            "Economic Response",
+            &format!("Choosing peaceful approach - raising taxes from {:.1}% to {:.1}%",
+                     old_rate * 100.0, new_rate * 100.0)
+        );
 
         events.send(NationActionEvent::TaxIncrease {
             nation_id: nation.id,

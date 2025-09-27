@@ -9,7 +9,7 @@
 use super::types::{MenuAction, MenuButton, SpawnSaveBrowserEvent, SpawnSettingsMenuEvent};
 use crate::save_load::{scan_save_files_internal, SaveCompleteEvent, SaveGameEvent, SaveGameList};
 use crate::states::{GameState, RequestStateTransition};
-use crate::ui::{ButtonBuilder, ButtonSize, ButtonStyle};
+use crate::ui::{despawn_entities, ButtonBuilder, ButtonSize, ButtonStyle};
 use bevy::app::AppExit;
 use bevy::prelude::*;
 
@@ -19,7 +19,7 @@ pub struct PauseMenuPlugin;
 impl Plugin for PauseMenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(GameState::Paused), spawn_pause_menu)
-            .add_systems(OnExit(GameState::Paused), despawn_pause_menu)
+            .add_systems(OnExit(GameState::Paused), despawn_entities::<PauseMenuRoot>)
             .add_systems(
                 Update,
                 (
@@ -118,13 +118,6 @@ fn spawn_pause_menu(mut commands: Commands, mut save_list: ResMut<SaveGameList>)
 }
 
 /// Despawns the pause menu UI
-fn despawn_pause_menu(mut commands: Commands, query: Query<Entity, With<PauseMenuRoot>>) {
-    debug!("Despawning pause menu UI");
-    for entity in &query {
-        commands.entity(entity).despawn();
-    }
-}
-
 /// Handle ESC key to resume game from pause menu
 fn handle_pause_esc_key(
     keyboard: Res<ButtonInput<KeyCode>>,
@@ -269,7 +262,7 @@ fn handle_exit_confirmation_dialog(
     mut interactions: Query<
         (
             &Interaction,
-            AnyOf<(&crate::ui::ConfirmButton, &crate::ui::CancelButton)>,
+            AnyOf<(&bevy_ui_builders::ConfirmButton, &bevy_ui_builders::CancelButton)>,
         ),
         Changed<Interaction>,
     >,

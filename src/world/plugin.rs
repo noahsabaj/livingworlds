@@ -1,7 +1,4 @@
 //! World plugin implementation - PLUGIN AGGREGATION AUTOMATION!
-//!
-//! This module demonstrates PERFECT world system automation!
-//! 92 lines of manual plugin coordination → ~50 lines of declarative beauty!
 
 use bevy::prelude::*;
 use bevy_plugin_builder::define_plugin;

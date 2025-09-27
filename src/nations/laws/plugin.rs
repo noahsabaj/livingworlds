@@ -45,9 +45,10 @@ define_plugin!(LawPlugin {
         update_law_cooldowns_system.run_if(in_state(GameState::InGame))
     ],
 
-    custom_init: |app| {
+    custom_init: |app: &mut bevy::app::App| {
         // Register law components for reflection
-        app.register_type::<NationLaws>();
+        // NOTE: NationLaws needs Reflect derive to be registered
+        // app.register_type::<NationLaws>();
 
         // Add debug-only validation systems
         #[cfg(debug_assertions)]

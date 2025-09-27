@@ -37,7 +37,7 @@ pub fn spawn_search_bar(parent: &mut ChildSpawnerCommands) {
             input.spawn((
                 Text::new("Search laws..."),
                 TextFont {
-                    font_size: typography::TEXT_SIZE_BODY,
+                    font_size: dimensions::FONT_SIZE_NORMAL,
                     ..default()
                 },
                 TextColor(colors::TEXT_TERTIARY),

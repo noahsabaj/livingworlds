@@ -163,6 +163,20 @@ pub fn get_role_title(role: PersonRole, gender: Gender, culture: Culture) -> Str
             Culture::Northern => "Pathfinder",
             _ => "Explorer",
         },
+        PersonRole::Advisor => match culture {
+            Culture::Eastern => "Counselor",
+            Culture::Desert => "Vizier",
+            Culture::Western => "Advisor",
+            _ => "Advisor",
+        },
+        PersonRole::Noble => match (culture, gender) {
+            (Culture::Eastern, Gender::Male) => "Lord",
+            (Culture::Eastern, Gender::Female) => "Lady",
+            (Culture::Western, Gender::Male) => "Duke",
+            (Culture::Western, Gender::Female) => "Duchess",
+            (Culture::Desert, _) => "Emir",
+            _ => "Noble",
+        },
         PersonRole::Commoner => "",
     }
     .to_string()
