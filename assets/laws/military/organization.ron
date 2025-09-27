@@ -1,0 +1,51 @@
+// Military Organization Laws for Living Worlds
+[
+    (
+        id: LawId(4001),
+        category: Military,
+        name: "Professional Army",
+        description: "Trained standing military force",
+        effects: (
+            // Economic modifiers
+            tax_efficiency_modifier: 0.0,
+            trade_income_modifier: 0.0,
+            industrial_output_modifier: 0.0,
+            agricultural_output_modifier: 0.0,
+            wealth_inequality_change: 0.0,
+
+            // Military modifiers
+            mobilization_speed_modifier: 0.2,
+            army_morale_modifier: 0.15,
+            naval_tradition_modifier: 0.0,
+            defensive_bonus_modifier: 0.1,
+            expansion_desire_modifier: 0.0,
+
+            // Social modifiers
+            stability_change: 0.05,
+            legitimacy_change: 0.0,
+            happiness_modifier: 0.0,
+            population_growth_modifier: 0.0,
+            technology_rate_modifier: 0.0,
+            cultural_conversion_modifier: 0.0,
+
+            // Political modifiers
+            corruption_change: -0.05,
+            centralization_change: 0.1,
+            reform_resistance_change: 0.0,
+            diplomatic_reputation_change: 0.0,
+            administrative_efficiency_modifier: 0.0,
+            maintenance_cost_modifier: 0.2,
+            revolt_risk_change: -0.05,
+        ),
+        prerequisites: [],
+        conflicts_with: [],
+        government_affinity: {
+            Monarchy: 0.8,
+            Military: 0.9,
+        },
+        complexity: Moderate,
+        base_popularity: 0.5,
+        is_constitutional: false,
+        available_from_year: 0,
+    ),
+]

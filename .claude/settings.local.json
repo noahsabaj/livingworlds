@@ -24,7 +24,9 @@
       "mcp__filesystem__read_file",
       "Read(///**)",
       "WebFetch(domain:docs.rs)",
-      "mcp__filesystem__directory_tree"
+      "mcp__filesystem__directory_tree",
+      "Bash(tree:*)",
+      "Bash(sort:*)"
     ]
   },
   "outputStyle": "Explanatory"

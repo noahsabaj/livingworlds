@@ -1,0 +1,51 @@
+// Labor Laws for Living Worlds
+[
+    (
+        id: LawId(2001),
+        category: Economic,
+        name: "Free Labor Market",
+        description: "Workers and employers negotiate freely",
+        effects: (
+            // Economic modifiers
+            tax_efficiency_modifier: 0.0,
+            trade_income_modifier: 0.1,
+            industrial_output_modifier: 0.15,
+            agricultural_output_modifier: 0.0,
+            wealth_inequality_change: 0.15,
+
+            // Military modifiers
+            mobilization_speed_modifier: 0.0,
+            army_morale_modifier: 0.0,
+            naval_tradition_modifier: 0.0,
+            defensive_bonus_modifier: 0.0,
+            expansion_desire_modifier: 0.0,
+
+            // Social modifiers
+            stability_change: 0.0,
+            legitimacy_change: 0.0,
+            happiness_modifier: 0.0,
+            population_growth_modifier: 0.05,
+            technology_rate_modifier: 0.05,
+            cultural_conversion_modifier: 0.0,
+
+            // Political modifiers
+            corruption_change: 0.0,
+            centralization_change: -0.1,
+            reform_resistance_change: 0.0,
+            diplomatic_reputation_change: 0.0,
+            administrative_efficiency_modifier: 0.0,
+            maintenance_cost_modifier: 0.0,
+            revolt_risk_change: 0.0,
+        ),
+        prerequisites: [],
+        conflicts_with: [],
+        government_affinity: {
+            Corporate: 0.9,
+            Democratic: 0.4,
+        },
+        complexity: Simple,
+        base_popularity: 0.5,
+        is_constitutional: false,
+        available_from_year: 0,
+    ),
+]

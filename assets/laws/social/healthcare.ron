@@ -1,0 +1,51 @@
+// Healthcare Laws for Living Worlds
+[
+    (
+        id: LawId(7001),
+        category: Social,
+        name: "Universal Healthcare",
+        description: "State-provided healthcare for all citizens",
+        effects: (
+            // Economic modifiers
+            tax_efficiency_modifier: -0.1,
+            trade_income_modifier: 0.0,
+            industrial_output_modifier: 0.0,
+            agricultural_output_modifier: 0.0,
+            wealth_inequality_change: -0.15,
+
+            // Military modifiers
+            mobilization_speed_modifier: 0.0,
+            army_morale_modifier: 0.05,
+            naval_tradition_modifier: 0.0,
+            defensive_bonus_modifier: 0.0,
+            expansion_desire_modifier: 0.0,
+
+            // Social modifiers
+            stability_change: 0.1,
+            legitimacy_change: 0.1,
+            happiness_modifier: 0.15,
+            population_growth_modifier: 0.1,
+            technology_rate_modifier: 0.0,
+            cultural_conversion_modifier: 0.0,
+
+            // Political modifiers
+            corruption_change: 0.0,
+            centralization_change: 0.05,
+            reform_resistance_change: -0.05,
+            diplomatic_reputation_change: 0.05,
+            administrative_efficiency_modifier: 0.0,
+            maintenance_cost_modifier: 0.15,
+            revolt_risk_change: -0.1,
+        ),
+        prerequisites: [],
+        conflicts_with: [],
+        government_affinity: {
+            Socialist: 0.95,
+            Democratic: 0.6,
+        },
+        complexity: Complex,
+        base_popularity: 0.8,
+        is_constitutional: false,
+        available_from_year: 0,
+    ),
+]

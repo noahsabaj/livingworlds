@@ -10,8 +10,10 @@ use bevy::prelude::ChildSpawnerCommands;
 pub type ChildBuilder<'a> = ChildSpawnerCommands<'a>;
 
 // PRIVATE MODULES - All implementation hidden
+mod animation;         // Declarative animation system
 mod cleanup;           // Generic cleanup utilities
 mod dialogs;           // Game-specific dialogs
+mod dropdown;          // Dropdown component system
 mod hud;               // Heads-up display
 mod interaction;       // UI interaction systems
 mod law_browser;       // Law browsing UI
@@ -22,6 +24,7 @@ mod nation_selection;  // Nation selection UI
 mod overlay_display;   // Map overlay displays
 mod performance_dashboard; // Performance monitoring
 mod plugin;            // Main UI plugin
+pub mod shortcuts;     // Keyboard shortcuts registry
 mod styles;            // Centralized styling
 mod tile_info;         // Tile information display
 mod tips;              // Game tips system
@@ -41,6 +44,43 @@ pub use styles::colors::{
 pub use styles::dimensions::{
     FONT_SIZE_LARGE as TEXT_SIZE_LARGE, FONT_SIZE_NORMAL as TEXT_SIZE_NORMAL,
     FONT_SIZE_TITLE as TEXT_SIZE_TITLE,
+};
+
+// Animation system exports
+pub use animation::{
+    // Core components
+    Animation, UIAnimationPlayer, AnimationBundle, AnimationSequence,
+    // Builder API
+    AnimationBuilder, AnimationCommandsExt, SequenceBuilder,
+    // Common presets
+    presets as animation_presets,
+    // Plugin
+    AnimationPlugin, AnimationConfig,
+    // Types
+    AnimationTarget, AnimationState, EasingFunction,
+};
+
+// Keyboard shortcuts system exports
+pub use shortcuts::{
+    // Core types
+    ShortcutId, KeyBinding, ShortcutContext, ShortcutEvent,
+    // Registry
+    ShortcutRegistry, ShortcutDefinition,
+    // Builder API
+    ShortcutBuilder, shortcuts as shortcut_builder,
+    ShortcutCommandsExt as ShortcutCommands,
+    // Plugin
+    ShortcutPlugin, ShortcutConfig,
+};
+
+// Dropdown system exports
+pub use dropdown::{
+    // Builder
+    DropdownBuilder,
+    // Components
+    Dropdown, DropdownPlugin,
+    // Types
+    DropdownValue, DropdownItem,
 };
 
 // Marker components for queries
@@ -97,8 +137,6 @@ pub use bevy_ui_builders::{
     TextInputBuilder, FocusGroupId, text_input,
     // Form system
     FormBuilder, FieldType, ValidationRule,
-    // Cleanup utilities
-    despawn_ui_entities,
     // Convenience functions
     primary_button, secondary_button, danger_button, ghost_button,
     label, panel, progress, separator,
@@ -118,8 +156,16 @@ pub use tips::get_random_tip;
 
 // Convenience functions now come directly from bevy-ui-builders v0.1.4
 
-// Generic cleanup system (despawn_ui_entities comes from bevy-ui-builders)
+// Generic cleanup system
 pub use cleanup::despawn_entities;
+
+// Wrapper for despawn_ui_entities that matches our system signature
+use bevy::prelude::*;
+pub fn despawn_ui_entities<T: Component>(mut commands: Commands, query: Query<Entity, With<T>>) {
+    for entity in &query {
+        commands.entity(entity).despawn();
+    }
+}
 
 // Law browser exports
 pub use law_browser::{LawBrowserPlugin, spawn_law_browser};

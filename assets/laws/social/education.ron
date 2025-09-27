@@ -1,0 +1,51 @@
+// Education Laws for Living Worlds
+[
+    (
+        id: LawId(6001),
+        category: Social,
+        name: "Public Education",
+        description: "State-funded education for all citizens",
+        effects: (
+            // Economic modifiers
+            tax_efficiency_modifier: -0.05,
+            trade_income_modifier: 0.0,
+            industrial_output_modifier: 0.0,
+            agricultural_output_modifier: 0.0,
+            wealth_inequality_change: -0.1,
+
+            // Military modifiers
+            mobilization_speed_modifier: 0.0,
+            army_morale_modifier: 0.0,
+            naval_tradition_modifier: 0.0,
+            defensive_bonus_modifier: 0.0,
+            expansion_desire_modifier: 0.0,
+
+            // Social modifiers
+            stability_change: 0.05,
+            legitimacy_change: 0.05,
+            happiness_modifier: 0.1,
+            population_growth_modifier: 0.0,
+            technology_rate_modifier: 0.2,
+            cultural_conversion_modifier: 0.1,
+
+            // Political modifiers
+            corruption_change: -0.05,
+            centralization_change: 0.05,
+            reform_resistance_change: -0.05,
+            diplomatic_reputation_change: 0.0,
+            administrative_efficiency_modifier: 0.05,
+            maintenance_cost_modifier: 0.1,
+            revolt_risk_change: -0.05,
+        ),
+        prerequisites: [],
+        conflicts_with: [],
+        government_affinity: {
+            Democratic: 0.7,
+            Socialist: 0.9,
+        },
+        complexity: Moderate,
+        base_popularity: 0.7,
+        is_constitutional: false,
+        available_from_year: 0,
+    ),
+]

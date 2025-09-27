@@ -1,8 +1,8 @@
 //! Main UI plugin implementation
 
 use super::{
-    hud, law_browser, loading, nation_info, nation_laws_panel,
-    overlay_display, performance_dashboard, tile_info,
+    animation, hud, law_browser, loading, nation_info, nation_laws_panel,
+    overlay_display, performance_dashboard, shortcuts, tile_info,
 };
 use bevy_plugin_builder::define_plugin;
 use bevy_ui_builders::UiBuilderPlugin;
@@ -14,8 +14,10 @@ define_plugin!(UIPlugin {
     ],
 
     plugins: [
-        // Core UI builders from bevy-ui-builders
+        // Core UI systems
         UiBuilderPlugin,
+        animation::AnimationPlugin,
+        shortcuts::ShortcutPlugin,
         // Game-specific UI plugins
         loading::LoadingIndicatorPlugin,
         hud::HudPlugin,
