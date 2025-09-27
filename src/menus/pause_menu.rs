@@ -10,6 +10,7 @@ use super::types::{MenuAction, MenuButton, SpawnSaveBrowserEvent, SpawnSettingsM
 use crate::save_load::{scan_save_files_internal, SaveCompleteEvent, SaveGameEvent, SaveGameList};
 use crate::states::{GameState, RequestStateTransition};
 use crate::ui::{despawn_entities, ButtonBuilder, ButtonSize, ButtonStyle};
+use crate::ui::shortcuts::{ShortcutEvent, ShortcutId};
 use bevy::app::AppExit;
 use bevy::prelude::*;
 
@@ -118,31 +119,36 @@ fn spawn_pause_menu(mut commands: Commands, mut save_list: ResMut<SaveGameList>)
 }
 
 /// Despawns the pause menu UI
-/// Handle ESC key to resume game from pause menu
+/// Handle ESC shortcut to resume game from pause menu
 fn handle_pause_esc_key(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    mut shortcut_events: EventReader<ShortcutEvent>,
     mut state_events: EventWriter<RequestStateTransition>,
 ) {
-    if keyboard.just_pressed(KeyCode::Escape) {
-        debug!("ESC pressed in pause menu - resuming game");
-        state_events.write(RequestStateTransition {
-            from: GameState::Paused,
-            to: GameState::InGame,
-        });
+    for event in shortcut_events.read() {
+        if event.shortcut_id == ShortcutId::Escape {
+            debug!("ESC shortcut triggered in pause menu - resuming game");
+            state_events.send(RequestStateTransition {
+                from: GameState::Paused,
+                to: GameState::InGame,
+            });
+        }
     }
 }
 
-/// Handle ESC key to open pause menu from in-game
+/// Handle ESC shortcut to open pause menu from in-game
 fn handle_ingame_esc_key(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    mut shortcut_events: EventReader<ShortcutEvent>,
     mut state_events: EventWriter<RequestStateTransition>,
 ) {
-    if keyboard.just_pressed(KeyCode::Escape) {
-        debug!("ESC pressed in game - opening pause menu");
-        state_events.write(RequestStateTransition {
-            from: GameState::InGame,
-            to: GameState::Paused,
-        });
+    for event in shortcut_events.read() {
+        // ONLY Escape should open the pause menu, NOT Space (Pause is for time control only)
+        if event.shortcut_id == ShortcutId::Escape || event.shortcut_id == ShortcutId::OpenMainMenu {
+            debug!("Escape key triggered in game - opening pause menu");
+            state_events.send(RequestStateTransition {
+                from: GameState::InGame,
+                to: GameState::Paused,
+            });
+        }
     }
 }
 

@@ -4,7 +4,6 @@
 //! This module is internal to simulation - no public exports needed.
 
 // PRIVATE modules - internal implementation
-mod speed_mapping;
 mod time_controls;
 
 // Internal exports for use by the simulation plugin

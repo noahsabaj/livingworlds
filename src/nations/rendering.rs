@@ -3,13 +3,13 @@
 //! This module handles displaying nations on the map by coloring provinces
 //! according to their controlling nation.
 
-use bevy::input::ButtonInput;
 use bevy::prelude::*;
 use bevy::text::Text2d;
 use std::collections::HashMap;
 
 use super::types::{Nation, NationId};
 use crate::resources::MapMode;
+use crate::ui::shortcuts::ShortcutRegistry;
 use crate::world::{ProvinceStorage, WorldMeshHandle};
 
 /// System to update province colors based on nation ownership
@@ -76,11 +76,18 @@ pub fn render_nation_borders(
     province_storage: Res<ProvinceStorage>,
     camera: Query<(&Camera, &Transform)>,
     keyboard: Res<ButtonInput<KeyCode>>,
+    registry: Res<ShortcutRegistry>,
     current_map_mode: Res<crate::world::MapMode>,
 ) {
-    // Render borders in Terrain mode OR when B key is pressed in other modes
+    // Get the border toggle key from the shortcuts registry (defaults to B)
+    let border_key = registry
+        .get(&crate::ui::shortcuts::ShortcutId::ToggleBorders)
+        .map(|def| def.binding.key)
+        .unwrap_or(KeyCode::KeyB);
+
+    // Render borders in Terrain mode OR when border toggle key is pressed
     let should_render_borders = *current_map_mode == crate::world::MapMode::Terrain
-        || keyboard.pressed(KeyCode::KeyB);
+        || keyboard.pressed(border_key);
 
     if !should_render_borders {
         return;

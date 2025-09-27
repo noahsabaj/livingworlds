@@ -4,34 +4,37 @@ use super::super::ChildBuilder;
 use super::types::*;
 use crate::performance::RayonMetrics;
 use crate::ui::colors;
+use crate::ui::shortcuts::{ShortcutEvent, ShortcutId};
 use bevy::prelude::*;
 
-/// Toggle dashboard visibility with F12 key
+/// Toggle dashboard visibility using the shortcuts registry
 pub fn toggle_dashboard_visibility(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    mut shortcut_events: EventReader<ShortcutEvent>,
     mut visibility: ResMut<DashboardVisibility>,
     mut panel_query: Query<&mut Visibility, With<PerformancePanel>>,
 ) {
-    if keyboard.just_pressed(KeyCode::F12) {
-        visibility.toggle();
+    for event in shortcut_events.read() {
+        if event.shortcut_id == ShortcutId::ToggleDebugOverlay {
+            visibility.toggle();
 
-        // Update panel visibility
-        if let Ok(mut panel_vis) = panel_query.single_mut() {
-            *panel_vis = if visibility.visible {
-                Visibility::Visible
-            } else {
-                Visibility::Hidden
-            };
-        }
-
-        info!(
-            "Performance dashboard {}",
-            if visibility.visible {
-                "shown"
-            } else {
-                "hidden"
+            // Update panel visibility
+            if let Ok(mut panel_vis) = panel_query.single_mut() {
+                *panel_vis = if visibility.visible {
+                    Visibility::Visible
+                } else {
+                    Visibility::Hidden
+                };
             }
-        );
+
+            info!(
+                "Performance dashboard {}",
+                if visibility.visible {
+                    "shown"
+                } else {
+                    "hidden"
+                }
+            );
+        }
     }
 }
 

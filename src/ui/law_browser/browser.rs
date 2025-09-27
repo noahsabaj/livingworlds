@@ -5,7 +5,7 @@ use bevy_plugin_builder::define_plugin;
 
 use crate::nations::{get_all_laws, LawRegistry, LawCategory};
 use crate::states::GameState;
-use crate::ui::despawn_ui_entities;
+use crate::ui::shortcuts::{ShortcutEvent, ShortcutId};
 use crate::ui::styles::{colors, dimensions};
 
 use super::categories::{
@@ -44,22 +44,29 @@ fn setup_law_browser_resources(mut commands: Commands) {
     commands.insert_resource(SelectedLawId::default());
 }
 
-/// Toggle law browser visibility with L key
+/// Toggle law browser visibility using shortcuts registry
 fn toggle_law_browser(
-    keys: Res<ButtonInput<KeyCode>>,
+    mut shortcut_events: EventReader<ShortcutEvent>,
     mut state: ResMut<LawBrowserState>,
     mut commands: Commands,
     query: Query<Entity, With<LawBrowserRoot>>,
 ) {
-    if keys.just_pressed(KeyCode::KeyL) {
-        state.is_open = !state.is_open;
+    for event in shortcut_events.read() {
+        // Check for a law browser toggle shortcut (could be L key or any custom binding)
+        if let ShortcutId::Custom(ref id) = event.shortcut_id {
+            if id == "ToggleLawBrowser" {
+                state.is_open = !state.is_open;
 
-        if state.is_open {
-            if query.is_empty() {
-                spawn_law_browser(&mut commands);
+                if state.is_open {
+                    if query.is_empty() {
+                        spawn_law_browser(&mut commands);
+                    }
+                } else {
+                    for entity in &query {
+                        commands.entity(entity).despawn();
+                    }
+                }
             }
-        } else {
-            despawn_ui_entities::<LawBrowserRoot>(commands, query);
         }
     }
 }
@@ -299,7 +306,9 @@ fn handle_close_button(
     for interaction in &mut interaction_query {
         if *interaction == Interaction::Pressed {
             state.is_open = false;
-            despawn_ui_entities::<LawBrowserRoot>(commands, browser_query);
+            for entity in &browser_query {
+                commands.entity(entity).despawn();
+            }
             break; // Only handle the first pressed button
         }
     }
