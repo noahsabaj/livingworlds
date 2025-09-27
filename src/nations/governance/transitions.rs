@@ -86,18 +86,24 @@ pub fn check_for_transitions(
 fn calculate_total_pressure(pressure: &PoliticalPressure, governance: &Governance) -> f32 {
     let mechanics = governance.government_type.mechanics();
 
-    // Base pressures
-    let economic = pressure.economic_crisis * 2.0;
-    let military = pressure.military_defeat * 1.5;
-    let cultural = pressure.cultural_shift * 1.0;
-    let external = pressure.external_influence * 1.2;
-    let tech = pressure.technological_change * 0.8;
-    let religious = pressure.religious_fervor * 1.0;
-    let revolutionary = pressure.revolutionary_ideas * 1.5;
+    // Base pressures - reduced to realistic values that require MULTIPLE crisis factors
+    // These multipliers mean individual pressures rarely trigger transitions alone
+    let economic = pressure.economic_crisis * 0.3;      // Was 2.0 - now needs severe crisis
+    let military = pressure.military_defeat * 0.25;     // Was 1.5 - military alone won't topple
+    let cultural = pressure.cultural_shift * 0.15;      // Was 1.0 - cultural shifts are slow
+    let external = pressure.external_influence * 0.2;   // Was 1.2 - foreign influence is limited
+    let tech = pressure.technological_change * 0.1;     // Was 0.8 - tech changes are gradual
+    let religious = pressure.religious_fervor * 0.15;   // Was 1.0 - religious pressure builds slowly
+    let revolutionary = pressure.revolutionary_ideas * 0.25; // Was 1.5 - ideas alone don't topple
 
     // Sum and apply resistance
     let raw_pressure = economic + military + cultural + external + tech + religious + revolutionary;
-    raw_pressure * (1.0 - governance.tradition_strength * mechanics.reform_resistance)
+
+    // Apply both tradition AND institutional strength as resistance
+    // Strong institutions (1.0) make transitions very hard
+    // Weak institutions (0.1) make the state a powder keg
+    let institutional_resistance = governance.institution_strength.max(0.1); // Never fully zero
+    raw_pressure * (1.0 - governance.tradition_strength * mechanics.reform_resistance) / institutional_resistance
 }
 
 /// Determine what type of transition will occur
@@ -148,7 +154,7 @@ fn determine_new_government(
             } else {
                 // General revolution
                 match current.category() {
-                    GovernmentCategory::Traditional => PresidentialRepublic,
+                    GovernmentCategory::Monarchic => PresidentialRepublic,
                     GovernmentCategory::Democratic => match rng.gen_range(0..3) {
                         0 => VanguardCommunism,
                         1 => FascistState,
@@ -172,8 +178,8 @@ fn determine_new_government(
         TransitionType::Collapse => {
             // Government falls apart
             match current.category() {
-                GovernmentCategory::Traditional => TribalFederation,
-                GovernmentCategory::Economic => Kleptocracy,
+                GovernmentCategory::Monarchic => TribalFederation,
+                GovernmentCategory::Corporate => Kleptocracy,
                 _ => match rng.gen_range(0..3) {
                     0 => Warlordism,
                     1 => ProvisionalGovernment,
@@ -260,7 +266,7 @@ fn determine_new_government(
 /// Process government transitions that have been triggered
 pub fn process_government_transitions(
     mut events: EventReader<GovernmentTransition>,
-    mut nations: Query<(&mut crate::nations::Nation, &mut Governance, &mut super::history::GovernmentHistory)>,
+    mut nations: Query<(&mut crate::nations::Nation, &mut Governance, &mut super::history::GovernmentHistory, &mut PoliticalPressure)>,
     mut name_generator: Local<Option<crate::name_generator::NameGenerator>>,
     time: Res<crate::simulation::GameTime>,
 ) {
@@ -271,26 +277,136 @@ pub fn process_government_transitions(
     let name_gen = name_generator.as_mut().unwrap();
 
     for event in events.read() {
-        if let Ok((mut nation, mut governance, mut history)) = nations.get_mut(event.nation_entity) {
+        if let Ok((mut nation, mut governance, mut history, mut pressure)) = nations.get_mut(event.nation_entity) {
             // Record the change in history
             history.changes.push(super::history::GovernmentChange {
                 from: event.from_government,
                 to: event.to_government,
                 transition_type: event.transition_type,
                 peaceful: event.peaceful,
-                game_time: time.current_date as u32,
+                game_time: time.current_day(),
             });
+
+            // Apply transition costs based on type - THIS NATURALLY PREVENTS RAPID COUPS
+            // Each transition depletes resources, making subsequent transitions harder
+            match event.transition_type {
+                TransitionType::Coup => {
+                    // Military coups cost military loyalty and treasury
+                    nation.military_strength *= 0.5;  // Half the military is purged/divided
+                    nation.treasury *= 0.7;            // Bribes and restructuring costs
+                    governance.stability = 0.25;       // Very unstable after coup
+                }
+                TransitionType::Revolution => {
+                    // Revolutions devastate everything
+                    nation.military_strength *= 0.3;   // Army shattered
+                    nation.treasury *= 0.4;            // Economy in chaos
+                    governance.stability = 0.2;        // Near collapse
+                }
+                TransitionType::Collapse => {
+                    // Total state failure
+                    nation.military_strength *= 0.2;   // Military dissolved
+                    nation.treasury *= 0.2;            // Economic devastation
+                    governance.stability = 0.1;        // Failed state
+                }
+                TransitionType::Reform | TransitionType::Election => {
+                    // Peaceful transitions have minimal cost
+                    nation.treasury *= 0.9;            // Election/reform costs
+                    governance.stability = if event.peaceful { 0.6 } else { 0.4 };
+                }
+                TransitionType::PopularUprising => {
+                    // Popular movements disrupt economy
+                    nation.military_strength *= 0.6;   // Some military defects
+                    nation.treasury *= 0.5;            // General strikes, disruption
+                    governance.stability = 0.3;
+                }
+                TransitionType::ForeignImposed => {
+                    // Puppet government has foreign backing
+                    nation.military_strength *= 0.8;   // Some resistance
+                    nation.treasury *= 0.9;            // Foreign aid offsets costs
+                    governance.stability = 0.4;
+                }
+                TransitionType::EliteConspiracy => {
+                    // Palace coups preserve most structures
+                    nation.military_strength *= 0.7;   // Some purges
+                    nation.treasury *= 0.8;            // Elite wealth preserved
+                    governance.stability = 0.35;
+                }
+                TransitionType::Succession => {
+                    // Orderly succession has minimal impact
+                    governance.stability = 0.7;        // Smooth transition
+                }
+            }
 
             // Update governance
             governance.government_type = event.to_government;
-            governance.last_transition = Some(time.current_date as u32);
+            governance.last_transition = Some(time.current_day());
             governance.reform_pressure = 0.0;
-
-            // Reset stability based on transition type
-            governance.stability = if event.peaceful { 0.6 } else { 0.3 };
 
             // Update tradition strength
             governance.tradition_strength = event.to_government.mechanics().reform_resistance;
+
+            // INSTITUTIONAL DECAY - Each transition weakens state apparatus
+            // This creates natural cascades: weak states transition more easily
+            match event.transition_type {
+                TransitionType::Collapse => {
+                    governance.institution_strength *= 0.2;  // Near-total institutional failure
+                }
+                TransitionType::Revolution => {
+                    governance.institution_strength *= 0.4;  // Institutions shattered
+                }
+                TransitionType::Coup | TransitionType::EliteConspiracy => {
+                    governance.institution_strength *= 0.6;  // Military/elite structures damaged
+                }
+                TransitionType::PopularUprising => {
+                    governance.institution_strength *= 0.5;  // Mass disruption
+                }
+                TransitionType::ForeignImposed => {
+                    governance.institution_strength *= 0.7;  // Some continuity with foreign backing
+                }
+                TransitionType::Reform | TransitionType::Election => {
+                    governance.institution_strength *= 0.85; // Minimal institutional damage
+                }
+                TransitionType::Succession => {
+                    governance.institution_strength *= 0.95; // Almost no damage
+                }
+            }
+
+            // REVOLUTIONARY EXHAUSTION - Deplete pressures that caused the transition
+            // This naturally prevents the same pressures from triggering again immediately
+            match event.transition_type {
+                TransitionType::Revolution | TransitionType::PopularUprising => {
+                    // Revolutionary energy is spent
+                    pressure.revolutionary_ideas *= 0.1;  // 90% exhausted
+                    pressure.economic_crisis *= 0.5;      // Partially addressed
+                }
+                TransitionType::Coup | TransitionType::EliteConspiracy => {
+                    // Military is divided and exhausted
+                    pressure.military_defeat *= 0.2;      // Military reorganizing
+                    pressure.external_influence *= 0.3;   // Foreign backers step back
+                }
+                TransitionType::Collapse => {
+                    // Total exhaustion of all pressures
+                    pressure.economic_crisis *= 0.3;
+                    pressure.military_defeat *= 0.3;
+                    pressure.revolutionary_ideas *= 0.2;
+                    pressure.cultural_shift *= 0.5;
+                }
+                TransitionType::Reform | TransitionType::Election => {
+                    // Peaceful change relieves some pressure
+                    pressure.revolutionary_ideas *= 0.3;  // Ideas partially satisfied
+                    pressure.economic_crisis *= 0.7;      // Some reforms help
+                }
+                TransitionType::ForeignImposed => {
+                    // External pressure satisfied
+                    pressure.external_influence *= 0.1;
+                    pressure.military_defeat *= 0.4;
+                }
+                _ => {
+                    // General pressure relief
+                    pressure.revolutionary_ideas *= 0.5;
+                    pressure.economic_crisis *= 0.6;
+                }
+            }
 
             // Generate new nation name based on new government
             // Note: In actual integration, we'd need to get the culture from somewhere

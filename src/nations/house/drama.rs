@@ -6,15 +6,17 @@
 
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
+use rand::Rng;
 
 use super::characters::{
     Character, CharacterId, CharacterRole, RelationshipType,
     Secret, Scandal, LifeEvent, Quirk
 };
 use crate::nations::NationId;
+use crate::simulation::GameTime;
 
 /// A dramatic event that creates shareable moments
-#[derive(Debug, Clone, Component, Serialize, Deserialize, Reflect)]
+#[derive(Debug, Clone, Event, Serialize, Deserialize, Reflect)]
 pub struct DramaEvent {
     pub id: DramaEventId,
     pub event_type: DramaEventType,
@@ -236,6 +238,59 @@ pub enum DramaEventType {
         perpetrator: String,
         reasoning: String, // Their "logical" explanation
     },
+
+    // ===== ADDITIONAL DRAMA EVENTS =====
+
+    /// Romantic proposal event
+    RomanticProposal {
+        proposer: String,
+        recipient: String,
+        accepted: bool,
+        context: String, // "during battle", "at funeral", etc.
+    },
+
+    /// Former enemies become allies
+    EnemiesAlly {
+        former_enemy_a: String,
+        former_enemy_b: String,
+        reason: String, // What brought them together
+    },
+
+    /// Accidental death
+    AccidentalDeath {
+        deceased: String,
+        cause: String, // "fell off horse", "poisoned by own plot"
+        witnesses: Vec<String>,
+    },
+
+    /// Deathbed confession
+    DeathbedConfession {
+        confessor: String,
+        confession: String, // What they revealed
+        impact: String, // How it affects others
+    },
+
+    /// Personal duel between characters
+    PersonalDuel {
+        challenger: String,
+        challenged: String,
+        reason: String,
+        winner: Option<String>,
+    },
+
+    /// Leader becomes disgraced
+    DisgracedLeader {
+        leader: String,
+        disgrace_reason: String,
+        public_reaction: String,
+    },
+
+    /// Heroic sacrifice
+    HeroicSacrifice {
+        hero: String,
+        saved: Vec<String>,
+        sacrifice_type: String, // What they gave up
+    },
 }
 
 /// Consequences of dramatic events
@@ -272,7 +327,7 @@ pub enum EventConsequence {
 
     // New events triggered
     TriggerEvent {
-        event_type: Box<DramaEventType>,
+        event_type: DramaEventType,
         delay_years: u32,
     },
 
@@ -494,7 +549,7 @@ fn generate_madness_event(
         "ordered the execution of all mirrors",
     ];
 
-    let action = mad_actions.choose(&mut **rng).unwrap();
+    let action = mad_actions.choose(&mut rng.0).unwrap();
 
     events.send(DramaEvent {
         id: DramaEventId(rng.gen()),
@@ -516,7 +571,7 @@ fn generate_madness_event(
                 amount: 0.2,
             },
         ],
-        timestamp: time.year,
+        timestamp: time.current_year(),
         resolved: false,
     });
 }
@@ -538,7 +593,7 @@ fn generate_baby_ruler_event(
         "crawled away during coronation ceremony",
     ];
 
-    let action = baby_actions.choose(&mut **rng).unwrap();
+    let action = baby_actions.choose(&mut rng.0).unwrap();
 
     events.send(DramaEvent {
         id: DramaEventId(rng.gen()),
@@ -551,19 +606,47 @@ fn generate_baby_ruler_event(
         importance: EventImportance::Legendary, // Always goes viral!
         visibility: EventVisibility::Legendary,
         consequences: vec![],
-        timestamp: time.year,
+        timestamp: time.current_year(),
         resolved: true,
     });
 }
 
-// Placeholder types for missing resources
-#[derive(Resource)]
-pub struct GameTime {
-    pub year: u32,
-}
-
+// Global RNG resource for drama generation
 #[derive(Resource)]
 pub struct GlobalRng(pub rand::rngs::StdRng);
+
+impl std::ops::Deref for GlobalRng {
+    type Target = rand::rngs::StdRng;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for GlobalRng {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl AsRef<rand::rngs::StdRng> for GlobalRng {
+    fn as_ref(&self) -> &rand::rngs::StdRng {
+        &self.0
+    }
+}
+
+impl AsMut<rand::rngs::StdRng> for GlobalRng {
+    fn as_mut(&mut self) -> &mut rand::rngs::StdRng {
+        &mut self.0
+    }
+}
+
+impl bevy::ecs::world::FromWorld for GlobalRng {
+    fn from_world(_world: &mut bevy::ecs::world::World) -> Self {
+        use rand::SeedableRng;
+        GlobalRng(rand::rngs::StdRng::from_entropy())
+    }
+}
 
 // Additional helper functions would go here...
 fn generate_stress_event(

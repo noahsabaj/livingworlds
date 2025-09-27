@@ -6,12 +6,13 @@
 use bevy::prelude::*;
 use bevy_plugin_builder::define_plugin;
 
+use crate::simulation::GameTime;
 use super::{
     characters::{
         Character, CharacterId, FamilyMember, HasRelationship, RelatedTo,
         RelationshipMetadata, RelationshipType
     },
-    drama::{DramaEvent, generate_drama_events, GameTime, GlobalRng},
+    drama::{DramaEvent, generate_drama_events, GlobalRng},
 };
 
 // Re-export for convenience
@@ -39,12 +40,13 @@ define_plugin!(DramaEnginePlugin {
         process_character_events.run_if(in_state(crate::states::GameState::InGame)),
     ],
 
-    custom_init: |app| {
+    custom_init: |app: &mut bevy::app::App| {
         // Register relationship components and metadata
-        app.register_type::<HasRelationship>()
-           .register_type::<RelatedTo>()
-           .register_type::<RelationshipMetadata>()
-           .register_type::<RelationshipType>();
+        // NOTE: These types need Reflect derive to be registered
+        // app.register_type::<HasRelationship>()
+        //    .register_type::<RelatedTo>()
+        //    .register_type::<RelationshipMetadata>()
+        app.register_type::<RelationshipType>();
     }
 });
 
@@ -101,14 +103,15 @@ pub struct RelationshipChangedEvent {
 /// System to age characters over time
 fn age_characters(
     mut characters: Query<&mut Character>,
-    time: Res<crate::simulation::time::GameTime>,
+    time: Res<crate::simulation::GameTime>,
     mut death_events: EventWriter<CharacterDeathEvent>,
 ) {
     use rand::Rng;
     let mut rng = rand::thread_rng();
 
-    // Age characters when a year passes
-    if time.day_of_year != 0 {
+    // Age characters when a year passes (only on Jan 1st)
+    let day_of_year = time.day_of_year() as i32;
+    if day_of_year != 0 {
         return;
     }
 
@@ -150,7 +153,7 @@ fn age_characters(
 fn update_relationships(
     characters: Query<(Entity, &Character)>,
     mut relationships: Query<&mut HasRelationship>,
-    drama_events: EventReader<DramaEvent>,
+    mut drama_events: EventReader<DramaEvent>,
     mut relationship_events: EventWriter<RelationshipChangedEvent>,
 ) {
     use super::drama::EventConsequence;

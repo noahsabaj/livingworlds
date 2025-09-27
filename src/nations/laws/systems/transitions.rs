@@ -13,7 +13,7 @@ use crate::simulation::GameTime;
 /// System to handle law changes during government transitions
 pub fn handle_government_transitions_system(
     mut transitions: EventReader<GovernmentTransition>,
-    mut nations: Query<(&Nation, &mut NationLaws)>,
+    mut nations: Query<(Entity, &Nation, &mut NationLaws)>,
     registry: Res<LawRegistry>,
     time: Res<GameTime>,
     mut active_laws: ResMut<ActiveLaws>,
@@ -21,16 +21,16 @@ pub fn handle_government_transitions_system(
     mut repeal_events: EventWriter<LawRepealEvent>,
 ) {
     for transition in transitions.read() {
-        // Find the nation
-        for (nation, mut nation_laws) in &mut nations {
-            if nation.id != transition.nation_id {
+        // Find the nation matching the entity
+        for (entity, nation, mut nation_laws) in nations.iter_mut() {
+            if entity != transition.nation_entity {
                 continue;
             }
 
             // Get revolutionary law changes
             let changes = revolutionary_law_changes(
-                transition.old_government,
-                transition.new_government,
+                transition.from_government,
+                transition.to_government,
                 &nation_laws,
                 &registry,
             );
@@ -40,7 +40,7 @@ pub fn handle_government_transitions_system(
                 match change {
                     RevolutionLawAction::Enact(law_id) => {
                         if let Some(law) = registry.get_law(law_id) {
-                            nation_laws.enact_law(law_id, &law.effects, time.year as i32);
+                            nation_laws.enact_law(law_id, &law.effects, time.current_year() as i32);
                             active_laws.on_law_enacted(nation.id, law_id);
 
                             enactment_events.send(LawEnactmentEvent {
@@ -62,12 +62,12 @@ pub fn handle_government_transitions_system(
                             let years_active = if let LawStatus::Active { enacted_date, .. } =
                                 nation_laws.get_status(law_id)
                             {
-                                time.year as i32 - enacted_date
+                                time.current_year() as i32 - enacted_date
                             } else {
                                 0
                             };
 
-                            nation_laws.repeal_law(law_id, time.year as i32);
+                            nation_laws.repeal_law(law_id, time.current_year() as i32);
                             active_laws.on_law_repealed(nation.id, law_id);
 
                             repeal_events.send(LawRepealEvent {

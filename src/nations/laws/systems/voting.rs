@@ -40,7 +40,7 @@ pub fn process_law_votes_system(
                         nation_laws.enact_law(
                             proposed.law_id,
                             &law.effects,
-                            time.year as i32,
+                            (time.current_year()) as i32,
                         );
 
                         // Update global tracking

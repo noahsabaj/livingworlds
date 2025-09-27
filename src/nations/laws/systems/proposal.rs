@@ -23,7 +23,7 @@ pub fn propose_laws_system(
 ) {
     for (entity, nation, governance, pressures, mut nation_laws) in &mut nations {
         // Check if it's time to consider new laws (every 30 days)
-        if time.total_days % 30 != 0 {
+        if (time.current_day() as i32) % 30 != 0 {
             continue;
         }
 
@@ -34,7 +34,7 @@ pub fn propose_laws_system(
             pressures,
             &nation_laws,
             &registry,
-            time.year as i32,
+            (time.current_year()) as i32,
         ) {
             // Propose the law with pressure tracking
             nation_laws.propose_law(

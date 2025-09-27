@@ -36,7 +36,7 @@ pub fn update_government_legitimacy(
             &governance,
             pressure,
             house,
-            time.current_date as u32,
+            time.current_day(),
         );
 
         let new_legitimacy = calculate_legitimacy(&governance, &factors);
@@ -100,7 +100,7 @@ fn calculate_legitimacy_factors(
 
     // Government-specific legitimacy
     match governance.government_type.category() {
-        super::types::GovernmentCategory::Religious => {
+        super::types::GovernmentCategory::Theocratic => {
             factors.divine_mandate = 0.8;
         },
         super::types::GovernmentCategory::Democratic => {
