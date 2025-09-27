@@ -5,7 +5,8 @@ use bevy::prelude::*;
 
 /// Handle keyboard navigation (Tab/Shift+Tab) and ESC
 pub fn handle_keyboard_navigation(
-    keyboard: Res<ButtonInput<KeyCode>>,
+    mut shortcut_events: EventReader<crate::ui::shortcuts::ShortcutEvent>,
+    mut shortcut_registry: ResMut<crate::ui::shortcuts::ShortcutRegistry>,
     mut focus: ResMut<FocusedElement>,
     mut param_set: ParamSet<(
         Query<(
@@ -19,10 +20,14 @@ pub fn handle_keyboard_navigation(
     settings_root: Query<Entity, With<SettingsMenuRoot>>,
     mut commands: Commands,
 ) {
+    use crate::ui::shortcuts::{ShortcutId, ShortcutContext};
+
     // Only process input if settings menu is actually open
     let settings_entity = match settings_root.get_single() {
         Ok(entity) => {
             debug!("⚙️ Settings menu open, processing navigation input");
+            // Set the shortcut context to Settings
+            shortcut_registry.set_context(ShortcutContext::Settings);
             entity
         },
         Err(_) => {
@@ -31,64 +36,77 @@ pub fn handle_keyboard_navigation(
         }
     };
 
-    // ESC to close settings
-    if keyboard.just_pressed(KeyCode::Escape) {
-        commands.entity(settings_entity).despawn();
-        return;
-    }
-
-    // Tab navigation
-    if keyboard.just_pressed(KeyCode::Tab) {
-        if keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight) {
-            // Shift+Tab - go backwards
-            if focus.index > 0 {
-                focus.index -= 1;
-            } else {
-                focus.index = focus.max_index;
+    for event in shortcut_events.read() {
+        match event.shortcut_id {
+            // ESC to close settings
+            ShortcutId::Escape | ShortcutId::OpenMainMenu => {
+                commands.entity(settings_entity).despawn();
+                return;
             }
-        } else {
-            // Tab - go forwards
-            if focus.index < focus.max_index {
-                focus.index += 1;
-            } else {
-                focus.index = 0;
-            }
-        }
 
-        for (_entity, focusable, mut bg_color, interaction) in &mut param_set.p0() {
-            if focusable.order as usize == focus.index {
-                // Highlight focused element
-                *bg_color = BackgroundColor(Color::srgb(0.2, 0.2, 0.25));
-            } else if let Some(interaction) = interaction {
-                // Reset to normal state
-                match interaction {
-                    Interaction::Hovered => {
-                        *bg_color = BackgroundColor(Color::srgb(0.18, 0.18, 0.2))
+            // Tab navigation forwards
+            ShortcutId::SettingsNavigateNext => {
+                if focus.index < focus.max_index {
+                    focus.index += 1;
+                } else {
+                    focus.index = 0;
+                }
+                update_focus_highlight(&mut param_set.p0(), &focus);
+            }
+
+            // Shift+Tab navigation backwards
+            ShortcutId::SettingsNavigatePrevious => {
+                if focus.index > 0 {
+                    focus.index -= 1;
+                } else {
+                    focus.index = focus.max_index;
+                }
+                update_focus_highlight(&mut param_set.p0(), &focus);
+            }
+
+            // Enter/Space to activate focused element
+            ShortcutId::SettingsActivate | ShortcutId::SettingsActivateSpace => {
+                if event.shortcut_id == ShortcutId::SettingsActivateSpace {
+                    debug!("⚙️ Space key detected in settings navigation");
+                }
+                // First find the focused entity
+                let mut focused_entity = None;
+                for (entity, focusable, _, interaction) in &param_set.p0() {
+                    if focusable.order as usize == focus.index && interaction.is_some() {
+                        focused_entity = Some(entity);
+                        break;
                     }
-                    _ => *bg_color = BackgroundColor(Color::srgb(0.12, 0.12, 0.15)),
+                }
+
+                // Then simulate the button press on that entity
+                if let Some(entity) = focused_entity {
+                    if let Ok(mut interaction) = param_set.p1().get_mut(entity) {
+                        *interaction = Interaction::Pressed;
+                    }
                 }
             }
+
+            _ => {} // Ignore other shortcuts
         }
     }
+}
 
-    // Enter/Space to activate focused element
-    if keyboard.just_pressed(KeyCode::Enter) || keyboard.just_pressed(KeyCode::Space) {
-        if keyboard.just_pressed(KeyCode::Space) {
-            debug!("⚙️ Space key detected in settings navigation");
-        }
-        // First find the focused entity
-        let mut focused_entity = None;
-        for (entity, focusable, _, interaction) in &param_set.p0() {
-            if focusable.order as usize == focus.index && interaction.is_some() {
-                focused_entity = Some(entity);
-                break;
-            }
-        }
-
-        // Then simulate the button press on that entity
-        if let Some(entity) = focused_entity {
-            if let Ok(mut interaction) = param_set.p1().get_mut(entity) {
-                *interaction = Interaction::Pressed;
+/// Helper function to update focus highlighting
+fn update_focus_highlight(
+    query: &mut Query<(Entity, &Focusable, &mut BackgroundColor, Option<&Interaction>)>,
+    focus: &FocusedElement,
+) {
+    for (_entity, focusable, mut bg_color, interaction) in query {
+        if focusable.order as usize == focus.index {
+            // Highlight focused element
+            *bg_color = BackgroundColor(Color::srgb(0.2, 0.2, 0.25));
+        } else if let Some(interaction) = interaction {
+            // Reset to normal state
+            match interaction {
+                Interaction::Hovered => {
+                    *bg_color = BackgroundColor(Color::srgb(0.18, 0.18, 0.2))
+                }
+                _ => *bg_color = BackgroundColor(Color::srgb(0.12, 0.12, 0.15)),
             }
         }
     }

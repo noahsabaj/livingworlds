@@ -26,5 +26,5 @@ pub use legitimacy::{
 
 pub use systems::{
     apply_pressure_effects, determine_ruler_personality, resolve_pressure_actions,
-    update_nation_pressures,
+    run_pressure_systems_on_timer, update_nation_pressures, PressureSystemTimer,
 };

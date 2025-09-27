@@ -5,19 +5,34 @@
 
 // PRIVATE MODULES - Gateway architecture compliance
 mod actions;
+mod errors;
 mod generation;
 mod governance;
 mod history;
 mod house;
 mod laws;
+mod migration;
 mod plugin;
 mod rendering;
 mod territory_analysis;
 mod types;
 
+// Test modules
+#[cfg(test)]
+mod benches;
+#[cfg(test)]
+mod integration_tests;
+#[cfg(test)]
+mod property_tests;
+
 pub use actions::{
     handle_economic_pressure, handle_legitimacy_pressure, handle_military_pressure,
     handle_population_pressure, NationAction, NationActionEvent, resolve_nation_actions,
+};
+pub use errors::{
+    NationError, NationResult, TransitionError, LawError, TerritoryError,
+    DiplomaticError, EconomicError, MilitaryError, IntegrityError,
+    RecoveryStrategy, ErrorSeverity,
 };
 pub use generation::{build_territories_from_provinces, spawn_nations};
 pub use governance::{
@@ -44,5 +59,9 @@ pub use laws::{
     LawPrerequisite,
 };
 pub use plugin::NationPlugin;
+pub use migration::{
+    NationMigrationPlugin, MigrationStatus,
+    spawn_nations_with_relationships, migrate_ownership_to_relationships,
+};
 pub use territory_analysis::{NationSizeCategory, TerritoryMetrics, TerritoryMetricsCache};
 pub use types::*;

@@ -30,6 +30,7 @@
 
 mod administrative; // Governor and provincial administration relationships
 mod cultural; // Cultural region and provincial cultural membership
+mod debug; // Debug utilities for relationship system
 mod diplomatic; // Inter-nation diplomatic relationships
 mod infrastructure; // Roads, trade routes, and physical connections
 mod legislative; // Legislative and law enactment relationships
@@ -300,12 +301,8 @@ pub use population::{
 // BEVY PLUGIN INTEGRATION
 // ================================================================================================
 
-pub use plugin::{
-    // Debug utilities
-    DebugRelationships,
-    // Main plugin
-    RelationshipsPlugin,
-};
+pub use debug::DebugRelationships;
+pub use plugin::RelationshipsPlugin;
 
 // ================================================================================================
 // RELATIONSHIP SYSTEM DOCUMENTATION

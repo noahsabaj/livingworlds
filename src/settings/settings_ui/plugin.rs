@@ -2,12 +2,12 @@
 //!
 //! Plugin for managing settings user interface and event handling.
 
-use crate::menus::SpawnSettingsMenuEvent;
+use super::handlers::handle_spawn_settings_menu_event;
 use crate::settings::{components::*, types::*};
 use bevy::prelude::*;
 use bevy_plugin_builder::define_plugin;
 
-// Plugin for settings UI functionality.
+/// Plugin for settings UI functionality.
 define_plugin!(SettingsUIPlugin {
     resources: [
         TempGameSettings,
@@ -56,25 +56,3 @@ define_plugin!(SettingsUIPlugin {
         super::handlers::apply_settings_changes
     ]
 });
-
-// System to handle the SpawnSettingsMenuEvent by spawning the settings menu
-fn handle_spawn_settings_menu_event(
-    mut events: EventReader<SpawnSettingsMenuEvent>,
-    commands: Commands,
-    settings: Res<GameSettings>,
-    mut temp_settings: ResMut<TempGameSettings>,
-    current_tab: Res<crate::states::CurrentSettingsTab>,
-    mut dirty_state: ResMut<SettingsDirtyState>,
-) {
-    for _ in events.read() {
-        // Call the spawn function from the spawning module
-        super::spawning::spawn_settings_menu(
-            commands,
-            &*settings,
-            &mut *temp_settings,
-            &*current_tab,
-            &mut *dirty_state,
-        );
-        return; // Only spawn once per frame
-    }
-}

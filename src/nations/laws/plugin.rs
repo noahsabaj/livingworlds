@@ -20,6 +20,11 @@ use super::types::{LawEnactmentEvent, LawRepealEvent};
 use crate::states::GameState;
 
 define_plugin!(LawPlugin {
+    plugins: [
+        // Include the data-driven law loader
+        super::loader::LawLoaderPlugin
+    ],
+
     resources: [
         LawRegistry,
         ActiveLaws,

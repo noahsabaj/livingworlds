@@ -5,11 +5,7 @@
 use bevy::prelude::*;
 use bevy_plugin_builder::define_plugin;
 
-// Plugin that registers world generation systems using the revolutionary automation system
+/// Plugin that registers world generation systems using the revolutionary automation system
 define_plugin!(GenerationPlugin {
-    startup: [log_generation_ready]
+    startup: [|| info!("World generation module ready")]
 });
-
-fn log_generation_ready() {
-    info!("World generation module ready");
-}

@@ -14,7 +14,9 @@ mod types;
 // New drama engine modules
 mod characters;
 mod drama;
+mod events;
 mod plugin;
+mod systems;
 
 // Public re-exports - carefully controlled API surface
 
@@ -41,4 +43,11 @@ pub use drama::{
 };
 
 // Plugin exports
-pub use plugin::{DramaEnginePlugin, spawn_house_family, CharacterRegistry};
+pub use plugin::DramaEnginePlugin;
+
+// Event and system exports
+pub use events::{
+    CharacterBornEvent, CharacterDeathEvent, CharacterRegistry,
+    DeathCause, RelationshipChangedEvent
+};
+pub use systems::spawn_house_family;

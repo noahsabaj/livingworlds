@@ -35,7 +35,9 @@ mod chunk_size;
 mod operations;
 mod patterns;
 mod plugin;
+mod resources;
 mod safety;
+mod systems;
 
 // Public exports - controlled API surface following gateway pattern
 pub use builder::{ParallelOperation, ParallelOperationBuilder};
@@ -47,6 +49,7 @@ pub use operations::{
 };
 pub use patterns::{ParallelPattern, WithLookupMap};
 pub use plugin::ParallelPlugin;
+pub use resources::ParallelOperationStats;
 pub use safety::{ParallelSafetyError, SafetyValidator};
 
 // Re-export common types for convenience

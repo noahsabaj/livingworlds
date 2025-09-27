@@ -7,6 +7,7 @@ mod controller;
 mod input;
 mod movement;
 mod plugin;
+mod setup;
 mod window;
 
 pub use controller::CameraController;

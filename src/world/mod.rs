@@ -35,10 +35,12 @@ mod terrain; // Terrain types, climate, erosion // Overlay rendering modes
 
 // Non-feature modules
 mod core; // Core world data structures (World)
+mod events; // World events
 mod generation; // World generation orchestrator
 mod plugin; // Main world plugin (Bevy integration)
 mod setup; // World setup and generation systems
 mod simulation; // Simulation events
+mod systems; // World systems
 mod ui; // World configuration UI
 
 // SELECTIVE PUBLIC EXPORTS - The controlled API surface
@@ -113,11 +115,8 @@ pub use gpu::{
 pub use simulation::*; // Events and simulation systems
 
 // === Bevy Plugin and Events ===
-pub use plugin::{
-    ProvinceSelectedEvent,
-    WorldGeneratedEvent,
-    WorldPlugin, // Main plugin that registers everything
-};
+pub use events::{ProvinceSelectedEvent, WorldGeneratedEvent};
+pub use plugin::WorldPlugin; // Main plugin that registers everything
 
 // === World Generation (from setup.rs) ===
 pub use setup::{

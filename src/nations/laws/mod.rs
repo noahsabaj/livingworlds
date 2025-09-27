@@ -8,6 +8,7 @@
 mod debug;
 mod definitions;
 mod initialization;
+mod loader;
 mod mechanics;
 mod passage;
 mod plugin;
@@ -21,6 +22,9 @@ mod tests;
 
 // Public exports (controlled API surface)
 pub use plugin::LawPlugin;
+
+// Data-driven law loading (new feature)
+pub use loader::{LawLoaderPlugin, LoadedLaws, LawDefinitionAsset};
 
 // Re-export types through gateway
 pub use types::{

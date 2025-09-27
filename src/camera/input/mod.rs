@@ -9,5 +9,5 @@ mod mouse;
 
 // Public exports for use by camera plugin
 pub use edge_pan::handle_edge_panning;
-pub use keyboard::{handle_camera_reset, handle_keyboard_movement};
+pub use keyboard::{handle_camera_shortcuts, handle_keyboard_movement};
 pub use mouse::{handle_mouse_drag, handle_mouse_wheel_zoom};
