@@ -8,7 +8,7 @@ use crate::modding::ui::state::ModBrowserState;
 use crate::modding::ui::tabs::spawn_tab_content;
 use crate::modding::ui::types::{ContentArea, SearchInputMarker};
 use bevy::prelude::*;
-use bevy_simple_text_input::{TextInputSubmitEvent, TextInputValue};
+use crate::ui::{TextInputSubmitEvent, TextInputValue};
 
 /// Handles search input changes in real-time
 pub fn handle_search_input_changes(
@@ -28,7 +28,7 @@ pub fn handle_search_input_changes(
 
             // Rebuild content with filtered mods
             for entity in &content_query {
-                commands.entity(entity).despawn_descendants();
+                commands.entity(entity).despawn_recursive();
                 commands.entity(entity).with_children(|parent| {
                     spawn_tab_content(
                         parent,

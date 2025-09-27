@@ -10,7 +10,6 @@ use super::types::{
 };
 use bevy::prelude::*;
 use bevy_plugin_builder::define_plugin;
-use bevy_simple_text_input::TextInputPlugin;
 
 define_plugin!(ModBrowserUIPlugin {
     resources: [ModBrowserState, WorkshopCache],
@@ -21,8 +20,6 @@ define_plugin!(ModBrowserUIPlugin {
         ApplyModChangesEvent,
         SwitchModTabEvent
     ],
-
-    plugins: [TextInputPlugin],
 
     update: [
         // Browser management
@@ -41,7 +38,8 @@ define_plugin!(ModBrowserUIPlugin {
         handlers::handle_apply_changes,
 
         // Search
-        handlers::handle_search_input_changes,
-        handlers::handle_search_submit
+        handlers::handle_search_input_changes
+        // handle_search_submit removed - bevy-ui-builders handles text input natively
+        // handlers::handle_search_submit
     ]
 });

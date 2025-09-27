@@ -1,20 +1,23 @@
 //! Main UI plugin implementation
 
 use super::{
-    buttons, components::ProgressBarPlugin, dialogs, hud, law_browser, loading, nation_info, overlay_display,
-    performance_dashboard, sliders, text_inputs, tile_info,
+    hud, law_browser, loading, nation_info, nation_laws_panel,
+    overlay_display, performance_dashboard, tile_info,
 };
 use bevy_plugin_builder::define_plugin;
+use bevy_ui_builders::UiBuilderPlugin;
 
 // The main UI plugin orchestrator
 define_plugin!(UIPlugin {
+    events: [
+        super::TextInputSubmitEvent
+    ],
+
     plugins: [
-        buttons::ButtonPlugin,
-        dialogs::DialogPlugin,
-        text_inputs::TextInputPlugin,
+        // Core UI builders from bevy-ui-builders
+        UiBuilderPlugin,
+        // Game-specific UI plugins
         loading::LoadingIndicatorPlugin,
-        sliders::SliderPlugin,
-        ProgressBarPlugin,
         hud::HudPlugin,
         overlay_display::OverlayDisplayPlugin,
         tile_info::TileInfoPlugin,

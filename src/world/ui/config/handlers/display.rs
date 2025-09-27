@@ -6,7 +6,7 @@ use super::super::components::*;
 use super::super::types::WorldGenerationSettings;
 use crate::resources::WorldSize;
 use bevy::prelude::*;
-use bevy_simple_text_input::TextInputValue;
+use crate::ui::TextInputValue;
 
 pub fn update_seed_display(
     settings: Res<WorldGenerationSettings>,

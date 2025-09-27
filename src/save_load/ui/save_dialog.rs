@@ -9,7 +9,7 @@ use crate::resources::{WorldName, WorldSeed};
 use crate::ui::{colors, helpers, TextInputBuilder};
 use crate::ui::{ButtonBuilder, ButtonSize, ButtonStyle, PanelBuilder, PanelStyle};
 use bevy::prelude::*;
-use bevy_simple_text_input::TextInputValue;
+use crate::ui::TextInputValue;
 use chrono::Local;
 
 /// Handle opening the save dialog
@@ -129,7 +129,7 @@ pub fn handle_open_save_dialog(
 
                                     // Use our TextInputBuilder
                                     TextInputBuilder::new()
-                                        .with_value(default_name)
+                                        
                                         .with_placeholder("Enter save name...")
                                         .with_width(Val::Px(850.0))
                                         .with_font_size(18.0)
@@ -145,17 +145,17 @@ pub fn handle_open_save_dialog(
                                 .justify_content(JustifyContent::Center)
                                 .column_gap(Val::Px(20.0))
                                 .build_with_children(parent, |buttons| {
-                                    ButtonBuilder::new("Save Game")
+                                    let button = ButtonBuilder::new("Save Game")
                                         .style(ButtonStyle::Primary)
                                         .size(ButtonSize::Large)
-                                        .with_marker(SaveDialogConfirmButton)
                                         .build(buttons);
+                                    buttons.commands().entity(button).insert(SaveDialogConfirmButton);
 
-                                    ButtonBuilder::new("Cancel")
+                                    let button = ButtonBuilder::new("Cancel")
                                         .style(ButtonStyle::Secondary)
                                         .size(ButtonSize::Large)
-                                        .with_marker(SaveDialogCancelButton)
                                         .build(buttons);
+                                    buttons.commands().entity(button).insert(SaveDialogCancelButton);
                                 });
                         });
                 });

@@ -10,8 +10,6 @@ use bevy::prelude::ChildSpawnerCommands;
 pub type ChildBuilder<'a> = ChildSpawnerCommands<'a>;
 
 // PRIVATE MODULES - All implementation hidden
-mod builder_extensions; // Compatibility layer for with_marker functionality
-mod builders;          // Convenience functions
 mod cleanup;           // Generic cleanup utilities
 mod dialogs;           // Game-specific dialogs
 mod hud;               // Heads-up display
@@ -81,8 +79,8 @@ pub use tile_info::{TileInfoPanel, TileInfoText};
 // Builder components and types - NOW FROM EXTERNAL CRATE!
 // Re-export from bevy-ui-builders for compatibility
 pub use bevy_ui_builders::{
-    // Button system - ButtonBuilder replaced with wrapper for with_marker support
-    ButtonSize, ButtonStyle, StyledButton,
+    // Button system - now with native with_marker support in v0.1.4!
+    ButtonBuilder, ButtonSize, ButtonStyle, StyledButton,
     // Dialog system
     DialogBuilder, DialogType,
     // Label system
@@ -101,14 +99,15 @@ pub use bevy_ui_builders::{
     FormBuilder, FieldType, ValidationRule,
     // Cleanup utilities
     despawn_ui_entities,
+    // Convenience functions
+    primary_button, secondary_button, danger_button, ghost_button,
+    label, panel, progress, separator,
 };
 
 // Keep local-only components for now
 pub use dialogs::DialogOverlay;
 pub use loading::{LoadingIndicatorBuilder, LoadingSize, LoadingStyle};
 
-// Compatibility wrappers for with_marker functionality
-pub use builder_extensions::ButtonBuilder;
 
 // CountdownText comes from dialogs module, not components
 pub use dialogs::CountdownText;
@@ -117,8 +116,7 @@ pub use dialogs::CountdownText;
 pub use dialogs::presets as dialog_presets;
 pub use tips::get_random_tip;
 
-// Convenience functions now come from bevy-ui-builders
-// The slider and text_input functions are available through the crate
+// Convenience functions now come directly from bevy-ui-builders v0.1.4
 
 // Generic cleanup system (despawn_ui_entities comes from bevy-ui-builders)
 pub use cleanup::despawn_entities;
@@ -131,3 +129,16 @@ pub use nation_laws_panel::{NationLawsPanelPlugin, NationLawsPanelState};
 
 // Main plugin (implementation in plugin.rs)
 pub use plugin::UIPlugin;
+
+// Text input components - bevy-ui-builders now handles text input natively
+// These are compatibility wrappers for the previous bevy_simple_text_input API
+use bevy::prelude::{Component, Entity, Event};
+
+#[derive(Component, Debug, Clone, Default)]
+pub struct TextInputValue(pub String);
+
+#[derive(Event, Debug, Clone)]
+pub struct TextInputSubmitEvent {
+    pub entity: Entity,
+    pub value: String,
+}

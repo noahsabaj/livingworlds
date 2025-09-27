@@ -6,11 +6,11 @@ use super::super::components::*;
 use super::super::types::WorldGenerationSettings;
 use crate::name_generator::{NameGenerator, NameType};
 use bevy::prelude::*;
-use bevy_simple_text_input::{TextInputSubmitEvent, TextInputValue};
+use crate::ui::TextInputValue;
 use rand::Rng;
 
 pub fn handle_text_input_changes(
-    mut name_events: EventReader<TextInputSubmitEvent>,
+    // Submit events handled internally by bevy-ui-builders
     mut settings: ResMut<WorldGenerationSettings>,
     name_inputs: Query<&TextInputValue, (With<WorldNameInput>, Changed<TextInputValue>)>,
     seed_inputs: Query<
@@ -34,20 +34,6 @@ pub fn handle_text_input_changes(
             if let Ok(seed) = value.0.parse::<u32>() {
                 settings.seed = seed;
                 debug!("Seed changed to: {}", settings.seed);
-            }
-        }
-    }
-
-    // Also handle submit events
-    for event in name_events.read() {
-        if let Ok(value) = name_inputs.get(event.entity) {
-            settings.world_name = value.0.clone();
-            debug!("World name submitted: {}", settings.world_name);
-        }
-        if let Ok(value) = seed_inputs.get(event.entity) {
-            if let Ok(seed) = value.0.parse::<u32>() {
-                settings.seed = seed;
-                debug!("Seed submitted: {}", settings.seed);
             }
         }
     }
