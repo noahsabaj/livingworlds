@@ -9,7 +9,7 @@ use super::minerals::{
 };
 use super::terrain::get_terrain_color;
 use super::utils::position_hash;
-use crate::components::MineralType;
+use crate::world::MineralType;
 use crate::world::TerrainType;
 use bevy::prelude::{Color, Vec2};
 

@@ -4,7 +4,7 @@
 //! Provinces represent individual hexagonal tiles in the game world.
 
 use super::super::terrain::TerrainType;
-use crate::components::MineralType;
+use crate::world::MineralType;
 use crate::constants::PROVINCE_MIN_POPULATION;
 use crate::name_generator::Culture;
 use crate::nations::NationId;

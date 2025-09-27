@@ -54,7 +54,7 @@ impl MapMode {
 
     /// Get the mineral type if this is a mineral mode
     /// Returns None for unified Minerals mode as it shows all minerals combined
-    pub fn get_mineral_type(&self) -> Option<crate::components::MineralType> {
+    pub fn get_mineral_type(&self) -> Option<crate::world::MineralType> {
         // Unified Minerals mode shows all minerals combined, so no specific type
         None
     }

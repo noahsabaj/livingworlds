@@ -28,7 +28,7 @@ define_plugin!(SaveLoadPlugin {
 
     reflect: [
         crate::world::Province,
-        crate::components::MineralType,
+        crate::world::MineralType,
         crate::world::TerrainType,
         crate::resources::WorldSeed,
         crate::resources::WorldSize,

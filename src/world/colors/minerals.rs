@@ -5,7 +5,7 @@
 
 use super::theme;
 use super::utils::StoneAbundance;
-use crate::components::MineralType;
+use crate::world::MineralType;
 use crate::math::lerp_color;
 use bevy::prelude::Color;
 

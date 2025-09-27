@@ -1,7 +1,7 @@
 //! Mineral legend display for resource overlays
 
 use super::super::{ChildBuilder, LabelBuilder, PanelBuilder, PanelStyle};
-use crate::components::MineralType;
+use crate::world::MineralType;
 use crate::resources::MapMode;
 use crate::ui::colors;
 use bevy::prelude::*;

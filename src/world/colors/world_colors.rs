@@ -3,7 +3,7 @@
 //! This module contains the WorldColors struct which provides
 //! the primary interface for obtaining colors throughout the game.
 
-use crate::components::MineralType;
+use crate::world::MineralType;
 use crate::math::{lerp_color, weighted_blend_colors};
 use crate::resources::{GameTime, WeatherSystem};
 use crate::world::TerrainType;

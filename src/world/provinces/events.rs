@@ -4,7 +4,7 @@
 //! Instead of polling dirty flags, systems can react to specific change events,
 //! improving performance and enabling better debugging and replay capabilities.
 
-use crate::components::MineralType;
+use crate::world::MineralType;
 use crate::world::TerrainType;
 use crate::world::{Abundance, Agriculture, Distance, ProvinceId};
 use bevy::prelude::*;

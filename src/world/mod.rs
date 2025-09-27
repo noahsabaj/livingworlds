@@ -39,7 +39,6 @@ mod events; // World events
 mod generation; // World generation orchestrator
 mod plugin; // Main world plugin (Bevy integration)
 mod setup; // World setup and generation systems
-mod simulation; // Simulation events
 mod systems; // World systems
 mod ui; // World configuration UI
 
@@ -69,6 +68,10 @@ pub use provinces::{
     calculate_agriculture_values, calculate_ocean_depths, Abundance, Agriculture, Distance,
     Elevation, HexDirection, Province, ProvinceBuilder, ProvinceEntity, ProvinceId,
     ProvincesSpatialIndex, WorldBounds,
+    // Province events (moved from simulation module)
+    ProvincePopulationChanged, ProvinceTerrainChanged, ProvinceOwnershipChanged,
+    ProvinceInfrastructureChanged, ProvinceMineralDiscovered, ProvinceAgriculturalEvent,
+    ProvinceDevelopmentChanged,
 };
 
 // === Rivers Feature ===
@@ -110,9 +113,6 @@ pub use gpu::{
     GpuComputeStatus, GpuErosionParams, GpuNoiseParams, GpuProvinceData, NoiseComputePlugin,
     NoiseComputeSettings,
 };
-
-// === World Simulation ===
-pub use simulation::*; // Events and simulation systems
 
 // === Bevy Plugin and Events ===
 pub use events::{ProvinceSelectedEvent, WorldGeneratedEvent};
