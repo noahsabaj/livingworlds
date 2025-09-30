@@ -6,32 +6,32 @@ use super::super::components::*;
 use super::super::types::WorldGenerationSettings;
 use crate::name_generator::{NameGenerator, NameType};
 use bevy::prelude::*;
-use crate::ui::TextInputValue;
+use crate::ui::TextBuffer;
 use rand::Rng;
 
 pub fn handle_text_input_changes(
     // Submit events handled internally by bevy-ui-builders
     mut settings: ResMut<WorldGenerationSettings>,
-    name_inputs: Query<&TextInputValue, (With<WorldNameInput>, Changed<TextInputValue>)>,
+    name_inputs: Query<&TextBuffer, (With<WorldNameInput>, Changed<TextBuffer>)>,
     seed_inputs: Query<
-        &TextInputValue,
+        &TextBuffer,
         (
             With<SeedInput>,
             Without<WorldNameInput>,
-            Changed<TextInputValue>,
+            Changed<TextBuffer>,
         ),
     >,
 ) {
-    for value in &name_inputs {
-        if !value.0.is_empty() {
-            settings.world_name = value.0.clone();
+    for buffer in &name_inputs {
+        if !buffer.content.is_empty() {
+            settings.world_name = buffer.content.clone();
             debug!("World name changed to: {}", settings.world_name);
         }
     }
 
-    for value in &seed_inputs {
-        if !value.0.is_empty() {
-            if let Ok(seed) = value.0.parse::<u32>() {
+    for buffer in &seed_inputs {
+        if !buffer.content.is_empty() {
+            if let Ok(seed) = buffer.content.parse::<u32>() {
                 settings.seed = seed;
                 debug!("Seed changed to: {}", settings.seed);
             }
@@ -50,16 +50,16 @@ pub fn handle_random_buttons(
         ),
     >,
     mut settings: ResMut<WorldGenerationSettings>,
-    mut name_inputs: Query<&mut TextInputValue, With<WorldNameInput>>,
-    mut seed_inputs: Query<&mut TextInputValue, (With<SeedInput>, Without<WorldNameInput>)>,
+    mut name_inputs: Query<&mut TextBuffer, With<WorldNameInput>>,
+    mut seed_inputs: Query<&mut TextBuffer, (With<SeedInput>, Without<WorldNameInput>)>,
 ) {
     // Random name button
     for interaction in &name_interactions {
         if *interaction == Interaction::Pressed {
             let mut name_gen = NameGenerator::new();
             settings.world_name = name_gen.generate(NameType::World);
-            for mut input_value in &mut name_inputs {
-                input_value.0 = settings.world_name.clone();
+            for mut text_buffer in &mut name_inputs {
+                text_buffer.content = settings.world_name.clone();
             }
             debug!("Generated random name: {}", settings.world_name);
         }
@@ -69,8 +69,8 @@ pub fn handle_random_buttons(
     for interaction in &seed_interactions {
         if *interaction == Interaction::Pressed {
             settings.seed = rand::thread_rng().r#gen();
-            for mut input_value in &mut seed_inputs {
-                input_value.0 = settings.seed.to_string();
+            for mut text_buffer in &mut seed_inputs {
+                text_buffer.content = settings.seed.to_string();
             }
             debug!("Generated random seed: {}", settings.seed);
         }

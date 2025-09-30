@@ -9,7 +9,7 @@ use crate::resources::{WorldName, WorldSeed};
 use crate::ui::{colors, helpers, TextInputBuilder};
 use crate::ui::{ButtonBuilder, ButtonSize, ButtonStyle, PanelBuilder, PanelStyle};
 use bevy::prelude::*;
-use crate::ui::TextInputValue;
+use crate::ui::TextBuffer;
 use chrono::Local;
 
 /// Handle opening the save dialog
@@ -193,13 +193,13 @@ pub fn handle_save_dialog_interactions(
     >,
     mut save_events: EventWriter<SaveGameEvent>,
     mut close_events: EventWriter<CloseSaveDialogEvent>,
-    save_name_query: Query<&TextInputValue, With<SaveNameInput>>,
+    save_name_query: Query<&TextBuffer, With<SaveNameInput>>,
 ) {
     for (interaction, (confirm, cancel)) in &mut interactions {
         if *interaction == Interaction::Pressed {
             if confirm.is_some() {
                 if let Ok(save_name_value) = save_name_query.single() {
-                    let save_name = save_name_value.0.trim();
+                    let save_name = save_name_value.content.trim();
                     if !save_name.is_empty() {
                         // Trigger save
                         save_events.write(SaveGameEvent {

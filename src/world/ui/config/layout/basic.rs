@@ -37,7 +37,7 @@ pub fn spawn_world_name_section(parent: &mut ChildSpawnerCommands, world_name: &
                 .build_with_children(section, |row| {
                     // Use our text input builder
                     text_input()
-                        
+                        .with_value(world_name)
                         .with_font_size(18.0)
                         .with_width(Val::Px(300.0))
                         .with_padding(UiRect::horizontal(Val::Px(15.0)))
@@ -219,6 +219,7 @@ pub fn spawn_seed_section(parent: &mut ChildSpawnerCommands, seed: u32) {
         )).with_children(|row| {
             // Use our text input builder
             text_input()
+                .with_value(&seed.to_string())
                 .with_font_size(18.0)
                 .with_width(Val::Px(250.0))
                 .with_padding(UiRect::horizontal(Val::Px(15.0)))

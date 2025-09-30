@@ -142,6 +142,9 @@ pub use bevy_ui_builders::{
     label, panel, progress, separator,
 };
 
+// TextBuffer is in a nested module, needs separate import
+pub use bevy_ui_builders::text_input::native_input::TextBuffer;
+
 // Keep local-only components for now
 pub use dialogs::DialogOverlay;
 pub use loading::{LoadingIndicatorBuilder, LoadingSize, LoadingStyle};
@@ -177,11 +180,7 @@ pub use nation_laws_panel::{NationLawsPanelPlugin, NationLawsPanelState};
 pub use plugin::UIPlugin;
 
 // Text input components - bevy-ui-builders now handles text input natively
-// These are compatibility wrappers for the previous bevy_simple_text_input API
-use bevy::prelude::{Component, Entity, Event};
-
-#[derive(Component, Debug, Clone, Default)]
-pub struct TextInputValue(pub String);
+use bevy::prelude::{Entity, Event};
 
 #[derive(Event, Debug, Clone)]
 pub struct TextInputSubmitEvent {

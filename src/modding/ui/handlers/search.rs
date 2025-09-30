@@ -8,18 +8,18 @@ use crate::modding::ui::state::ModBrowserState;
 use crate::modding::ui::tabs::spawn_tab_content;
 use crate::modding::ui::types::{ContentArea, SearchInputMarker};
 use bevy::prelude::*;
-use crate::ui::{TextInputSubmitEvent, TextInputValue};
+use crate::ui::{TextInputSubmitEvent, TextBuffer};
 
 /// Handles search input changes in real-time
 pub fn handle_search_input_changes(
     mut commands: Commands,
     mut browser_state: ResMut<ModBrowserState>,
-    search_inputs: Query<&TextInputValue, (Changed<TextInputValue>, With<SearchInputMarker>)>,
+    search_inputs: Query<&TextBuffer, (Changed<TextBuffer>, With<SearchInputMarker>)>,
     content_query: Query<Entity, With<ContentArea>>,
     mod_manager: Res<ModManager>,
 ) {
     for text_value in &search_inputs {
-        let new_query = text_value.0.clone();
+        let new_query = text_value.content.clone();
 
         // Only update if search query actually changed
         if browser_state.search_query != new_query {
@@ -45,13 +45,13 @@ pub fn handle_search_input_changes(
 /// Handles search submit events (Enter key)
 pub fn handle_search_submit(
     mut submit_events: EventReader<TextInputSubmitEvent>,
-    text_inputs: Query<&TextInputValue>,
+    text_inputs: Query<&TextBuffer>,
     _browser_state: Res<ModBrowserState>,
 ) {
     for event in submit_events.read() {
         if let Ok(text_value) = text_inputs.get(event.entity) {
             // For now, just log the search submission
-            debug!("Search submitted: {}", text_value.0);
+            debug!("Search submitted: {}", text_value.content);
 
             // Future: This could trigger more advanced search operations
             // like searching the Steam Workshop API or applying

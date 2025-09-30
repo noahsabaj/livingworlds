@@ -6,17 +6,16 @@ use super::super::components::*;
 use super::super::types::WorldGenerationSettings;
 use crate::resources::WorldSize;
 use bevy::prelude::*;
-use crate::ui::TextInputValue;
+use crate::ui::TextBuffer;
 
 pub fn update_seed_display(
     settings: Res<WorldGenerationSettings>,
-    mut seed_text: Query<(&mut Text, &mut TextInputValue), With<SeedInput>>,
+    mut seed_text: Query<&mut TextBuffer, With<SeedInput>>,
     mut time_estimate: Query<&mut Text, (With<GenerationTimeEstimate>, Without<SeedInput>)>,
 ) {
     if settings.is_changed() {
-        for (mut text, mut input_value) in &mut seed_text {
-            text.0 = settings.seed.to_string();
-            input_value.0 = settings.seed.to_string();
+        for mut text_buffer in &mut seed_text {
+            text_buffer.content = settings.seed.to_string();
         }
 
         if let Ok(mut estimate_text) = time_estimate.single_mut() {
