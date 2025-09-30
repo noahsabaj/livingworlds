@@ -23,7 +23,9 @@ impl NationId {
 }
 
 /// A political entity that controls territory and has a ruling house
-#[derive(Debug, Clone, Component, Serialize, Deserialize, Reflect)]
+///
+/// Uses Bevy 0.16 Component Hooks for automatic cache cleanup when removed
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct Nation {
     pub id: NationId,
     pub name: String,
@@ -40,6 +42,42 @@ pub struct Nation {
 
     // Personality for AI decisions
     pub personality: NationPersonality,
+}
+
+// Manual Component implementation to register lifecycle hooks (Bevy 0.16)
+impl Component for Nation {
+    const STORAGE_TYPE: bevy::ecs::component::StorageType = bevy::ecs::component::StorageType::Table;
+    type Mutability = bevy::ecs::component::Mutable;
+
+    fn on_remove() -> Option<bevy::ecs::component::ComponentHook> {
+        Some(|mut world, bevy::ecs::component::HookContext { entity, .. }| {
+            // Get the nation ID before it's removed
+            if let Some(nation) = world.get::<Nation>(entity) {
+                let nation_id = nation.id;
+                let nation_name = nation.name.clone();
+
+                info!("Nation '{}' (ID {}) removed - cleaning up caches", nation_name, nation_id.value());
+
+                // Clean up territory metrics cache
+                let mut cache = world.resource_mut::<super::territory_analysis::TerritoryMetricsCache>();
+                cache.invalidate_nation(nation_id);
+                debug!("  ✓ Invalidated territory metrics for {}", nation_name);
+
+                // Clean up ownership cache (will be rebuilt on next frame if needed)
+                let mut ownership = world.resource_mut::<ProvinceOwnershipCache>();
+                ownership.by_nation.remove(&nation_id);
+                ownership.version += 1;
+                debug!("  ✓ Removed ownership records for {}", nation_name);
+
+                // Clean up color registry
+                let mut colors = world.resource_mut::<NationColorRegistry>();
+                colors.colors.remove(&nation_id);
+                debug!("  ✓ Removed color mapping for {}", nation_name);
+
+                debug!("Nation cleanup complete for '{}'", nation_name);
+            }
+        })
+    }
 }
 
 /// Personality traits that drive nation behavior

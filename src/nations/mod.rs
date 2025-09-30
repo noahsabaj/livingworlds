@@ -26,8 +26,13 @@ mod integration_tests;
 mod property_tests;
 
 pub use actions::{
+    // Resolution systems - decide what to do
     handle_economic_pressure, handle_legitimacy_pressure, handle_military_pressure,
-    handle_population_pressure, NationAction, NationActionEvent, resolve_nation_actions,
+    handle_population_pressure, resolve_nation_actions,
+    // Execution systems - actually do it (with reactive cache invalidation!)
+    execute_expansion_events,
+    // Events and types
+    NationAction, NationActionEvent, ReformType, PublicWorkType, ActionType,
 };
 pub use errors::{
     NationError, NationResult, TransitionError, LawError, TerritoryError,

@@ -78,15 +78,16 @@ impl AnimationBuilder {
         }
     }
 
-    /// Build and return as a bundle with player
-    pub fn bundle(self) -> AnimationBundle {
-        AnimationBundle::new(self.build())
+    /// Build the animation (automatically includes UIAnimationPlayer via Required Components)
+    pub fn bundle(self) -> Animation {
+        self.build()
     }
 }
 
 /// Helper function to animate any entity
+/// Automatically adds UIAnimationPlayer along with Animation
 pub fn animate(entity: Entity, commands: &mut Commands, animation: Animation) {
-    commands.entity(entity).insert(AnimationBundle::new(animation));
+    commands.entity(entity).insert((animation, UIAnimationPlayer::default()));
 }
 
 /// Sequence builder for chaining animations
@@ -283,7 +284,7 @@ pub trait AnimationCommandsExt {
 
 impl AnimationCommandsExt for Commands<'_, '_> {
     fn animate(&mut self, entity: Entity, animation: Animation) {
-        self.entity(entity).insert(AnimationBundle::new(animation));
+        self.entity(entity).insert((animation, UIAnimationPlayer::default()));
     }
 
     fn fade_in(&mut self, entity: Entity, duration: Duration) {

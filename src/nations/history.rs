@@ -284,6 +284,12 @@ pub enum HistoricalEvent {
         province_name: String,
         reason: LossReason,
     },
+    TerritorialExpansion {
+        year: u32,
+        provinces_gained: u32,
+        pressure_level: f32,
+        method: AcquisitionMethod,
+    },
     EconomicCrisis {
         year: u32,
         severity: f32,

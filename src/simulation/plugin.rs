@@ -40,7 +40,9 @@ define_plugin!(SimulationPlugin {
         super::history_update::track_battle_outcomes.run_if(in_state(GameState::InGame)),
         super::history_update::track_war_status.run_if(in_state(GameState::InGame)),
         // PERFORMANCE: Pressure systems run periodically, not every frame!
-        run_pressure_systems_on_timer.run_if(in_state(GameState::InGame))
+        run_pressure_systems_on_timer.run_if(in_state(GameState::InGame)),
+        // ACTION RESOLUTION: Nations analyze pressures and decide what to do
+        crate::nations::resolve_nation_actions.run_if(in_state(GameState::InGame))
     ],
 
     on_enter: {

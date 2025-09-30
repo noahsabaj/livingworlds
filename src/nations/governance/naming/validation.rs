@@ -115,6 +115,7 @@ fn contains_monarchical_terms(name: &str) -> bool {
 ///
 /// This is a more aggressive version of strip_government_structures that
 /// removes ANY government-related words, not just structural patterns.
+/// Also removes semantic equivalents to prevent redundancy.
 pub fn clean_nation_name(name: &str) -> String {
     let mut result = name.to_string();
 
@@ -124,17 +125,21 @@ pub fn clean_nation_name(name: &str) -> String {
         "Royal", "Imperial", "Noble", "Grand", "Supreme", "Sovereign",
         "Majestic", "Glorious", "Eternal", "Ancient", "Holy", "Sacred",
         "Divine", "Blessed",
-        
+
         // Political structures
         "Democratic", "Parliamentary", "Constitutional", "Federal",
         "United", "Allied", "Confederate", "Free", "Independent",
         "Autonomous", "Socialist", "Communist", "Anarchist",
-        
+
         // Government types
         "Kingdom", "Empire", "Republic", "Federation", "Union",
         "State", "Commonwealth", "Dominion", "Territory", "Province",
         "Duchy", "Principality", "Sultanate", "Caliphate", "Realm",
         "Monarchy", "Democracy", "Theocracy", "Oligarchy",
+
+        // Economic/Political terms (NEW - prevent redundancy)
+        "Trade", "Merchant", "Commercial", "Trading",
+        "Workers'", "People's", "Revolutionary",
     ];
 
     // Remove each word (case-insensitive)
@@ -157,4 +162,37 @@ pub fn clean_nation_name(name: &str) -> String {
     }
 
     result.trim().to_string()
+}
+
+/// Check for semantic redundancy in nation names
+///
+/// This function detects cases where the same concept appears twice
+/// (e.g., "Merchant Republic of Trade Valencia")
+pub fn check_semantic_redundancy(name: &str) -> Option<String> {
+    let name_lower = name.to_lowercase();
+
+    // Semantic groups - terms that mean similar things
+    let redundancy_patterns = vec![
+        ("merchant", vec!["trade", "trading", "commercial"]),
+        ("holy", vec!["sacred", "divine", "blessed"]),
+        ("imperial", vec!["empire", "emperor"]),
+        ("royal", vec!["king", "queen", "kingdom"]),
+        ("socialist", vec!["workers'", "people's"]),
+        ("democratic", vec!["free", "liberal"]),
+    ];
+
+    for (base_term, equivalents) in redundancy_patterns {
+        if name_lower.contains(base_term) {
+            for equivalent in equivalents {
+                if name_lower.contains(equivalent) {
+                    return Some(format!(
+                        "Semantic redundancy detected: '{}' and '{}' both appear in name",
+                        base_term, equivalent
+                    ));
+                }
+            }
+        }
+    }
+
+    None
 }

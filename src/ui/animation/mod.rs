@@ -35,7 +35,7 @@ pub use types::{
 // Components
 pub use components::{
     Animation, UIAnimationPlayer, AnimationSequence,
-    AnimationComplete, AnimationBundle, EasingFunction,
+    AnimationComplete, EasingFunction,
 };
 
 // Systems (for advanced users who want custom scheduling)

@@ -200,7 +200,8 @@ pub fn process_animation_sequences(
         // Check if we need to start the first animation
         if let Some(animation) = sequence.current_animation() {
             let animation = animation.clone();
-            commands.entity(entity).insert(AnimationBundle::new(animation));
+            // Add both Animation and UIAnimationPlayer
+            commands.entity(entity).insert((animation, UIAnimationPlayer::default()));
         }
     }
 }
@@ -212,7 +213,7 @@ pub fn advance_animation_sequences(
 ) {
     for (entity, mut sequence, animation) in &mut sequence_query {
         if animation.state == AnimationState::Completed {
-            // Remove current animation
+            // Remove current animation and player
             commands.entity(entity)
                 .remove::<Animation>()
                 .remove::<UIAnimationPlayer>()
@@ -222,7 +223,8 @@ pub fn advance_animation_sequences(
             if sequence.advance() {
                 if let Some(next_animation) = sequence.current_animation() {
                     let next_animation = next_animation.clone();
-                    commands.entity(entity).insert(AnimationBundle::new(next_animation));
+                    // Add both Animation and UIAnimationPlayer
+                    commands.entity(entity).insert((next_animation, UIAnimationPlayer::default()));
                 }
             } else {
                 // Sequence complete, remove it

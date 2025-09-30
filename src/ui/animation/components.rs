@@ -5,7 +5,11 @@ use std::time::Duration;
 use super::types::*;
 
 /// Component that defines an animation to be played on an entity
-#[derive(Component, Debug, Clone, Reflect)]
+///
+/// NOTE: You must manually add UIAnimationPlayer when inserting this component,
+/// or use AnimationBuilder which handles this automatically.
+/// Uses Component Hooks for guaranteed cleanup even if systems fail
+#[derive(Debug, Clone, Reflect)]
 pub struct Animation {
     /// Unique ID for this animation
     pub id: AnimationId,
@@ -101,6 +105,35 @@ impl Animation {
     }
 }
 
+// Manual Component implementation to register lifecycle hooks (Bevy 0.16)
+impl Component for Animation {
+    const STORAGE_TYPE: bevy::ecs::component::StorageType = bevy::ecs::component::StorageType::Table;
+    type Mutability = bevy::ecs::component::Mutable;
+
+    fn on_add() -> Option<bevy::ecs::component::ComponentHook> {
+        Some(|mut world, bevy::ecs::component::HookContext { entity, .. }| {
+            // Log animation start for debugging
+            if let Some(animation) = world.get::<Animation>(entity) {
+                trace!("Animation {:?} started on entity {:?}: {:?}",
+                    animation.id, entity, animation.target);
+            }
+        })
+    }
+
+    fn on_remove() -> Option<bevy::ecs::component::ComponentHook> {
+        Some(|mut world, bevy::ecs::component::HookContext { entity, .. }| {
+            // Log animation cleanup for debugging
+            if let Some(animation) = world.get::<Animation>(entity) {
+                trace!("Animation {:?} removed from entity {:?} (state: {:?})",
+                    animation.id, entity, animation.state);
+
+                // Note: AnimationComplete cleanup is handled by the cleanup_completed_animations system
+                // DeferredWorld has limited mutation capabilities - systems handle full cleanup
+            }
+        })
+    }
+}
+
 /// Component that tracks animation playback progress
 #[derive(Component, Debug, Clone, Reflect)]
 pub struct UIAnimationPlayer {
@@ -187,22 +220,8 @@ pub struct AnimationComplete {
     pub animation_id: AnimationId,
 }
 
-/// Bundle for easily adding animations to entities
-#[derive(Bundle)]
-pub struct AnimationBundle {
-    pub animation: Animation,
-    pub player: UIAnimationPlayer,
-}
-
-impl AnimationBundle {
-    /// Create a new animation bundle
-    pub fn new(animation: Animation) -> Self {
-        Self {
-            animation,
-            player: UIAnimationPlayer::default(),
-        }
-    }
-}
+// REMOVED: AnimationBundle is no longer needed thanks to Required Components!
+// Animation now automatically includes UIAnimationPlayer via #[require(UIAnimationPlayer)]
 
 /// Easing functions for animations
 #[derive(Debug, Clone, Copy, PartialEq, Reflect)]

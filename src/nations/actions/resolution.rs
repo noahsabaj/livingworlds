@@ -7,7 +7,7 @@ use bevy::prelude::*;
 use crate::diagnostics::{log_nation_decision, log_nation_state_change};
 use crate::simulation::{PressureType, PressureLevel};
 use crate::world::{ProvinceId, ProvinceStorage};
-use super::{Nation, NationId, NationHistory};
+use crate::nations::{Nation, NationId, NationHistory};
 
 /// Actions that nations can take to relieve pressures
 #[derive(Debug, Clone, Event)]
@@ -444,13 +444,59 @@ fn calculate_expansion_desire(
 }
 
 /// Find suitable provinces for expansion
+/// Returns unclaimed land provinces adjacent to nation's current territory
 fn find_expansion_targets(
     nation: &Nation,
     province_storage: &ProvinceStorage,
 ) -> Vec<ProvinceId> {
-    // TODO: Implement proper neighbor finding and target selection
-    // For now, return empty vector
-    Vec::new()
+    use std::collections::HashSet;
+    use crate::world::TerrainType;
+
+    // Get all provinces owned by this nation
+    let owned_provinces: Vec<&crate::world::Province> = province_storage.provinces.iter()
+        .filter(|p| p.owner == Some(nation.id))
+        .collect();
+
+    if owned_provinces.is_empty() {
+        debug!("{}: No owned provinces found for expansion", nation.name);
+        return Vec::new();
+    }
+
+    // Find all unclaimed neighbors of our provinces
+    let mut potential_targets = HashSet::new();
+
+    for province in owned_provinces.iter() {
+        // Check all 6 hexagonal neighbors
+        for neighbor_id_opt in &province.neighbors {
+            if let Some(neighbor_id) = neighbor_id_opt {
+                if let Some(neighbor) = province_storage.provinces.get(neighbor_id.value() as usize) {
+                    // Target unclaimed land provinces only (not ocean/river, not owned by anyone)
+                    if neighbor.owner.is_none() &&
+                       !matches!(neighbor.terrain, TerrainType::Ocean | TerrainType::River) {
+                        potential_targets.insert(*neighbor_id);
+                    }
+                }
+            }
+        }
+    }
+
+    if potential_targets.is_empty() {
+        debug!("{}: No expansion targets available (surrounded by ocean/owned land)", nation.name);
+        return Vec::new();
+    }
+
+    // Limit expansion rate based on nation size (5-15 provinces per attempt)
+    let owned_count = owned_provinces.len();
+    let max_expansion = (owned_count / 10).clamp(5, 15);
+
+    let targets: Vec<ProvinceId> = potential_targets.into_iter()
+        .take(max_expansion)
+        .collect();
+
+    debug!("{}: Found {} expansion targets (owns {} provinces, max expansion {})",
+           nation.name, targets.len(), owned_count, max_expansion);
+
+    targets
 }
 
 /// Choose appropriate reform type based on nation state

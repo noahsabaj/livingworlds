@@ -22,75 +22,78 @@ pub struct NameComponents {
 
 impl NameComponents {
     /// Get components for a specific government and culture combination
+    ///
+    /// CRITICAL: Descriptors must be NON-POLITICAL to avoid redundancy with government structure terms.
+    /// Use geographic, historical, and size-based descriptors only.
     pub fn for_government(government: &GovernmentType, culture: Culture) -> Self {
         match government {
-            // Authoritarian governments: strong, military descriptors
+            // Authoritarian governments: strong, geographic descriptors (NOT political terms)
             GovernmentType::MilitaryJunta |
             GovernmentType::PoliceState |
             GovernmentType::FascistState |
             GovernmentType::TotalitarianRegime |
             GovernmentType::Stratocracy => Self {
                 places: Self::get_culture_places(culture),
-                descriptors: vec!["Iron", "Steel", "Strong", "Unified", "Central", "National"],
+                descriptors: vec!["Iron", "Steel", "United", "Central", "Greater", "Northern"],
                 structures: vec![], // No structures - handled by formatter
             },
 
-            // Democratic governments: freedom, unity descriptors
+            // Democratic governments: geographic and size-based (NOT "Democratic", "Federal")
             GovernmentType::ParliamentaryDemocracy |
             GovernmentType::PresidentialRepublic |
             GovernmentType::DirectDemocracy |
             GovernmentType::FederalRepublic => Self {
                 places: Self::get_culture_places(culture),
-                descriptors: vec!["United", "Free", "Allied", "Federal", "Independent", "Democratic"],
+                descriptors: vec!["United", "Allied", "Northern", "Southern", "Greater", "Central"],
                 structures: vec![], // No structures - handled by formatter
             },
 
-            // Religious governments: holy, sacred descriptors
+            // Religious governments: historical/temporal (NOT "Holy", "Divine", "Sacred")
             GovernmentType::Theocracy |
             GovernmentType::DivineManadate |
             GovernmentType::FundamentalistState |
             GovernmentType::Caliphate |
             GovernmentType::MonasticState => Self {
                 places: Self::get_culture_places(culture),
-                descriptors: vec!["Holy", "Sacred", "Blessed", "Divine", "Righteous", "Eternal"],
+                descriptors: vec!["Ancient", "Eternal", "Golden", "Old", "Greater", "Eastern"],
                 structures: vec![], // No structures - handled by formatter
             },
 
-            // Traditional monarchies: royal, noble descriptors
+            // Traditional monarchies: historical/temporal (NOT "Royal", "Imperial")
             GovernmentType::AbsoluteMonarchy |
             GovernmentType::ConstitutionalMonarchy |
             GovernmentType::Feudalism |
             GovernmentType::Empire => Self {
                 places: Self::get_culture_places(culture),
-                descriptors: vec!["Royal", "Imperial", "Noble", "Grand", "Great", "Sovereign"],
+                descriptors: vec!["Grand", "Great", "Old", "New", "Greater", "Ancient"],
                 structures: vec![], // No structures - handled by formatter
             },
 
-            // Socialist governments: people's, workers' descriptors
+            // Socialist governments: geographic/directional (NOT "Socialist", "People's", "Workers'")
             GovernmentType::CouncilCommunism |
             GovernmentType::Syndicalism |
             GovernmentType::MarketSocialism |
             GovernmentType::DemocraticSocialism |
             GovernmentType::VanguardCommunism => Self {
                 places: Self::get_culture_places(culture),
-                descriptors: vec!["People's", "Workers'", "Socialist", "Revolutionary", "Collective"],
+                descriptors: vec!["Red", "Eastern", "United", "Greater", "Northern", "Central"],
                 structures: vec![], // No structures - handled by formatter
             },
 
-            // Corporate/Economic governments: trade, merchant descriptors
+            // Corporate/Economic governments: geographic/maritime (NOT "Trade", "Merchant", "Commercial")
             GovernmentType::CorporateState |
             GovernmentType::MerchantRepublic |
             GovernmentType::Bankocracy |
             GovernmentType::GuildState => Self {
                 places: Self::get_culture_places(culture),
-                descriptors: vec!["Trade", "Merchant", "Commercial", "Industrial", "Economic"],
+                descriptors: vec!["Coastal", "Maritime", "Prosperous", "Greater", "Ancient", "Golden"],
                 structures: vec![], // No structures - handled by formatter
             },
 
             // Default for other government types
             _ => Self {
                 places: Self::get_culture_places(culture),
-                descriptors: vec!["Greater", "New", "Old", "Central", "United"],
+                descriptors: vec!["Greater", "New", "Old", "Central", "United", "Northern"],
                 structures: vec![],
             },
         }
@@ -181,8 +184,8 @@ impl<'a> NationNameBuilder<'a> {
     fn generate_base_name(&mut self) -> String {
         let place = self.generator.random_choice(&self.components.places);
 
-        // 60% chance to add a descriptor for variety (using random_range as workaround)
-        let add_descriptor = self.generator.random_range(0, 10) < 6;
+        // 40% chance to add a descriptor for variety (reduced from 60% to minimize redundancy)
+        let add_descriptor = self.generator.random_range(0, 10) < 4;
         if add_descriptor && !self.components.descriptors.is_empty() {
             let descriptor = self.generator.random_choice(&self.components.descriptors);
             format!("{} {}", descriptor, place)
@@ -199,8 +202,13 @@ impl<'a> NationNameBuilder<'a> {
         let clean_base = self.clean_base_name(base_name);
 
         match self.government {
-            // Anarchist - minimal state references
-            AnarchoSyndicalism | AnarchoCommunism => format!("{} Free Territory", clean_base),
+            // Anarchist - minimal state references with culture variants
+            AnarchoSyndicalism => match self.culture {
+                Culture::Western => format!("Free Territory of {}", clean_base),
+                Culture::Eastern => format!("{} Autonomous Zone", clean_base),
+                _ => format!("{} Free Territory", clean_base),
+            },
+            AnarchoCommunism => format!("{} Commune", clean_base),
             Mutualism => format!("{} Mutual Society", clean_base),
             AnarchoPrimitivism => format!("The {} Wilds", clean_base),
 
@@ -231,9 +239,15 @@ impl<'a> NationNameBuilder<'a> {
             DivineManadate => format!("Divine Empire of {}", clean_base),
             Caliphate => format!("Caliphate of {}", clean_base),
 
-            // Corporate - company/trade names
-            CorporateState => format!("{} Incorporated", clean_base),
-            MerchantRepublic => format!("Merchant Republic of {}", clean_base),
+            // Corporate - company/trade names with culture variants
+            CorporateState => match self.culture {
+                Culture::Western | Culture::Eastern => format!("{} Incorporated", clean_base),
+                _ => format!("Corporate State of {}", clean_base),
+            },
+            MerchantRepublic => match self.culture {
+                Culture::Island | Culture::Southern => format!("Free Port of {}", clean_base),
+                _ => format!("Merchant Republic of {}", clean_base),
+            },
 
             // Default pattern
             _ => format!("{}", clean_base),
@@ -241,8 +255,11 @@ impl<'a> NationNameBuilder<'a> {
     }
 
     /// Remove any conflicting political terms from the base name
+    ///
+    /// This includes both exact matches AND semantic equivalents to prevent
+    /// redundancy like "Merchant Republic of Trade Valencia"
     fn clean_base_name(&self, name: &str) -> String {
-        // Terms that should never appear in base names when using formatters
+        // Exact political structure terms that must be removed
         let conflict_terms = [
             "Republic", "Kingdom", "Empire", "State", "Federation",
             "Senate", "Parliament", "Congress", "Assembly",
@@ -250,9 +267,39 @@ impl<'a> NationNameBuilder<'a> {
             "Commonwealth", "Union", "Alliance", "Coalition",
         ];
 
+        // Semantic equivalents - these imply political meanings
+        let semantic_conflicts = [
+            ("Merchant", vec!["Trade", "Trading", "Commercial"]),
+            ("Holy", vec!["Sacred", "Divine", "Blessed"]),
+            ("Imperial", vec!["Empire", "Emperor"]),
+            ("Royal", vec!["King", "Queen", "Regal"]),
+            ("Socialist", vec!["Workers'", "People's"]),
+            ("Democratic", vec!["Free", "Liberal"]),
+            ("Military", vec!["Martial", "Warrior"]),
+        ];
+
         let mut result = name.to_string();
+
+        // Remove exact conflict terms
         for term in &conflict_terms {
             result = result.replace(term, "");
+        }
+
+        // Remove semantic equivalents based on government type
+        // This prevents "Merchant Republic of Trade X" type redundancy
+        for (_base_term, equivalents) in &semantic_conflicts {
+            for equivalent in equivalents {
+                // Remove as standalone word with spaces around it
+                result = result.replace(&format!(" {} ", equivalent), " ");
+                // Remove at start
+                if result.starts_with(&format!("{} ", equivalent)) {
+                    result = result[equivalent.len() + 1..].to_string();
+                }
+                // Remove at end
+                if result.ends_with(&format!(" {}", equivalent)) {
+                    result = result[..result.len() - equivalent.len() - 1].to_string();
+                }
+            }
         }
 
         // Clean up any double spaces
@@ -322,5 +369,147 @@ mod tests {
             GovernmentType::MilitaryJunta,
         );
         assert!(name2.contains("Military State"));
+    }
+
+    #[test]
+    fn test_no_merchant_trade_redundancy() {
+        let mut gen = NameGenerator::new();
+
+        // Test 1000 generations to catch probabilistic issues (40% descriptor chance)
+        for _ in 0..1000 {
+            let (name, _) = build_nation_name(
+                &mut gen,
+                Culture::Southern,
+                GovernmentType::MerchantRepublic,
+            );
+
+            // Should NEVER contain these redundant patterns
+            assert!(!name.contains("Merchant Republic of Trade"),
+                    "Found redundant 'Merchant Republic of Trade' in: {}", name);
+            assert!(!name.contains("Merchant Republic of Merchant"),
+                    "Found redundant 'Merchant Republic of Merchant' in: {}", name);
+            assert!(!name.contains("Merchant Republic of Commercial"),
+                    "Found redundant 'Merchant Republic of Commercial' in: {}", name);
+            assert!(!name.contains("Free Port of Trade"),
+                    "Found redundant 'Free Port of Trade' in: {}", name);
+            assert!(!name.contains("Free Port of Merchant"),
+                    "Found redundant 'Free Port of Merchant' in: {}", name);
+        }
+    }
+
+    #[test]
+    fn test_no_socialist_redundancy() {
+        let mut gen = NameGenerator::new();
+
+        for _ in 0..1000 {
+            let (name, _) = build_nation_name(
+                &mut gen,
+                Culture::Eastern,
+                GovernmentType::DemocraticSocialism,
+            );
+
+            // Should NOT contain "Socialist Republic of Socialist"
+            assert!(!name.contains("Socialist Republic of Socialist"),
+                    "Found redundant 'Socialist' in: {}", name);
+            assert!(!name.contains("Socialist Republic of Workers'"),
+                    "Found redundant 'Workers'' in: {}", name);
+            assert!(!name.contains("Socialist Republic of People's"),
+                    "Found redundant 'People's' in: {}", name);
+        }
+    }
+
+    #[test]
+    fn test_no_holy_divine_redundancy() {
+        let mut gen = NameGenerator::new();
+
+        for _ in 0..1000 {
+            let (name, _) = build_nation_name(
+                &mut gen,
+                Culture::Ancient,
+                GovernmentType::Theocracy,
+            );
+
+            // Should NOT contain "Holy State of Holy"
+            assert!(!name.contains("Holy State of Holy"),
+                    "Found redundant 'Holy' in: {}", name);
+            assert!(!name.contains("Holy State of Sacred"),
+                    "Found redundant 'Sacred' in: {}", name);
+            assert!(!name.contains("Holy State of Divine"),
+                    "Found redundant 'Divine' in: {}", name);
+        }
+    }
+
+    #[test]
+    fn test_no_democratic_redundancy() {
+        let mut gen = NameGenerator::new();
+
+        for _ in 0..1000 {
+            let (name, _) = build_nation_name(
+                &mut gen,
+                Culture::Western,
+                GovernmentType::ParliamentaryDemocracy,
+            );
+
+            // Should NOT contain "Democratic Republic of Democratic"
+            assert!(!name.contains("Democratic") || name.matches("Democratic").count() <= 1,
+                    "Found redundant 'Democratic' in: {}", name);
+        }
+    }
+
+    #[test]
+    fn test_culture_aware_variants() {
+        let mut gen = NameGenerator::new();
+
+        // Island/Southern cultures should get "Free Port" variant
+        let (name, _) = build_nation_name(
+            &mut gen,
+            Culture::Island,
+            GovernmentType::MerchantRepublic,
+        );
+        // Either Free Port or Merchant Republic is acceptable
+        assert!(name.contains("Free Port") || name.contains("Merchant Republic"));
+
+        // Western/Eastern cultures should get "Incorporated" variant
+        let (name2, _) = build_nation_name(
+            &mut gen,
+            Culture::Western,
+            GovernmentType::CorporateState,
+        );
+        assert!(name2.contains("Incorporated") || name2.contains("Corporate State"));
+
+        // Eastern culture should get "Autonomous Zone" variant
+        let (name3, _) = build_nation_name(
+            &mut gen,
+            Culture::Eastern,
+            GovernmentType::AnarchoSyndicalism,
+        );
+        assert!(name3.contains("Autonomous Zone") || name3.contains("Free Territory"));
+    }
+
+    #[test]
+    fn test_descriptors_are_non_political() {
+        let mut gen = NameGenerator::new();
+
+        // Test multiple government types to ensure descriptors don't conflict
+        let governments = vec![
+            GovernmentType::MerchantRepublic,
+            GovernmentType::DemocraticSocialism,
+            GovernmentType::Theocracy,
+            GovernmentType::Empire,
+        ];
+
+        for gov in governments {
+            for _ in 0..100 {
+                let (name, _) = build_nation_name(&mut gen, Culture::Western, gov);
+
+                // Descriptors should be geographic, not political
+                assert!(!name.contains("Trade") || !name.contains("Merchant"),
+                        "Political descriptor conflict in: {}", name);
+                assert!(!name.contains("Socialist") || name.matches("Socialist").count() <= 1,
+                        "Political descriptor conflict in: {}", name);
+                assert!(!name.contains("Holy") || name.matches("Holy").count() <= 1,
+                        "Political descriptor conflict in: {}", name);
+            }
+        }
     }
 }

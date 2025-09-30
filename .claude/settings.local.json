@@ -26,7 +26,9 @@
       "WebFetch(domain:docs.rs)",
       "mcp__filesystem__directory_tree",
       "Bash(tree:*)",
-      "Bash(sort:*)"
+      "Bash(sort:*)",
+      "WebFetch(domain:bevyengine.org)",
+      "WebFetch(domain:bevy.org)"
     ]
   },
   "outputStyle": "Explanatory"

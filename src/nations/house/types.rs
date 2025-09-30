@@ -10,7 +10,9 @@ use super::traits::HouseTraits;
 use crate::nations::NationId;
 
 /// A ruling house (dynasty/family) that controls a nation
-#[derive(Debug, Clone, Component, Serialize, Deserialize, Reflect)]
+///
+/// Uses Bevy 0.16 Component Hooks for automatic cleanup tracking
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct House {
     pub nation_id: NationId,
 
@@ -37,6 +39,31 @@ pub struct House {
 
     /// Prestige and reputation
     pub prestige: f32,
+}
+
+// Manual Component implementation to register lifecycle hooks (Bevy 0.16)
+impl Component for House {
+    const STORAGE_TYPE: bevy::ecs::component::StorageType = bevy::ecs::component::StorageType::Table;
+    type Mutability = bevy::ecs::component::Mutable;
+
+    fn on_add() -> Option<bevy::ecs::component::ComponentHook> {
+        Some(|mut world, bevy::ecs::component::HookContext { entity, .. }| {
+            // Log dynasty creation
+            if let Some(house) = world.get::<House>(entity) {
+                info!("Dynasty founded: {} (Nation ID {})", house.full_name, house.nation_id.value());
+            }
+        })
+    }
+
+    fn on_remove() -> Option<bevy::ecs::component::ComponentHook> {
+        Some(|mut world, bevy::ecs::component::HookContext { entity, .. }| {
+            // Log dynasty fall
+            if let Some(house) = world.get::<House>(entity) {
+                warn!("Dynasty fallen: {} - ruled for {} years",
+                    house.full_name, house.years_in_power);
+            }
+        })
+    }
 }
 
 /// The current ruler of a house

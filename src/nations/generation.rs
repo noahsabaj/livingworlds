@@ -52,7 +52,7 @@ pub fn spawn_nations(
     // Create nations with ruling houses and governance in parallel
     let nation_creation_timer = TimedOperation::start("Nation Creation");
     let nation_registry_arc = Arc::new(nation_registry);
-    let nation_data: Vec<(Nation, House, super::governance::GovernmentType)> = capital_provinces
+    let mut nation_data: Vec<(Nation, House, super::governance::GovernmentType)> = capital_provinces
         .par_iter()
         .zip(nation_seeds.par_iter())
         .map(|(&capital_idx, &nation_seed)| {
@@ -66,6 +66,9 @@ pub fn spawn_nations(
         })
         .collect();
     let creation_time = nation_creation_timer.complete_with_context(format!("{} nations created", nation_data.len()));
+
+    // Ensure all nation names are unique
+    ensure_unique_nation_names(&mut nation_data, &capital_provinces, provinces, settings);
 
     let mut governments = Vec::new();
     for (nation, house, government) in nation_data {
@@ -298,6 +301,100 @@ fn create_nation_with_house_parallel(
     };
 
     (nation, house, government_type)
+}
+
+/// Ensure all nation names are unique, regenerating duplicates if necessary
+fn ensure_unique_nation_names(
+    nation_data: &mut Vec<(Nation, House, super::governance::GovernmentType)>,
+    capital_provinces: &[usize],
+    provinces: &[Province],
+    settings: &NationGenerationSettings,
+) {
+    // Track which names are used and their indices
+    let mut name_counts: HashMap<String, Vec<usize>> = HashMap::new();
+
+    // Build index of duplicate names
+    for (idx, (nation, _, _)) in nation_data.iter().enumerate() {
+        name_counts.entry(nation.name.clone())
+            .or_insert_with(Vec::new)
+            .push(idx);
+    }
+
+    // Find duplicates (names that appear more than once)
+    let duplicates: Vec<_> = name_counts.iter()
+        .filter(|(_, indices)| indices.len() > 1)
+        .collect();
+
+    if duplicates.is_empty() {
+        return; // No duplicates, nothing to do
+    }
+
+    info!("Found {} duplicate nation names, regenerating...", duplicates.len());
+
+    // Track all used names for O(1) lookups
+    let mut used_names: HashSet<String> = name_counts.keys().cloned().collect();
+
+    // For each set of duplicates, regenerate all but the first
+    for (original_name, indices) in duplicates {
+        info!("Duplicate nation name '{}' appears {} times", original_name, indices.len());
+
+        // Skip first occurrence, regenerate the rest
+        for &idx in &indices[1..] {
+            let (nation, house, government) = &mut nation_data[idx];
+            let capital_idx = capital_provinces[idx];
+            let capital_position = provinces[capital_idx].position;
+
+            // Generate new unique name with modified seed
+            let base_seed = nation.id.value() as u64;
+            let mut attempt = 0;
+            const MAX_ATTEMPTS: u32 = 100;
+
+            let (new_name, new_adjective, new_ruler_title) = loop {
+                attempt += 1;
+                if attempt > MAX_ATTEMPTS {
+                    warn!("Failed to generate unique name after {} attempts for nation ID {}",
+                          MAX_ATTEMPTS, nation.id.value());
+                    // Fallback: original name + number
+                    let fallback_name = format!("{} {}", original_name, attempt);
+                    let fallback_adj = generate_adjective(&fallback_name);
+                    break (fallback_name, fallback_adj, house.ruler.title.clone());
+                }
+
+                // Create new generator with modified seed
+                let modified_seed = base_seed + (attempt as u64 * 10000);
+                let mut rng = StdRng::seed_from_u64(modified_seed);
+                let mut name_gen = NameGenerator::with_seed(modified_seed);
+                let culture = pick_culture_for_location(capital_position, &mut rng);
+
+                // Generate new name
+                let (candidate_name, ruler_title) = super::governance::generate_governance_aware_name(
+                    &mut name_gen,
+                    culture,
+                    government,
+                );
+
+                // Check if unique
+                if !used_names.contains(&candidate_name) {
+                    let adjective = generate_adjective(&candidate_name);
+                    debug!("  {} -> {} (attempt {})", original_name, candidate_name, attempt);
+                    break (candidate_name, adjective, ruler_title);
+                }
+            };
+
+            // Update nation
+            let old_name = nation.name.clone();
+            nation.name = new_name.clone();
+            nation.adjective = new_adjective.clone();
+
+            // Update house
+            house.full_name = format!("House {} of {}", house.name, new_name);
+            house.ruler.title = new_ruler_title;
+
+            // Track new name as used, remove old duplicate
+            used_names.insert(new_name.clone());
+            used_names.remove(&old_name);
+        }
+    }
 }
 
 /// Create a nation with its ruling house and governance (legacy sequential version)

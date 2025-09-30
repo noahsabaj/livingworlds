@@ -22,6 +22,10 @@ define_plugin!(NationPlugin {
         TerritoryMetricsCache
     ],
 
+    events: [
+        super::actions::NationActionEvent
+    ],
+
     reflect: [
         super::types::Nation,
         super::house::House,
@@ -37,6 +41,11 @@ define_plugin!(NationPlugin {
     ],
 
     update: [
+        // ACTION EXECUTION - This is where nations actually DO things!
+        // Uses reactive cache invalidation - no more polling every frame!
+        super::actions::execute_expansion_events.run_if(in_state(GameState::InGame)),
+
+        // Rendering systems
         super::rendering::render_nation_borders.run_if(in_state(GameState::InGame)),
         // Label updates (size/visibility) run every frame in Political mode
         (super::rendering::update_nation_label_sizes,

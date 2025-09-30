@@ -49,7 +49,7 @@ pub use styles::dimensions::{
 // Animation system exports
 pub use animation::{
     // Core components
-    Animation, UIAnimationPlayer, AnimationBundle, AnimationSequence,
+    Animation, UIAnimationPlayer, AnimationSequence,
     // Builder API
     AnimationBuilder, AnimationCommandsExt, SequenceBuilder,
     // Common presets
