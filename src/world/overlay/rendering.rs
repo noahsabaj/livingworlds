@@ -103,6 +103,8 @@ impl Plugin for OverlayPlugin {
             .init_resource::<crate::resources::CachedOverlayColors>()
             // Initialize with default overlay and pre-calculate common modes
             .add_systems(OnExit(GameState::LoadingWorld), initialize_overlay_colors)
+            // Force initial update to ensure sync between MapMode and overlay colors
+            .add_systems(OnEnter(GameState::InGame), force_initial_overlay_update)
             .add_systems(
                 Update,
                 update_province_colors
@@ -116,11 +118,21 @@ impl Plugin for OverlayPlugin {
 /// The HUD's map_mode_display module handles Tab key for cycling and provides
 /// a dropdown UI for direct selection, avoiding duplicate keyboard handlers
 
-/// Initialize the overlay system with default terrain and pre-calculate common modes
+/// Force initial overlay update to ensure colors match MapMode on game start
+/// This triggers a change event so update_province_colors runs on first frame
+fn force_initial_overlay_update(mut mode: ResMut<MapMode>) {
+    // Mark resource as changed to trigger update_province_colors
+    // This ensures overlay colors sync with MapMode on game load
+    mode.set_changed();
+    debug!("Forced initial overlay update for mode: {}", mode.display_name());
+}
+
+/// Initialize the overlay system with current MapMode and pre-calculate common modes
 /// If ProvinceStorage doesn't exist (cancelled generation), skip initialization
 pub fn initialize_overlay_colors(
     province_storage: Option<Res<ProvinceStorage>>,
     world_seed: Option<Res<crate::world::WorldSeed>>,
+    current_mode: Res<MapMode>,
     mut cached_colors: ResMut<crate::resources::CachedOverlayColors>,
 ) {
     let Some(province_storage) = province_storage else {
@@ -139,9 +151,15 @@ pub fn initialize_overlay_colors(
     );
     let start = std::time::Instant::now();
 
-    // Calculate the default terrain overlay
-    let default_mode = MapMode::Terrain;
-    cached_colors.get_or_calculate(default_mode, &province_storage, world_seed.0);
+    // Don't pre-calculate Political mode here - it needs nation colors which aren't available yet
+    // Political will be calculated on-demand by update_province_colors with proper nation data
+    // This prevents caching gray fallback colors before nations are loaded
+    if *current_mode != MapMode::Political {
+        info!("Pre-calculating initial overlay mode: {}", current_mode.display_name());
+        cached_colors.get_or_calculate(*current_mode, &province_storage, world_seed.0);
+    } else {
+        info!("Skipping Political mode pre-calculation - will be calculated with nation colors");
+    }
 
     // Pre-calculate common overlays for instant switching
     cached_colors.pre_calculate_common_modes(&province_storage, world_seed.0);

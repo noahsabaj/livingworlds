@@ -485,17 +485,19 @@ pub fn poll_async_world_generation(
                 info!("spawn_nations completed! Got {} nations, {} houses, and {} governments",
                       nations.len(), houses.len(), governments.len());
 
-                // Build ownership cache from province data (optimized for large datasets)
-                info!("Building ownership cache with parallel processing...");
-                let ownership_cache = crate::nations::ProvinceOwnershipCache::default();
-                info!("Created ownership cache, calling optimized rebuild...");
+                // Build ownership cache from province data
+                info!("Building ownership cache from {} provinces...", province_storage.provinces.len());
+                let mut ownership_cache = crate::nations::ProvinceOwnershipCache::default();
+                ownership_cache.rebuild(&province_storage.provinces);
 
-                // Skip the potentially hanging rebuild for now to test state transition
-                // TODO: Implement parallel ownership cache building
-                info!("Skipping ownership cache rebuild temporarily to isolate hang point");
+                let total_owned_provinces: usize = ownership_cache.by_nation.values()
+                    .map(|set| set.len())
+                    .sum();
+                info!("Ownership cache built: {} nations own {} total provinces",
+                      ownership_cache.by_nation.len(),
+                      total_owned_provinces);
 
                 commands.insert_resource(ownership_cache);
-                info!("Ownership cache resource inserted (empty for now)");
 
                 // Build nation color registry for rendering
                 let mut color_registry = crate::nations::NationColorRegistry::default();

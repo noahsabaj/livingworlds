@@ -240,6 +240,10 @@ impl MeshBuilder {
         indices: &mut Vec<u32>,
         colors: &mut Vec<[f32; 4]>,
     ) -> Result<(), MeshBuildError> {
+        // PERFORMANCE: Create WorldColors once instead of per-province
+        // Avoids 3M allocations for Large worlds
+        let world_colors = WorldColors::new(self.world_seed);
+
         let chunks: Vec<_> = provinces
             .par_chunks(PARALLEL_BATCH_SIZE)
             .enumerate()
@@ -249,6 +253,9 @@ impl MeshBuilder {
                 let mut chunk_colors = Vec::with_capacity(chunk.len() * VERTICES_PER_HEXAGON);
 
                 let base_province_idx = chunk_idx * PARALLEL_BATCH_SIZE;
+
+                // Each parallel thread gets its own WorldColors instance (cheap clone)
+                let world_colors = WorldColors::new(self.world_seed);
 
                 for (local_idx, province) in chunk.iter().enumerate() {
                     let province_idx = base_province_idx + local_idx;
@@ -277,8 +284,7 @@ impl MeshBuilder {
                         chunk_indices.push(base_vertex_idx + next as u32 + 1);
                     }
 
-                    // Generate colors
-                    let world_colors = WorldColors::new(self.world_seed);
+                    // Generate colors using pre-created WorldColors
                     let color = world_colors.terrain(
                         province.terrain,
                         province.elevation.value(),
@@ -314,6 +320,9 @@ impl MeshBuilder {
         indices: &mut Vec<u32>,
         colors: &mut Vec<[f32; 4]>,
     ) -> Result<(), MeshBuildError> {
+        // PERFORMANCE: Create WorldColors once instead of per-province
+        let world_colors = WorldColors::new(self.world_seed);
+
         for (index, province) in provinces.iter().enumerate() {
             // Validate position
             HexagonGeometry::validate_position(province.position, index)?;
@@ -334,8 +343,7 @@ impl MeshBuilder {
                 indices.push(base_idx + next as u32 + 1);
             }
 
-            // Generate colors
-            let world_colors = WorldColors::new(self.world_seed);
+            // Generate colors using pre-created WorldColors
             let color = world_colors.terrain(
                 province.terrain,
                 province.elevation.value(),

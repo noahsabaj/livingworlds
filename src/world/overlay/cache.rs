@@ -263,7 +263,8 @@ impl CachedOverlayColors {
                         // All other modes use the standard calculation
                         self.calculate_province_color(mode, province, &world_colors, climate_storage, infrastructure_storage)
                     };
-                    let color_array = LinearRgba::from(color).to_f32_array();
+                    // CORRECT: Use proper Bevy 0.16 color conversion (prevents Green Ocean bug)
+                    let color_array = color.to_linear().to_f32_array();
 
                     // Unroll loop for better performance - compiler optimization hint
                     #[allow(clippy::needless_range_loop)]
