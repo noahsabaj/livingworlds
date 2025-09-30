@@ -10,62 +10,176 @@ use std::collections::HashMap;
 use super::types::{Nation, NationId};
 use crate::resources::MapMode;
 use crate::ui::shortcuts::ShortcutRegistry;
-use crate::world::{ProvinceStorage, WorldMeshHandle};
+use crate::world::ProvinceStorage;
 
-/// System to update province colors based on nation ownership
-/// Only runs when map mode changes to Political
-pub fn update_nation_colors(
-    nations: Query<&Nation>,
-    province_storage: Res<ProvinceStorage>,
-    current_map_mode: Res<MapMode>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mesh_handle: Res<WorldMeshHandle>,
-) {
-    // Only update if we're in political mode
-    if *current_map_mode != MapMode::Political {
-        return;
+/// Get text color that contrasts well with the nation color
+/// Uses perceived luminance calculation to ensure readability
+fn get_contrasting_text_color(nation_color: Color) -> Color {
+    // Calculate perceived luminance using ITU-R BT.709 coefficients
+    let srgba = nation_color.to_srgba();
+    let luminance = 0.299 * srgba.red + 0.587 * srgba.green + 0.114 * srgba.blue;
+
+    // Use black text for bright nations, white for dark nations
+    if luminance > 0.5 {
+        Color::BLACK
+    } else {
+        Color::WHITE
     }
+}
 
-    // Only update when map mode changes to Political
-    if !current_map_mode.is_changed() {
-        return;
-    }
+/// Check if a label placed at position would overlap with other nations' territories
+/// Samples multiple points across the label bounding box to detect collisions
+fn check_label_collision(
+    label_text: &str,
+    font_size: f32,
+    position: Vec2,
+    owner_nation_id: NationId,
+    province_storage: &ProvinceStorage,
+    spatial_index: &crate::world::ProvincesSpatialIndex,
+) -> bool {
+    // Estimate text dimensions (rough: 0.6 * font_size per character width)
+    let char_width = font_size * 0.6;
+    let text_width = label_text.len() as f32 * char_width;
+    let text_height = font_size * 1.2;
 
-    // Build nation color lookup
-    let mut nation_colors: HashMap<NationId, Color> = HashMap::new();
-    for nation in nations.iter() {
-        nation_colors.insert(nation.id, nation.color);
-    }
+    // Sample 9 points across label bounding box for comprehensive collision detection
+    let sample_offsets = [
+        Vec2::new(-text_width / 2.0, text_height / 2.0),   // Top-left
+        Vec2::new(0.0, text_height / 2.0),                  // Top-center
+        Vec2::new(text_width / 2.0, text_height / 2.0),    // Top-right
+        Vec2::new(-text_width / 2.0, 0.0),                  // Middle-left
+        Vec2::new(0.0, 0.0),                                 // Center
+        Vec2::new(text_width / 2.0, 0.0),                   // Middle-right
+        Vec2::new(-text_width / 2.0, -text_height / 2.0),  // Bottom-left
+        Vec2::new(0.0, -text_height / 2.0),                 // Bottom-center
+        Vec2::new(text_width / 2.0, -text_height / 2.0),   // Bottom-right
+    ];
 
-    // Get the world mesh
-    let Some(mesh) = meshes.get_mut(&mesh_handle.0) else {
-        return;
-    };
+    // Check each sample point for collision with other nations
+    for offset in sample_offsets {
+        let sample_point = position + offset;
 
-    // Update vertex colors based on nation ownership
-    if let Some(colors_attribute) = mesh.attribute_mut(Mesh::ATTRIBUTE_COLOR) {
-        if let bevy::render::mesh::VertexAttributeValues::Float32x4(colors) = colors_attribute {
-            // For each province, use its owner field directly - O(1) per province!
-            for (province_idx, province) in province_storage.provinces.iter().enumerate() {
-                let color = if let Some(nation_id) = province.owner {
-                    nation_colors
-                        .get(&nation_id)
-                        .copied()
-                        .unwrap_or(Color::srgb(0.2, 0.2, 0.2))
-                } else {
-                    // Unowned provinces are gray
-                    Color::srgb(0.2, 0.2, 0.2)
-                };
-
-                // Each hexagon has 7 vertices (center + 6 corners)
-                let vertex_start = province_idx * 7;
-                for vertex_idx in vertex_start..vertex_start + 7 {
-                    if vertex_idx < colors.len() {
-                        colors[vertex_idx] = color.to_linear().to_f32_array();
+        // Find province at this position using spatial index
+        // Note: hex_size is typically 50.0, matching the standard hex size in the game
+        if let Some(province_id) = spatial_index.get_at_position(sample_point, 50.0) {
+            if let Some(province) = province_storage
+                .provinces
+                .get(province_id.value() as usize)
+            {
+                // Collision detected if this province belongs to a different nation
+                if let Some(owner) = province.owner {
+                    if owner != owner_nation_id {
+                        return true; // COLLISION!
                     }
                 }
             }
         }
+    }
+
+    false // No collision detected
+}
+
+/// Find optimal placement for label avoiding collisions with other nations
+/// Tries multiple positions and returns the first non-colliding one
+fn find_non_colliding_position(
+    label_text: &str,
+    font_size: f32,
+    centroid: Vec2,
+    territory_bounds: (Vec2, Vec2),
+    owner_nation_id: NationId,
+    province_storage: &ProvinceStorage,
+    spatial_index: &crate::world::ProvincesSpatialIndex,
+) -> (Vec2, f32) {
+    // Returns (position, opacity)
+    let (min_bounds, max_bounds) = territory_bounds;
+    let territory_width = max_bounds.x - min_bounds.x;
+    let territory_height = max_bounds.y - min_bounds.y;
+
+    // Try multiple placement positions in order of preference
+    let candidates = vec![
+        (centroid, 1.0), // Original centroid, full opacity
+        (
+            centroid + Vec2::new(0.0, territory_height * 0.2),
+            1.0,
+        ), // North
+        (
+            centroid + Vec2::new(0.0, -territory_height * 0.2),
+            1.0,
+        ), // South
+        (
+            centroid + Vec2::new(territory_width * 0.2, 0.0),
+            1.0,
+        ), // East
+        (
+            centroid + Vec2::new(-territory_width * 0.2, 0.0),
+            1.0,
+        ), // West
+    ];
+
+    // Return first non-colliding position
+    for (pos, opacity) in candidates {
+        if !check_label_collision(
+            label_text,
+            font_size,
+            pos,
+            owner_nation_id,
+            province_storage,
+            spatial_index,
+        ) {
+            return (pos, opacity);
+        }
+    }
+
+    // All positions collide - use centroid with reduced opacity as visual cue
+    (centroid, 0.7)
+}
+
+/// Spawn nation labels when entering Political mode
+/// This wrapper ensures labels only spawn when MapMode changes TO Political
+pub fn spawn_nation_labels_on_mode_enter(
+    commands: Commands,
+    nations: Query<&Nation>,
+    province_storage: Res<ProvinceStorage>,
+    spatial_index: Res<crate::world::ProvincesSpatialIndex>,
+    ownership_cache: Res<super::types::ProvinceOwnershipCache>,
+    territory_cache: ResMut<super::territory_analysis::TerritoryMetricsCache>,
+    existing_labels: Query<Entity, With<NationLabel>>,
+    current_mode: Res<MapMode>,
+) {
+    // Only spawn if we're now in Political mode
+    if *current_mode == MapMode::Political {
+        debug!("Spawning nation labels for Political mode");
+        spawn_nation_labels(
+            commands,
+            nations,
+            province_storage,
+            spatial_index,
+            ownership_cache,
+            territory_cache,
+            existing_labels,
+        );
+    }
+}
+
+/// Cleanup nation labels when switching away from Political mode
+/// Despawns both main label entities and shadow entities to prevent memory leaks
+pub fn cleanup_labels_on_mode_exit(
+    mut commands: Commands,
+    current_mode: Res<MapMode>,
+    label_query: Query<Entity, With<NationLabel>>,
+    shadow_query: Query<Entity, With<NationLabelShadow>>,
+) {
+    // Only cleanup if NOT in Political mode
+    if *current_mode != MapMode::Political {
+        // Despawn main labels
+        for entity in &label_query {
+            commands.entity(entity).despawn();
+        }
+        // Despawn shadows to prevent memory leak
+        for entity in &shadow_query {
+            commands.entity(entity).despawn();
+        }
+        debug!("Cleaned up {} labels and {} shadows", label_query.iter().count(), shadow_query.iter().count());
     }
 }
 
@@ -150,6 +264,7 @@ pub fn spawn_nation_labels(
     mut commands: Commands,
     nations: Query<&Nation>,
     province_storage: Res<ProvinceStorage>,
+    spatial_index: Res<crate::world::ProvincesSpatialIndex>,
     ownership_cache: Res<super::types::ProvinceOwnershipCache>,
     mut territory_cache: ResMut<super::territory_analysis::TerritoryMetricsCache>,
     existing_labels: Query<Entity, With<NationLabel>>,
@@ -181,36 +296,69 @@ pub fn spawn_nation_labels(
 
         let base_font_size = metrics.optimal_base_font_size();
 
+        // Get contrasting text color for readability
+        let text_color = get_contrasting_text_color(nation.color);
+
         // For disconnected empires, optionally create multiple labels
         if !metrics.is_contiguous && metrics.clusters.len() > 1 {
             // Only label major clusters (>20% of total territory)
             for (idx, cluster) in metrics.clusters.iter().enumerate() {
                 if cluster.relative_size >= 0.2 {
-                    let cluster_width = cluster.bounds.1.x - cluster.bounds.0.x;
                     let cluster_font_size = base_font_size * cluster.relative_size;
+                    let label_text = if idx == 0 {
+                        nation.name.clone()
+                    } else {
+                        // Secondary clusters get abbreviated names
+                        format!("{} (Colony)", &nation.name[..nation.name.len().min(10)])
+                    };
+                    let base_opacity = if idx == 0 { 1.0 } else { 0.7 };
 
+                    // Find non-colliding position for this cluster label
+                    let (label_position, collision_opacity) = find_non_colliding_position(
+                        &label_text,
+                        cluster_font_size,
+                        cluster.centroid,
+                        cluster.bounds,
+                        nation.id,
+                        &province_storage,
+                        &spatial_index,
+                    );
+                    let final_opacity = base_opacity * collision_opacity;
+
+                    // Spawn drop shadow for better visibility
                     commands.spawn((
-                        Text2d::new(if idx == 0 {
-                            nation.name.clone()
-                        } else {
-                            // Secondary clusters get abbreviated names or nothing
-                            format!("{} (Colony)", &nation.name[..nation.name.len().min(10)])
-                        }),
+                        Text2d::new(label_text.clone()),
                         TextFont {
                             font_size: cluster_font_size,
                             ..default()
                         },
-                        TextColor(Color::srgba(1.0, 1.0, 1.0, if idx == 0 { 1.0 } else { 0.7 })),
+                        TextColor(Color::srgba(0.0, 0.0, 0.0, final_opacity * 0.8)), // Black shadow
                         Transform::from_translation(Vec3::new(
-                            cluster.centroid.x,
-                            cluster.centroid.y,
-                            10.0, // Above provinces
+                            label_position.x + 2.0,
+                            label_position.y - 2.0,
+                            149.0, // Just behind main text
+                        )),
+                        NationLabelShadow, // Marker for cleanup
+                    ));
+
+                    // Spawn main text label
+                    commands.spawn((
+                        Text2d::new(label_text),
+                        TextFont {
+                            font_size: cluster_font_size,
+                            ..default()
+                        },
+                        TextColor(text_color.with_alpha(final_opacity)),
+                        Transform::from_translation(Vec3::new(
+                            label_position.x,
+                            label_position.y,
+                            150.0, // Above borders (z=100)
                         )),
                         NationLabel {
                             nation_id: nation.id,
                             base_font_size: cluster_font_size,
                             territory_bounds: cluster.bounds,
-                            centroid: cluster.centroid,
+                            centroid: label_position, // Use collision-adjusted position
                             province_count: cluster.province_ids.len(),
                             is_primary: idx == 0,
                         },
@@ -218,24 +366,51 @@ pub fn spawn_nation_labels(
                 }
             }
         } else {
-            // Single contiguous territory - one label at centroid
+            // Single contiguous territory - find non-colliding position
+            let (label_position, collision_opacity) = find_non_colliding_position(
+                &nation.name,
+                base_font_size,
+                metrics.centroid,
+                metrics.bounds,
+                nation.id,
+                &province_storage,
+                &spatial_index,
+            );
+
+            // Spawn drop shadow first
             commands.spawn((
                 Text2d::new(&nation.name),
                 TextFont {
                     font_size: base_font_size,
                     ..default()
                 },
-                TextColor(Color::WHITE),
+                TextColor(Color::srgba(0.0, 0.0, 0.0, collision_opacity * 0.8)), // Black shadow
                 Transform::from_translation(Vec3::new(
-                    metrics.centroid.x,
-                    metrics.centroid.y,
-                    10.0,
+                    label_position.x + 2.0,
+                    label_position.y - 2.0,
+                    149.0, // Just behind main text
+                )),
+                NationLabelShadow, // Marker for cleanup
+            ));
+
+            // Spawn main text label
+            commands.spawn((
+                Text2d::new(&nation.name),
+                TextFont {
+                    font_size: base_font_size,
+                    ..default()
+                },
+                TextColor(text_color.with_alpha(collision_opacity)),
+                Transform::from_translation(Vec3::new(
+                    label_position.x,
+                    label_position.y,
+                    150.0, // Above borders (z=100)
                 )),
                 NationLabel {
                     nation_id: nation.id,
                     base_font_size,
                     territory_bounds: metrics.bounds,
-                    centroid: metrics.centroid,
+                    centroid: label_position, // Use collision-adjusted position
                     province_count: metrics.province_count,
                     is_primary: true,
                 },
@@ -275,7 +450,7 @@ pub fn update_nation_label_sizes(
     for (label, mut font, mut color) in label_query.iter_mut() {
         // Scale font based on zoom and territory size
         let scaled_size = label.base_font_size * zoom_factor;
-        font.font_size = scaled_size.clamp(8.0, 200.0);
+        font.font_size = scaled_size.clamp(16.0, 320.0); // Increased from (8.0, 200.0)
 
         // Adjust opacity based on importance and zoom
         let importance_factor = if label.province_count > 100 {
@@ -353,3 +528,8 @@ pub struct NationLabel {
     /// Whether this is a main label or secondary (for disconnected territories)
     pub is_primary: bool,
 }
+
+/// Marker component for nation label shadow entities
+/// Used for cleanup to prevent memory leaks
+#[derive(Component)]
+pub struct NationLabelShadow;

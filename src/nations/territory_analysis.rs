@@ -159,17 +159,17 @@ impl TerritoryMetrics {
         // Use the smaller dimension to ensure text fits
         let primary_dimension = width.min(height * 1.5); // Account for text being horizontal
 
-        // Scale based on territory size
+        // Scale based on territory size - INCREASED for better readability (2.5x larger)
         let base = match self.size_category() {
-            NationSizeCategory::Tiny => primary_dimension * 0.08,
-            NationSizeCategory::Small => primary_dimension * 0.10,
-            NationSizeCategory::Medium => primary_dimension * 0.12,
-            NationSizeCategory::Large => primary_dimension * 0.14,
-            NationSizeCategory::Empire => primary_dimension * 0.16,
+            NationSizeCategory::Tiny => primary_dimension * 0.20,    // was 0.08
+            NationSizeCategory::Small => primary_dimension * 0.25,   // was 0.10
+            NationSizeCategory::Medium => primary_dimension * 0.30,  // was 0.12
+            NationSizeCategory::Large => primary_dimension * 0.35,   // was 0.14
+            NationSizeCategory::Empire => primary_dimension * 0.40,  // was 0.16
         };
 
-        // Clamp to reasonable range
-        base.clamp(12.0, 200.0)
+        // Larger minimum for readability, higher maximum for empires
+        base.clamp(24.0, 320.0)  // was 12.0, 200.0
     }
 }
 

@@ -37,11 +37,19 @@ define_plugin!(NationPlugin {
     ],
 
     update: [
-        super::rendering::update_nation_colors.run_if(in_state(GameState::InGame)),
         super::rendering::render_nation_borders.run_if(in_state(GameState::InGame)),
-        // Nation label systems with territory-spanning text
-        super::rendering::spawn_nation_labels.run_if(in_state(GameState::InGame)),
-        super::rendering::update_nation_label_sizes.run_if(in_state(GameState::InGame)),
-        super::rendering::update_label_visibility.run_if(in_state(GameState::InGame))
+        // Label updates (size/visibility) run every frame in Political mode
+        (super::rendering::update_nation_label_sizes,
+         super::rendering::update_label_visibility)
+            .run_if(in_state(GameState::InGame))
+            .run_if(resource_equals(crate::world::MapMode::Political)),
+        // Spawn labels when MapMode changes TO Political
+        super::rendering::spawn_nation_labels_on_mode_enter
+            .run_if(in_state(GameState::InGame))
+            .run_if(resource_changed::<crate::world::MapMode>),
+        // Cleanup labels when MapMode changes AWAY FROM Political
+        super::rendering::cleanup_labels_on_mode_exit
+            .run_if(in_state(GameState::InGame))
+            .run_if(resource_changed::<crate::world::MapMode>)
     ]
 });
