@@ -36,6 +36,9 @@
             administrative_efficiency_modifier: 0.0,
             maintenance_cost_modifier: 0.0,
             revolt_risk_change: -0.1,
+
+            // Pressure modifiers
+            pressure_modifiers: {},
         ),
         prerequisites: [],
         conflicts_with: [],

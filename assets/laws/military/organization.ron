@@ -36,12 +36,14 @@
             administrative_efficiency_modifier: 0.0,
             maintenance_cost_modifier: 0.2,
             revolt_risk_change: -0.05,
+
+            // Pressure modifiers
+            pressure_modifiers: {},
         ),
         prerequisites: [],
         conflicts_with: [],
         government_affinity: {
-            Monarchy: 0.8,
-            Military: 0.9,
+            Monarchic: 0.8,
         },
         complexity: Moderate,
         base_popularity: 0.5,
