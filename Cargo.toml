@@ -47,7 +47,7 @@ bevy = { version = "0.16.1", default-features = false, features = [
 bevy-plugin-builder = "0.1.2"
 
 # UI builders - our own published crate!
-bevy-ui-builders = { version = "0.1.8", features = ["all_builders"] }
+bevy-ui-builders = { version = "0.1.10", features = ["all_builders"] }
 
 # Keep our procedural approach - no GLTF or external assets needed!
 serde = { version = "1.0", features = ["derive"] }
