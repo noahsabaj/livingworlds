@@ -1,6 +1,6 @@
 //! Performance Dashboard UI Setup
 
-use super::super::ChildBuilder;
+use crate::ui::ChildBuilder;
 use super::types::*;
 use crate::ui::{colors, dimensions};
 use bevy::prelude::*;

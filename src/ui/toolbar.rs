@@ -5,8 +5,8 @@
 
 #![allow(dead_code)] // Preserve UI utility functions for future use
 
-use super::{ChildBuilder, colors, dimensions};
-use super::{ButtonBuilder, ButtonSize, ButtonStyle};
+use crate::ui::{ChildBuilder, colors, dimensions};
+use crate::ui::{ButtonBuilder, ButtonSize, ButtonStyle};
 use bevy::prelude::*;
 
 /// Marker component for toolbars

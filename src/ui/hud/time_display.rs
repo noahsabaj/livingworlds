@@ -1,6 +1,6 @@
 //! Time display component for showing game date/time
 
-use super::super::{ChildBuilder, LabelBuilder, LabelStyle};
+use crate::ui::{ChildBuilder, LabelBuilder, LabelStyle};
 use crate::simulation::GameTime;
 use bevy::prelude::*;
 

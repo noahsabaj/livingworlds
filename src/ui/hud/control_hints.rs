@@ -1,6 +1,6 @@
 //! Control hints display for showing keyboard shortcuts
 
-use super::super::{ChildBuilder, LabelBuilder, LabelStyle};
+use crate::ui::{ChildBuilder, LabelBuilder, LabelStyle};
 use crate::simulation::GameTime;
 use bevy::prelude::*;
 

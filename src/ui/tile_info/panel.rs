@@ -1,6 +1,6 @@
 //! Tile info panel for displaying province information
 
-use super::super::{ChildBuilder, LabelBuilder, PanelBuilder, PanelStyle};
+use crate::ui::{ChildBuilder, LabelBuilder, PanelBuilder, PanelStyle};
 use crate::resources::SelectedProvinceInfo;
 use crate::world::{ProvinceId, ProvinceStorage};
 use bevy::log::{debug, error};

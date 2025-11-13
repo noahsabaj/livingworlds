@@ -1,6 +1,6 @@
 //! Overlay text display for showing current map mode
 
-use super::super::{ChildBuilder, LabelBuilder, LabelStyle, Orientation, SeparatorBuilder};
+use crate::ui::{ChildBuilder, LabelBuilder, LabelStyle, Orientation, SeparatorBuilder};
 use crate::resources::MapMode;
 use bevy::prelude::*;
 

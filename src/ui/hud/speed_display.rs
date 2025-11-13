@@ -1,6 +1,6 @@
 //! Speed display component for showing simulation speed
 
-use super::super::{ChildBuilder, LabelBuilder, LabelStyle};
+use crate::ui::{ChildBuilder, LabelBuilder, LabelStyle};
 use crate::simulation::GameTime;
 use bevy::prelude::*;
 
@@ -33,7 +33,7 @@ pub fn update_speed_display(
             game_time.is_paused(), game_time.get_speed().name());
 
         // Find the speed display entity and get its children
-        if let Ok(children) = speed_display_query.get_single() {
+        if let Ok(children) = speed_display_query.single() {
             // Look for the Text component in the children
             for child in children.iter() {
                 if let Ok(mut text) = text_query.get_mut(child) {
