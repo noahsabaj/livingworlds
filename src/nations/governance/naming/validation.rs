@@ -161,7 +161,26 @@ pub fn clean_nation_name(name: &str) -> String {
         result = result.replace("  ", " ");
     }
 
-    result.trim().to_string()
+    result = result.trim().to_string();
+
+    // Remove "of" at the beginning if it's the only structural word
+    // (e.g., "of Britannia" → "Britannia")
+    // but keep it if there are other words before it
+    // (e.g., "The of Roma" stays as is)
+    if result.starts_with("of ") {
+        result = result[3..].to_string();
+    } else if result.starts_with("Of ") {
+        result = result[3..].to_string();
+    }
+
+    // Final check: if the entire result is a government word, remove it
+    for word in government_words {
+        if result.eq_ignore_ascii_case(word) {
+            return String::new();
+        }
+    }
+
+    result
 }
 
 /// Check for semantic redundancy in nation names

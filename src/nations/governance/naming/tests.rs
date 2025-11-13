@@ -103,7 +103,7 @@ mod tests {
             &GovernmentType::AnarchoSyndicalism,
         );
         assert!(name.contains("Free Territory"));
-        assert_eq!(title, "Coordinator");
+        assert_eq!(title, "Speaker");
 
         // Test monarchy gets appropriate name
         let (name, title) = generate_governance_aware_name(
@@ -112,7 +112,7 @@ mod tests {
             &GovernmentType::AbsoluteMonarchy,
         );
         assert!(name.contains("Kingdom"));
-        assert_eq!(title, "Monarch");
+        assert_eq!(title, "King");
 
         // Test democracy gets appropriate name
         let (name, title) = generate_governance_aware_name(

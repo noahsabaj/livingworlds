@@ -119,10 +119,18 @@ pub fn strip_government_structures(name: &str) -> String {
         "Glorious ",
     ];
 
-    for adj in &adjective_prefixes {
-        if result.starts_with(adj) {
-            result = result[adj.len()..].to_string();
-            // Continue checking in case there are multiple adjectives
+    // Keep removing adjectives until none are found
+    loop {
+        let mut removed_any = false;
+        for adj in &adjective_prefixes {
+            if result.starts_with(adj) {
+                result = result[adj.len()..].to_string();
+                removed_any = true;
+                break;
+            }
+        }
+        if !removed_any {
+            break;
         }
     }
 
