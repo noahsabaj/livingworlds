@@ -14,14 +14,14 @@ use chrono::Local;
 
 /// Handle opening the save dialog
 pub fn handle_open_save_dialog(
-    mut events: EventReader<OpenSaveDialogEvent>,
+    mut messages: MessageReader<OpenSaveDialogEvent>,
     mut commands: Commands,
     mut dialog_state: ResMut<SaveDialogState>,
     mut save_list: ResMut<SaveGameList>,
     world_seed: Option<Res<WorldSeed>>,
     world_name: Option<Res<WorldName>>,
 ) {
-    for _ in events.read() {
+    for _ in messages.read() {
         if !dialog_state.is_open {
             dialog_state.is_open = true;
             dialog_state.selected_save = None;
@@ -63,7 +63,7 @@ pub fn handle_open_save_dialog(
                                 ..default()
                             },
                             BackgroundColor(colors::BACKGROUND_MEDIUM),
-                            BorderColor(colors::BORDER),
+                            BorderColor::all(colors::BORDER),
                         ))
                         .with_children(|parent| {
                             // Title
@@ -165,12 +165,12 @@ pub fn handle_open_save_dialog(
 
 /// Handle closing the save dialog
 pub fn handle_close_save_dialog(
-    mut events: EventReader<CloseSaveDialogEvent>,
+    mut messages: MessageReader<CloseSaveDialogEvent>,
     mut commands: Commands,
     mut dialog_state: ResMut<SaveDialogState>,
     dialog_query: Query<Entity, With<SaveDialogRoot>>,
 ) {
-    for _ in events.read() {
+    for _ in messages.read() {
         if dialog_state.is_open {
             dialog_state.is_open = false;
 
@@ -191,8 +191,8 @@ pub fn handle_save_dialog_interactions(
         ),
         Changed<Interaction>,
     >,
-    mut save_events: EventWriter<SaveGameEvent>,
-    mut close_events: EventWriter<CloseSaveDialogEvent>,
+    mut save_events: MessageWriter<SaveGameEvent>,
+    mut close_events: MessageWriter<CloseSaveDialogEvent>,
     save_name_query: Query<&TextBuffer, With<SaveNameInput>>,
 ) {
     for (interaction, (confirm, cancel)) in &mut interactions {

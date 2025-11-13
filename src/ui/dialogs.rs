@@ -294,7 +294,7 @@ pub mod presets {
                     ..default()
                 },
                 BackgroundColor(colors::BACKGROUND_MEDIUM),
-                BorderColor(colors::BORDER_DEFAULT),
+                BorderColor::all(colors::BORDER_DEFAULT),
                 DialogContainer {
                     dialog_type: GameDialogType::Resolution,
                 },

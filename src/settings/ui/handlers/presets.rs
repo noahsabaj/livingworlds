@@ -76,11 +76,11 @@ pub fn handle_preset_buttons(
             if is_selected {
                 // This is the newly selected preset - make it green
                 *bg_color = BackgroundColor(colors::SURFACE_SELECTED);
-                *border_color = BorderColor(colors::BORDER_SELECTED);
+                *border_color = BorderColor::all(colors::BORDER_SELECTED);
             } else {
                 // This is not selected - make it gray
                 *bg_color = BackgroundColor(colors::SECONDARY);
-                *border_color = BorderColor(colors::BORDER_DEFAULT);
+                *border_color = BorderColor::all(colors::BORDER_DEFAULT);
             }
         }
     }
@@ -92,7 +92,7 @@ pub fn handle_preset_buttons(
             if let Ok((_, _, mut bg_color, mut border_color)) = preset_queries.p1().get_mut(entity)
             {
                 *bg_color = BackgroundColor(colors::SURFACE_HOVER);
-                *border_color = BorderColor(colors::BORDER_HOVER);
+                *border_color = BorderColor::all(colors::BORDER_HOVER);
             }
         }
     }
@@ -102,10 +102,10 @@ pub fn handle_preset_buttons(
         if let Ok((_, _, mut bg_color, mut border_color)) = preset_queries.p1().get_mut(entity) {
             if is_selected {
                 *bg_color = BackgroundColor(colors::SURFACE_SELECTED); // Green for selected
-                *border_color = BorderColor(colors::BORDER_SELECTED);
+                *border_color = BorderColor::all(colors::BORDER_SELECTED);
             } else {
                 *bg_color = BackgroundColor(colors::SECONDARY);
-                *border_color = BorderColor(colors::BORDER_DEFAULT);
+                *border_color = BorderColor::all(colors::BORDER_DEFAULT);
             }
         }
     }

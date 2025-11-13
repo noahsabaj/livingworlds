@@ -125,7 +125,7 @@ pub fn spawn_world_size_section(parent: &mut ChildSpawnerCommands) {
                     } else {
                         colors::BACKGROUND_LIGHT
                     }),
-                    BorderColor(if size == WorldSize::Medium {
+                    BorderColor::all(if size == WorldSize::Medium {
                         colors::PRIMARY
                     } else {
                         colors::BORDER_DEFAULT

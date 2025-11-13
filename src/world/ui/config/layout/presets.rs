@@ -85,7 +85,7 @@ pub fn spawn_preset_section(parent: &mut ChildSpawnerCommands) {
                         } else {
                             colors::BACKGROUND_LIGHT
                         }),
-                        BorderColor(if preset == WorldPreset::Balanced {
+                        BorderColor::all(if preset == WorldPreset::Balanced {
                             colors::PRIMARY
                         } else {
                             colors::BORDER_DEFAULT

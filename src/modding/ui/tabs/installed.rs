@@ -65,7 +65,7 @@ fn spawn_mod_card(grid: &mut ChildSpawnerCommands, loaded_mod: &crate::modding::
             ..default()
         },
         BackgroundColor(colors::BACKGROUND_MEDIUM),
-        BorderColor(colors::BORDER_DEFAULT),
+        BorderColor::all(colors::BORDER_DEFAULT),
         ModCard {
             mod_id: loaded_mod.manifest.id.clone(),
             workshop_id: None,

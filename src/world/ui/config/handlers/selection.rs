@@ -34,7 +34,7 @@ macro_rules! create_selection_handler {
                             if btn.0 == button.0 {
                                 // Selected button
                                 *bg_color = BackgroundColor(colors::PRIMARY);
-                                *border_color = BorderColor(colors::PRIMARY);
+                                *border_color = BorderColor::all(colors::PRIMARY);
 
                                 if let Ok(children) = children_query.get(entity) {
                                     for child in children.iter() {
@@ -46,7 +46,7 @@ macro_rules! create_selection_handler {
                             } else {
                                 // Unselected buttons
                                 *bg_color = BackgroundColor(colors::BACKGROUND_LIGHT);
-                                *border_color = BorderColor(colors::BORDER_DEFAULT);
+                                *border_color = BorderColor::all(colors::BORDER_DEFAULT);
 
                                 if let Ok(children) = children_query.get(entity) {
                                     for child in children.iter() {
@@ -63,7 +63,7 @@ macro_rules! create_selection_handler {
                         for (_entity, btn, mut bg_color, mut border_color) in &mut all_buttons {
                             if btn.0 == button.0 && btn.0 != settings.$field {
                                 *bg_color = BackgroundColor(colors::BACKGROUND_LIGHT.lighter(0.15));
-                                *border_color = BorderColor(colors::PRIMARY.with_alpha(0.5));
+                                *border_color = BorderColor::all(colors::PRIMARY.with_alpha(0.5));
                             }
                         }
                     }
@@ -72,7 +72,7 @@ macro_rules! create_selection_handler {
                         for (_entity, btn, mut bg_color, mut border_color) in &mut all_buttons {
                             if btn.0 == button.0 && btn.0 != settings.$field {
                                 *bg_color = BackgroundColor(colors::BACKGROUND_LIGHT);
-                                *border_color = BorderColor(colors::BORDER_DEFAULT);
+                                *border_color = BorderColor::all(colors::BORDER_DEFAULT);
                             }
                         }
                     }
@@ -105,7 +105,7 @@ pub fn handle_preset_selection(
                 for (entity, button, mut bg_color, mut border_color) in &mut all_preset_buttons {
                     if button.0 == preset_button.0 {
                         *bg_color = BackgroundColor(colors::PRIMARY);
-                        *border_color = BorderColor(colors::PRIMARY);
+                        *border_color = BorderColor::all(colors::PRIMARY);
 
                         if let Ok(children) = children_query.get(entity) {
                             for child in children.iter() {
@@ -116,7 +116,7 @@ pub fn handle_preset_selection(
                         }
                     } else {
                         *bg_color = BackgroundColor(colors::BACKGROUND_LIGHT);
-                        *border_color = BorderColor(colors::BORDER_DEFAULT);
+                        *border_color = BorderColor::all(colors::BORDER_DEFAULT);
 
                         if let Ok(children) = children_query.get(entity) {
                             for child in children.iter() {
@@ -132,7 +132,7 @@ pub fn handle_preset_selection(
                 for (_entity, button, mut bg_color, mut border_color) in &mut all_preset_buttons {
                     if button.0 == preset_button.0 && button.0 != settings.preset {
                         *bg_color = BackgroundColor(colors::BACKGROUND_LIGHT.lighter(0.15));
-                        *border_color = BorderColor(colors::PRIMARY.with_alpha(0.5));
+                        *border_color = BorderColor::all(colors::PRIMARY.with_alpha(0.5));
                     }
                 }
             }
@@ -140,7 +140,7 @@ pub fn handle_preset_selection(
                 for (_entity, button, mut bg_color, mut border_color) in &mut all_preset_buttons {
                     if button.0 == preset_button.0 && button.0 != settings.preset {
                         *bg_color = BackgroundColor(colors::BACKGROUND_LIGHT);
-                        *border_color = BorderColor(colors::BORDER_DEFAULT);
+                        *border_color = BorderColor::all(colors::BORDER_DEFAULT);
                     }
                 }
             }

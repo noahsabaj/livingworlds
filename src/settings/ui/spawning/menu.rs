@@ -55,7 +55,7 @@ pub fn spawn_settings_menu(
                         ..default()
                     },
                     BackgroundColor(colors::SURFACE),
-                    BorderColor(colors::BORDER_HOVER),
+                    BorderColor::all(colors::BORDER_HOVER),
                     ZIndex(10), // Above click blocker
                 ))
                 .with_children(|panel| {
@@ -113,7 +113,7 @@ fn spawn_content_area(
                 ..default()
             },
             BackgroundColor(colors::BACKGROUND_MEDIUM),
-            BorderColor(colors::BORDER_DEFAULT),
+            BorderColor::all(colors::BORDER_DEFAULT),
         ))
         .with_children(|content| match current_tab {
             SettingsTab::Graphics => {

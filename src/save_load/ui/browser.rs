@@ -10,12 +10,12 @@ use bevy::prelude::*;
 
 /// System to handle the SpawnSaveBrowserEvent
 pub fn spawn_save_browser(
-    mut events: EventReader<SpawnSaveBrowserEvent>,
+    mut messages: MessageReader<SpawnSaveBrowserEvent>,
     mut commands: Commands,
     mut save_list: ResMut<SaveGameList>,
     mut browser_state: ResMut<SaveBrowserState>,
 ) {
-    for _ in events.read() {
+    for _ in messages.read() {
         // Mark browser as open
         browser_state.is_open = true;
 
@@ -46,7 +46,7 @@ pub fn spawn_save_browser(
                             ..default()
                         },
                         BackgroundColor(colors::BACKGROUND_MEDIUM),
-                        BorderColor(colors::BORDER),
+                        BorderColor::all(colors::BORDER),
                     ))
                     .with_children(|parent| {
                         // Title
@@ -217,7 +217,7 @@ pub fn handle_save_browser_interactions(
     >,
     mut browser_state: ResMut<SaveBrowserState>,
     save_list: Res<SaveGameList>,
-    mut load_events: EventWriter<LoadGameEvent>,
+    mut load_events: MessageWriter<LoadGameEvent>,
     mut commands: Commands,
     browser_query: Query<Entity, With<SaveBrowserRoot>>,
 ) {

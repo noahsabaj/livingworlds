@@ -3,9 +3,10 @@
 //! This module creates the main configuration panel using UI builders.
 
 use super::super::components::{
-    AdvancedToggle, BackButton, GenerateButton, WorldConfigRoot,
+    AdvancedToggle, BackButton, GenerateButton,
 };
 use super::super::types::WorldGenerationSettings;
+use crate::states::GameState;
 use crate::ui::colors;
 use crate::ui::{ButtonBuilder, ButtonSize, ButtonStyle, PanelBuilder, PanelStyle};
 use bevy::prelude::*;
@@ -17,7 +18,9 @@ pub fn spawn_world_config_ui(mut commands: Commands, settings: Res<WorldGenerati
     );
 
     // Root container with dark overlay
+    // Uses StateScoped for automatic cleanup when exiting WorldConfiguration state
     commands.spawn((
+        DespawnOnExit(GameState::WorldConfiguration),
         Button, // Block clicks behind
         Node {
             width: Val::Percent(100.0),
@@ -28,7 +31,6 @@ pub fn spawn_world_config_ui(mut commands: Commands, settings: Res<WorldGenerati
             ..default()
         },
         BackgroundColor(colors::OVERLAY_DARK),
-        WorldConfigRoot,
     )).with_children(|parent| {
         // Use PanelBuilder with intrinsic sizing - no fixed height!
         PanelBuilder::new()

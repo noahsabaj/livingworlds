@@ -258,7 +258,7 @@ fn spawn_sort_dropdown(sidebar: &mut ChildSpawnerCommands) {
                 ..default()
             },
             BackgroundColor(colors::BACKGROUND_LIGHT),
-            BorderColor(colors::BORDER_DEFAULT),
+            BorderColor::all(colors::BORDER_DEFAULT),
         ))
         .with_children(|dropdown| {
             dropdown.spawn((

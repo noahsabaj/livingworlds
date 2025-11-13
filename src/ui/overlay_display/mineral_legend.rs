@@ -1,6 +1,6 @@
 //! Mineral legend display for resource overlays
 
-use super::super::{ChildBuilder, LabelBuilder, PanelBuilder, PanelStyle};
+use crate::ui::{ChildBuilder, LabelBuilder, PanelBuilder, PanelStyle};
 use crate::world::MineralType;
 use crate::resources::MapMode;
 use crate::ui::colors;
@@ -67,7 +67,7 @@ fn spawn_mineral_row(parent: &mut ChildBuilder, symbol: &str, color: &Color, nam
                     ..default()
                 },
                 BackgroundColor(*color),
-                BorderColor(colors::BORDER_DEFAULT),
+                BorderColor::all(colors::BORDER_DEFAULT),
             ))
             .with_children(|square| {
                 // Chemical symbol using LabelBuilder

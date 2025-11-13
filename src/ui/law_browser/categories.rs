@@ -19,7 +19,7 @@ pub fn spawn_category_tabs(parent: &mut ChildSpawnerCommands, selected_category:
             border: UiRect::bottom(Val::Px(dimensions::BORDER_WIDTH)),
             ..default()
         },
-        BorderColor(colors::BORDER),
+        BorderColor::all(colors::BORDER),
         CategoryTabsContainer,
     ))
     .with_children(|tabs| {
@@ -62,7 +62,7 @@ fn spawn_category_tab(
         } else {
             colors::SURFACE
         }),
-        BorderColor(if is_selected {
+        BorderColor::all(if is_selected {
             colors::BORDER_ACTIVE
         } else {
             colors::BORDER
@@ -104,7 +104,7 @@ pub fn update_category_tab_visuals(
             colors::SURFACE
         });
 
-        *border = BorderColor(if is_selected {
+        *border = BorderColor::all(if is_selected {
             colors::BORDER_ACTIVE
         } else {
             colors::BORDER

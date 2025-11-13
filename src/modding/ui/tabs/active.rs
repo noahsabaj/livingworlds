@@ -72,7 +72,7 @@ fn spawn_mod_list_item(
                 ..default()
             },
             BackgroundColor(colors::BACKGROUND_MEDIUM),
-            BorderColor(colors::BORDER_DEFAULT),
+            BorderColor::all(colors::BORDER_DEFAULT),
             ModListItem {
                 mod_id: loaded_mod.manifest.id.clone(),
                 load_order: index,

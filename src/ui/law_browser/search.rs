@@ -15,7 +15,7 @@ pub fn spawn_search_bar(parent: &mut ChildSpawnerCommands) {
             ..default()
         },
         BackgroundColor(colors::BACKGROUND_DARK),
-        BorderColor(colors::BORDER),
+        BorderColor::all(colors::BORDER),
     ))
     .with_children(|search_container| {
         // Search input placeholder (would integrate with text input system)
@@ -30,7 +30,7 @@ pub fn spawn_search_bar(parent: &mut ChildSpawnerCommands) {
                 ..default()
             },
             BackgroundColor(colors::SURFACE),
-            BorderColor(colors::BORDER),
+            BorderColor::all(colors::BORDER),
             LawSearchInput,
         ))
         .with_children(|input| {

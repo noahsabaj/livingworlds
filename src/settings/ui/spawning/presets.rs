@@ -64,7 +64,7 @@ pub fn spawn_graphics_presets(parent: &mut ChildBuilder, settings: &GraphicsSett
                     } else {
                         colors::SECONDARY
                     }),
-                    BorderColor(if is_active {
+                    BorderColor::all(if is_active {
                         colors::BORDER_SELECTED
                     } else {
                         colors::BORDER_DEFAULT

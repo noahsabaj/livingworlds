@@ -24,7 +24,7 @@ pub fn spawn_nation_laws_panel(commands: &mut Commands) {
                 ..default()
             },
             BackgroundColor(colors::BACKGROUND_DARKER),
-            BorderColor(colors::BORDER_ACTIVE),
+            BorderColor::all(colors::BORDER_ACTIVE),
             ZIndex(90), // Below law browser (100) but above other UI
             NationLawsPanel,
         ))
@@ -92,7 +92,7 @@ fn spawn_panel_header(parent: &mut ChildSpawnerCommands) {
                         ..default()
                     },
                     BackgroundColor(colors::DANGER),
-                    BorderColor(colors::BORDER),
+                    BorderColor::all(colors::BORDER),
                     ClosePanelButton,
                 ))
                 .with_children(|button| {
@@ -121,7 +121,7 @@ fn spawn_combined_effects_section(parent: &mut ChildSpawnerCommands) {
                 ..default()
             },
             BackgroundColor(colors::SURFACE_DARK),
-            BorderColor(colors::BORDER),
+            BorderColor::all(colors::BORDER),
         ))
         .with_children(|section| {
             // Header
