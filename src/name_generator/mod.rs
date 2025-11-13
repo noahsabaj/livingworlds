@@ -23,7 +23,7 @@
 //! use living_worlds::name_generator::{NameGenerator, NameType, Culture};
 //!
 //! // Create a new generator with random seed
-//! let mut gen = NameGenerator::new();
+//! let mut rng_gen = NameGenerator::new();
 //!
 //! // Generate a world name
 //! let world = gen.generate(NameType::World);
@@ -44,7 +44,7 @@
 //! For reproducible worlds, use a seeded generator:
 //!
 //! ```rust
-//! let mut gen = NameGenerator::with_seed(12345);
+//! let mut rng_gen = NameGenerator::with_seed(12345);
 //! // Names will be the same for the same seed
 //! ```
 
