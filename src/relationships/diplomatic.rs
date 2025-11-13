@@ -223,21 +223,21 @@ pub enum DiplomaticRelationType {
 // ================================================================================================
 
 /// Event fired when a new alliance is formed
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct AllianceFormedEvent {
     pub nation_a: Entity,
     pub nation_b: Entity,
 }
 
 /// Event fired when a war begins
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct WarDeclaredEvent {
     pub aggressor: Entity,
     pub defender: Entity,
 }
 
 /// Event fired when a peace treaty is signed
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct PeaceTreatyEvent {
     pub nation_a: Entity,
     pub nation_b: Entity,
@@ -245,7 +245,7 @@ pub struct PeaceTreatyEvent {
 }
 
 /// Event fired when a trade agreement is established
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct TradeAgreementEvent {
     pub nation_a: Entity,
     pub nation_b: Entity,

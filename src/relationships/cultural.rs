@@ -198,7 +198,7 @@ pub fn detect_cultural_tensions(
 // ================================================================================================
 
 /// Event fired when cultural tensions arise in a region
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct CulturalTensionEvent {
     pub region: Entity,
     pub region_name: String,
@@ -207,7 +207,7 @@ pub struct CulturalTensionEvent {
 }
 
 /// Event fired when a cultural region unifies under one nation
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct CulturalUnificationEvent {
     pub region: Entity,
     pub region_name: String,

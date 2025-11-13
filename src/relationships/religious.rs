@@ -223,7 +223,7 @@ pub fn simulate_religious_spread(
 // ================================================================================================
 
 /// Event fired when a religion gains significant influence in a province
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct ReligiousConversionEvent {
     pub province: Entity,
     pub religion: Entity,
@@ -232,7 +232,7 @@ pub struct ReligiousConversionEvent {
 }
 
 /// Event fired when religious conflict arises
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct ReligiousConflictEvent {
     pub province: Entity,
     pub religion_a: Entity,
@@ -241,7 +241,7 @@ pub struct ReligiousConflictEvent {
 }
 
 /// Event fired when a new religion is founded
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct ReligionFoundedEvent {
     pub religion: Entity,
     pub founding_province: Entity,

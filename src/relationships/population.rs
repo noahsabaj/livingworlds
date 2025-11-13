@@ -373,7 +373,7 @@ fn calculate_gini_coefficient(population_groups: &[&PopulationGroup]) -> f32 {
 // ================================================================================================
 
 /// Event fired when significant migration occurs
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct MigrationEvent {
     pub population_group: Entity,
     pub from_province: Entity,
@@ -383,7 +383,7 @@ pub struct MigrationEvent {
 }
 
 /// Event fired when population growth/decline is significant
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct PopulationChangeEvent {
     pub province: Entity,
     pub old_population: u32,
@@ -392,7 +392,7 @@ pub struct PopulationChangeEvent {
 }
 
 /// Event fired when demographic composition changes significantly
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct DemographicShiftEvent {
     pub province: Entity,
     pub shift_type: DemographicShiftType,

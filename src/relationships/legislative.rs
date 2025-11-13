@@ -172,14 +172,14 @@ pub struct RepealInfo {
 // ================================================================================================
 
 /// Event when a law is enacted
-#[derive(Event, Debug)]
+#[derive(Message, Debug)]
 pub struct LawEnactedEvent {
     pub nation_entity: Entity,
     pub law_entity: Entity,
 }
 
 /// Event when a law is proposed
-#[derive(Event, Debug)]
+#[derive(Message, Debug)]
 pub struct LawProposedEvent {
     pub nation_entity: Entity,
     pub law_entity: Entity,
@@ -187,7 +187,7 @@ pub struct LawProposedEvent {
 }
 
 /// Event when a law is repealed
-#[derive(Event, Debug)]
+#[derive(Message, Debug)]
 pub struct LawRepealedEvent {
     pub nation_entity: Entity,
     pub law_entity: Entity,

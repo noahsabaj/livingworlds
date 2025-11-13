@@ -160,7 +160,7 @@ pub fn update_administrative_efficiency(
 // ================================================================================================
 
 /// Event fired when a governor is appointed to a province
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct GovernorAppointedEvent {
     pub governor: Entity,
     pub province: Entity,
@@ -168,7 +168,7 @@ pub struct GovernorAppointedEvent {
 }
 
 /// Event fired when a governor is dismissed
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct GovernorDismissedEvent {
     pub governor: Entity,
     pub province: Entity,
@@ -176,7 +176,7 @@ pub struct GovernorDismissedEvent {
 }
 
 /// Event fired when corruption is detected
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct CorruptionDetectedEvent {
     pub governor: Entity,
     pub province: Entity,

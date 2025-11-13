@@ -247,7 +247,7 @@ pub fn calculate_trade_efficiency(
 // ================================================================================================
 
 /// Event fired when a new road is constructed
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct RoadConstructedEvent {
     pub road: Entity,
     pub province_a: Entity,
@@ -256,7 +256,7 @@ pub struct RoadConstructedEvent {
 }
 
 /// Event fired when a trade route is established
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct TradeRouteEstablishedEvent {
     pub route: Entity,
     pub province_a: Entity,
@@ -264,7 +264,7 @@ pub struct TradeRouteEstablishedEvent {
 }
 
 /// Event fired when infrastructure needs maintenance
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct InfrastructureMaintenanceEvent {
     pub infrastructure: Entity,
     pub province: Entity,

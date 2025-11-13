@@ -273,7 +273,7 @@ fn determine_strategic_importance(
 // ================================================================================================
 
 /// Event fired when an army moves to a new position
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct ArmyMovedEvent {
     pub army: Entity,
     pub from_province: Option<Entity>,
@@ -281,7 +281,7 @@ pub struct ArmyMovedEvent {
 }
 
 /// Event fired when a fortification is constructed
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct FortificationBuiltEvent {
     pub fortification: Entity,
     pub province: Entity,
@@ -289,7 +289,7 @@ pub struct FortificationBuiltEvent {
 }
 
 /// Event fired when armies engage in battle
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct BattleEvent {
     pub attacking_armies: Vec<Entity>,
     pub defending_armies: Vec<Entity>,
