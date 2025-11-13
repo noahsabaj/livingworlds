@@ -17,14 +17,15 @@ mod rendering;
 mod territory_analysis;
 mod types;
 
-// Test modules (temporarily disabled pending refactor to match current API)
-// TODO: Update these tests to match the refactored Nation/Law APIs
+// Test modules disabled - require comprehensive updates to match current APIs
+// benches.rs: Uses ProvinceOwnershipCache, TerritoryMetricsCache (deprecated)
+// integration_tests.rs: Uses NationBundle, spawn_nations_with_relationships, old PressureType
+// property_tests: File not found - may have been removed
+// Re-enabling requires updating to current Nation/Law/Pressure APIs throughout
 // #[cfg(test)]
 // mod benches;
 // #[cfg(test)]
 // mod integration_tests;
-// #[cfg(test)]
-// mod property_tests;
 
 pub use actions::{
     // Resolution systems - decide what to do

@@ -284,8 +284,10 @@ define_plugin!(NationMigrationPlugin {
     ]
 });
 
-// Test module temporarily disabled - uses outdated API from before refactoring
-// TODO: Update these tests to match current Nation/Province struct APIs
+// Test module disabled - tests one-time migration that has already been completed
+// These tests validated the migration from Province.owner to entity relationships
+// The migration code is kept for reference but is no longer actively used
+// Re-enabling would require updating to current Nation/Province APIs if migration is needed again
 // #[cfg(test)]
 // mod tests {
 //     use super::*;
