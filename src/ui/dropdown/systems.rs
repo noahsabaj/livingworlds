@@ -29,10 +29,10 @@ pub fn update_dropdown_display<T: DropdownValue>(
 
 /// Handle keyboard navigation for dropdowns
 pub fn handle_dropdown_keyboard<T: DropdownValue>(
-    mut shortcut_events: EventReader<crate::ui::shortcuts::ShortcutEvent>,
+    mut shortcut_events: MessageReader<crate::ui::ShortcutEvent>,
     mut dropdown_query: Query<&mut Dropdown<T>, With<DropdownOpen>>,
 ) {
-    use crate::ui::shortcuts::ShortcutId;
+    use crate::ui::ShortcutId;
 
     // Process shortcut events
     for event in shortcut_events.read() {

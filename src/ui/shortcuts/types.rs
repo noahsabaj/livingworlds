@@ -274,7 +274,7 @@ pub enum ShortcutAction {
 }
 
 /// Event sent when a shortcut is triggered
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct ShortcutEvent {
     pub shortcut_id: ShortcutId,
     pub binding: KeyBinding,

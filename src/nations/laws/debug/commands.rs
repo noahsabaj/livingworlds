@@ -17,13 +17,13 @@ impl LawDebugCommands {
         law_id: LawId,
         nation_laws: &mut NationLaws,
         registry: &LawRegistry,
-        events: &mut EventWriter<LawEnactmentEvent>,
+        messages: &mut MessageWriter<LawEnactmentEvent>,
     ) {
         if let Some(law) = registry.get_law(law_id) {
             // Skip all checks and directly enact
             nation_laws.enact_law(law_id, &law.effects, 0);
 
-            events.send(LawEnactmentEvent {
+            messages.write(LawEnactmentEvent {
                 nation_id: NationId(0), // Debug nation ID
                 nation_name: format!("Debug Nation {:?}", nation_entity),
                 law_id,
@@ -41,7 +41,7 @@ impl LawDebugCommands {
         law_id: LawId,
         nation_laws: &mut NationLaws,
         registry: &LawRegistry,
-        events: &mut EventWriter<LawRepealEvent>,
+        messages: &mut MessageWriter<LawRepealEvent>,
     ) {
         if nation_laws.is_active(law_id) {
             // For debug, we'll use 0 years active since we don't track this currently
@@ -49,7 +49,7 @@ impl LawDebugCommands {
             nation_laws.repeal_law(law_id, 0);  // year = 0 for debug
 
             if let Some(law) = registry.get_law(law_id) {
-                events.send(LawRepealEvent {
+                messages.write(LawRepealEvent {
                     nation_id: NationId(0), // Debug nation ID
                     nation_name: format!("Debug Nation {:?}", nation_entity),
                     law_id,
@@ -117,12 +117,12 @@ pub fn spawn_test_laws(
 
 /// System to force enact a law via keyboard shortcut (for testing)
 pub fn force_enact_law(
-    mut shortcut_events: EventReader<crate::ui::shortcuts::ShortcutEvent>,
+    mut shortcut_events: MessageReader<crate::ui::ShortcutEvent>,
     mut nations_query: Query<(Entity, &mut NationLaws)>,
     registry: Res<LawRegistry>,
-    mut events: EventWriter<LawEnactmentEvent>,
+    mut messages: MessageWriter<LawEnactmentEvent>,
 ) {
-    use crate::ui::shortcuts::ShortcutId;
+    use crate::ui::ShortcutId;
 
     for event in shortcut_events.read() {
         if event.shortcut_id == ShortcutId::DebugForceEnactLaw {
@@ -136,7 +136,7 @@ pub fn force_enact_law(
                             law.id,
                             &mut nation_laws,
                             &registry,
-                            &mut events,
+                            &mut messages,
                         );
                         break;
                     }
@@ -148,12 +148,12 @@ pub fn force_enact_law(
 
 /// System to force repeal a law via keyboard shortcut (for testing)
 pub fn force_repeal_law(
-    mut shortcut_events: EventReader<crate::ui::shortcuts::ShortcutEvent>,
+    mut shortcut_events: MessageReader<crate::ui::ShortcutEvent>,
     mut nations_query: Query<(Entity, &mut NationLaws)>,
     registry: Res<LawRegistry>,
-    mut events: EventWriter<LawRepealEvent>,
+    mut messages: MessageWriter<LawRepealEvent>,
 ) {
-    use crate::ui::shortcuts::ShortcutId;
+    use crate::ui::ShortcutId;
 
     for event in shortcut_events.read() {
         if event.shortcut_id == ShortcutId::DebugForceRepealLaw {
@@ -165,7 +165,7 @@ pub fn force_repeal_law(
                         law_id,
                         &mut nation_laws,
                         &registry,
-                        &mut events,
+                        &mut messages,
                     );
                 }
             }
@@ -175,10 +175,10 @@ pub fn force_repeal_law(
 
 /// System to trigger a test proposal via keyboard shortcut
 pub fn trigger_law_proposal(
-    mut shortcut_events: EventReader<crate::ui::shortcuts::ShortcutEvent>,
+    mut shortcut_events: MessageReader<crate::ui::ShortcutEvent>,
     mut nations_query: Query<&mut NationLaws>,
 ) {
-    use crate::ui::shortcuts::ShortcutId;
+    use crate::ui::ShortcutId;
 
     for event in shortcut_events.read() {
         if event.shortcut_id == ShortcutId::DebugTriggerProposal {

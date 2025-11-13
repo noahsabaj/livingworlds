@@ -2,13 +2,13 @@
 
 use bevy::prelude::*;
 use crate::simulation::{GameTime, SimulationSpeed, SimulationSpeedChanged};
-use crate::ui::shortcuts::{ShortcutEvent, ShortcutId};
+use crate::ui::{ShortcutEvent, ShortcutId};
 
 /// Handle time control through shortcut events
 pub fn handle_time_controls(
     mut game_time: ResMut<GameTime>,
-    mut shortcut_events: EventReader<ShortcutEvent>,
-    mut speed_events: EventWriter<SimulationSpeedChanged>,
+    mut shortcut_events: MessageReader<ShortcutEvent>,
+    mut speed_events: MessageWriter<SimulationSpeedChanged>,
 ) {
     let old_speed = game_time.get_speed();
     let was_paused = game_time.is_paused();
@@ -90,7 +90,7 @@ pub fn handle_time_controls(
 
     // Send event if speed changed
     if speed_changed && (old_speed != game_time.get_speed() || was_paused != game_time.is_paused()) {
-        speed_events.send(SimulationSpeedChanged {
+        speed_events.write(SimulationSpeedChanged {
             new_speed: game_time.get_speed().multiplier(),
             is_paused: game_time.is_paused(),
         });

@@ -12,7 +12,7 @@ define_plugin!(ShortcutPlugin {
         ShortcutRegistry
     ],
 
-    events: [
+    messages: [
         ShortcutEvent
     ],
 

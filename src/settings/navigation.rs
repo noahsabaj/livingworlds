@@ -5,8 +5,8 @@ use bevy::prelude::*;
 
 /// Handle keyboard navigation (Tab/Shift+Tab) and ESC
 pub fn handle_keyboard_navigation(
-    mut shortcut_events: EventReader<crate::ui::shortcuts::ShortcutEvent>,
-    mut shortcut_registry: ResMut<crate::ui::shortcuts::ShortcutRegistry>,
+    mut shortcut_events: MessageReader<crate::ui::ShortcutEvent>,
+    mut shortcut_registry: ResMut<crate::ui::ShortcutRegistry>,
     mut focus: ResMut<FocusedElement>,
     mut param_set: ParamSet<(
         Query<(
@@ -20,10 +20,10 @@ pub fn handle_keyboard_navigation(
     settings_root: Query<Entity, With<SettingsMenuRoot>>,
     mut commands: Commands,
 ) {
-    use crate::ui::shortcuts::{ShortcutId, ShortcutContext};
+    use crate::ui::{ShortcutId, ShortcutContext};
 
     // Only process input if settings menu is actually open
-    let settings_entity = match settings_root.get_single() {
+    let settings_entity = match settings_root.single() {
         Ok(entity) => {
             debug!("⚙️ Settings menu open, processing navigation input");
             // Set the shortcut context to Settings

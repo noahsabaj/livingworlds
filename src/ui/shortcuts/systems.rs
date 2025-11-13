@@ -9,7 +9,7 @@ pub fn process_shortcuts(
     keyboard: Res<ButtonInput<KeyCode>>,
     registry: Res<ShortcutRegistry>,
     config: Res<ShortcutConfig>,
-    mut events: EventWriter<ShortcutEvent>,
+    mut messages: MessageWriter<ShortcutEvent>,
 ) {
     if !config.enabled {
         return;
@@ -18,7 +18,7 @@ pub fn process_shortcuts(
     // Check all registered shortcuts
     if let Some(shortcut_id) = registry.check_shortcuts(&keyboard) {
         if let Some(definition) = registry.get(&shortcut_id) {
-            events.send(ShortcutEvent {
+            messages.write(ShortcutEvent {
                 shortcut_id: shortcut_id.clone(),
                 binding: definition.binding,
                 context: definition.context,
@@ -98,9 +98,9 @@ pub fn check_shortcut_conflicts(
 
 /// Handle common shortcut actions
 pub fn handle_common_shortcuts(
-    mut events: EventReader<ShortcutEvent>,
+    mut messages: MessageReader<ShortcutEvent>,
 ) {
-    for event in events.read() {
+    for event in messages.read() {
         match event.shortcut_id {
             // Time controls are handled by time_controls.rs - not here!
             // This prevents duplicate handling and ensures proper separation of concerns

@@ -1,15 +1,15 @@
 //! Performance Dashboard Update Systems
 
-use super::super::ChildBuilder;
+use crate::ui::ChildBuilder;
 use super::types::*;
 use crate::performance::RayonMetrics;
 use crate::ui::colors;
-use crate::ui::shortcuts::{ShortcutEvent, ShortcutId};
+use crate::ui::{ShortcutEvent, ShortcutId};
 use bevy::prelude::*;
 
 /// Toggle dashboard visibility using the shortcuts registry
 pub fn toggle_dashboard_visibility(
-    mut shortcut_events: EventReader<ShortcutEvent>,
+    mut shortcut_events: MessageReader<ShortcutEvent>,
     mut visibility: ResMut<DashboardVisibility>,
     mut panel_query: Query<&mut Visibility, With<PerformancePanel>>,
 ) {
@@ -81,7 +81,7 @@ pub fn update_metrics_summary(
     query: Query<&Children, With<MetricsSummaryDisplay>>,
     mut text_query: Query<&mut Text>,
 ) {
-    let Ok(children) = query.get_single() else {
+    let Ok(children) = query.single() else {
         return;
     };
 
@@ -129,7 +129,7 @@ pub fn refresh_operations_list(
     query: Query<(Entity, &Children), With<OperationsListDisplay>>,
     existing_ops: Query<Entity, With<OperationListItem>>,
 ) {
-    let Ok((list_entity, children)) = query.get_single() else {
+    let Ok((list_entity, children)) = query.single() else {
         return;
     };
 

@@ -4,21 +4,21 @@
 
 use super::SaveGameList;
 use super::{LoadGameEvent, SaveGameEvent};
-use crate::ui::shortcuts::{ShortcutEvent, ShortcutId};
+use crate::ui::{ShortcutEvent, ShortcutId};
 use bevy::prelude::*;
 
 /// Handle keyboard shortcuts for save/load using the centralized shortcuts registry
 pub fn handle_save_load_shortcuts(
-    mut shortcut_events: EventReader<ShortcutEvent>,
-    mut save_events: EventWriter<SaveGameEvent>,
-    mut load_events: EventWriter<LoadGameEvent>,
+    mut shortcut_events: MessageReader<ShortcutEvent>,
+    mut save_events: MessageWriter<SaveGameEvent>,
+    mut load_events: MessageWriter<LoadGameEvent>,
     mut save_list: ResMut<SaveGameList>,
 ) {
     for event in shortcut_events.read() {
         match event.shortcut_id {
             ShortcutId::QuickSave => {
                 debug!("Quick save shortcut triggered");
-                save_events.send(SaveGameEvent {
+                save_events.write(SaveGameEvent {
                     slot_name: "quicksave".to_string(),
                 });
             }
@@ -28,7 +28,7 @@ pub fn handle_save_load_shortcuts(
                 super::scan_save_files_internal(&mut save_list);
 
                 if let Some(latest) = save_list.saves.first() {
-                    load_events.send(LoadGameEvent {
+                    load_events.write(LoadGameEvent {
                         save_path: latest.path.clone(),
                     });
                 } else {

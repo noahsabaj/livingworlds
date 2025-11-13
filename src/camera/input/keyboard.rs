@@ -2,7 +2,7 @@
 
 use crate::camera::CameraController;
 use crate::constants::*;
-use crate::ui::shortcuts::{ShortcutRegistry, ShortcutId, ShortcutEvent};
+use crate::ui::{ShortcutRegistry, ShortcutId, ShortcutEvent};
 use bevy::prelude::*;
 
 /// Handle camera movement with continuous key press detection
@@ -65,7 +65,7 @@ pub fn handle_keyboard_movement(
 /// Handle camera reset and zoom shortcuts via events
 pub fn handle_camera_shortcuts(
     mut query: Query<&mut CameraController>,
-    mut shortcut_events: EventReader<ShortcutEvent>,
+    mut shortcut_events: MessageReader<ShortcutEvent>,
 ) {
     let Ok(mut controller) = query.single_mut() else {
         return;

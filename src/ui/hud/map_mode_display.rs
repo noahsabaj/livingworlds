@@ -1,6 +1,6 @@
 //! Map mode display and switcher component
 
-use super::super::{ChildBuilder, ButtonBuilder, ButtonStyle, LabelBuilder, LabelStyle};
+use crate::ui::{ChildBuilder, ButtonBuilder, ButtonStyle, LabelBuilder, LabelStyle};
 use crate::resources::MapMode;
 use bevy::prelude::*;
 
@@ -100,7 +100,7 @@ fn spawn_dropdown_menu(parent: &mut ChildBuilder) {
             ..default()
         },
         BackgroundColor(Color::srgba(0.1, 0.1, 0.1, 0.95)),
-        BorderColor(Color::srgba(0.3, 0.3, 0.3, 1.0)),
+        BorderColor::all(Color::srgba(0.3, 0.3, 0.3, 1.0)),
         ZIndex(1000),
         MapModeDropdown,
     )).with_children(|dropdown| {
@@ -187,12 +187,12 @@ pub fn handle_dropdown_item_clicks(
 
 /// Handle closing dropdown when clicking outside or pressing Escape
 pub fn handle_dropdown_close(
-    mut shortcut_events: EventReader<crate::ui::shortcuts::ShortcutEvent>,
+    mut shortcut_events: MessageReader<crate::ui::ShortcutEvent>,
     mouse: Res<ButtonInput<MouseButton>>,
     mut dropdown_state: ResMut<MapModeDropdownState>,
     mut dropdown_query: Query<&mut Node, With<MapModeDropdown>>,
 ) {
-    use crate::ui::shortcuts::ShortcutId;
+    use crate::ui::ShortcutId;
 
     // Close on Escape key
     for event in shortcut_events.read() {
@@ -224,11 +224,11 @@ pub fn handle_dropdown_close(
 
 /// Handle keyboard shortcut for quick Political ↔ Terrain switching (Tab key)
 pub fn handle_map_mode_shortcut(
-    mut shortcut_events: EventReader<crate::ui::shortcuts::ShortcutEvent>,
+    mut shortcut_events: MessageReader<crate::ui::ShortcutEvent>,
     mut current_map_mode: ResMut<MapMode>,
     mut dropdown_state: ResMut<MapModeDropdownState>,
 ) {
-    use crate::ui::shortcuts::ShortcutId;
+    use crate::ui::ShortcutId;
 
     for event in shortcut_events.read() {
         if event.shortcut_id == ShortcutId::MapModeToggle {
