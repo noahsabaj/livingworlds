@@ -318,11 +318,11 @@ pub enum SettingType {
 }
 
 /// Event triggered when settings are changed
-#[derive(Event)]
+#[derive(Message)]
 pub struct SettingsChanged;
 
 /// Event for requesting resolution confirmation dialog
-#[derive(Event)]
+#[derive(Message)]
 pub struct RequestResolutionConfirm;
 
 /// Tracks whether settings have been modified

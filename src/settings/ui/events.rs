@@ -7,7 +7,7 @@ use crate::states::SettingsTab;
 use bevy::prelude::*;
 
 /// Generic settings UI event for various interactions
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub enum SettingsUIEvent {
     /// A setting value was modified
     SettingChanged {
@@ -36,14 +36,14 @@ pub enum SettingValue {
 }
 
 /// Event fired when user switches tabs
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct TabSwitchEvent {
     pub from_tab: SettingsTab,
     pub to_tab: SettingsTab,
 }
 
 /// Event fired when a graphics preset is applied
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct PresetAppliedEvent {
     pub preset: GraphicsPreset,
 }

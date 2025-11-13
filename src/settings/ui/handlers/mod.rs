@@ -12,6 +12,7 @@
 // PRIVATE MODULES - Implementation hidden (NON-OBSOLETE HANDLERS ONLY)
 mod apply_cancel;
 mod presets;
+mod spawn;
 mod tabs;
 mod validation;
 
@@ -23,6 +24,8 @@ pub use apply_cancel::{
 
 
 pub use presets::{handle_preset_buttons, handle_reset_button};
+
+pub use spawn::handle_spawn_settings_menu;
 
 pub use tabs::handle_tab_buttons;
 
