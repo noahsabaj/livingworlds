@@ -88,7 +88,7 @@ pub fn handle_world_generation_transition_delay(
     mut commands: Commands,
     time: Res<Time>,
     timer_res: Option<ResMut<WorldGenerationTransitionDelay>>,
-    mut state_events: EventWriter<RequestStateTransition>,
+    mut state_events: MessageWriter<RequestStateTransition>,
 ) {
     if let Some(mut delay) = timer_res {
         delay.timer.tick(time.delta());
@@ -358,7 +358,7 @@ pub fn start_async_world_generation(
     _meshes: ResMut<Assets<Mesh>>,
     _materials: ResMut<Assets<ColorMaterial>>,
     settings: Res<WorldGenerationSettings>,
-    _state_events: EventWriter<RequestStateTransition>,
+    _state_events: MessageWriter<RequestStateTransition>,
     mut loading_state: ResMut<LoadingState>,
     // GPU resources for acceleration
     gpu_status: Option<Res<crate::world::gpu::GpuComputeStatus>>,
@@ -423,7 +423,7 @@ pub fn poll_async_world_generation(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut loading_state: ResMut<LoadingState>,
-    mut state_events: EventWriter<RequestStateTransition>,
+    mut state_events: MessageWriter<RequestStateTransition>,
     async_generation: Option<ResMut<AsyncWorldGeneration>>,
 ) {
     let Some(generation) = async_generation else {

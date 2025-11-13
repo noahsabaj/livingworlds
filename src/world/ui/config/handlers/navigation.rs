@@ -17,7 +17,7 @@ pub fn handle_generate_button(
     mut commands: Commands,
     interactions: Query<&Interaction, (Changed<Interaction>, With<GenerateButton>)>,
     settings: ResMut<WorldGenerationSettings>,
-    mut state_events: EventWriter<RequestStateTransition>,
+    mut state_events: MessageWriter<RequestStateTransition>,
 ) {
     for interaction in &interactions {
         if *interaction == Interaction::Pressed {
@@ -52,7 +52,7 @@ pub fn handle_generate_button(
 // Marker interaction automation - reduces 14 lines to 8 lines
 define_marker_interactions! {
     BackButton => handle_back_button(
-        mut state_events: EventWriter<RequestStateTransition>
+        mut state_events: MessageWriter<RequestStateTransition>
     ) {
         debug!("Back button pressed");
         state_events.write(RequestStateTransition {

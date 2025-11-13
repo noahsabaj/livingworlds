@@ -19,8 +19,9 @@
 
 use bevy::prelude::*;
 use bevy::reflect::Reflect;
-use bevy::render::mesh::{Indices, PrimitiveTopology};
-use bevy::render::render_asset::RenderAssetUsages;
+use bevy::render::render_resource::PrimitiveTopology;
+use bevy::asset::RenderAssetUsages;
+use bevy::mesh::Indices;
 use rayon::prelude::*;
 use std::collections::HashMap;
 

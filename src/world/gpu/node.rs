@@ -450,7 +450,7 @@ pub fn init_compute_pipelines(
         layout: vec![noise_layout.clone()],
         shader: noise_shader,
         shader_defs: vec![],
-        entry_point: "main".into(),
+        entry_point: Some("main".into()),
         push_constant_ranges: vec![],
         zero_initialize_workgroup_memory: true,
     });
@@ -461,7 +461,7 @@ pub fn init_compute_pipelines(
         layout: vec![erosion_layout.clone()],
         shader: erosion_shader.clone(),
         shader_defs: vec![],
-        entry_point: "init_heightmap".into(),
+        entry_point: Some("init_heightmap".into()),
         push_constant_ranges: vec![],
         zero_initialize_workgroup_memory: true,
     });
@@ -472,7 +472,7 @@ pub fn init_compute_pipelines(
             layout: vec![erosion_layout.clone()],
             shader: erosion_shader.clone(),
             shader_defs: vec![],
-            entry_point: "hydraulic_erosion".into(),
+            entry_point: Some("hydraulic_erosion".into()),
             push_constant_ranges: vec![],
             zero_initialize_workgroup_memory: true,
         });
@@ -483,7 +483,7 @@ pub fn init_compute_pipelines(
             layout: vec![erosion_layout.clone()],
             shader: erosion_shader.clone(),
             shader_defs: vec![],
-            entry_point: "thermal_erosion".into(),
+            entry_point: Some("thermal_erosion".into()),
             push_constant_ranges: vec![],
             zero_initialize_workgroup_memory: true,
         });
@@ -494,7 +494,7 @@ pub fn init_compute_pipelines(
             layout: vec![erosion_layout.clone()],
             shader: erosion_shader,
             shader_defs: vec![],
-            entry_point: "smooth_terrain".into(),
+            entry_point: Some("smooth_terrain".into()),
             push_constant_ranges: vec![],
             zero_initialize_workgroup_memory: true,
         });
