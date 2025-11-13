@@ -8,7 +8,7 @@ use bevy::prelude::*;
 /// Handle cancel button interactions
 pub fn handle_cancel_button(
     interactions: Query<&Interaction, (Changed<Interaction>, With<CancelGenerationButton>)>,
-    mut cancel_events: EventWriter<CancelWorldGeneration>,
+    mut cancel_events: MessageWriter<CancelWorldGeneration>,
 ) {
     for interaction in &interactions {
         if *interaction == Interaction::Pressed {
@@ -20,8 +20,8 @@ pub fn handle_cancel_button(
 
 /// Handle cancel world generation events
 pub fn handle_cancel_generation(
-    mut cancel_events: EventReader<CancelWorldGeneration>,
-    mut state_events: EventWriter<RequestStateTransition>,
+    mut cancel_events: MessageReader<CancelWorldGeneration>,
+    mut state_events: MessageWriter<RequestStateTransition>,
     mut commands: Commands,
 ) {
     for _event in cancel_events.read() {

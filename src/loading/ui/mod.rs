@@ -12,6 +12,6 @@ mod sections;
 
 // Controlled exports
 pub use components::{
-    CancelGenerationButton, LoadingProgressBar, LoadingScreenRoot, LoadingStatusText,
+    CancelGenerationButton, LoadingProgressBar, LoadingStatusText,
 };
 pub use layout::setup_loading_screen;
