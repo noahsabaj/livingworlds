@@ -73,8 +73,8 @@ impl ContinentGenerator {
                     (center_x + cos_angle * dist, center_y + sin_angle * dist)
                 } else {
                     // Others more randomly distributed
-                    let x = self.dimensions.bounds.x_min + rng.gen::<f32>() * map_width;
-                    let y = self.dimensions.bounds.y_min + rng.gen::<f32>() * map_height;
+                    let x = self.dimensions.bounds.x_min + rng.r#gen::<f32>() * map_width;
+                    let y = self.dimensions.bounds.y_min + rng.r#gen::<f32>() * map_height;
                     (x, y)
                 };
 
@@ -100,23 +100,23 @@ impl ContinentGenerator {
         // Earth-like continent distribution with varied sizes
         for i in 0..self.continent_count {
             // Distribute continents across entire map
-            let angle = (i as f32 / self.continent_count as f32) * TAU + rng.gen::<f32>() * 0.5;
-            let distance = (0.2 + rng.gen::<f32>() * 0.6) * world_width.min(world_height) * 0.4;
+            let angle = (i as f32 / self.continent_count as f32) * TAU + rng.r#gen::<f32>() * 0.5;
+            let distance = (0.2 + rng.r#gen::<f32>() * 0.6) * world_width.min(world_height) * 0.4;
 
-            let x = angle.cos() * distance + (rng.gen::<f32>() - 0.5) * world_width * 0.3;
-            let y = angle.sin() * distance + (rng.gen::<f32>() - 0.5) * world_height * 0.3;
+            let x = angle.cos() * distance + (rng.r#gen::<f32>() - 0.5) * world_width * 0.3;
+            let y = angle.sin() * distance + (rng.r#gen::<f32>() - 0.5) * world_height * 0.3;
 
             // Vary continent sizes for realism
-            let size_roll = rng.gen::<f32>();
+            let size_roll = rng.r#gen::<f32>();
             let (strength, radius) = if size_roll < 0.3 {
                 // Small islands
-                (0.15 + rng.gen::<f32>() * 0.15, 50.0 + rng.gen::<f32>() * 100.0)
+                (0.15 + rng.r#gen::<f32>() * 0.15, 50.0 + rng.r#gen::<f32>() * 100.0)
             } else if size_roll < 0.7 {
                 // Medium continents
-                (0.3 + rng.gen::<f32>() * 0.25, 150.0 + rng.gen::<f32>() * 150.0)
+                (0.3 + rng.r#gen::<f32>() * 0.25, 150.0 + rng.r#gen::<f32>() * 150.0)
             } else {
                 // Large continents
-                (0.45 + rng.gen::<f32>() * 0.3, 250.0 + rng.gen::<f32>() * 200.0)
+                (0.45 + rng.r#gen::<f32>() * 0.3, 250.0 + rng.r#gen::<f32>() * 200.0)
             };
 
             seeds.push((Vec2::new(x, y), strength, radius));

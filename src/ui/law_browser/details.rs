@@ -199,7 +199,7 @@ pub fn update_law_details(
 /// Spawn effect display items
 fn spawn_effect_items(parent: &mut ChildSpawnerCommands, effects: &LawEffects) {
     macro_rules! spawn_effect {
-        ($field:expr, $name:expr, $format:expr) => {
+        ($field:expr_2021, $name:expr_2021, $format:expr_2021) => {
             if $field.abs() > 0.001 {
                 let sign = if $field > 0.0 { "+" } else { "" };
                 let color = if $field > 0.0 { colors::SUCCESS } else { colors::DANGER };

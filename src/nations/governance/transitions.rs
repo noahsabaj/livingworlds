@@ -67,7 +67,7 @@ pub fn check_for_transitions(
             );
 
             // Check if transition is peaceful
-            let peaceful = rand::thread_rng().gen::<f32>() < settings.peaceful_transition_chance
+            let peaceful = rand::thread_rng().r#gen::<f32>() < settings.peaceful_transition_chance
                 || matches!(transition_type, TransitionType::Reform | TransitionType::Election);
 
             // Send transition event
@@ -124,7 +124,7 @@ fn determine_transition_type(
         TransitionType::ForeignImposed
     } else if governance.government_type.category() == GovernmentCategory::Democratic {
         TransitionType::Election
-    } else if rng.gen::<f32>() < 0.3 {
+    } else if rng.r#gen::<f32>() < 0.3 {
         TransitionType::Reform
     } else {
         TransitionType::PopularUprising
