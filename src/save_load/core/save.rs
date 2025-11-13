@@ -19,8 +19,8 @@ use std::io::Write;
 
 /// Handle save game requests with compression and versioning
 pub fn handle_save_game(
-    mut save_events: EventReader<SaveGameEvent>,
-    mut complete_events: EventWriter<SaveCompleteEvent>,
+    mut save_events: MessageReader<SaveGameEvent>,
+    mut complete_events: MessageWriter<SaveCompleteEvent>,
     world_seed: Option<Res<WorldSeed>>,
     world_name: Option<Res<WorldName>>,
     world_size: Option<Res<WorldSize>>,

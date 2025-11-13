@@ -58,7 +58,7 @@ pub fn handle_delete_confirmation(
     dialog_query: Query<Entity, With<DeleteConfirmationDialog>>,
     mut save_list: ResMut<SaveGameList>,
     browser_root: Query<Entity, With<SaveBrowserRoot>>,
-    mut spawn_browser_events: EventWriter<crate::menus::SpawnSaveBrowserEvent>,
+    mut spawn_browser_events: MessageWriter<crate::menus::SpawnSaveBrowserEvent>,
     pending_delete: Option<Res<PendingDeletePath>>,
 ) {
     // Check if a button in the dialog was pressed

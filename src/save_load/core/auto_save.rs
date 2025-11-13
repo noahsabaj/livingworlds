@@ -9,7 +9,7 @@ use bevy::prelude::*;
 pub fn handle_auto_save(
     time: Res<Time>,
     mut timer: ResMut<AutoSaveTimer>,
-    mut save_events: EventWriter<SaveGameEvent>,
+    mut save_events: MessageWriter<SaveGameEvent>,
 ) {
     if !timer.enabled {
         return;
