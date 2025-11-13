@@ -18,7 +18,7 @@ use super::manager::ModManager;
 ///
 // **AUTOMATION ACHIEVEMENT**: 65 lines with complex setup → ~45 lines declarative!
 define_plugin!(ModdingPlugin {
-    events: [
+    messages: [
         ConfigReloadEvent,
         super::handlers::ModEnabledEvent,
         super::handlers::ModDisabledEvent,

@@ -17,7 +17,7 @@ use crate::simulation::GameTime;
 ///
 /// Uses reactive cache invalidation instead of polling (Bevy 0.16 best practice)
 pub fn execute_expansion_events(
-    mut events: EventReader<NationActionEvent>,
+    mut messages: MessageReader<NationActionEvent>,
     mut province_storage: ResMut<ProvinceStorage>,
     mut ownership_cache: ResMut<ProvinceOwnershipCache>,
     mut territory_cache: ResMut<TerritoryMetricsCache>,
@@ -26,7 +26,7 @@ pub fn execute_expansion_events(
     game_time: Res<GameTime>,
     current_mode: Res<MapMode>,
 ) {
-    for event in events.read() {
+    for event in messages.read() {
         if let NationActionEvent::ExpansionAttempt {
             nation_id,
             nation_name,

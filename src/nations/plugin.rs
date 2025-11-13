@@ -22,7 +22,7 @@ define_plugin!(NationPlugin {
         TerritoryMetricsCache
     ],
 
-    events: [
+    messages: [
         super::actions::NationActionEvent
     ],
 

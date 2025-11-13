@@ -16,7 +16,7 @@ define_plugin!(GovernancePlugin {
         GovernanceSettings,
     ],
 
-    events: [
+    messages: [
         super::transitions::GovernmentTransition,
     ],
 

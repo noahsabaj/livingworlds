@@ -24,7 +24,7 @@ define_plugin!(StatesPlugin {
         PendingWorldGeneration
     ],
 
-    events: [
+    messages: [
         RequestStateTransition,
         MenuEvent,
         StartWorldGeneration

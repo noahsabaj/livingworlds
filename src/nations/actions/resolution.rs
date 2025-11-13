@@ -10,7 +10,7 @@ use crate::world::{ProvinceId, ProvinceStorage};
 use crate::nations::{Nation, NationId, NationHistory};
 
 /// Actions that nations can take to relieve pressures
-#[derive(Debug, Clone, Event)]
+#[derive(Debug, Clone, Message)]
 pub enum NationActionEvent {
     /// Nation attempts to expand into neighboring territory
     ExpansionAttempt {
@@ -119,7 +119,7 @@ pub fn resolve_nation_actions(
         Entity
     )>,
     province_storage: Res<ProvinceStorage>,
-    mut events: EventWriter<NationActionEvent>,
+    mut messages: MessageWriter<NationActionEvent>,
     time: Res<Time>,
 ) {
     for (mut nation, mut pressures, history, entity) in &mut nations_query {
@@ -143,7 +143,7 @@ pub fn resolve_nation_actions(
                         &history,
                         level,
                         &province_storage,
-                        &mut events,
+                        &mut messages,
                     );
                 }
                 PressureType::EconomicStrain => {
@@ -151,7 +151,7 @@ pub fn resolve_nation_actions(
                         &mut nation,
                         &history,
                         level,
-                        &mut events,
+                        &mut messages,
                     );
                 }
                 PressureType::MilitaryVulnerability => {
@@ -159,7 +159,7 @@ pub fn resolve_nation_actions(
                         &mut nation,
                         &history,
                         level,
-                        &mut events,
+                        &mut messages,
                     );
                 }
                 PressureType::LegitimacyCrisis => {
@@ -167,7 +167,7 @@ pub fn resolve_nation_actions(
                         &mut nation,
                         &history,
                         level,
-                        &mut events,
+                        &mut messages,
                     );
                 }
                 _ => {}
@@ -185,7 +185,7 @@ pub fn handle_population_pressure(
     history: &NationHistory,
     pressure: PressureLevel,
     province_storage: &ProvinceStorage,
-    events: &mut EventWriter<NationActionEvent>,
+    messages: &mut MessageWriter<NationActionEvent>,
 ) {
     info!(
         "{}: Population pressure at {:.1} - attempting expansion",
@@ -214,7 +214,7 @@ pub fn handle_population_pressure(
                 &format!("Targeting {} provinces for expansion", targets.len())
             );
 
-            events.send(NationActionEvent::ExpansionAttempt {
+            messages.write(NationActionEvent::ExpansionAttempt {
                 nation_id: nation.id,
                 nation_name: nation.name.clone(),
                 target_provinces: targets.clone(),
@@ -252,7 +252,7 @@ pub fn handle_economic_pressure(
     nation: &mut Nation,
     history: &NationHistory,
     pressure: PressureLevel,
-    events: &mut EventWriter<NationActionEvent>,
+    messages: &mut MessageWriter<NationActionEvent>,
 ) {
     info!(
         "{}: Economic pressure at {:.1}",
@@ -281,7 +281,7 @@ pub fn handle_economic_pressure(
             "Choosing aggressive approach - will attempt raids"
         );
 
-        events.send(NationActionEvent::RaidAttempt {
+        messages.write(NationActionEvent::RaidAttempt {
             nation_id: nation.id,
             nation_name: nation.name.clone(),
             target_nation: NationId::new(0), // TODO: Find actual target
@@ -299,7 +299,7 @@ pub fn handle_economic_pressure(
         info!("{} considers raiding neighbors for resources", nation.name);
     } else {
         // Raise taxes
-        let old_rate: f32 = 0.2; // TODO: Track actual tax rate
+        let old_rate: f32 = nation.tax_rate;
         let new_rate = (old_rate * 1.2).min(0.5); // 20% increase, max 50%
 
         log_nation_decision(
@@ -310,7 +310,7 @@ pub fn handle_economic_pressure(
                      old_rate * 100.0, new_rate * 100.0)
         );
 
-        events.send(NationActionEvent::TaxIncrease {
+        messages.write(NationActionEvent::TaxIncrease {
             nation_id: nation.id,
             nation_name: nation.name.clone(),
             old_rate,
@@ -318,8 +318,10 @@ pub fn handle_economic_pressure(
             pressure_level: pressure.value(),
         });
 
-        nation.treasury *= 1.1; // Temporary treasury boost
-        info!("{} raises taxes to address economic strain", nation.name);
+        // Actually update the tax rate and treasury
+        nation.tax_rate = new_rate;
+        nation.treasury *= 1.1; // Temporary treasury boost from increased taxation
+        info!("{} raises taxes from {:.1}% to {:.1}%", nation.name, old_rate * 100.0, new_rate * 100.0);
     }
 }
 
@@ -328,7 +330,7 @@ pub fn handle_military_pressure(
     nation: &mut Nation,
     history: &NationHistory,
     pressure: PressureLevel,
-    events: &mut EventWriter<NationActionEvent>,
+    messages: &mut MessageWriter<NationActionEvent>,
 ) {
     info!(
         "{}: Military pressure at {:.1}",
@@ -343,7 +345,7 @@ pub fn handle_military_pressure(
         // Recruit additional forces
         let units_to_recruit = (pressure.value() * 10.0) as u32;
 
-        events.send(NationActionEvent::MilitaryRecruitment {
+        messages.write(NationActionEvent::MilitaryRecruitment {
             nation_id: nation.id,
             nation_name: nation.name.clone(),
             units_recruited: units_to_recruit,
@@ -356,7 +358,7 @@ pub fn handle_military_pressure(
         info!("{} recruits {} new military units", nation.name, units_to_recruit);
     } else {
         // Seek alliance for protection
-        events.send(NationActionEvent::AllianceSeek {
+        messages.write(NationActionEvent::AllianceSeek {
             nation_id: nation.id,
             nation_name: nation.name.clone(),
             target_nation: None, // TODO: Find suitable ally
@@ -372,7 +374,7 @@ pub fn handle_legitimacy_pressure(
     nation: &mut Nation,
     history: &NationHistory,
     pressure: PressureLevel,
-    events: &mut EventWriter<NationActionEvent>,
+    messages: &mut MessageWriter<NationActionEvent>,
 ) {
     info!(
         "{}: Legitimacy pressure at {:.1}",
@@ -387,7 +389,7 @@ pub fn handle_legitimacy_pressure(
         // Implement reforms
         let reform = choose_reform_type(nation, history);
 
-        events.send(NationActionEvent::ReformImplementation {
+        messages.write(NationActionEvent::ReformImplementation {
             nation_id: nation.id,
             nation_name: nation.name.clone(),
             reform_type: reform,
@@ -400,7 +402,7 @@ pub fn handle_legitimacy_pressure(
         // Build public works
         let project = choose_public_work(nation, history);
 
-        events.send(NationActionEvent::PublicWorks {
+        messages.write(NationActionEvent::PublicWorks {
             nation_id: nation.id,
             nation_name: nation.name.clone(),
             project_type: project,

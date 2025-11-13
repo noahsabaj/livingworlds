@@ -8,12 +8,12 @@ use bevy::prelude::*;
 
 /// System to handle the SpawnSaveBrowserEvent
 pub fn handle_spawn_save_browser_event(
-    events: EventReader<SpawnSaveBrowserEvent>,
+    messages: MessageReader<SpawnSaveBrowserEvent>,
     commands: Commands,
     save_list: ResMut<SaveGameList>,
     browser_state: ResMut<SaveBrowserState>,
 ) {
     // Simply pass through to the actual spawn function
-    // Let spawn_save_browser handle the event reading itself
-    super::spawn_save_browser(events, commands, save_list, browser_state);
+    // Let spawn_save_browser handle the message reading itself
+    super::spawn_save_browser(messages, commands, save_list, browser_state);
 }

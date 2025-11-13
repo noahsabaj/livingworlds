@@ -6,11 +6,11 @@ use bevy::prelude::*;
 /// Handle request to show resolution confirmation dialog  
 pub fn handle_resolution_confirm_request(
     mut commands: Commands,
-    mut events: EventReader<RequestResolutionConfirm>,
+    mut messages: MessageReader<RequestResolutionConfirm>,
     mut confirmation: ResMut<ResolutionConfirmation>,
     settings: Res<GameSettings>,
 ) {
-    for _ in events.read() {
+    for _ in messages.read() {
         if confirmation.active {
             continue; // Already showing dialog
         }
@@ -35,7 +35,7 @@ pub fn update_resolution_countdown(
     dialog_query: Query<Entity, With<crate::ui::ResolutionConfirmDialog>>,
     mut commands: Commands,
     mut settings: ResMut<GameSettings>,
-    mut events: EventWriter<SettingsChanged>,
+    mut messages: MessageWriter<SettingsChanged>,
 ) {
     if !confirmation.active {
         return;
@@ -55,7 +55,7 @@ pub fn update_resolution_countdown(
         // Revert settings
         settings.graphics.resolution = confirmation.original_resolution.clone();
         settings.graphics.window_mode = confirmation.original_window_mode.clone();
-        events.write(SettingsChanged);
+        messages.write(SettingsChanged);
 
         // Clean up dialog
         for entity in &dialog_query {
@@ -74,7 +74,7 @@ pub fn handle_resolution_confirm_buttons(
     mut confirmation: ResMut<ResolutionConfirmation>,
     mut commands: Commands,
     mut settings: ResMut<GameSettings>,
-    mut events: EventWriter<SettingsChanged>,
+    mut messages: MessageWriter<SettingsChanged>,
 ) {
     if !confirmation.active {
         return;
@@ -100,7 +100,7 @@ pub fn handle_resolution_confirm_buttons(
             // Revert settings
             settings.graphics.resolution = confirmation.original_resolution.clone();
             settings.graphics.window_mode = confirmation.original_window_mode.clone();
-            events.write(SettingsChanged);
+            messages.write(SettingsChanged);
 
             // Clean up dialog
             for entity in &dialog_query {

@@ -22,5 +22,5 @@ define_plugin!(WorldPlugin {
 
     resources: [ProvincesSpatialIndex],
 
-    events: [WorldGeneratedEvent, ProvinceSelectedEvent]
+    messages: [WorldGeneratedEvent, ProvinceSelectedEvent]
 });

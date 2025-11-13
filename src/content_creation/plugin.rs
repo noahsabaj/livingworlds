@@ -22,7 +22,7 @@ define_plugin!(ContentCreationPlugin {
         ExportPipeline,
     ],
 
-    events: [
+    messages: [
         ViralMomentDetected,
         RecordingCommand,
         ExportRequest,

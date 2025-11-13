@@ -9,7 +9,7 @@ use rand::Rng;
 use super::types::{Governance, GovernmentType, GovernmentCategory, PoliticalPressure, GovernanceSettings};
 
 /// Event for government transitions
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct GovernmentTransition {
     pub nation_entity: Entity,
     pub from_government: GovernmentType,
@@ -41,7 +41,7 @@ pub fn check_for_transitions(
         &mut Governance,
         &PoliticalPressure,
     )>,
-    mut events: EventWriter<GovernmentTransition>,
+    mut messages: MessageWriter<GovernmentTransition>,
 ) {
     if !settings.allow_revolutions {
         return;
@@ -71,7 +71,7 @@ pub fn check_for_transitions(
                 || matches!(transition_type, TransitionType::Reform | TransitionType::Election);
 
             // Send transition event
-            events.send(GovernmentTransition {
+            messages.write(GovernmentTransition {
                 nation_entity: entity,
                 from_government: governance.government_type,
                 to_government: new_government,
@@ -265,7 +265,7 @@ fn determine_new_government(
 
 /// Process government transitions that have been triggered
 pub fn process_government_transitions(
-    mut events: EventReader<GovernmentTransition>,
+    mut messages: MessageReader<GovernmentTransition>,
     mut nations: Query<(&mut crate::nations::Nation, &mut Governance, &mut super::history::GovernmentHistory, &mut PoliticalPressure)>,
     mut name_generator: Local<Option<crate::name_generator::NameGenerator>>,
     time: Res<crate::simulation::GameTime>,
@@ -276,7 +276,7 @@ pub fn process_government_transitions(
     }
     let name_gen = name_generator.as_mut().unwrap();
 
-    for event in events.read() {
+    for event in messages.read() {
         if let Ok((mut nation, mut governance, mut history, mut pressure)) = nations.get_mut(event.nation_entity) {
             // Record the change in history
             history.changes.push(super::history::GovernmentChange {

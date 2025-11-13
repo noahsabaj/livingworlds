@@ -31,7 +31,7 @@ define_plugin!(LawPlugin {
         LawHistory
     ],
 
-    events: [
+    messages: [
         LawEnactmentEvent,
         LawRepealEvent
     ],

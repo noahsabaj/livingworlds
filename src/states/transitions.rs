@@ -14,12 +14,12 @@ const MENU_TRANSITION_DELAY: f32 = 1.0;
 
 /// Validates and handles state transition requests
 pub fn handle_state_transitions(
-    mut events: EventReader<RequestStateTransition>,
+    mut messages: MessageReader<RequestStateTransition>,
     current_state: Res<State<GameState>>,
     mut next_state: ResMut<NextState<GameState>>,
     world_gen_progress: Res<WorldGenerationInProgress>,
 ) {
-    for event in events.read() {
+    for event in messages.read() {
         info!("Processing state transition request: {:?} → {:?}", event.from, event.to);
         info!("Current state: {:?}", **current_state);
 
@@ -105,11 +105,11 @@ pub fn is_valid_transition(
 
 /// Handles menu navigation events
 pub fn handle_menu_events(
-    mut events: EventReader<MenuEvent>,
+    mut messages: MessageReader<MenuEvent>,
     mut next_menu_state: ResMut<NextState<MenuState>>,
     current_menu: Res<State<MenuState>>,
 ) {
-    for event in events.read() {
+    for event in messages.read() {
         match event {
             MenuEvent::Open(state) => {
                 debug!("Opening menu: {:?}", state);

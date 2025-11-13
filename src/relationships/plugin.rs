@@ -10,7 +10,7 @@ use super::{
 };
 
 define_plugin!(RelationshipsPlugin {
-    events: [
+    messages: [
         // Cultural events (2)
         CulturalTensionEvent,
         CulturalUnificationEvent,

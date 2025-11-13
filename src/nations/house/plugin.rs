@@ -19,7 +19,7 @@ define_plugin!(DramaEnginePlugin {
         CharacterRegistry,
     ],
 
-    events: [
+    messages: [
         super::drama::DramaEvent,
         CharacterBornEvent,
         CharacterDeathEvent,
@@ -35,10 +35,14 @@ define_plugin!(DramaEnginePlugin {
 
     custom_init: |app: &mut bevy::app::App| {
         // Register relationship components and metadata
-        // NOTE: These types need Reflect derive to be registered
+        // NOTE: Bevy 0.17 auto-registers all #[derive(Reflect)] types!
+        // Manual registration no longer needed:
         // app.register_type::<HasRelationship>()
-        //    .register_type::<RelatedTo>()
-        //    .register_type::<RelationshipMetadata>()
-        app.register_type::<RelationshipType>();
+        // app.register_type::<RelatedTo>()
+        // app.register_type::<RelationshipMetadata>()
+        // app.register_type::<RelationshipType>()
+
+        // custom_init kept for potential future use
+        let _ = app;
     }
 });

@@ -8,28 +8,28 @@ use bevy::prelude::*;
 use super::manager::ModManager;
 
 /// Events for mod enable/disable operations
-#[derive(Event)]
+#[derive(Message)]
 pub struct ModEnabledEvent {
     pub mod_id: String,
 }
 
-#[derive(Event)]
+#[derive(Message)]
 pub struct ModDisabledEvent {
     pub mod_id: String,
 }
 
 /// Events for Steam Workshop integration
-#[derive(Event)]
+#[derive(Message)]
 pub struct WorkshopSubscribeEvent {
     pub workshop_id: u64,
 }
 
-#[derive(Event)]
+#[derive(Message)]
 pub struct WorkshopUnsubscribeEvent {
     pub workshop_id: u64,
 }
 
-#[derive(Event)]
+#[derive(Message)]
 pub struct RefreshWorkshopDataEvent;
 
 // Import Steam Workshop integration (conditionally)
@@ -46,8 +46,8 @@ pub struct SteamClient;
 /// System to handle mod enable/disable events
 pub fn handle_mod_toggle_events(
     mut mod_manager: ResMut<ModManager>,
-    mut enable_events: EventReader<ModEnabledEvent>,
-    mut disable_events: EventReader<ModDisabledEvent>,
+    mut enable_events: MessageReader<ModEnabledEvent>,
+    mut disable_events: MessageReader<ModDisabledEvent>,
 ) {
     for event in enable_events.read() {
         mod_manager.enable_mod(&event.mod_id);
@@ -62,21 +62,21 @@ pub fn handle_mod_toggle_events(
 
 /// Handle Steam Workshop subscribe events
 pub fn handle_workshop_subscribe_events(
-    mut events: EventReader<WorkshopSubscribeEvent>,
+    mut messages: MessageReader<WorkshopSubscribeEvent>,
     #[cfg(feature = "steam")] steam: Option<Res<SteamClient>>,
     #[cfg(not(feature = "steam"))] _steam: Option<Res<SteamClient>>,
 ) {
     #[cfg(feature = "steam")]
     {
         let Some(steam) = steam else {
+            let events: Vec<_> = messages.read().collect();
             if !events.is_empty() {
                 warn!("Cannot subscribe to workshop items - Steam not available");
-                events.clear();
             }
             return;
         };
 
-        for event in events.read() {
+        for event in messages.read() {
             info!("Subscribing to workshop item: {}", event.workshop_id);
 
             subscribe_to_workshop_item(&steam, event.workshop_id);
@@ -90,30 +90,30 @@ pub fn handle_workshop_subscribe_events(
 
     #[cfg(not(feature = "steam"))]
     {
+        let events: Vec<_> = messages.read().collect();
         if !events.is_empty() {
             warn!("Steam Workshop integration not available - compile with steam feature");
-            events.clear();
         }
     }
 }
 
 /// Handle Steam Workshop unsubscribe events
 pub fn handle_workshop_unsubscribe_events(
-    mut events: EventReader<WorkshopUnsubscribeEvent>,
+    mut messages: MessageReader<WorkshopUnsubscribeEvent>,
     #[cfg(feature = "steam")] steam: Option<Res<SteamClient>>,
     #[cfg(not(feature = "steam"))] _steam: Option<Res<SteamClient>>,
 ) {
     #[cfg(feature = "steam")]
     {
         let Some(_steam) = steam else {
+            let events: Vec<_> = messages.read().collect();
             if !events.is_empty() {
                 warn!("Cannot unsubscribe from workshop items - Steam not available");
-                events.clear();
             }
             return;
         };
 
-        for event in events.read() {
+        for event in messages.read() {
             info!("Unsubscribing from workshop item: {}", event.workshop_id);
 
             // Note: bevy_steamworks doesn't expose unsubscribe directly
@@ -129,16 +129,16 @@ pub fn handle_workshop_unsubscribe_events(
 
     #[cfg(not(feature = "steam"))]
     {
+        let events: Vec<_> = messages.read().collect();
         if !events.is_empty() {
             warn!("Steam Workshop integration not available - compile with steam feature");
-            events.clear();
         }
     }
 }
 
 /// Handle workshop data refresh events
 pub fn handle_refresh_workshop_data_events(
-    mut events: EventReader<RefreshWorkshopDataEvent>,
+    mut messages: MessageReader<RefreshWorkshopDataEvent>,
     #[cfg(feature = "steam")] steam: Option<Res<SteamClient>>,
     #[cfg(not(feature = "steam"))] _steam: Option<Res<SteamClient>>,
     mod_manager: ResMut<ModManager>,
@@ -146,14 +146,14 @@ pub fn handle_refresh_workshop_data_events(
     #[cfg(feature = "steam")]
     {
         let Some(_steam) = steam else {
+            let events: Vec<_> = messages.read().collect();
             if !events.is_empty() {
                 warn!("Cannot refresh workshop data - Steam not available");
-                events.clear();
             }
             return;
         };
 
-        for _ in events.read() {
+        for _ in messages.read() {
             info!("Refreshing workshop data...");
 
             // Trigger mod discovery to pick up newly downloaded workshop items
@@ -165,9 +165,9 @@ pub fn handle_refresh_workshop_data_events(
 
     #[cfg(not(feature = "steam"))]
     {
+        let events: Vec<_> = messages.read().collect();
         if !events.is_empty() {
             warn!("Steam Workshop integration not available - compile with steam feature");
-            events.clear();
         }
     }
 }

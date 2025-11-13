@@ -58,7 +58,7 @@ pub fn handle_repeal_buttons(
     selected_nation: Res<SelectedNation>,
     mut nation_laws_query: Query<&mut crate::nations::NationLaws>,
     registry: Res<crate::nations::LawRegistry>,
-    mut events: EventWriter<crate::nations::LawRepealEvent>,
+    mut messages: MessageWriter<crate::nations::LawRepealEvent>,
 ) {
     for (interaction, button) in &mut interaction_query {
         if *interaction == Interaction::Pressed {
@@ -67,7 +67,7 @@ pub fn handle_repeal_buttons(
                     // Get law details from registry for the event
                     if let Some(law) = registry.get_law(button.law_id) {
                         // Send repeal event with all required fields
-                        events.send(crate::nations::LawRepealEvent {
+                        messages.write(crate::nations::LawRepealEvent {
                             nation_id: crate::nations::NationId(0), // TODO: Get actual nation ID
                             nation_name: "Selected Nation".to_string(), // TODO: Get actual nation name
                             law_id: button.law_id,

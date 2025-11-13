@@ -16,7 +16,7 @@ use crate::nations::NationId;
 use crate::simulation::GameTime;
 
 /// A dramatic event that creates shareable moments
-#[derive(Debug, Clone, Event, Serialize, Deserialize, Reflect)]
+#[derive(Debug, Clone, Message, Serialize, Deserialize, Reflect)]
 pub struct DramaEvent {
     pub id: DramaEventId,
     pub event_type: DramaEventType,
@@ -491,7 +491,7 @@ pub enum DeathCause {
 pub fn generate_drama_events(
     characters: Query<(Entity, &Character, &FamilyMember)>,
     relationships: Query<&HasRelationship>,
-    mut events: EventWriter<DramaEvent>,
+    mut messages: MessageWriter<DramaEvent>,
     time: Res<GameTime>,
     mut rng: ResMut<GlobalRng>,
 ) {
@@ -502,38 +502,38 @@ pub fn generate_drama_events(
     for (entity, character, family) in &characters {
         // Mad characters create incidents
         if character.personality.madness > 0.7 && rng.gen_bool(0.1) {
-            generate_madness_event(character, &mut events, &time, &mut rng);
+            generate_madness_event(character, &mut messages, &time, &mut rng);
         }
 
         // Stressed characters might snap
         if character.stress > 0.9 && rng.gen_bool(0.05) {
-            generate_stress_event(character, &mut events, &time, &mut rng);
+            generate_stress_event(character, &mut messages, &time, &mut rng);
         }
 
         // Quirks cause problems
         if !character.quirks.is_empty() && rng.gen_bool(0.02) {
-            generate_quirk_incident(character, &mut events, &time, &mut rng);
+            generate_quirk_incident(character, &mut messages, &time, &mut rng);
         }
 
         // Secrets might be revealed
         if !character.secrets.is_empty() && rng.gen_bool(0.01) {
-            generate_secret_reveal(character, &mut events, &time, &mut rng);
+            generate_secret_reveal(character, &mut messages, &time, &mut rng);
         }
 
         // Young rulers create viral moments
         if character.age < 10 && character.role == CharacterRole::Ruler && rng.gen_bool(0.2) {
-            generate_baby_ruler_event(character, &mut events, &time, &mut rng);
+            generate_baby_ruler_event(character, &mut messages, &time, &mut rng);
         }
     }
 
     // Check relationships for drama
-    check_relationship_drama(&relationships, &characters, &mut events, &time, &mut rng);
+    check_relationship_drama(&relationships, &characters, &mut messages, &time, &mut rng);
 }
 
 // Helper functions for specific event generation
 fn generate_madness_event(
     character: &Character,
-    events: &mut EventWriter<DramaEvent>,
+    messages: &mut MessageWriter<DramaEvent>,
     time: &Res<GameTime>,
     rng: &mut ResMut<GlobalRng>,
 ) {
@@ -551,8 +551,8 @@ fn generate_madness_event(
 
     let action = mad_actions.choose(&mut rng.0).unwrap();
 
-    events.send(DramaEvent {
-        id: DramaEventId(rng.gen()),
+    messages.write(DramaEvent {
+        id: DramaEventId(rng.r#gen()),
         event_type: DramaEventType::DescentIntoMadness {
             character: character.name.clone(),
             trigger: MadnessTrigger::TooMuchPower,
@@ -578,7 +578,7 @@ fn generate_madness_event(
 
 fn generate_baby_ruler_event(
     character: &Character,
-    events: &mut EventWriter<DramaEvent>,
+    messages: &mut MessageWriter<DramaEvent>,
     time: &Res<GameTime>,
     rng: &mut ResMut<GlobalRng>,
 ) {
@@ -595,8 +595,8 @@ fn generate_baby_ruler_event(
 
     let action = baby_actions.choose(&mut rng.0).unwrap();
 
-    events.send(DramaEvent {
-        id: DramaEventId(rng.gen()),
+    messages.write(DramaEvent {
+        id: DramaEventId(rng.r#gen()),
         event_type: DramaEventType::BabyRuler {
             baby: character.name.clone(),
             age_months: character.age * 12,
@@ -651,7 +651,7 @@ impl bevy::ecs::world::FromWorld for GlobalRng {
 // Additional helper functions would go here...
 fn generate_stress_event(
     character: &Character,
-    events: &mut EventWriter<DramaEvent>,
+    messages: &mut MessageWriter<DramaEvent>,
     time: &Res<GameTime>,
     rng: &mut ResMut<GlobalRng>,
 ) {
@@ -660,7 +660,7 @@ fn generate_stress_event(
 
 fn generate_quirk_incident(
     character: &Character,
-    events: &mut EventWriter<DramaEvent>,
+    messages: &mut MessageWriter<DramaEvent>,
     time: &Res<GameTime>,
     rng: &mut ResMut<GlobalRng>,
 ) {
@@ -669,7 +669,7 @@ fn generate_quirk_incident(
 
 fn generate_secret_reveal(
     character: &Character,
-    events: &mut EventWriter<DramaEvent>,
+    messages: &mut MessageWriter<DramaEvent>,
     time: &Res<GameTime>,
     rng: &mut ResMut<GlobalRng>,
 ) {
@@ -679,7 +679,7 @@ fn generate_secret_reveal(
 fn check_relationship_drama(
     relationships: &Query<&HasRelationship>,
     characters: &Query<(Entity, &Character, &FamilyMember)>,
-    events: &mut EventWriter<DramaEvent>,
+    messages: &mut MessageWriter<DramaEvent>,
     time: &Res<GameTime>,
     rng: &mut ResMut<GlobalRng>,
 ) {

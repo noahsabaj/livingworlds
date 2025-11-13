@@ -133,7 +133,7 @@ pub fn resolve_pressure_actions(
         Entity
     )>,
     province_storage: Res<ProvinceStorage>,
-    mut events: EventWriter<crate::nations::NationActionEvent>,
+    mut messages: MessageWriter<crate::nations::NationActionEvent>,
     time: Res<Time>,
 ) {
     // NOTE: Bevy queries should not be manually parallelized with Rayon
@@ -162,7 +162,7 @@ pub fn resolve_pressure_actions(
                                 history,
                                 level,
                                 &province_storage,
-                                &mut events,
+                                &mut messages,
                             );
                         }
                         PressureType::EconomicStrain => {
@@ -170,7 +170,7 @@ pub fn resolve_pressure_actions(
                                 &mut nation,
                                 history,
                                 level,
-                                &mut events,
+                                &mut messages,
                             );
                         }
                         PressureType::MilitaryVulnerability => {
@@ -178,7 +178,7 @@ pub fn resolve_pressure_actions(
                                 &mut nation,
                                 history,
                                 level,
-                                &mut events,
+                                &mut messages,
                             );
                         }
                         PressureType::LegitimacyCrisis => {
@@ -186,7 +186,7 @@ pub fn resolve_pressure_actions(
                                 &mut nation,
                                 history,
                                 level,
-                                &mut events,
+                                &mut messages,
                             );
                         }
                         _ => {}
