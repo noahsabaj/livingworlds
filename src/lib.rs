@@ -9,46 +9,36 @@
 #![allow(elided_lifetimes_in_paths)]
 
 // === Module Declarations ===
-// Core systems
-pub mod components;
-pub mod constants;
-pub mod performance; // Rayon performance monitoring
-pub mod resources;
-pub mod safety;
-pub mod states;
-pub mod version; // Parallel safety validation
-
-// Infrastructure systems
-pub mod app; // Application building and plugin management
+// Modules directly used by main.rs - must remain public
 pub mod cli; // Command-line interface management
-pub mod config; // Configuration management and settings
-pub mod diagnostics; // Performance monitoring and FPS display
 pub mod infrastructure; // System-level configuration and resource management
+pub mod states; // Game state management
 
-// World generation and representation
-pub mod math; // Single source of truth for spatial math and noise
-pub mod world; // World representation and rendering
-
-// Gameplay systems
-pub mod nations;
-pub mod simulation;
-
-// Content creation and viral moments
-pub mod content_creation;
-
-// UI and menus
-pub mod loading;
-pub mod menus;
-pub mod settings;
-pub mod ui;
-
-// Utility systems
-pub mod camera;
-pub mod modding;
-pub mod name_generator;
-pub mod parallel; // Parallel processing infrastructure (single source of truth for Rayon)
-pub mod relationships; // Entity relationship system (Bevy 0.16)
-pub mod save_load;
+// Modules accessed through gateway re-exports below
+mod app; // Application building and plugin management
+mod camera;
+mod components;
+mod config; // Configuration management and settings
+mod constants;
+mod content_creation;
+mod diagnostics; // Performance monitoring and FPS display
+mod loading;
+mod math; // Single source of truth for spatial math and noise
+mod menus;
+mod modding;
+mod name_generator;
+mod nations;
+mod parallel; // Parallel processing infrastructure
+mod performance; // Rayon performance monitoring
+mod relationships; // Entity relationship system
+mod resources;
+mod safety;
+mod save_load;
+mod settings;
+mod simulation;
+mod ui;
+mod version;
+mod world; // World representation and rendering
 
 // Steam integration (only when feature is enabled)
 #[cfg(feature = "steam")]
@@ -96,11 +86,31 @@ pub mod prelude {
 }
 
 // === Gateway Re-exports ===
-// Application building (formerly defined in this file)
+// Controlled API surface - only expose what's needed externally
+
+// Application building
 pub use app::{build_app, build_app_with_config, AppBuildError};
 
-// Configuration management (formerly defined in this file)
+// Configuration
 pub use config::{AppConfig, DiagnosticsConfig, WindowConfig};
 
-// Performance monitoring (formerly defined in this file)
+// Performance monitoring
 pub use diagnostics::{display_fps, DiagnosticsPlugin};
+
+// Version information
+pub use version::version_string;
+
+// Core world types (commonly used in external code/tests)
+pub use world::{Province, ProvinceId, TerrainType, ClimateZone};
+
+// Nation types (for external access if needed)
+pub use nations::{Nation, NationId};
+
+// Game states (already in prelude, but explicit re-export for clarity)
+pub use states::{GameState, MenuState};
+
+// Resources (commonly accessed)
+pub use resources::{WorldSeed, MapMode};
+
+// Components (if needed externally)
+// Note: Position and Size components have been removed/moved to bevy_ui
