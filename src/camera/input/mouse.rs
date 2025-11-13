@@ -10,7 +10,7 @@ use bevy::window::PrimaryWindow;
 /// Handle mouse wheel zoom with zoom-to-cursor
 pub fn handle_mouse_wheel_zoom(
     mut query: Query<(&mut CameraController, &Transform, &Projection)>,
-    mut mouse_wheel: EventReader<MouseWheel>,
+    mut mouse_wheel: MessageReader<MouseWheel>,
     windows: Query<&Window, With<PrimaryWindow>>,
     bounds: Res<CameraBounds>,
 ) {
@@ -81,7 +81,7 @@ pub fn handle_mouse_wheel_zoom(
 pub fn handle_mouse_drag(
     mut query: Query<&mut CameraController>,
     mouse_button: Res<ButtonInput<MouseButton>>,
-    mut mouse_motion: EventReader<MouseMotion>,
+    mut mouse_motion: MessageReader<MouseMotion>,
     windows: Query<&Window, With<PrimaryWindow>>,
 ) {
     let Ok(mut controller) = query.single_mut() else {
