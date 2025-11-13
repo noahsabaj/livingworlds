@@ -9,9 +9,6 @@ use bevy::prelude::*;
 
 // Root markers
 #[derive(Component)]
-pub struct WorldConfigRoot;
-
-#[derive(Component)]
 pub struct AdvancedPanel;
 
 #[derive(Component)]

@@ -6,29 +6,23 @@
 use super::types::{MenuAction, MenuButton, SpawnSaveBrowserEvent, SpawnSettingsMenuEvent};
 use crate::save_load::{scan_save_files_internal, SaveGameList};
 use crate::states::{GameState, RequestStateTransition};
-use crate::ui::{despawn_entities, ButtonBuilder, ButtonSize, ButtonStyle, PanelBuilder, PanelStyle};
+use crate::ui::{ButtonBuilder, ButtonSize, ButtonStyle, PanelBuilder, PanelStyle};
 use bevy::app::AppExit;
 use bevy::prelude::*;
+use bevy_plugin_builder::define_plugin;
 
 /// Plugin that manages the main menu
-pub struct MainMenuPlugin;
+define_plugin!(MainMenuPlugin {
+    update: [
+        (handle_button_interactions, handle_exit_confirmation_dialog)
+            .chain()
+            .run_if(in_state(GameState::MainMenu))
+    ],
 
-impl Plugin for MainMenuPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::MainMenu), spawn_main_menu)
-            .add_systems(OnExit(GameState::MainMenu), despawn_entities::<MainMenuRoot>)
-            .add_systems(
-                Update,
-                (handle_button_interactions, handle_exit_confirmation_dialog)
-                    .chain()
-                    .run_if(in_state(GameState::MainMenu)),
-            );
+    on_enter: {
+        GameState::MainMenu => [spawn_main_menu]
     }
-}
-
-/// Marker component for the main menu root entity
-#[derive(Component)]
-pub struct MainMenuRoot;
+});
 
 /// Spawns the main menu UI
 fn spawn_main_menu(mut commands: Commands, mut save_list: ResMut<SaveGameList>) {
@@ -39,8 +33,10 @@ fn spawn_main_menu(mut commands: Commands, mut save_list: ResMut<SaveGameList>) 
     let has_saves = !save_list.saves.is_empty();
 
     // Root container - full screen with dark semi-transparent overlay using proper UI components
+    // Uses StateScoped for automatic cleanup when exiting MainMenu state
     commands
         .spawn((
+            DespawnOnExit(GameState::MainMenu),
             Node {
                 width: Val::Percent(100.0),
                 height: Val::Percent(100.0),
@@ -51,7 +47,6 @@ fn spawn_main_menu(mut commands: Commands, mut save_list: ResMut<SaveGameList>) 
                 ..default()
             },
             BackgroundColor(Color::srgba(0.05, 0.05, 0.05, 0.98)),
-            MainMenuRoot,
         ))
         .with_children(|root_panel| {
             // Title section using PanelBuilder
@@ -138,10 +133,10 @@ fn spawn_main_menu(mut commands: Commands, mut save_list: ResMut<SaveGameList>) 
 /// Handles button click interactions in the main menu
 fn handle_button_interactions(
     mut interactions: Query<(&Interaction, &MenuButton), (Changed<Interaction>, With<Button>)>,
-    mut state_events: EventWriter<RequestStateTransition>,
-    mut settings_events: EventWriter<SpawnSettingsMenuEvent>,
-    mut save_browser_events: EventWriter<SpawnSaveBrowserEvent>,
-    mut mod_browser_events: EventWriter<crate::modding::OpenModBrowserEvent>,
+    mut state_events: MessageWriter<RequestStateTransition>,
+    mut settings_events: MessageWriter<SpawnSettingsMenuEvent>,
+    mut save_browser_events: MessageWriter<SpawnSaveBrowserEvent>,
+    mut mod_browser_events: MessageWriter<crate::modding::OpenModBrowserEvent>,
     current_state: Res<State<GameState>>,
     mut commands: Commands,
 ) {
@@ -195,7 +190,7 @@ fn handle_exit_confirmation_dialog(
     >,
     mut commands: Commands,
     dialog_query: Query<Entity, With<crate::ui::ExitConfirmationDialog>>,
-    mut exit_events: EventWriter<AppExit>,
+    mut exit_events: MessageWriter<AppExit>,
 ) {
     for (interaction, (confirm_button, cancel_button)) in &mut interactions {
         if *interaction == Interaction::Pressed {

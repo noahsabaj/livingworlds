@@ -2,10 +2,6 @@
 
 use bevy::prelude::*;
 
-/// Marker component for the root loading screen container
-#[derive(Component)]
-pub struct LoadingScreenRoot;
-
 /// Marker component for the progress bar element
 #[derive(Component)]
 pub struct LoadingProgressBar;

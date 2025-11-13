@@ -1,12 +1,10 @@
 //! Loading screen plugin - Bevy integration for the loading system
 
 use super::{
-    events::CancelWorldGeneration,
+    CancelWorldGeneration,
     state::LoadingState,
-    ui::LoadingScreenRoot,
 };
 use crate::states::GameState;
-use crate::ui::despawn_ui_entities;
 use bevy_plugin_builder::define_plugin;
 
 // Plugin for the loading screen system
@@ -20,7 +18,7 @@ use bevy_plugin_builder::define_plugin;
 define_plugin!(LoadingScreenPlugin {
     resources: [LoadingState],
 
-    events: [CancelWorldGeneration],
+    messages: [CancelWorldGeneration],
 
     update: [
         super::progress::update_loading_progress,
@@ -31,9 +29,5 @@ define_plugin!(LoadingScreenPlugin {
 
     on_enter: {
         GameState::LoadingWorld => [super::ui::setup_loading_screen]
-    },
-
-    on_exit: {
-        GameState::LoadingWorld => [despawn_ui_entities::<LoadingScreenRoot>]
     }
 });

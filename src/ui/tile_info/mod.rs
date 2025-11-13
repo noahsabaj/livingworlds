@@ -12,10 +12,6 @@ mod setup;
 
 // CONTROLLED EXPORTS - Gateway Interface
 
-/// Marker for tile info panel root
-#[derive(Component)]
-pub struct TileInfoRoot;
-
 /// Plugin that manages tile information display (implementation in plugin.rs)
 pub use plugin::TileInfoPlugin;
 

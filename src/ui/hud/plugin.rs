@@ -1,11 +1,10 @@
 //! HUD plugin implementation
 
 use crate::states::GameState;
-use crate::ui::despawn_ui_entities;
 use bevy::prelude::*;
 use bevy_plugin_builder::define_plugin;
 
-use super::{control_hints, map_mode_display, setup, speed_display, time_display, HudRoot};
+use super::{control_hints, map_mode_display, setup, speed_display, time_display};
 
 // Plugin that manages all HUD elements.
 define_plugin!(HudPlugin {
@@ -37,9 +36,5 @@ define_plugin!(HudPlugin {
 
     on_enter: {
         GameState::InGame => [setup::setup_hud]
-    },
-
-    on_exit: {
-        GameState::InGame => [despawn_ui_entities::<HudRoot>]
     }
 });

@@ -16,9 +16,5 @@ mod time_display;
 
 // CONTROLLED EXPORTS - Gateway Interface
 
-/// Marker component for the HUD root entity
-#[derive(Component)]
-pub struct HudRoot;
-
 /// Plugin that manages all HUD elements (implementation in plugin.rs)
 pub use plugin::HudPlugin;

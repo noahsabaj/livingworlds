@@ -9,39 +9,32 @@
 use super::types::{MenuAction, MenuButton, SpawnSaveBrowserEvent, SpawnSettingsMenuEvent};
 use crate::save_load::{scan_save_files_internal, SaveCompleteEvent, SaveGameEvent, SaveGameList};
 use crate::states::{GameState, RequestStateTransition};
-use crate::ui::{despawn_entities, ButtonBuilder, ButtonSize, ButtonStyle};
-use crate::ui::shortcuts::{ShortcutEvent, ShortcutId};
+use crate::ui::{ButtonBuilder, ButtonSize, ButtonStyle};
+use crate::ui::{ShortcutEvent, ShortcutId};
 use bevy::app::AppExit;
 use bevy::prelude::*;
+use bevy_plugin_builder::define_plugin;
 
 /// Plugin that manages the pause menu
-pub struct PauseMenuPlugin;
+define_plugin!(PauseMenuPlugin {
+    update: [
+        (
+            handle_pause_button_interactions,
+            handle_pause_esc_key,
+            handle_exit_confirmation_dialog,
+            update_load_button_after_save,
+        ).run_if(in_state(GameState::Paused)),
+        handle_ingame_esc_key.run_if(in_state(GameState::InGame))
+    ],
 
-impl Plugin for PauseMenuPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::Paused), spawn_pause_menu)
-            .add_systems(OnExit(GameState::Paused), despawn_entities::<PauseMenuRoot>)
-            .add_systems(
-                Update,
-                (
-                    handle_pause_button_interactions,
-                    handle_pause_esc_key,
-                    handle_exit_confirmation_dialog,
-                    update_load_button_after_save,
-                )
-                    .run_if(in_state(GameState::Paused)),
-            )
-            // Add ESC handler to open pause menu from InGame state
-            .add_systems(
-                Update,
-                handle_ingame_esc_key.run_if(in_state(GameState::InGame)),
-            );
+    on_enter: {
+        GameState::Paused => [spawn_pause_menu]
     }
-}
+});
 
-/// Marker component for the pause menu root entity
+/// Marker component for the pause menu root
 #[derive(Component)]
-pub struct PauseMenuRoot;
+struct PauseMenuRoot;
 
 /// Spawns the pause menu UI
 fn spawn_pause_menu(mut commands: Commands, mut save_list: ResMut<SaveGameList>) {
@@ -52,8 +45,11 @@ fn spawn_pause_menu(mut commands: Commands, mut save_list: ResMut<SaveGameList>)
     let has_saves = !save_list.saves.is_empty();
 
     // Root container - full screen with dark semi-transparent overlay that blocks clicks
+    // Uses StateScoped for automatic cleanup when exiting Paused state
     commands
         .spawn((
+            PauseMenuRoot,
+            DespawnOnExit(GameState::Paused),
             Button, // Add Button to block clicks to elements behind pause menu
             Node {
                 width: Val::Percent(100.0),
@@ -64,7 +60,6 @@ fn spawn_pause_menu(mut commands: Commands, mut save_list: ResMut<SaveGameList>)
                 ..default()
             },
             BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.8)),
-            PauseMenuRoot,
         ))
         .with_children(|parent| {
             // Pause menu panel
@@ -79,7 +74,7 @@ fn spawn_pause_menu(mut commands: Commands, mut save_list: ResMut<SaveGameList>)
                         ..default()
                     },
                     BackgroundColor(Color::srgb(0.1, 0.1, 0.12)),
-                    BorderColor(Color::srgb(0.4, 0.4, 0.45)),
+                    BorderColor::all(Color::srgb(0.4, 0.4, 0.45)),
                 ))
                 .with_children(|panel| {
                     // Title
@@ -121,13 +116,13 @@ fn spawn_pause_menu(mut commands: Commands, mut save_list: ResMut<SaveGameList>)
 /// Despawns the pause menu UI
 /// Handle ESC shortcut to resume game from pause menu
 fn handle_pause_esc_key(
-    mut shortcut_events: EventReader<ShortcutEvent>,
-    mut state_events: EventWriter<RequestStateTransition>,
+    mut shortcut_events: MessageReader<ShortcutEvent>,
+    mut state_events: MessageWriter<RequestStateTransition>,
 ) {
     for event in shortcut_events.read() {
         if event.shortcut_id == ShortcutId::Escape {
             debug!("ESC shortcut triggered in pause menu - resuming game");
-            state_events.send(RequestStateTransition {
+            state_events.write(RequestStateTransition {
                 from: GameState::Paused,
                 to: GameState::InGame,
             });
@@ -137,14 +132,14 @@ fn handle_pause_esc_key(
 
 /// Handle ESC shortcut to open pause menu from in-game
 fn handle_ingame_esc_key(
-    mut shortcut_events: EventReader<ShortcutEvent>,
-    mut state_events: EventWriter<RequestStateTransition>,
+    mut shortcut_events: MessageReader<ShortcutEvent>,
+    mut state_events: MessageWriter<RequestStateTransition>,
 ) {
     for event in shortcut_events.read() {
         // ONLY Escape should open the pause menu, NOT Space (Pause is for time control only)
         if event.shortcut_id == ShortcutId::Escape || event.shortcut_id == ShortcutId::OpenMainMenu {
             debug!("Escape key triggered in game - opening pause menu");
-            state_events.send(RequestStateTransition {
+            state_events.write(RequestStateTransition {
                 from: GameState::InGame,
                 to: GameState::Paused,
             });
@@ -154,7 +149,7 @@ fn handle_ingame_esc_key(
 
 /// Update Load Game button after a save completes
 fn update_load_button_after_save(
-    mut save_complete_events: EventReader<SaveCompleteEvent>,
+    mut save_complete_events: MessageReader<SaveCompleteEvent>,
     mut menu_buttons: Query<
         (
             &mut MenuButton,
@@ -181,7 +176,7 @@ fn update_load_button_after_save(
                     button.enabled = true;
 
                     *bg_color = BackgroundColor(crate::ui::ButtonStyle::Secondary.base_color());
-                    *border_color = BorderColor(crate::ui::ButtonStyle::Secondary.border_color());
+                    *border_color = BorderColor::all(crate::ui::ButtonStyle::Secondary.border_color());
 
                     for child in children.iter() {
                         if let Ok(mut text_color) = button_texts.get_mut(child) {
@@ -199,10 +194,10 @@ fn update_load_button_after_save(
 /// Handles button interactions in the pause menu
 fn handle_pause_button_interactions(
     mut interactions: Query<(&Interaction, &MenuButton), (Changed<Interaction>, With<Button>)>,
-    mut state_events: EventWriter<RequestStateTransition>,
-    mut save_events: EventWriter<SaveGameEvent>,
-    mut settings_events: EventWriter<SpawnSettingsMenuEvent>,
-    mut save_browser_events: EventWriter<SpawnSaveBrowserEvent>,
+    mut state_events: MessageWriter<RequestStateTransition>,
+    mut save_events: MessageWriter<SaveGameEvent>,
+    mut settings_events: MessageWriter<SpawnSettingsMenuEvent>,
+    mut save_browser_events: MessageWriter<SpawnSaveBrowserEvent>,
     mut commands: Commands,
     pause_menu_query: Query<Entity, With<PauseMenuRoot>>,
 ) {
@@ -274,7 +269,7 @@ fn handle_exit_confirmation_dialog(
     >,
     mut commands: Commands,
     dialog_query: Query<Entity, With<crate::ui::ExitConfirmationDialog>>,
-    mut exit_events: EventWriter<AppExit>,
+    mut exit_events: MessageWriter<AppExit>,
 ) {
     for (interaction, (confirm_button, cancel_button)) in &mut interactions {
         if *interaction == Interaction::Pressed {
