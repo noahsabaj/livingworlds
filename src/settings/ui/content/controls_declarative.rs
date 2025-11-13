@@ -107,6 +107,7 @@ pub fn document_missing_features() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use bevy::prelude::info;
 
     #[test]
     fn validate_declarative_controls_tab() {

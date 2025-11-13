@@ -84,6 +84,7 @@ pub fn demonstrate_automation_power() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use bevy::prelude::info;
 
     #[test]
     fn validate_declarative_graphics_tab() {

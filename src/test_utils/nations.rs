@@ -3,7 +3,8 @@
 //! Functions for spawning and manipulating test nations.
 
 use bevy::prelude::*;
-use crate::nations::{Nation, NationId, NationLaws, GovernmentType};
+use crate::nations::{Nation, NationId, NationLaws, NationPersonality, GovernmentType};
+use crate::name_generator::Culture;
 
 /// Spawn a test nation with configurable parameters
 pub fn spawn_test_nation(
@@ -13,17 +14,17 @@ pub fn spawn_test_nation(
 ) -> Entity {
     app.world_mut().spawn((
         Nation {
-            id: NationId::new(),
+            id: NationId::new(0),
             name: name.to_string(),
+            adjective: format!("{}n", name), // Simple adjective form
             capital_province: 0,
             color: Color::srgb(1.0, 0.0, 0.0),
-            government_type: government,
-            stability: 0.5,
             treasury: 1000.0,
-            legitimacy: 0.7,
-            development: 0.5,
-            corruption: 0.1,
-            technology_level: 1.0,
+            tax_rate: 0.2,
+            military_strength: 100.0,
+            stability: 0.5,
+            culture: Culture::Western, // Default test culture
+            personality: NationPersonality::balanced(),
         },
         NationLaws::default(),
     )).id()

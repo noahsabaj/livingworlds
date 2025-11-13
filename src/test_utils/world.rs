@@ -3,7 +3,10 @@
 //! Functions for creating small test worlds suitable for unit and integration tests.
 
 use bevy::prelude::*;
-use crate::world::provinces::types::{Province, ProvinceStorage};
+use crate::world::{
+    Province, ProvinceStorage, ProvinceId, TerrainType,
+    Elevation, Agriculture, Distance, Abundance,
+};
 
 /// Generate a small test world for testing
 pub fn generate_test_world(province_count: usize) -> ProvinceStorage {
@@ -11,23 +14,32 @@ pub fn generate_test_world(province_count: usize) -> ProvinceStorage {
 
     for i in 0..province_count {
         provinces.push(Province {
-            id: i as u32,
+            id: ProvinceId::new(i as u32),
             position: Vec2::new(
                 (i % 100) as f32 * 10.0,
                 (i / 100) as f32 * 10.0
             ),
-            terrain: crate::world::terrain::types::TerrainType::Plains,
-            elevation: 0.5,
-            temperature: 0.5,
-            humidity: 0.5,
-            population: 1000,
-            development: 0.1,
-            agriculture: 0.5,
-            fresh_water_distance: 1,
-            ocean_distance: 10,
+            owner: None,
             culture: None,
+            population: 1000,
+            max_population: 10000,
+            terrain: TerrainType::TemperateGrassland,
+            elevation: Elevation::new(0.5),
+            agriculture: Agriculture::new(0.5),
+            fresh_water_distance: Distance::new(1.0),
+            iron: Abundance::new(50),
+            copper: Abundance::new(50),
+            tin: Abundance::new(20),
+            gold: Abundance::new(10),
+            coal: Abundance::new(50),
+            stone: Abundance::new(80),
+            gems: Abundance::new(5),
+            neighbors: [None; 6],
+            neighbor_indices: [None; 6],
+            version: 0,
+            dirty: false,
         });
     }
 
-    ProvinceStorage::from_vec(provinces)
+    ProvinceStorage::from_provinces(provinces)
 }

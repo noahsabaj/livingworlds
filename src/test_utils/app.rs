@@ -5,7 +5,7 @@
 
 use bevy::prelude::*;
 use crate::nations::LawRegistry;
-use crate::simulation::time::GameTime;
+use crate::simulation::GameTime;
 
 /// Create a minimal Bevy app for testing without graphics/audio
 pub fn create_test_app() -> App {
