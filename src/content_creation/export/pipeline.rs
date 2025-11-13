@@ -69,7 +69,7 @@ impl ExportPipeline {
 /// System to handle export requests
 pub fn handle_export_requests(
     mut pipeline: ResMut<ExportPipeline>,
-    mut export_events: EventReader<ExportRequest>,
+    mut export_events: MessageReader<ExportRequest>,
 ) {
     // Queue new export requests
     for request in export_events.read() {

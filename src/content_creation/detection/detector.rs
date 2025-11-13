@@ -60,8 +60,8 @@ impl ViralMomentDetector {
 /// System to detect viral moments from drama events
 pub fn detect_viral_moments(
     mut detector: ResMut<ViralMomentDetector>,
-    mut drama_events: EventReader<DramaEvent>,
-    mut viral_events: EventWriter<ViralMomentDetected>,
+    mut drama_events: MessageReader<DramaEvent>,
+    mut viral_events: MessageWriter<ViralMomentDetected>,
     characters: Query<&Character>,
     time: Res<Time>,
 ) {
@@ -97,7 +97,7 @@ pub fn detect_viral_moments(
             let caption = generate_caption(event, &characters);
             let platforms = recommend_platforms(event, final_score);
 
-            viral_events.send(ViralMomentDetected {
+            viral_events.write(ViralMomentDetected {
                 event: event.clone(),
                 viral_score: final_score,
                 potential: detector.get_potential(final_score),

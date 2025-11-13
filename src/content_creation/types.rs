@@ -52,7 +52,7 @@ pub enum ViralPotential {
 }
 
 /// A moment that was detected as potentially viral
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct ViralMomentDetected {
     pub event: DramaEvent,
     pub viral_score: f32,
@@ -63,7 +63,7 @@ pub struct ViralMomentDetected {
 }
 
 /// Command to control recording
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct RecordingCommand {
     pub action: RecordingAction,
     pub options: RecordingOptions,
@@ -101,7 +101,7 @@ pub struct Highlight {
 }
 
 /// Export request for content
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct ExportRequest {
     pub highlight_id: u32,
     pub format: OutputFormat,

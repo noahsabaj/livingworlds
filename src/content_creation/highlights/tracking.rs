@@ -8,7 +8,7 @@ use super::reel::HighlightReel;
 /// System to track drama events and add viral ones to the highlight reel
 pub fn track_highlights(
     mut reel: ResMut<HighlightReel>,
-    mut drama_events: EventReader<DramaEvent>,
+    mut drama_events: MessageReader<DramaEvent>,
     time: Res<Time>,
 ) {
     for event in drama_events.read() {

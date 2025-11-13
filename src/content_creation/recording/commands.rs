@@ -9,7 +9,7 @@ use super::recorder::ContentRecorder;
 /// System to handle recording commands from user or automated systems
 pub fn handle_recording_commands(
     mut recorder: ResMut<ContentRecorder>,
-    mut commands: EventReader<RecordingCommand>,
+    mut commands: MessageReader<RecordingCommand>,
     time: Res<Time>,
 ) {
     for command in commands.read() {
