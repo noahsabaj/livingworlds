@@ -89,7 +89,7 @@ pub fn update_nation_histories(
 
 /// System to track battles and update history
 pub fn track_battle_outcomes(
-    mut battle_events: EventReader<BattleEvent>,
+    mut battle_events: MessageReader<BattleEvent>,
     mut nations_query: Query<&mut NationHistory>,
 ) {
     for event in battle_events.read() {
@@ -106,7 +106,7 @@ pub fn track_battle_outcomes(
 }
 
 /// Event for tracking battle results
-#[derive(Event)]
+#[derive(Message)]
 pub struct BattleEvent {
     pub victor: Entity,
     pub loser: Entity,
@@ -115,7 +115,7 @@ pub struct BattleEvent {
 
 /// System to track war declarations and peace
 pub fn track_war_status(
-    mut war_events: EventReader<WarStatusEvent>,
+    mut war_events: MessageReader<WarStatusEvent>,
     mut nations_query: Query<(&Nation, &mut NationHistory)>,
 ) {
     for event in war_events.read() {
@@ -197,7 +197,7 @@ pub fn track_war_status(
 }
 
 /// Event for tracking war status changes
-#[derive(Event)]
+#[derive(Message)]
 pub enum WarStatusEvent {
     WarDeclared {
         aggressor: Entity,

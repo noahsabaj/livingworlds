@@ -55,7 +55,7 @@ pub fn interpolate_visual_time(
 pub fn track_year_changes(
     game_time: Res<GameTime>,
     mut last_year: Local<u32>,
-    mut year_events: EventWriter<NewYearEvent>,
+    mut year_events: MessageWriter<NewYearEvent>,
 ) {
     let current_year = game_time.current_year();
 
@@ -75,7 +75,7 @@ pub fn track_year_changes(
 /// Resume from pause menu - restore the game speed
 pub fn resume_from_pause_menu(
     mut game_time: ResMut<GameTime>,
-    mut speed_events: EventWriter<SimulationSpeedChanged>,
+    mut speed_events: MessageWriter<SimulationSpeedChanged>,
 ) {
     // When transitioning from Paused to InGame via the menu, restore the speed
     if game_time.is_paused() {
