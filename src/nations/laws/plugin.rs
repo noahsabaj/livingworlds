@@ -7,7 +7,7 @@ use bevy::prelude::*;
 use bevy_plugin_builder::define_plugin;
 
 use super::initialization::initialize_law_registry;
-use super::registry::{LawRegistry, NationLaws, ActiveLaws, LawHistory};
+use super::registry::{LawRegistry, ActiveLaws, LawHistory};
 use super::systems::{
     propose_laws_system, update_law_debates_system, process_law_votes_system,
     apply_law_effects_system, apply_law_effects_to_nations,

@@ -13,7 +13,7 @@ mod voting;
 
 // Re-export all systems
 pub use debate::update_law_debates_system;
-pub use effect_application::{apply_law_effects_to_nations, Economy};
+pub use effect_application::apply_law_effects_to_nations;
 pub use effects::apply_law_effects_system;
 pub use proposal::propose_laws_system;
 pub use transitions::{handle_government_transitions_system, update_law_cooldowns_system};

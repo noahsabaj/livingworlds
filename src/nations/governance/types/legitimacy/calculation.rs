@@ -4,10 +4,10 @@
 //! government legitimacy based on various factors.
 
 use super::factors::{
-    DivineApproval, ElectoralMandate, InstitutionalControl, LegitimacyFactors, RevolutionaryFervor,
+    DivineApproval, ElectoralMandate, LegitimacyFactors, RevolutionaryFervor,
 };
 use super::weights::LegitimacyWeights;
-use crate::nations::governance::{CrisisFactors, GovernmentType};
+use crate::nations::governance::GovernmentType;
 
 impl LegitimacyFactors {
     /// Calculate total legitimacy with full implementation

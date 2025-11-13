@@ -28,22 +28,15 @@ mod ui;  // Now a subfolder with gateway architecture!
 pub use plugin::ModdingPlugin;
 
 // Events that external code needs access to
-pub use handlers::{
-    ModDisabledEvent, ModEnabledEvent, RefreshWorkshopDataEvent, WorkshopSubscribeEvent,
-    WorkshopUnsubscribeEvent,
-};
 
 // UI Events that need to be accessible from menus
 pub use ui::OpenModBrowserEvent;
 
 // Utility functions that external code may need
-pub use examples::create_example_mod;
 
 // Types that external systems need to understand
-pub use types::{LoadedMod, ModManifest, ModSource};
 
 // Manager access for systems that need to query mod state
-pub use manager::ModManager;
 
 // PURE GATEWAY - Zero Implementation Logic
 //

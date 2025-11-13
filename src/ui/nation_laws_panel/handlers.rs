@@ -2,7 +2,6 @@
 
 use super::panel::spawn_nation_laws_panel;
 use super::types::*;
-use crate::states::GameState;
 use crate::ui::{SelectedNation, ViewLawsButton};
 use bevy::prelude::*;
 
@@ -63,7 +62,7 @@ pub fn handle_repeal_buttons(
     for (interaction, button) in &mut interaction_query {
         if *interaction == Interaction::Pressed {
             if let Some(nation_entity) = selected_nation.entity {
-                if let Ok(mut nation_laws) = nation_laws_query.get_mut(nation_entity) {
+                if let Ok(nation_laws) = nation_laws_query.get_mut(nation_entity) {
                     // Get law details from registry for the event
                     if let Some(law) = registry.get_law(button.law_id) {
                         // Send repeal event with all required fields

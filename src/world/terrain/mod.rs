@@ -28,4 +28,4 @@ pub use climate::apply_climate_to_provinces;
 pub use erosion::apply_erosion_to_provinces;
 
 // Climate storage for runtime visualization
-pub use storage::{ClimateStorage, ClimateZone as StoredClimateZone, ProvinceClimate};
+pub use storage::{ClimateStorage, ClimateZone as StoredClimateZone};

@@ -3,7 +3,6 @@
 //! This module contains the weight system that determines how different
 //! government types value different legitimacy factors.
 
-use serde::{Deserialize, Serialize};
 
 use crate::nations::governance::{GovernmentCategory, GovernmentType};
 

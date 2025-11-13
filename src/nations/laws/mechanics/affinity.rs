@@ -2,7 +2,7 @@
 //!
 //! Determines how well laws align with different government types.
 
-use crate::nations::{GovernmentType, GovernmentCategory};
+use crate::nations::GovernmentType;
 use crate::nations::laws::types::Law;
 
 /// Get government affinity for a law

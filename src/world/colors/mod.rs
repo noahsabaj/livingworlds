@@ -43,12 +43,11 @@ pub use providers::{ColorProvider, Colorable};
 pub use utils::{SafeColor, StoneAbundance};
 
 // Theme constants (read-only access)
-pub use theme::*;
 
 // Climate visualization functions
 pub use climate::composite_climate_color;
 
 // Infrastructure visualization functions
 pub use infrastructure::{
-    composite_infrastructure_color, development_level_color, infrastructure_gradient_color,
+    composite_infrastructure_color, infrastructure_gradient_color,
 };

@@ -31,4 +31,3 @@ mod plugins;
 
 pub use builder::{build_app, build_app_with_config};
 pub use builder::AppBuildError;
-pub use plugins::GamePlugins;

@@ -6,7 +6,6 @@
 use bevy::prelude::*;
 use bevy_plugin_builder::define_plugin;
 
-use super::characters::RelationshipType;
 use super::drama::{generate_drama_events, GlobalRng};
 use super::events::{CharacterBornEvent, CharacterDeathEvent, CharacterRegistry, RelationshipChangedEvent};
 use super::systems::{age_characters, process_character_events, update_relationships};

@@ -1,6 +1,5 @@
 //! Styling constants for notifications.
 
-use bevy::prelude::*;
 
 /// Z-index for notification layer (between HUD and modals)
 /// Re-exported from main UI styles module

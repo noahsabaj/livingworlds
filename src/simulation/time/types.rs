@@ -43,7 +43,7 @@ impl GameTick {
 
     /// Get the day within the current year (0-364)
     pub fn day_of_year(&self) -> u32 {
-        (self.to_days() % 365)
+        self.to_days() % 365
     }
 
     /// Get the fractional day for smooth visual interpolation

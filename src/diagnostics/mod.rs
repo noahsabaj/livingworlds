@@ -32,17 +32,16 @@ mod types;
 
 // Public exports - controlled API surface following gateway pattern
 pub use error_context::{
-    capture_performance_metrics, collect_generation_metrics, ErrorContext, ErrorType,
-    GenerationMetrics, GpuStatus, PerformanceMetrics,
+    ErrorContext,
+    GenerationMetrics,
 };
 pub use fps::display_fps;
 pub use logging::{
     // Core utilities
-    LogLevel, TimedOperation, BatchLogger, PerformanceAggregator,
+    LogLevel, TimedOperation,
     // Logging functions
     log_world_gen_step, log_world_gen_progress, log_nation_decision,
-    log_nation_state_change, log_simulation_update, log_performance_warning,
-    log_memory_usage, log_relationship_operation, log_law_event,
-    log_error_with_context, debug_context,
+    log_nation_state_change,
+    log_memory_usage, debug_context,
 };
 pub use plugin::DiagnosticsPlugin;

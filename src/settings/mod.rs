@@ -5,7 +5,6 @@
 //!
 //! Follows the gateway architecture pattern established by the ui/ module.
 
-use bevy::prelude::*;
 
 // PRIVATE MODULES - All implementation hidden behind gateway
 mod components;
@@ -19,29 +18,14 @@ mod types;
 // CONTROLLED EXPORTS - Minimal public API
 
 // Essential types for external use
-pub use types::{
-    AudioSettings, ControlSettings, GameSettings, GraphicsPreset, GraphicsSettings,
-    InterfaceSettings, QualityLevel, RequestResolutionConfirm, ResolutionConfirmation,
-    ResolutionOption, SettingType, SettingsChanged, SettingsDirtyState, TempGameSettings,
-    WindowModeOption,
-};
 
 // Essential components for external queries (minimal exposure)
-pub use components::{
-    ApplyButton, CancelButton, CycleButton, Focusable, FocusedElement, PresetButton,
-    SettingsMenuRoot, SettingsSlider, TabButton, ToggleButton,
-};
 
 // Core functionality
-pub use persistence::{load_settings, save_settings};
 
 // Settings UI builders (eating our own dog food)
-pub use ui::{
-    spawn_settings_menu, PresetGridBuilder, SettingRowBuilder, SettingSectionBuilder,
-};
 
 // NEW: Declarative settings automation system
-pub use setting_builder::define_setting_tab;
 
 // Main plugin - Clean architecture with no legacy wrappers
 pub use ui::SettingsUIPlugin;

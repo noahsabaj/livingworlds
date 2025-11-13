@@ -44,13 +44,9 @@ mod validation;
 pub use plugin::ParallelSafetyPlugin;
 
 // Metrics system exports
-pub use metrics::{ParallelSafetyMetrics, SafetySummary};
 
 // Validation system exports
-pub use validation::{validate_parallel_consistency, validate_thread_safety};
 
 // Detection system exports
-pub use detection::RaceConditionDetector;
 
 // Benchmarking system exports
-pub use benchmarking::{benchmark_parallel_performance, PerformanceBenchmark};

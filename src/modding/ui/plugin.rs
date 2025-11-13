@@ -8,7 +8,6 @@ use super::state::{ModBrowserState, WorkshopCache};
 use super::types::{
     ApplyModChangesEvent, CloseModBrowserEvent, OpenModBrowserEvent, SwitchModTabEvent,
 };
-use bevy::prelude::*;
 use bevy_plugin_builder::define_plugin;
 
 define_plugin!(ModBrowserUIPlugin {

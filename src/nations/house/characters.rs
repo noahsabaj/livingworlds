@@ -6,7 +6,6 @@
 
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 
 use crate::name_generator::{Culture, Gender, NameGenerator, NameType, PersonRole};
 use crate::nations::NationId;
@@ -412,7 +411,7 @@ impl DetailedPersonality {
 impl Quirk {
     fn random(rng: &mut impl rand::Rng) -> Self {
         use rand::seq::SliceRandom;
-        use rand::Rng;
+        
 
         let quirks = vec![
             Quirk::AfraidOfWater,

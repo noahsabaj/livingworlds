@@ -40,7 +40,7 @@ impl NeighborCalculator {
         if col >= 0 && row >= 0
             && col < self.dimensions.provinces_per_row as i32
             && row < self.dimensions.provinces_per_col as i32 {
-            Some(ProvinceId::new((row as u32 * self.dimensions.provinces_per_row + col as u32)))
+            Some(ProvinceId::new(row as u32 * self.dimensions.provinces_per_row + col as u32))
         } else {
             None
         }

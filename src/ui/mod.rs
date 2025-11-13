@@ -34,7 +34,7 @@ mod toolbar;           // Main toolbar
 // ESSENTIAL EXPORTS - Minimal public API
 
 // Styles module re-exports for controlled access
-pub use styles::{animations, colors, dimensions, helpers, layers};
+pub use styles::{colors, dimensions, helpers, layers};
 
 // Convenience aliases from styles module
 pub use styles::colors::{
@@ -48,45 +48,20 @@ pub use styles::dimensions::{
 };
 
 // Animation system exports
-pub use animation::{
-    // Core components
-    Animation, UIAnimationPlayer, AnimationSequence,
-    // Builder API
-    AnimationBuilder, AnimationCommandsExt, SequenceBuilder,
-    // Common presets
-    presets as animation_presets,
-    // Plugin
-    AnimationPlugin, AnimationConfig,
-    // Types
-    AnimationTarget, AnimationState, EasingFunction,
-};
 
 // Keyboard shortcuts system exports
 pub use shortcuts::{
     // Core types
-    ShortcutId, KeyBinding, ShortcutContext, ShortcutEvent,
+    ShortcutId, ShortcutContext, ShortcutEvent,
     // Registry
-    ShortcutRegistry, ShortcutDefinition,
-    // Builder API
-    ShortcutBuilder, shortcuts as shortcut_builder,
-    ShortcutCommandsExt as ShortcutCommands,
-    // Plugin
-    ShortcutPlugin, ShortcutConfig,
+    ShortcutRegistry,
 };
 
 // Dropdown system exports
-pub use dropdown::{
-    // Builder
-    DropdownBuilder,
-    // Components
-    Dropdown, DropdownPlugin,
-    // Types
-    DropdownValue, DropdownItem,
-};
 
 // Marker components for queries
 pub use dialogs::{
-    CancelButton, ConfirmButton, DiscardButton, KeepButton, RevertButton, SaveButton,
+    DiscardButton, KeepButton, RevertButton, SaveButton,
 };
 
 // Nation info markers
@@ -94,28 +69,17 @@ pub use nation_info::ViewLawsButton;
 
 // State markers
 pub use dialogs::{
-    ExitConfirmationDialog, ResolutionConfirmDialog, ResolutionDialog, UnsavedChangesDialog,
+    ExitConfirmationDialog, ResolutionConfirmDialog, UnsavedChangesDialog,
     WorldGenerationErrorDialog,
 };
 
 // HUD/Display markers
 // pub use hud::HudRoot; // TODO: Define HudRoot component if needed
-pub use interaction::{
-    handle_selection_interaction,
-    ButtonValue,
-    FieldUpdater,
-    SelectedProvinceInfo,
-    // UI interaction automation system
-    SelectionConfig,
-    SelectionStyling,
-};
+pub use interaction::SelectedProvinceInfo;
 
 // UI interaction automation macros
 pub use crate::{define_marker_interactions, define_ui_interactions};
-pub use nation_info::{NationInfoPanel, SelectedNation};
-pub use overlay_display::{MapModeText, MineralLegendContainer};
-pub use performance_dashboard::{DashboardVisibility, PerformancePanel};
-pub use tile_info::{TileInfoPanel, TileInfoText};
+pub use nation_info::SelectedNation;
 
 // Builder components and types - NOW FROM EXTERNAL CRATE!
 // Re-export from bevy-ui-builders for compatibility
@@ -129,18 +93,13 @@ pub use bevy_ui_builders::{
     // Panel system
     PanelBuilder, PanelStyle,
     // Progress bar system
-    ProgressBar, ProgressBarBuilder, ProgressBarStyle,
+    ProgressBar, ProgressBarBuilder,
     // Separator system
-    SeparatorBuilder, SeparatorStyle, Orientation,
+    SeparatorBuilder, Orientation,
     // Slider system
-    Slider, SliderBuilder, ValueFormat, slider,
+    Slider, SliderBuilder, ValueFormat,
     // Text input system
     TextInputBuilder, FocusGroupId, text_input,
-    // Form system
-    FormBuilder, FieldType, ValidationRule,
-    // Convenience functions
-    primary_button, secondary_button, danger_button, ghost_button,
-    label, panel, progress, separator,
 };
 
 // TextBuffer is in a nested module, needs separate import
@@ -148,7 +107,6 @@ pub use bevy_ui_builders::text_input::native_input::TextBuffer;
 
 // Keep local-only components for now
 pub use dialogs::DialogOverlay;
-pub use loading::{LoadingIndicatorBuilder, LoadingSize, LoadingStyle};
 
 
 // CountdownText comes from dialogs module, not components
@@ -161,7 +119,6 @@ pub use tips::get_random_tip;
 // Convenience functions now come directly from bevy-ui-builders v0.1.4
 
 // Generic cleanup system
-pub use cleanup::despawn_entities;
 
 // Wrapper for despawn_ui_entities that matches our system signature
 use bevy::prelude::*;
@@ -172,19 +129,17 @@ pub fn despawn_ui_entities<T: Component>(mut commands: Commands, query: Query<En
 }
 
 // Law browser exports
-pub use law_browser::{LawBrowserPlugin, spawn_law_browser};
 
 // Nation laws panel exports
-pub use nation_laws_panel::{NationLawsPanelPlugin, NationLawsPanelState};
 
 // Notification system exports
-pub use notifications::{NotificationPlugin, NotificationPosition, NotificationType, ShowNotification};
+pub use notifications::ShowNotification;
 
 // Main plugin (implementation in plugin.rs)
 pub use plugin::UIPlugin;
 
 // Text input components - bevy-ui-builders now handles text input natively
-use bevy::prelude::{Entity, Event};
+use bevy::prelude::Entity;
 
 #[derive(Message, Debug, Clone)]
 pub struct TextInputSubmitEvent {

@@ -62,10 +62,9 @@ mod world; // World name generation patterns // Utility functions
 // CONTROLLED PUBLIC API - This is the ONLY way in/out of name_generator
 // Re-export only what external code needs
 pub use core::NameGenerator;
-pub use types::{CitySize, Culture, Gender, NameRelation, NameType, PersonRole, Region};
+pub use types::{Culture, Gender, NameType, PersonRole};
 
 // Selectively expose utility functions
-pub use utils::to_roman_numeral;
 
 // Module documentation for key features
 /// The name generator supports 8 distinct cultural styles

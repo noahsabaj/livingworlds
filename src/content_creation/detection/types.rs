@@ -1,6 +1,5 @@
 //! Types specific to viral moment detection
 
-use bevy::prelude::*;
 
 /// Configuration for viral moment detection
 #[derive(Debug, Clone)]

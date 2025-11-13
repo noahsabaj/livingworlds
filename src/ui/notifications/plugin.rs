@@ -1,6 +1,5 @@
 //! Plugin for the notification system.
 
-use bevy::prelude::*;
 use bevy_plugin_builder::define_plugin;
 
 use super::systems::*;

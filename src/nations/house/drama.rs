@@ -10,7 +10,7 @@ use rand::Rng;
 
 use super::characters::{
     Character, CharacterId, CharacterRole, RelationshipType,
-    Secret, Scandal, LifeEvent, Quirk
+    Secret, Scandal, Quirk
 };
 use crate::nations::NationId;
 use crate::simulation::GameTime;
@@ -496,7 +496,7 @@ pub fn generate_drama_events(
     mut rng: ResMut<GlobalRng>,
 ) {
     use rand::Rng;
-    use rand::seq::SliceRandom;
+    
 
     // Check for potential drama situations
     for (entity, character, family) in &characters {

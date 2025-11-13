@@ -9,7 +9,6 @@ use log::info;
 use crate::math::smooth_falloff;
 use crate::parallel::parallel_map;
 use crate::resources::MapDimensions;
-use crate::world::generation::GenerationUtils;
 use super::continents::ContinentGenerator;
 use super::elevation_processor::ElevationProcessor;
 

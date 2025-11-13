@@ -7,9 +7,9 @@ use crate::modding::manager::ModManager;
 use crate::modding::ui::state::ModBrowserState;
 use crate::modding::ui::tabs::spawn_tab_content;
 use crate::modding::ui::types::{
-    ContentArea, ModBrowserTab, ModBrowserTabButton, SwitchModTabEvent,
+    ContentArea, ModBrowserTabButton, SwitchModTabEvent,
 };
-use crate::ui::{colors, ButtonStyle, StyledButton};
+use crate::ui::{colors, StyledButton};
 use bevy::prelude::*;
 
 /// Handles clicks on tab buttons

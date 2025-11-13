@@ -1,7 +1,7 @@
 //! Cursor confinement management for edge panning
 
 use bevy::prelude::*;
-use bevy::window::{CursorGrabMode, PrimaryWindow};
+use bevy::window::PrimaryWindow;
 
 /// Setup cursor confinement when entering gameplay to keep mouse within window for edge panning
 ///

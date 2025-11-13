@@ -47,74 +47,22 @@ mod religious; // Religious influence and faith spread
 // ================================================================================================
 
 pub use political::{
-    query_nation_capitals,
-    // Political query functions (renamed from _system)
-    query_nation_territories,
-    query_province_owners,
-    validate_capital_assignments,
-    // Political validation systems
-    validate_province_ownership,
     CapitalOf,
     // Core political relationship components
     ControlledBy,
     Controls,
     HasCapital,
-    RuledBy,
-    RulesOver,
 };
 
 // ================================================================================================
 // DIPLOMATIC RELATIONSHIPS - Inter-nation relations
 // ================================================================================================
 
-pub use diplomatic::{
-    get_diplomatic_partners,
-    // Diplomatic query systems
-    query_alliances,
-    query_trade_relationships,
-    query_wars,
-    // Diplomatic update systems
-    update_diplomatic_state,
-    validate_diplomatic_consistency,
-    // Diplomatic events
-    AllianceFormedEvent,
-    // Diplomatic relationship components
-    AlliedWith,
-    AtWarWith,
-    DiplomaticRelationType,
-    DiplomaticState,
-    PeaceTreatyEvent,
-    TradeAgreementEvent,
-    TradesWithNation,
-    WarDeclaredEvent,
-};
 
 // ================================================================================================
 // CULTURAL RELATIONSHIPS - Cultural regions and identity
 // ================================================================================================
 
-pub use cultural::{
-    detect_cultural_tensions,
-    find_regions_by_culture,
-    get_provinces_in_region,
-    // Cultural query functions (renamed from _system)
-    query_cultural_regions,
-    query_province_regions,
-    // Cultural analysis systems
-    update_cultural_coherence,
-    // Cultural validation systems
-    validate_cultural_regions,
-    validate_exclusive_cultural_membership,
-    // Cultural relationship components
-    BelongsToRegion,
-    ContainsProvinces,
-    CulturalCoherence,
-    CulturalRegion,
-    // Cultural events
-    CulturalTensionEvent,
-    CulturalUnificationEvent,
-    FragmentationCause,
-};
 
 // ================================================================================================
 // LEGISLATIVE RELATIONSHIPS - Laws and governance
@@ -122,186 +70,40 @@ pub use cultural::{
 
 pub use legislative::{
     // Legislative relationship components
-    EnactedBy,
     EnactedLaws,
-    ProposedFor,
-    ProposedLaws,
-    RepealedBy,
-    RepealedLaws,
-    ConflictsWith,
-    ConflictedBy,
     // Law entity components
     LawEntity,
-    ProposalStatus,
-    RepealInfo,
-    // Legislative events
-    LawEnactedEvent,
-    LawProposedEvent,
-    LawRepealedEvent,
 };
 
 // ================================================================================================
 // ADMINISTRATIVE RELATIONSHIPS - Governance and administration
 // ================================================================================================
 
-pub use administrative::{
-    find_province_governor,
-    get_governor_provinces,
-    // Administrative query systems
-    query_provincial_administration_system,
-    // Administrative update systems
-    update_administrative_efficiency,
-    validate_administrative_assignments,
-    AdministeredBy,
-    // Administrative relationship components
-    Administers,
-    AdministrativeEfficiency,
-    CorruptionDetectedEvent,
-    DismissalReason,
-    Governor,
-    // Administrative events
-    GovernorAppointedEvent,
-    GovernorDismissedEvent,
-};
 
 // ================================================================================================
 // INFRASTRUCTURE RELATIONSHIPS - Physical connections
 // ================================================================================================
 
-pub use infrastructure::{
-    calculate_trade_efficiency,
-    find_province_roads,
-    find_province_trade_routes,
-    // Infrastructure query systems
-    query_road_network_system,
-    query_trade_network_system,
-    // Infrastructure calculation systems
-    update_infrastructure_status,
-    // Infrastructure validation systems
-    validate_infrastructure_connections,
-    // Infrastructure relationship components
-    ConnectedByRoad,
-    ConnectedByTrade,
-    InfrastructureMaintenanceEvent,
-    InfrastructureStatus,
-    MaintenanceUrgency,
-    Road,
-    // Infrastructure events
-    RoadConstructedEvent,
-    // Infrastructure type enums
-    RoadQuality,
-    TradeRoute,
-    TradeRouteEstablishedEvent,
-    TradeRouteType,
-};
 
 // ================================================================================================
 // MILITARY RELATIONSHIPS - Army positioning and structures
 // ================================================================================================
 
-pub use military::{
-    // Military calculation systems
-    calculate_army_strength,
-    calculate_provincial_defense,
-    find_nation_armies,
-    find_province_armies,
-    // Military query systems
-    query_army_positions_system,
-    query_provincial_military_strength_system,
-    update_military_status,
-    validate_army_ownership,
-    // Military validation systems
-    validate_military_positions,
-    Army,
-    // Military events
-    ArmyMovedEvent,
-    // Military type enums
-    ArmyType,
-    BattleEvent,
-    BattleOutcome,
-    Fortification,
-    FortificationBuiltEvent,
-    FortificationType,
-    HostsArmies,
-    MilitaryStatus,
-    // Military relationship components
-    StationedIn,
-    StrategicImportance,
-};
 
 // ================================================================================================
 // RELIGIOUS RELATIONSHIPS - Faith and influence
 // ================================================================================================
 
-pub use religious::{
-    find_religion_provinces,
-    get_dominant_religion,
-    query_provincial_religions,
-    // Religious query systems
-    query_religious_influence,
-    simulate_religious_spread,
-    // Religious update systems
-    update_religious_status,
-    validate_religious_influence_consistency,
-    // Religious validation systems
-    validate_religious_relationships,
-    ConflictType,
-    InfluencedByReligions,
-    // Religious relationship components
-    InfluencesProvince,
-    Religion,
-    ReligionFoundedEvent,
-    // Religious type enums
-    ReligionType,
-    ReligiousConflictEvent,
-    // Religious events
-    ReligiousConversionEvent,
-    ReligiousInfluence,
-    ReligiousStatus,
-};
 
 // ================================================================================================
 // POPULATION RELATIONSHIPS - Demographics and residence
 // ================================================================================================
 
-pub use population::{
-    calculate_provincial_population,
-    find_province_populations,
-    // Population query systems
-    query_population_distribution_system,
-    query_provincial_demographics_system,
-    // Population update systems
-    update_provincial_demographics,
-    validate_demographic_consistency,
-    // Population validation systems
-    validate_population_residence,
-    CulturalGroup,
-    DemographicShiftEvent,
-    DemographicShiftType,
-    Demographics,
-    HostsPopulations,
-    // Population events
-    MigrationEvent,
-    MigrationFlow,
-    MigrationType,
-    Occupation,
-    PopulationChangeEvent,
-    PopulationChangeType,
-    PopulationGroup,
-    PullFactor,
-    PushFactor,
-    // Population relationship components
-    ResidesIn,
-    // Population type enums and structures
-    SocialClass,
-    SocialStratification,
-};
 
 // ================================================================================================
 // BEVY PLUGIN INTEGRATION
 // ================================================================================================
 
-pub use debug::DebugRelationships;
 pub use plugin::RelationshipsPlugin;
 
 // ================================================================================================

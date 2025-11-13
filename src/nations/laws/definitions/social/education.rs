@@ -6,7 +6,7 @@ use once_cell::sync::Lazy;
 use std::collections::HashMap;
 use crate::nations::governance::GovernmentCategory;
 use crate::nations::laws::types::{
-    Law, LawId, LawCategory, LawComplexity, LawEffects, LawPrerequisite,
+    Law, LawId, LawCategory, LawComplexity, LawEffects,
 };
 
 /// All education-related laws

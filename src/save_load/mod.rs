@@ -61,8 +61,7 @@ pub use resources::{
 };
 
 // Public utility functions
-pub use core::{load_latest_save, quick_save};
-pub use io::{scan_save_files, scan_save_files_internal};
+pub use io::scan_save_files_internal;
 
 // Note: We do NOT export:
 // - UI components (internal implementation)

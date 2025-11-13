@@ -5,7 +5,7 @@
 use super::super::components::*;
 use super::super::types::*;
 use crate::ui::{colors, dimensions};
-use crate::ui::{SliderBuilder, ValueFormat};
+use crate::ui::SliderBuilder;
 use crate::ui::{PanelBuilder, PanelStyle};
 use bevy::prelude::*;
 

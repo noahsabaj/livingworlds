@@ -3,8 +3,7 @@
 use super::input::handle_time_controls;
 use super::pressures::{run_pressure_systems_on_timer, PressureSystemTimer};
 use super::time::{
-    advance_simulation_ticks, interpolate_visual_time, resume_from_pause_menu, track_year_changes,
-    GameTick, NewYearEvent, SimulationSpeed, SimulationSpeedChanged, VisualTime,
+    advance_simulation_ticks, interpolate_visual_time, resume_from_pause_menu, track_year_changes, NewYearEvent, SimulationSpeedChanged, VisualTime,
 };
 use crate::resources::GameTime;
 use crate::states::GameState;

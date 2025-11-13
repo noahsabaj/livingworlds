@@ -1,6 +1,5 @@
 //! Types specific to recording functionality
 
-use bevy::prelude::*;
 
 /// Configuration for recording system
 #[derive(Debug, Clone)]

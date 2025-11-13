@@ -7,11 +7,10 @@ use bevy::prelude::*;
 use std::collections::HashMap;
 
 use super::{Nation, NationId, ProvinceOwnershipCache,
-    Governance, GovernmentType, House, Ruler, RulerPersonality, HouseTraits,
-    NationHistory, NationLaws, NationPersonality};
+    Governance, GovernmentType, House,
+    NationHistory, NationLaws};
 use crate::relationships::{ControlledBy, Controls, HasCapital, CapitalOf};
-use crate::world::{Province, ProvinceId, ProvinceEntity, ProvinceStorage,
-    TerrainType, Elevation, Agriculture, Distance, Abundance};
+use crate::world::{Province, ProvinceId, ProvinceEntity, ProvinceStorage};
 use crate::simulation::PressureVector;
 
 /// Migration result tracking

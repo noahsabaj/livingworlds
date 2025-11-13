@@ -3,7 +3,6 @@
 //! Manages the province/tile information panel that shows details about
 //! the selected province. This is a pure gateway orchestrating submodules.
 
-use bevy::prelude::*;
 
 // Submodules - all private
 mod panel;

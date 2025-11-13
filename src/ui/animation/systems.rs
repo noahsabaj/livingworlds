@@ -78,10 +78,10 @@ pub fn update_animations(
 /// Apply an animation value to the appropriate component
 fn apply_animation_value(
     value: AnimationValue,
-    mut transform: Option<Mut<Transform>>,
-    mut bg_color: Option<Mut<BackgroundColor>>,
-    mut text_color: Option<Mut<TextColor>>,
-    mut node: Option<Mut<Node>>,
+    transform: Option<Mut<Transform>>,
+    bg_color: Option<Mut<BackgroundColor>>,
+    text_color: Option<Mut<TextColor>>,
+    node: Option<Mut<Node>>,
 ) {
     match value {
         AnimationValue::Position(pos) => {
@@ -196,7 +196,7 @@ pub fn process_animation_sequences(
     mut commands: Commands,
     mut sequence_query: Query<(Entity, &mut AnimationSequence), Without<Animation>>,
 ) {
-    for (entity, mut sequence) in &mut sequence_query {
+    for (entity, sequence) in &mut sequence_query {
         // Check if we need to start the first animation
         if let Some(animation) = sequence.current_animation() {
             let animation = animation.clone();

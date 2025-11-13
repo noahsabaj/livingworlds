@@ -2,9 +2,8 @@
 
 use bevy::prelude::*;
 
-use crate::content_creation::types::{ExportRequest, OutputFormat, SocialPlatform};
+use crate::content_creation::types::{ExportRequest, SocialPlatform};
 
-use super::formats::convert_format;
 use super::platforms::optimize_for_platform;
 
 /// Main export pipeline resource

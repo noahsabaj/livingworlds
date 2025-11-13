@@ -28,38 +28,23 @@ mod plugin;
 
 // Core types
 pub use types::{
-    AnimationTarget, AnimationState, AnimationRepeatMode,
-    AnimationDirection, AnimationId, AnimationValue, AnimationConfig,
+    AnimationTarget, AnimationState, AnimationRepeatMode, AnimationConfig,
 };
 
 // Components
 pub use components::{
-    Animation, UIAnimationPlayer, AnimationSequence,
-    AnimationComplete, EasingFunction,
+    Animation, UIAnimationPlayer, AnimationSequence, EasingFunction,
 };
 
 // Systems (for advanced users who want custom scheduling)
-pub use systems::{
-    update_animations, cleanup_completed_animations,
-    process_animation_sequences, advance_animation_sequences,
-    pause_all_animations, resume_all_animations,
-    cancel_entity_animations,
-};
 
 // Builder API
 pub use builder::{
-    AnimationBuilder, animate, SequenceBuilder,
+    AnimationBuilder, SequenceBuilder,
     presets, AnimationCommandsExt,
 };
 
 // Easing functions (for custom easing)
-pub use easing::{
-    linear, ease_in, ease_out, ease_in_out,
-    bounce, elastic, back_in_out, cubic_bezier,
-    exp_in, exp_out, circ_in, circ_out,
-    sine_in, sine_out, quart_in, quart_out,
-    quint_in, quint_out,
-};
 
 // Plugin
 pub use plugin::AnimationPlugin;

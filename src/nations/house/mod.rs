@@ -31,23 +31,15 @@ pub use mottos::generate_motto;
 
 // Character and drama system exports
 pub use characters::{
-    Character, CharacterId, CharacterRole, DetailedPersonality,
-    Quirk, Secret, Scandal, LifeEvent, Achievement,
-    FamilyMember, FamilyBranch, RelationshipType,
-    HasRelationship, RelatedTo, RelationshipMetadata
+    Character, CharacterId, CharacterRole
 };
 
 pub use drama::{
     DramaEvent, DramaEventId, DramaEventType, EventImportance,
-    EventVisibility, EventConsequence, generate_drama_events
+    EventVisibility, EventConsequence
 };
 
 // Plugin exports
 pub use plugin::DramaEnginePlugin;
 
 // Event and system exports
-pub use events::{
-    CharacterBornEvent, CharacterDeathEvent, CharacterRegistry,
-    DeathCause, RelationshipChangedEvent
-};
-pub use systems::spawn_house_family;

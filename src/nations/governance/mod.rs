@@ -16,12 +16,9 @@ mod types;
 pub use plugin::GovernancePlugin;
 
 pub use types::{
-    BrokenPromise, CorruptionScandal, CrisisFactors, DivineApproval, ElectoralMandate,
-    Gender, Governance, GovernanceSettings, GovernmentCategory, GovernmentMechanics,
-    GovernmentRestriction, GovernmentType, GovernmentWeights, InstitutionalControl,
+    BrokenPromise, CorruptionScandal, CrisisFactors, DivineApproval, ElectoralMandate, Governance, GovernanceSettings, GovernmentCategory, GovernmentMechanics, GovernmentType, InstitutionalControl,
     LegitimacyEvent, LegitimacyEventType, LegitimacyFactors, LegitimacyWeights,
     MilitaryVictory, PoliticalPressure, RevolutionaryFervor, SeparatistMovement,
-    SuccessionType, UniqueMechanic,
 };
 
 pub use naming::{
@@ -29,6 +26,6 @@ pub use naming::{
     suggest_government_for_culture, DevelopmentLevel, build_nation_name,
 };
 
-pub use transitions::{can_transition, transition_government, GovernmentTransition};
+pub use transitions::GovernmentTransition;
 
 pub use history::{GovernmentChange, GovernmentHistory};

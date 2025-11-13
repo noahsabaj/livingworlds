@@ -4,7 +4,6 @@
 //! and control hints. This is a pure gateway module that only coordinates
 //! submodules without containing any implementation logic.
 
-use bevy::prelude::*;
 
 // Submodules - all private, exposed through plugin
 mod control_hints;

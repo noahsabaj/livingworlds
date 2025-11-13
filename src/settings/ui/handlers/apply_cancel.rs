@@ -16,7 +16,7 @@ pub fn handle_apply_cancel_buttons(
     mut temp_settings: ResMut<TempGameSettings>,
     mut messages: MessageWriter<SettingsChanged>,
     mut resolution_events: MessageWriter<RequestResolutionConfirm>,
-    mut notification_events: MessageWriter<ShowNotification>,
+    notification_events: MessageWriter<ShowNotification>,
     mut pkv: ResMut<PkvStore>,
     dirty_state: Res<SettingsDirtyState>,
 ) {

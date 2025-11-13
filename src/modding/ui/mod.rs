@@ -22,12 +22,8 @@ mod types;
 pub use plugin::ModBrowserUIPlugin;
 
 // Re-export events that external code needs
-pub use types::{
-    ApplyModChangesEvent, CloseModBrowserEvent, OpenModBrowserEvent, SwitchModTabEvent,
-};
+pub use types::OpenModBrowserEvent;
 
 // Re-export state types if needed by external systems
-pub use state::{ModBrowserState, WorkshopCache, WorkshopItem};
 
 // Re-export tab enum for external reference
-pub use types::ModBrowserTab;

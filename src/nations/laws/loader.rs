@@ -6,7 +6,6 @@
 
 use bevy::prelude::*;
 use bevy::asset::{AssetLoader, AsyncReadExt, LoadContext};
-use serde::Deserialize;
 use std::collections::HashMap;
 use thiserror::Error;
 

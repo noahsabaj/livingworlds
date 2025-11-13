@@ -17,7 +17,7 @@ pub fn process_law_votes_system(
     time: Res<GameTime>,
     mut active_laws: ResMut<ActiveLaws>,
     mut enactment_events: MessageWriter<LawEnactmentEvent>,
-    mut repeal_events: MessageWriter<LawRepealEvent>,
+    repeal_events: MessageWriter<LawRepealEvent>,
 ) {
     for (entity, nation, governance, mut nation_laws) in &mut nations {
         // Process completed debates

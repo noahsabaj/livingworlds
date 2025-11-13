@@ -7,7 +7,6 @@ use crate::nations::laws::{
     registry::{LawRegistry, NationLaws},
     types::LawEffects,
 };
-use crate::simulation::PressureType;
 
 /// Calculate the combined effects of all active laws for a nation
 pub fn calculate_law_effects(

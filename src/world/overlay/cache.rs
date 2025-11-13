@@ -176,7 +176,7 @@ impl CachedOverlayColors {
         let mut colors = Vec::with_capacity(total_vertices);
 
         // Convert to LinearRgba and use its to_f32_array() method like Bevy examples
-        use bevy::color::LinearRgba;
+        
 
         // Pre-build color map for political mode and terrain mode to use in parallel chunks
         let nation_colors_map = if mode == MapMode::Political || mode == MapMode::Terrain {

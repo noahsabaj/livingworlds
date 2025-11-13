@@ -4,7 +4,6 @@ use bevy::prelude::*;
 use bevy_pkv::PkvStore;
 
 use crate::config::AppConfig;
-use crate::states::GameState;
 
 // Import from sibling modules
 use super::initialization;

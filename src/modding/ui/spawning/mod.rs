@@ -9,4 +9,3 @@ mod search;
 
 // Re-export public spawning functions
 pub use browser::spawn_mod_browser;
-pub use search::spawn_search_bar;

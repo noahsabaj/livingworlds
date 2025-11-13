@@ -7,10 +7,10 @@
 
 use bevy::prelude::*;
 use super::resolution::NationActionEvent;
-use crate::nations::{Nation, NationId, NationHistory};
+use crate::nations::{Nation, NationHistory};
 use crate::nations::types::ProvinceOwnershipCache;
 use crate::nations::territory_analysis::TerritoryMetricsCache;
-use crate::world::{ProvinceStorage, ProvinceId, MapMode, CachedOverlayColors};
+use crate::world::{ProvinceStorage, MapMode, CachedOverlayColors};
 use crate::simulation::GameTime;
 
 /// Execute expansion events - THIS IS WHERE PROVINCES ACTUALLY CHANGE HANDS

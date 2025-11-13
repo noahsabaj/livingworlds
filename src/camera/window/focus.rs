@@ -1,7 +1,7 @@
 //! Window focus management for camera
 
 use bevy::prelude::*;
-use bevy::window::{CursorGrabMode, PrimaryWindow};
+use bevy::window::PrimaryWindow;
 
 /// Tracks window focus state for cursor confinement
 #[derive(Resource, Default)]

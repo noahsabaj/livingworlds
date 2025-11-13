@@ -18,10 +18,10 @@
 // Resources are organized in their domain modules but re-exported here for convenience
 
 // World configuration types
-pub use crate::world::{MapBounds, MapDimensions, WorldName, WorldSeed, WorldSize};
+pub use crate::world::{MapDimensions, WorldName, WorldSeed, WorldSize};
 
 // Generation error types
-pub use crate::world::{WorldGenerationError, WorldGenerationErrorType};
+pub use crate::world::WorldGenerationError;
 
 // Weather system
 pub use crate::world::{WeatherState, WeatherSystem};

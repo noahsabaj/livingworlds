@@ -33,7 +33,7 @@ pub use plugin::MenusPlugin;
 
 // Export shared types for external use
 pub use types::{
-    ButtonText, MenuAction, MenuButton, SpawnSaveBrowserEvent, SpawnSettingsMenuEvent,
+    SpawnSaveBrowserEvent, SpawnSettingsMenuEvent,
 };
 
 // Export menu root markers (needed for queries in other systems)
@@ -41,7 +41,6 @@ pub use types::{
 // pub use pause_menu::PauseMenuRoot; // TODO: Define PauseMenuRoot component if needed
 
 // Export UI automation demonstration (for testing and showcasing)
-pub use interactions_example::integrate_with_plugin;
 
 // PURE GATEWAY - No Implementation Logic
 

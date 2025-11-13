@@ -47,7 +47,7 @@ impl Component for House {
     type Mutability = bevy::ecs::component::Mutable;
 
     fn on_add() -> Option<bevy::ecs::lifecycle::ComponentHook> {
-        Some(|mut world, bevy::ecs::lifecycle::HookContext { entity, .. }| {
+        Some(|world, bevy::ecs::lifecycle::HookContext { entity, .. }| {
             // Log dynasty creation
             if let Some(house) = world.get::<House>(entity) {
                 info!("Dynasty founded: {} (Nation ID {})", house.full_name, house.nation_id.value());
@@ -56,7 +56,7 @@ impl Component for House {
     }
 
     fn on_remove() -> Option<bevy::ecs::lifecycle::ComponentHook> {
-        Some(|mut world, bevy::ecs::lifecycle::HookContext { entity, .. }| {
+        Some(|world, bevy::ecs::lifecycle::HookContext { entity, .. }| {
             // Log dynasty fall
             if let Some(house) = world.get::<House>(entity) {
                 warn!("Dynasty fallen: {} - ruled for {} years",

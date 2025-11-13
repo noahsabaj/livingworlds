@@ -55,7 +55,7 @@ pub fn update_toast_timers(
 
 /// Clean up notification container when there are no children
 pub fn cleanup_empty_container(
-    mut commands: Commands,
+    commands: Commands,
     query: Query<(Entity, &Children), With<NotificationContainer>>,
 ) {
     for (entity, children) in &query {

@@ -12,4 +12,3 @@ mod types;
 // CONTROLLED PUBLIC EXPORTS
 pub use commands::handle_recording_commands;
 pub use recorder::{update_recorder, ContentRecorder};
-pub use types::RecordingConfig;

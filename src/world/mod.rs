@@ -48,73 +48,59 @@ pub use core::{MapBounds, MapDimensions, World, WorldName, WorldSeed, WorldSize}
 
 // === Clouds Feature ===
 pub use clouds::{
-    animate_clouds, create_cloud_texture, dynamic_cloud_spawn_system, generate_cloud_formation,
-    update_weather_system, CloudBuilder, CloudData, CloudEntity, CloudFormationType, CloudLayer,
-    CloudPlugin, CloudSprite, CloudSystem, CloudTextureParams, WeatherState, WeatherSystem,
+    CloudBuilder, CloudData, CloudEntity,
+    CloudPlugin, WeatherState, WeatherSystem,
 };
 
 // === Terrain Feature ===
 pub use terrain::{
-    apply_climate_to_provinces, apply_erosion_to_provinces, classify_terrain_with_climate, Biome,
+    apply_climate_to_provinces, apply_erosion_to_provinces, Biome,
     ClimateZone, TerrainEntity, TerrainPlugin, TerrainType,
 };
 
 // === Infrastructure Feature ===
-pub use infrastructure::{analyze_infrastructure, InfrastructureStorage, ProvinceInfrastructure};
+pub use infrastructure::{analyze_infrastructure, InfrastructureStorage};
 
 // === Provinces Feature ===
 pub use provinces::{
     calculate_agriculture_values, calculate_ocean_depths, Abundance, Agriculture, Distance,
-    Elevation, HexDirection, Province, ProvinceBuilder, ProvinceEntity, ProvinceId,
-    ProvincesSpatialIndex, WorldBounds,
-    // Province events (moved from simulation module)
-    ProvincePopulationChanged, ProvinceTerrainChanged, ProvinceMineralsChanged,
-    ProvinceAgricultureChanged, ProvinceFreshWaterChanged, ProvinceChanged,
-    BatchPopulationUpdate, BatchMineralDiscovery, ProvinceEventsPlugin,
+    Elevation, Province, ProvinceBuilder, ProvinceEntity, ProvinceId,
+    ProvincesSpatialIndex, ProvinceEventsPlugin,
 };
 
 // === Rivers Feature ===
-pub use rivers::{RiverBuilder, RiverSystem};
+pub use rivers::RiverBuilder;
 
 // === Minerals Feature ===
 pub use minerals::*; // Re-export all mineral types
 
 // === Borders Feature ===
-pub use borders::{BorderEntity, BorderPlugin, SelectionBorder};
+pub use borders::{BorderEntity, BorderPlugin};
 
 // === Mesh Rendering ===
-pub use mesh::{build_world_mesh, MeshBuildStats, MeshBuilder, ProvinceStorage, WorldMeshHandle};
+pub use mesh::{build_world_mesh, ProvinceStorage, WorldMeshHandle};
 
 // === Overlay System ===
-pub use overlay::{update_province_colors, CachedOverlayColors, MapMode, OverlayPlugin};
+pub use overlay::{CachedOverlayColors, MapMode, OverlayPlugin};
 
 // === Color System ===
-pub use colors::{ColorProvider, Colorable, SafeColor, StoneAbundance, WorldColors};
+pub use colors::WorldColors;
 
 // === Cultural Assignment ===
-pub use cultural::{
-    assign_cultures_to_province_storage, assign_cultures_to_provinces, assign_province_culture,
-    calculate_world_bounds, CulturalConfig,
-};
+pub use cultural::assign_cultures_to_province_storage;
 
 // === World UI ===
 pub use ui::{
-    AggressionLevel, ClimateType, IslandFrequency, MineralDistribution, MountainDensity,
-    ResourceAbundance, TradePropensity, WorldConfigPlugin, WorldGenerationSettings, WorldPreset,
+    ClimateType, WorldConfigPlugin, WorldGenerationSettings,
 };
 
 // === World Generation ===
 pub use generation::{WorldBuilder, WorldGenerationError, WorldGenerationErrorType};
 
 // === GPU Compute Acceleration ===
-pub use gpu::{
-    check_gpu_compute_support, ComputeLabel, ComputeMetrics, ComputeMode, ErosionComputeSettings,
-    GpuComputeStatus, GpuErosionParams, GpuNoiseParams, GpuProvinceData, NoiseComputePlugin,
-    NoiseComputeSettings,
-};
+pub use gpu::NoiseComputePlugin;
 
 // === Bevy Plugin and Events ===
-pub use events::{ProvinceSelectedEvent, WorldGeneratedEvent};
 pub use plugin::WorldPlugin; // Main plugin that registers everything
 
 // === World Generation (from setup.rs) ===
@@ -122,8 +108,5 @@ pub use setup::{
     poll_async_world_generation,  // Progress polling system
     start_async_world_generation, // Async generation starter
     handle_world_generation_transition_delay, // Transition delay handler
-    AsyncWorldGeneration,         // Async world generation resource
-    GenerationProgress,           // Progress update structure
-    WorldGenerationTransitionDelay, // Transition delay resource
-    WorldSetupError,
+    AsyncWorldGeneration,
 };

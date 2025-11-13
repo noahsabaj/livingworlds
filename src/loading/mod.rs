@@ -43,4 +43,4 @@ pub use api::{
 };
 pub use events::CancelWorldGeneration;
 pub use plugin::LoadingScreenPlugin;
-pub use state::{LoadingDetails, LoadingOperation, LoadingState};
+pub use state::LoadingState;

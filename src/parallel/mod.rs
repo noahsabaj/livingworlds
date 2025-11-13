@@ -40,17 +40,10 @@ mod safety;
 mod systems;
 
 // Public exports - controlled API surface following gateway pattern
-pub use builder::{ParallelOperation, ParallelOperationBuilder};
-pub use chunk_size::ChunkStrategy;
 pub use operations::{
-    parallel_chunks, parallel_enumerate, parallel_filter_map, parallel_fold,
-    parallel_map, parallel_mutate, parallel_query_iter, parallel_with_lookup,
-    parallel_zip, parallel_zip_mutate,
+    parallel_enumerate,
+    parallel_map, parallel_zip_mutate,
 };
-pub use patterns::{ParallelPattern, WithLookupMap};
 pub use plugin::ParallelPlugin;
-pub use resources::ParallelOperationStats;
-pub use safety::{ParallelSafetyError, SafetyValidator};
 
 // Re-export common types for convenience
-pub use rayon::current_num_threads;

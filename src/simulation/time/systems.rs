@@ -3,7 +3,6 @@
 use super::events::{NewYearEvent, SimulationSpeedChanged};
 use super::resources::GameTime;
 use super::types::VisualTime;
-use crate::constants::{SIMULATION_DAYS_PER_YEAR_F32, SIMULATION_STARTING_YEAR};
 use bevy::prelude::*;
 
 /// Advance the game time using deterministic ticks (runs in FixedUpdate)

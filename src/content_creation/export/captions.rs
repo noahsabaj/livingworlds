@@ -29,7 +29,7 @@ pub fn generate_caption(event: &DramaEvent) -> String {
                 perpetrator, description, reasoning
             )
         }
-        DramaEventType::SecretExposed { character, secret, .. } => {
+        DramaEventType::SecretExposed { character,  .. } => {
             format!(
                 "SECRET REVEALED! {} was hiding something big... 😱\n\n#LivingWorlds #Secrets #Drama",
                 character

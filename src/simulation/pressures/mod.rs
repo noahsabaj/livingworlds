@@ -14,17 +14,11 @@ mod types;
 // PUBLIC EXPORTS
 pub use types::{PressureLevel, PressureType, PressureVector};
 
-pub use population::calculate_population_pressure;
 
-pub use economic::calculate_economic_pressure;
 
-pub use military::calculate_military_pressure;
 
-pub use legitimacy::{
-    calculate_legitimacy_pressure, RecentEvents, RulerPersonality,
-};
 
 pub use systems::{
-    apply_pressure_effects, determine_ruler_personality, resolve_pressure_actions,
+    apply_pressure_effects, resolve_pressure_actions,
     run_pressure_systems_on_timer, update_nation_pressures, PressureSystemTimer,
 };

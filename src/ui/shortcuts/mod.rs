@@ -35,15 +35,13 @@ mod plugin;
 
 // Core types
 pub use types::{
-    ShortcutId, KeyBinding, ShortcutContext,
-    ShortcutAction, ShortcutEvent, ModifierKeys,
+    ShortcutId, KeyBinding, ShortcutContext, ShortcutEvent,
     ShortcutConfig,
 };
 
 // Registry
 pub use registry::{
     ShortcutRegistry, ShortcutDefinition,
-    ShortcutConflict, ShortcutGroup,
 };
 
 // Builder API
@@ -52,10 +50,6 @@ pub use builder::{
 };
 
 // Systems (for advanced users)
-pub use systems::{
-    process_shortcuts, update_shortcut_hints,
-    check_shortcut_conflicts,
-};
 
 // Plugin
 pub use plugin::ShortcutPlugin;

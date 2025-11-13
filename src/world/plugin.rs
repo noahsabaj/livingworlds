@@ -1,6 +1,5 @@
 //! World plugin implementation - PLUGIN AGGREGATION AUTOMATION!
 
-use bevy::prelude::*;
 use bevy_plugin_builder::define_plugin;
 
 // Import from sibling modules through super (gateway pattern)

@@ -31,27 +31,16 @@ mod plugin;
 
 // Core types
 pub use types::{
-    DropdownItem, DropdownValue, DropdownState,
-    DropdownStyle, DropdownConfig,
+    DropdownItem, DropdownValue,
 };
 
 // Components
-pub use components::{
-    Dropdown, DropdownMenu, DropdownSelected,
-    DropdownOpen, DropdownSearch,
-};
+pub use components::Dropdown;
 
 // Builder API
-pub use builder::{
-    DropdownBuilder, dropdown,
-};
+pub use builder::DropdownBuilder;
 
 // Systems (for advanced users)
-pub use systems::{
-    handle_dropdown_interactions,
-    update_dropdown_display,
-    handle_dropdown_keyboard,
-};
 
 // Plugin
 pub use plugin::DropdownPlugin;

@@ -6,9 +6,8 @@
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
 
-use crate::nations::laws::types::{Law, LawId, LawCategory, LawEffects, LawComplexity, LawPrerequisite};
+use crate::nations::laws::types::{Law, LawId, LawCategory, LawEffects, LawComplexity};
 use crate::nations::GovernmentCategory;
-use crate::simulation::PressureType;
 
 /// Tax system laws
 pub static TAX_LAWS: Lazy<Vec<Law>> = Lazy::new(|| {

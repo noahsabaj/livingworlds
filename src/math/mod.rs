@@ -296,30 +296,23 @@ mod perlin;
 
 // Hexagon geometry exports
 pub use hexagon::{
-    calculate_grid_position, get_neighbor_positions, quantize_position, validate_position,
-    world_to_grid, Hexagon, CORNERS, HALF, HEX_SIZE, INDICES_PER_HEX, SQRT_3, TRIANGLES_PER_HEX,
+    calculate_grid_position, get_neighbor_positions, Hexagon, CORNERS, HEX_SIZE, INDICES_PER_HEX, SQRT_3, TRIANGLES_PER_HEX,
     VERTICES_PER_HEX,
 };
 
 // Perlin noise generation exports
-pub use perlin::{CloudPreset, FbmSettings, PerlinBuilder, PerlinNoise, TerrainPreset};
+pub use perlin::{CloudPreset, FbmSettings, PerlinNoise};
 
 // Game-specific interpolation and smoothing exports
 pub use interpolation::{
-    asymmetric_smooth, exponential_smooth, inverse_lerp, lerp, lerp_color, lerp_exp, lerp_exp_vec2,
-    lerp_exp_vec3, remap, smootherstep, smoothstep, weighted_blend, weighted_blend_colors,
-    weighted_blend_vec2, weighted_blend_vec3,
+    exponential_smooth, lerp, lerp_color, lerp_exp,
+    lerp_exp_vec3, smoothstep, weighted_blend_colors,
 };
 
 // Game-specific distance calculation exports
 pub use distance::{
-    calculate_influence, distance_from_rect_edge, find_closest, find_within_radius,
-    gaussian_falloff, hex_distance, hex_distance_world, inverse_square_falloff, linear_falloff,
-    normalized_edge_distance, quadratic_falloff, smooth_falloff, FalloffType,
+    gaussian_falloff, linear_falloff, smooth_falloff,
 };
 
 // Game-specific angle calculation exports
-pub use angles::{
-    angle_in_range, angle_variation, angular_distance, fast_cos, fast_sin, lerp_angle,
-    movement_vector, positions_around_circle, smoothstep_angle,
-};
+pub use angles::fast_sin;

@@ -1,7 +1,6 @@
 //! Core types for the animation system
 
 use bevy::prelude::*;
-use std::time::Duration;
 
 /// Unique identifier for animations
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Reflect)]

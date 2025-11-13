@@ -13,4 +13,3 @@ mod types;
 pub use detector::{detect_viral_moments, ViralMomentDetector};
 pub use patterns::ViralPattern;
 pub use scoring::calculate_viral_score;
-pub use types::DetectionConfig;

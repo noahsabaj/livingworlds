@@ -3,7 +3,7 @@
 //! Handles the event to spawn the settings menu.
 
 use crate::menus::SpawnSettingsMenuEvent;
-use crate::settings::{components::*, types::*};
+use crate::settings::types::*;
 use crate::settings::ui::spawning::spawn_settings_menu;
 use crate::states::{CurrentSettingsTab};
 use bevy::prelude::*;

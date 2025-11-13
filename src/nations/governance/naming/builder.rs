@@ -5,7 +5,6 @@
 
 use crate::name_generator::{Culture, NameGenerator};
 use crate::nations::governance::types::GovernmentType;
-use rand::Rng;
 
 /// Components for building nation names
 #[derive(Debug, Clone)]

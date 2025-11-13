@@ -12,4 +12,3 @@ mod types;
 
 // Re-export public components
 pub use browser::{spawn_law_browser, LawBrowserPlugin};
-pub use types::{LawBrowserState, SelectedLawCategory, SelectedLawId};

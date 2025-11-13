@@ -16,7 +16,6 @@ use crate::world::provinces::{
 use crate::world::terrain::TerrainType;
 
 use super::continents::ContinentGenerator;
-use super::elevation_processor::ElevationProcessor;
 use super::ocean_systems::OceanManager;
 use super::terrain_classifier::TerrainClassifier;
 use super::island_filter::IslandFilter;
@@ -61,7 +60,7 @@ impl<'a> ProvinceBuilder<'a> {
         self
     }
 
-    pub fn build(mut self) -> Vec<Province> {
+    pub fn build(self) -> Vec<Province> {
         let total_provinces = self.utils.total_provinces();
         info!("  Generating {} hexagonal provinces", total_provinces);
 

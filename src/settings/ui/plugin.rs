@@ -3,7 +3,6 @@
 //! Plugin for managing settings user interface and event handling.
 
 use crate::settings::{components::*, types::*};
-use bevy::prelude::*;
 use bevy_plugin_builder::define_plugin;
 
 /// Plugin for settings UI functionality.

@@ -5,7 +5,6 @@
 
 use bevy::prelude::*;
 use bevy::sprite::Text2d;  // Moved from bevy::text in Bevy 0.17
-use std::collections::HashMap;
 
 use super::types::{Nation, NationId};
 use crate::resources::MapMode;

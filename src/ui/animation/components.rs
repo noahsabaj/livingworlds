@@ -111,7 +111,7 @@ impl Component for Animation {
     type Mutability = bevy::ecs::component::Mutable;
 
     fn on_add() -> Option<bevy::ecs::lifecycle::ComponentHook> {
-        Some(|mut world, bevy::ecs::lifecycle::HookContext { entity, .. }| {
+        Some(|world, bevy::ecs::lifecycle::HookContext { entity, .. }| {
             // Log animation start for debugging
             if let Some(animation) = world.get::<Animation>(entity) {
                 trace!("Animation {:?} started on entity {:?}: {:?}",
@@ -121,7 +121,7 @@ impl Component for Animation {
     }
 
     fn on_remove() -> Option<bevy::ecs::lifecycle::ComponentHook> {
-        Some(|mut world, bevy::ecs::lifecycle::HookContext { entity, .. }| {
+        Some(|world, bevy::ecs::lifecycle::HookContext { entity, .. }| {
             // Log animation cleanup for debugging
             if let Some(animation) = world.get::<Animation>(entity) {
                 trace!("Animation {:?} removed from entity {:?} (state: {:?})",

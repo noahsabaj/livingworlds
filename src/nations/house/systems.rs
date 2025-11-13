@@ -74,7 +74,7 @@ pub fn update_relationships(
                 new_relationship,
             } = consequence {
                 // Find existing relationship
-                for mut relationship in &mut relationships {
+                for relationship in &mut relationships {
                     // Update relationship (would need proper entity lookup in real implementation)
                     // This is simplified for the example
                 }
@@ -93,10 +93,10 @@ pub fn update_relationships(
 
 /// Process character-specific events
 pub fn process_character_events(
-    mut characters: Query<&mut Character>,
+    characters: Query<&mut Character>,
     mut birth_events: MessageReader<CharacterBornEvent>,
     mut death_events: MessageReader<CharacterDeathEvent>,
-    mut commands: Commands,
+    commands: Commands,
 ) {
     // Handle births
     for birth in birth_events.read() {

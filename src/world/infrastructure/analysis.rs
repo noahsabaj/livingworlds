@@ -6,7 +6,6 @@
 use bevy::prelude::*;
 use crate::world::{Province, ProvinceId, ProvinceStorage};
 use super::storage::{InfrastructureStorage, ProvinceInfrastructure};
-use std::collections::{HashSet, HashMap};
 
 /// Calculate infrastructure metrics for all provinces based on their connections
 pub fn analyze_infrastructure(
@@ -17,7 +16,7 @@ pub fn analyze_infrastructure(
 
     // First pass: Calculate basic connectivity from neighbors
     for province in provinces {
-        let mut infra = calculate_basic_infrastructure(province, provinces, province_storage);
+        let infra = calculate_basic_infrastructure(province, provinces, province_storage);
         storage.set(province.id, infra);
     }
 

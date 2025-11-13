@@ -10,7 +10,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 
-use crate::diagnostics::{TimedOperation, log_nation_state_change, log_memory_usage, debug_context};
+use crate::diagnostics::{TimedOperation, log_memory_usage};
 use crate::name_generator::{Culture, NameGenerator, NameType};
 use crate::world::{Province, TerrainType};
 // Distance calculations use Bevy's Vec2 methods directly
