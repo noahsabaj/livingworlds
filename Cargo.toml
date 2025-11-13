@@ -5,8 +5,7 @@ edition = "2021"
 
 [features]
 default = []
-# TEMPORARILY DISABLED: bevy-steamworks doesn't support Bevy 0.17 yet
-# steam = ["bevy-steamworks"]  # Enable Steam integration
+steam = ["bevy-steamworks"]  # Enable Steam integration
 debug-states = []  # Enable debug state transition logging
 
 [lib]
@@ -19,7 +18,7 @@ path = "src/main.rs"
 
 [dependencies]
 # Full Bevy framework - complete game engine!
-bevy = { version = "0.17.1", default-features = false, features = [
+bevy = { version = "0.17.2", default-features = false, features = [
     "animation",          # Animation system
     "bevy_asset",         # Asset management
     "bevy_audio",         # Audio system
@@ -64,14 +63,10 @@ zstd = "0.13"  # Compression for save files
 ron = "0.8"    # Rusty Object Notation for serialization
 
 # Steam integration
-# TEMPORARILY DISABLED: bevy-steamworks doesn't support Bevy 0.17 yet
-# bevy-steamworks = { version = "0.13", optional = true }  # Steam SDK integration
+bevy-steamworks = { version = "0.15", optional = true }  # Steam SDK integration
 
 # Settings persistence
-# TEMPORARILY DISABLED: bevy_pkv doesn't have Bevy 0.17 support yet
-# Waiting for bevy_pkv 0.14 release - ETA: 1-2 weeks
-# bevy_pkv = "0.13"  # Cross-platform key-value storage for settings
-# TODO: Re-enable when bevy_pkv 0.14+ is released
+bevy_pkv = "0.14"  # Cross-platform key-value storage for settings
 
 # File watching for hot-reload
 notify = "6.1"  # File system event notification for mod hot-reload

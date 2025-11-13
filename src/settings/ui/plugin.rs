@@ -25,8 +25,7 @@ define_plugin!(SettingsUIPlugin {
         crate::menus::SpawnSettingsMenuEvent
     ],
 
-    // TEMPORARILY DISABLED: bevy_pkv doesn't support Bevy 0.17 yet
-    // startup: [crate::settings::persistence::load_settings],
+    startup: [crate::settings::persistence::load_settings],
 
     update: [
         // High-level handlers

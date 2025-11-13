@@ -88,7 +88,6 @@ define_plugin!(GamePlugins {
         // DEPENDENCIES: StatesPlugin (settings menu is a state)
         // DEPENDENTS: All systems that read GameSettings
         // PROVIDES: GameSettings resource (graphics, audio, controls)
-        // NOTE: Persistence temporarily disabled (bevy_pkv compatibility pending)
         SettingsUIPlugin,
 
         // ========================================================================

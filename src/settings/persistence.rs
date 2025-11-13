@@ -2,12 +2,7 @@
 //!
 //! This module handles saving and loading game settings to/from disk
 //! using the bevy_pkv cross-platform key-value store.
-//!
-//! TEMPORARILY DISABLED: bevy_pkv doesn't support Bevy 0.17 yet
-//! This entire module is disabled until bevy_pkv 0.14+ is released
 
-// TODO: Re-enable this module when bevy_pkv supports Bevy 0.17
-/*
 use super::types::GameSettings;
 use bevy::prelude::*;
 use bevy_pkv::PkvStore;
@@ -41,4 +36,3 @@ pub fn save_settings(settings: &GameSettings, pkv: &mut PkvStore) {
         Err(e) => error!("Failed to save settings: {}", e),
     }
 }
-*/

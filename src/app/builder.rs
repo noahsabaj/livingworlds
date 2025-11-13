@@ -1,8 +1,7 @@
 //! Application Builder
 
 use bevy::prelude::*;
-// TEMPORARILY DISABLED: bevy_pkv doesn't support Bevy 0.17 yet
-// use bevy_pkv::PkvStore;
+use bevy_pkv::PkvStore;
 
 use crate::config::AppConfig;
 use crate::states::GameState;
@@ -44,10 +43,8 @@ pub fn build_app_with_config(config: AppConfig) -> Result<App, AppBuildError> {
     // Add diagnostics if enabled (delegate to initialization module)
     initialization::setup_diagnostics(&mut app, &config);
 
-    // TEMPORARILY DISABLED: bevy_pkv doesn't support Bevy 0.17 yet
-    // Settings persistence will be restored when bevy_pkv 0.14+ is released
     // Initialize storage - PkvStore::new returns PkvStore directly, not Result
-    // app.insert_resource(PkvStore::new("LivingWorlds", "LivingWorlds"));
+    app.insert_resource(PkvStore::new("LivingWorlds", "LivingWorlds"));
 
     // Add all Living Worlds game plugins using aggregation!
     // GamePlugins handles ALL plugin registration including conditional debug plugins

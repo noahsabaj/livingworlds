@@ -33,8 +33,7 @@ pub use components::{
 };
 
 // Core functionality
-// TEMPORARILY DISABLED: bevy_pkv doesn't support Bevy 0.17 yet
-// pub use persistence::{load_settings, save_settings};
+pub use persistence::{load_settings, save_settings};
 
 // Settings UI builders (eating our own dog food)
 pub use ui::{

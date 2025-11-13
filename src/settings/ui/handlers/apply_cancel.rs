@@ -2,11 +2,10 @@
 //!
 //! Focused handlers for Apply/Cancel buttons and unsaved changes dialog.
 
-use crate::settings::{components::*, /* persistence::save_settings, */ types::*};
+use crate::settings::{components::*, persistence::save_settings, types::*};
 use crate::ui::{colors, ShowNotification};
 use bevy::prelude::*;
-// TEMPORARILY DISABLED: bevy_pkv doesn't support Bevy 0.17 yet
-// use bevy_pkv::PkvStore;
+use bevy_pkv::PkvStore;
 
 /// Handle Apply and Exit buttons
 pub fn handle_apply_cancel_buttons(
@@ -18,8 +17,7 @@ pub fn handle_apply_cancel_buttons(
     mut messages: MessageWriter<SettingsChanged>,
     mut resolution_events: MessageWriter<RequestResolutionConfirm>,
     mut notification_events: MessageWriter<ShowNotification>,
-    // TEMPORARILY DISABLED: bevy_pkv doesn't support Bevy 0.17 yet
-    // mut pkv: ResMut<PkvStore>,
+    mut pkv: ResMut<PkvStore>,
     dirty_state: Res<SettingsDirtyState>,
 ) {
     for (interaction, (apply_button, cancel_button)) in &interactions {
@@ -41,15 +39,7 @@ pub fn handle_apply_cancel_buttons(
 
                 // Copy temp settings to actual settings
                 *settings = temp_settings.0.clone();
-                // TEMPORARILY DISABLED: bevy_pkv doesn't support Bevy 0.17 yet
-                // save_settings(&*settings, &mut *pkv);
-                warn!("Settings not persisted - bevy_pkv disabled during Bevy 0.17 upgrade");
-
-                // Show user-facing notification about persistence being disabled
-                notification_events.write(ShowNotification::feature_disabled(
-                    "Settings persistence",
-                    "pending Bevy 0.17 compatibility"
-                ));
+                save_settings(&*settings, &mut *pkv);
 
                 // Fire event to apply settings
                 messages.write(SettingsChanged);
@@ -102,8 +92,7 @@ pub fn handle_unsaved_changes_dialog(
     mut settings: ResMut<GameSettings>,
     temp_settings: Res<TempGameSettings>,
     mut messages: MessageWriter<SettingsChanged>,
-    // TEMPORARILY DISABLED: bevy_pkv doesn't support Bevy 0.17 yet
-    // mut pkv: ResMut<PkvStore>,
+    mut pkv: ResMut<PkvStore>,
 ) {
     for (interaction, (save_button, discard_button, cancel_button)) in &interactions {
         if *interaction == Interaction::Pressed {
@@ -115,9 +104,7 @@ pub fn handle_unsaved_changes_dialog(
             if save_button.is_some() {
                 info!("Saving changes and exiting");
                 *settings = temp_settings.0.clone();
-                // TEMPORARILY DISABLED: bevy_pkv doesn't support Bevy 0.17 yet
-                // save_settings(&*settings, &mut *pkv);
-                warn!("Settings not persisted - bevy_pkv disabled during Bevy 0.17 upgrade");
+                save_settings(&*settings, &mut *pkv);
                 messages.write(SettingsChanged);
 
                 // Close settings menu
