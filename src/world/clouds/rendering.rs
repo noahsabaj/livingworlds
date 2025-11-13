@@ -219,7 +219,7 @@ pub fn create_cloud_texture(params: CloudTextureParams) -> Image {
         bevy::render::render_resource::TextureDimension::D2,
         pixels,
         bevy::render::render_resource::TextureFormat::Rgba8UnormSrgb,
-        bevy::render::render_asset::RenderAssetUsages::default(),
+        bevy::asset::RenderAssetUsages::default(),
     )
 }
 
@@ -428,8 +428,24 @@ pub fn dynamic_cloud_spawn_system(
     }
 }
 
+use bevy_plugin_builder::define_plugin;
+
 /// Bevy plugin for the cloud system
-pub struct CloudPlugin;
+define_plugin!(CloudPlugin {
+    resources: [WeatherSystem, CloudSystem],
+
+    update: [
+        (
+            update_weather_system,
+            animate_clouds,
+            dynamic_cloud_spawn_system,
+        ).chain().run_if(in_state(crate::states::GameState::InGame))
+    ],
+
+    on_enter: {
+        crate::states::GameState::InGame => [spawn_clouds_from_data]
+    }
+});
 
 /// Spawn cloud entities from generated cloud data
 fn spawn_clouds_from_data(
@@ -548,22 +564,3 @@ fn spawn_clouds_from_data(
     }
 }
 
-impl Plugin for CloudPlugin {
-    fn build(&self, app: &mut App) {
-        use crate::states::GameState;
-
-        app.init_resource::<WeatherSystem>()
-            .init_resource::<CloudSystem>() // Initialize CloudSystem resource
-            .add_systems(OnEnter(GameState::InGame), spawn_clouds_from_data)
-            .add_systems(
-                Update,
-                (
-                    update_weather_system,
-                    animate_clouds,
-                    dynamic_cloud_spawn_system,
-                )
-                    .chain()
-                    .run_if(in_state(GameState::InGame)),
-            );
-    }
-}

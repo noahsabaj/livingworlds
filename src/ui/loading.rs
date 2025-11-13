@@ -335,7 +335,7 @@ fn spawn_indeterminate_bar(
                 ..default()
             },
             BackgroundColor(colors::BACKGROUND_DARKER),
-            BorderColor(colors::BORDER_DEFAULT),
+            BorderColor::all(colors::BORDER_DEFAULT),
             LoadingIndicator {
                 style: LoadingStyle::Bar,
                 size,
@@ -362,15 +362,14 @@ fn spawn_indeterminate_bar(
 
 // Dots animation can be handled with AnimationSequence for complex text changes
 
-/// Plugin that manages loading indicator animations
-pub struct LoadingIndicatorPlugin;
+use bevy_plugin_builder::define_plugin;
 
-impl Plugin for LoadingIndicatorPlugin {
-    fn build(&self, app: &mut App) {
-        // Animation systems removed - animations are now handled by the Animation plugin!
-        // Just attach Animation components to entities that need animation.
-    }
-}
+/// Plugin that manages loading indicator animations
+/// Note: Animation systems are now handled by the Animation plugin
+define_plugin!(LoadingIndicatorPlugin {
+    // Empty plugin - exists for API compatibility
+    // Animations are handled by attaching Animation components directly
+});
 
 /// Quick spinner creation
 pub fn loading_spinner() -> LoadingIndicatorBuilder {

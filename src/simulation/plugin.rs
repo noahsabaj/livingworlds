@@ -15,7 +15,7 @@ use bevy_plugin_builder::define_plugin;
 define_plugin!(SimulationPlugin {
     resources: [GameTime, PressureSystemTimer, VisualTime],
 
-    events: [
+    messages: [
         SimulationSpeedChanged,
         NewYearEvent,
         super::history_update::BattleEvent,

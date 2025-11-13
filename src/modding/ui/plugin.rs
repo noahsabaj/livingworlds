@@ -14,7 +14,7 @@ use bevy_plugin_builder::define_plugin;
 define_plugin!(ModBrowserUIPlugin {
     resources: [ModBrowserState, WorkshopCache],
 
-    events: [
+    messages: [
         OpenModBrowserEvent,
         CloseModBrowserEvent,
         ApplyModChangesEvent,

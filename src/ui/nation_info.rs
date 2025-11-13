@@ -77,7 +77,7 @@ pub fn spawn_nation_info_panel(mut commands: Commands) {
                 ..default()
             },
             BackgroundColor(UI_BACKGROUND_COLOR),
-            BorderColor(UI_BORDER_COLOR),
+            BorderColor::all(UI_BORDER_COLOR),
             NationInfoPanel,
             Visibility::Hidden, // Start hidden, show when nation selected
         ))
@@ -246,7 +246,7 @@ pub fn spawn_nation_info_panel(mut commands: Commands) {
                         ..default()
                     },
                     BackgroundColor(colors::SURFACE),
-                    BorderColor(colors::BORDER),
+                    BorderColor::all(colors::BORDER),
                     ViewLawsButton,
                 ))
                 .with_children(|button| {
@@ -513,22 +513,21 @@ pub fn update_nation_info_panel(
     }
 }
 
-/// Plugin for nation information UI
-pub struct NationInfoPlugin;
+use bevy_plugin_builder::define_plugin;
 
-impl Plugin for NationInfoPlugin {
-    fn build(&self, app: &mut App) {
-        app.init_resource::<SelectedNation>()
-            .add_systems(OnEnter(GameState::InGame), spawn_nation_info_panel)
-            .add_systems(
-                Update,
-                (
-                    super::nation_selection::handle_nation_selection,
-                    update_nation_info_panel,
-                    super::nation_selection::highlight_selected_nation_territory,
-                )
-                    .chain()
-                    .run_if(in_state(GameState::InGame)),
-            );
+/// Plugin for nation information UI
+define_plugin!(NationInfoPlugin {
+    resources: [SelectedNation],
+
+    update: [
+        (
+            super::nation_selection::handle_nation_selection,
+            update_nation_info_panel,
+            super::nation_selection::highlight_selected_nation_territory,
+        ).chain().run_if(in_state(GameState::InGame))
+    ],
+
+    on_enter: {
+        GameState::InGame => [spawn_nation_info_panel]
     }
-}
+});

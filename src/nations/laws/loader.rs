@@ -194,7 +194,7 @@ pub fn load_law_assets(
 /// System that processes loaded law assets
 pub fn process_loaded_laws(
     mut loaded_laws: ResMut<LoadedLaws>,
-    mut asset_events: EventReader<AssetEvent<LawDefinitionAsset>>,
+    mut asset_events: MessageReader<AssetEvent<LawDefinitionAsset>>,
     law_assets: Res<Assets<LawDefinitionAsset>>,
 ) {
     for event in asset_events.read() {
@@ -218,15 +218,18 @@ pub fn process_loaded_laws(
     }
 }
 
-/// Plugin that adds data-driven law loading
-pub struct LawLoaderPlugin;
+use bevy_plugin_builder::define_plugin;
 
-impl Plugin for LawLoaderPlugin {
-    fn build(&self, app: &mut App) {
+/// Plugin that adds data-driven law loading
+define_plugin!(LawLoaderPlugin {
+    resources: [LoadedLaws],
+
+    startup: [load_law_assets],
+
+    update: [process_loaded_laws],
+
+    custom_init: |app: &mut App| {
         app.init_asset::<LawDefinitionAsset>()
-            .init_asset_loader::<LawDefinitionLoader>()
-            .init_resource::<LoadedLaws>()
-            .add_systems(Startup, load_law_assets)
-            .add_systems(Update, process_loaded_laws);
+            .init_asset_loader::<LawDefinitionLoader>();
     }
-}
+});

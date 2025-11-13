@@ -16,7 +16,7 @@ use bevy_plugin_builder::define_plugin;
 define_plugin!(SaveLoadPlugin {
     resources: [SaveGameList, SaveBrowserState, SaveDialogState, AutoSaveTimer],
 
-    events: [
+    messages: [
         SaveGameEvent,
         LoadGameEvent,
         SaveCompleteEvent,

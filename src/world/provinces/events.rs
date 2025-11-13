@@ -10,7 +10,7 @@ use crate::world::{Abundance, Agriculture, Distance, ProvinceId};
 use bevy::prelude::*;
 
 /// Event fired when a province's population changes
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct ProvincePopulationChanged {
     pub province_id: ProvinceId,
     pub old_population: u32,
@@ -41,7 +41,7 @@ impl ProvincePopulationChanged {
 }
 
 /// Event fired when a province's terrain type changes
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct ProvinceTerrainChanged {
     pub province_id: ProvinceId,
     pub old_terrain: TerrainType,
@@ -91,7 +91,7 @@ impl ProvinceTerrainChanged {
 }
 
 /// Event fired when mineral resources are discovered or depleted in a province
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct ProvinceMineralsChanged {
     pub province_id: ProvinceId,
     pub mineral_type: MineralType,
@@ -123,7 +123,7 @@ impl ProvinceMineralsChanged {
 }
 
 /// Event fired when a province's agriculture value changes
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct ProvinceAgricultureChanged {
     pub province_id: ProvinceId,
     pub old_agriculture: Agriculture,
@@ -143,7 +143,7 @@ impl ProvinceAgricultureChanged {
 }
 
 /// Event fired when a province's fresh water access changes
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct ProvinceFreshWaterChanged {
     pub province_id: ProvinceId,
     pub old_distance: Distance,
@@ -168,7 +168,7 @@ impl ProvinceFreshWaterChanged {
 }
 
 /// Event fired when any province data changes (catch-all for debugging)
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct ProvinceChanged {
     pub province_id: ProvinceId,
     pub change_type: ProvinceChangeType,
@@ -190,14 +190,14 @@ pub enum ProvinceChangeType {
 // BATCH EVENTS - For bulk operations
 
 /// Event for batch population updates (e.g., from simulation tick)
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct BatchPopulationUpdate {
     pub updates: Vec<ProvincePopulationChanged>,
     pub simulation_year: u32,
 }
 
 /// Event for batch mineral discoveries (e.g., from exploration)
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct BatchMineralDiscovery {
     pub discoveries: Vec<ProvinceMineralsChanged>,
 }
@@ -206,7 +206,7 @@ use bevy_plugin_builder::define_plugin;
 
 /// Plugin that registers all province event types
 define_plugin!(ProvinceEventsPlugin {
-    events: [
+    messages: [
         // Individual change events
         ProvincePopulationChanged,
         ProvinceTerrainChanged,
@@ -250,11 +250,11 @@ impl DebugProvinceEvents {
 /// System that logs province changes for debugging
 fn log_province_changes(
     debug: Res<DebugProvinceEvents>,
-    mut population_events: EventReader<ProvincePopulationChanged>,
-    mut terrain_events: EventReader<ProvinceTerrainChanged>,
-    mut mineral_events: EventReader<ProvinceMineralsChanged>,
-    mut agriculture_events: EventReader<ProvinceAgricultureChanged>,
-    mut water_events: EventReader<ProvinceFreshWaterChanged>,
+    mut population_events: MessageReader<ProvincePopulationChanged>,
+    mut terrain_events: MessageReader<ProvinceTerrainChanged>,
+    mut mineral_events: MessageReader<ProvinceMineralsChanged>,
+    mut agriculture_events: MessageReader<ProvinceAgricultureChanged>,
+    mut water_events: MessageReader<ProvinceFreshWaterChanged>,
 ) {
     if debug.log_population {
         for event in population_events.read() {
@@ -325,13 +325,13 @@ pub trait ProvinceEventEmitter {
     fn emit_fresh_water_changed(&self, event: ProvinceFreshWaterChanged);
 }
 
-/// Implementation for EventWriter (used in systems)
-impl<'w> ProvinceEventEmitter for EventWriter<'w, ProvincePopulationChanged> {
+/// Implementation for MessageWriter (used in systems)
+impl<'w> ProvinceEventEmitter for MessageWriter<'w, ProvincePopulationChanged> {
     fn emit_population_changed(&self, event: ProvincePopulationChanged) {
         // Note: In newer Bevy versions, use .write() instead of .write()
         // For now, keeping .write() to match the codebase's current usage
         unsafe {
-            (*(self as *const _ as *mut EventWriter<ProvincePopulationChanged>)).write(event);
+            (*(self as *const _ as *mut MessageWriter<ProvincePopulationChanged>)).write(event);
         }
     }
 

@@ -166,14 +166,12 @@ pub const DEPLETION_RATES: [(MineralType, f32); 7] = [
     (MineralType::Gems, 0.03),    // ~33 years
 ];
 
-pub struct MineralPlugin;
+use bevy_plugin_builder::define_plugin;
 
-impl Plugin for MineralPlugin {
-    fn build(&self, app: &mut App) {
-        app.init_resource::<VeinSpatialIndex>();
-        // Note: Overlay update system would be added here when overlay system is integrated
-    }
-}
+define_plugin!(MineralPlugin {
+    resources: [VeinSpatialIndex]
+    // Note: Overlay update system would be added here when overlay system is integrated
+});
 
 // System to update mineral overlays would go here when integrated
 

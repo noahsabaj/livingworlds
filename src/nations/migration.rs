@@ -271,23 +271,19 @@ pub fn cleanup_old_ownership_system(world: &mut World) {
     // refactoring pass to update the Province definition.
 }
 
-/// Plugin for migrating to entity relationships
-pub struct NationMigrationPlugin;
+use bevy_plugin_builder::define_plugin;
 
-impl Plugin for NationMigrationPlugin {
-    fn build(&self, app: &mut App) {
-        app
-            .init_resource::<MigrationStatus>()
-            .add_systems(
-                Startup,
-                (
-                    migrate_ownership_to_relationships,
-                    validate_relationship_migration.after(migrate_ownership_to_relationships),
-                )
-                    .run_if(resource_exists::<ProvinceOwnershipCache>),
-            );
-    }
-}
+/// Plugin for migrating to entity relationships
+define_plugin!(NationMigrationPlugin {
+    resources: [MigrationStatus],
+
+    startup: [
+        (
+            migrate_ownership_to_relationships,
+            validate_relationship_migration.after(migrate_ownership_to_relationships),
+        ).run_if(resource_exists::<ProvinceOwnershipCache>)
+    ]
+});
 
 #[cfg(test)]
 mod tests {

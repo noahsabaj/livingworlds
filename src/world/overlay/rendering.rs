@@ -9,7 +9,7 @@ use crate::constants::MS_PER_SECOND;
 use crate::world::ProvinceStorage;
 use bevy::log::{debug, trace, warn};
 use bevy::prelude::*;
-use bevy::render::mesh::Mesh;
+use bevy::prelude::Mesh;
 use std::sync::Arc;
 
 /// Bytes per megabyte for memory calculations
@@ -92,27 +92,26 @@ pub fn update_province_colors(
     }
 }
 
+use bevy_plugin_builder::define_plugin;
+
 /// Plugin that manages map overlay rendering
-pub struct OverlayPlugin;
+define_plugin!(OverlayPlugin {
+    resources: [MapMode, crate::resources::CachedOverlayColors],
 
-impl Plugin for OverlayPlugin {
-    fn build(&self, app: &mut App) {
-        use crate::states::GameState;
+    update: [
+        update_province_colors
+            .run_if(resource_changed::<MapMode>)
+            .run_if(in_state(crate::states::GameState::InGame))
+    ],
 
-        app.init_resource::<MapMode>()
-            .init_resource::<crate::resources::CachedOverlayColors>()
-            // Initialize with default overlay and pre-calculate common modes
-            .add_systems(OnExit(GameState::LoadingWorld), initialize_overlay_colors)
-            // Force initial update to ensure sync between MapMode and overlay colors
-            .add_systems(OnEnter(GameState::InGame), force_initial_overlay_update)
-            .add_systems(
-                Update,
-                update_province_colors
-                    .run_if(resource_changed::<MapMode>)
-                    .run_if(in_state(GameState::InGame)),
-            );
+    on_exit: {
+        crate::states::GameState::LoadingWorld => [initialize_overlay_colors]
+    },
+
+    on_enter: {
+        crate::states::GameState::InGame => [force_initial_overlay_update]
     }
-}
+});
 
 /// Keyboard input handling removed - map mode cycling is now handled by HUD
 /// The HUD's map_mode_display module handles Tab key for cycling and provides

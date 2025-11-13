@@ -496,10 +496,8 @@ impl TerrainType {
     }
 }
 
-pub struct TerrainPlugin;
+use bevy_plugin_builder::define_plugin;
 
-impl Plugin for TerrainPlugin {
-    fn build(&self, _app: &mut App) {
-        // Currently no systems, just types and functions
-    }
-}
+define_plugin!(TerrainPlugin {
+    // Empty plugin - currently only provides types and functions
+});
