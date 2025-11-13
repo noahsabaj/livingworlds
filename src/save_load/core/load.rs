@@ -9,8 +9,8 @@ use crate::resources::{ProvincesSpatialIndex, WorldName, WorldSeed};
 use crate::states::{GameState, RequestStateTransition};
 use crate::world::{build_world_mesh, CloudBuilder, ProvinceStorage, WorldMeshHandle};
 use bevy::prelude::*;
-use bevy::render::mesh::Mesh2d;
-use bevy::sprite::MeshMaterial2d;
+use bevy::prelude::Mesh2d;
+use bevy::prelude::MeshMaterial2d;
 use rand::{rngs::StdRng, SeedableRng};
 use rayon::prelude::*;
 use std::collections::HashMap;
@@ -18,8 +18,8 @@ use std::fs;
 
 /// Handle load game requests with decompression and deserialization
 pub fn handle_load_game(
-    mut load_events: EventReader<LoadGameEvent>,
-    mut complete_events: EventWriter<LoadCompleteEvent>,
+    mut load_events: MessageReader<LoadGameEvent>,
+    mut complete_events: MessageWriter<LoadCompleteEvent>,
     mut commands: Commands,
     mut next_state: ResMut<NextState<GameState>>,
 ) {
@@ -114,7 +114,7 @@ pub fn handle_load_game(
 pub fn check_for_pending_load(
     mut commands: Commands,
     pending_load: Option<Res<PendingLoadData>>,
-    mut state_events: EventWriter<RequestStateTransition>,
+    mut state_events: MessageWriter<RequestStateTransition>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut loading_state: ResMut<LoadingState>,

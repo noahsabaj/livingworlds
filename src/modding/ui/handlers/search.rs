@@ -28,7 +28,7 @@ pub fn handle_search_input_changes(
 
             // Rebuild content with filtered mods
             for entity in &content_query {
-                commands.entity(entity).despawn_recursive();
+                commands.entity(entity).despawn();
                 commands.entity(entity).with_children(|parent| {
                     spawn_tab_content(
                         parent,
@@ -44,7 +44,7 @@ pub fn handle_search_input_changes(
 
 /// Handles search submit events (Enter key)
 pub fn handle_search_submit(
-    mut submit_events: EventReader<TextInputSubmitEvent>,
+    mut submit_events: MessageReader<TextInputSubmitEvent>,
     text_inputs: Query<&TextBuffer>,
     _browser_state: Res<ModBrowserState>,
 ) {

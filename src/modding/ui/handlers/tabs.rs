@@ -18,11 +18,11 @@ pub fn handle_tab_button_clicks(
         (&Interaction, &ModBrowserTabButton),
         (Changed<Interaction>, With<ModBrowserTabButton>),
     >,
-    mut switch_events: EventWriter<SwitchModTabEvent>,
+    mut switch_events: MessageWriter<SwitchModTabEvent>,
 ) {
     for (interaction, tab_button) in &interaction_query {
         if *interaction == Interaction::Pressed {
-            switch_events.send(SwitchModTabEvent {
+            switch_events.write(SwitchModTabEvent {
                 tab: tab_button.tab,
             });
         }
@@ -32,7 +32,7 @@ pub fn handle_tab_button_clicks(
 /// Handles tab switching events
 pub fn handle_tab_switching(
     mut commands: Commands,
-    mut switch_events: EventReader<SwitchModTabEvent>,
+    mut switch_events: MessageReader<SwitchModTabEvent>,
     mut browser_state: ResMut<ModBrowserState>,
     content_query: Query<Entity, With<ContentArea>>,
     mod_manager: Res<ModManager>,
@@ -47,7 +47,7 @@ pub fn handle_tab_switching(
 
         // Clear and rebuild content area
         for entity in &content_query {
-            commands.entity(entity).despawn_recursive();
+            commands.entity(entity).despawn();
             commands.entity(entity).with_children(|parent| {
                 spawn_tab_content(
                     parent,
@@ -78,10 +78,10 @@ pub fn update_tab_buttons(
         if tab_button.tab == state.current_tab {
             // Style is immutable after creation - update colors directly
             *bg_color = BackgroundColor(colors::PRIMARY);
-            *border_color = BorderColor(colors::PRIMARY.lighter(0.2));
+            *border_color = BorderColor::all(colors::PRIMARY.lighter(0.2));
         } else {
             *bg_color = BackgroundColor(colors::SECONDARY);
-            *border_color = BorderColor(colors::BORDER_DEFAULT);
+            *border_color = BorderColor::all(colors::BORDER_DEFAULT);
         }
     }
 }

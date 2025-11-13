@@ -7,6 +7,7 @@ use bevy::audio::AudioPlugin;
 use bevy::diagnostic::FrameTimeDiagnosticsPlugin;
 use bevy::ecs::schedule::common_conditions::resource_exists;
 use bevy::prelude::*;
+use bevy::window::WindowResolution;
 
 // Import configuration types from the config module
 use crate::config::{AppConfig, DiagnosticsConfig};
@@ -39,7 +40,7 @@ pub fn configure_default_plugins(config: &AppConfig) -> impl PluginGroup + use<>
     let mut default_plugins = DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
             title: config.window.title.clone(),
-            resolution: (config.window.width, config.window.height).into(),
+            resolution: WindowResolution::new(config.window.width as u32, config.window.height as u32),
             resizable: config.window.resizable,
             ..default()
         }),

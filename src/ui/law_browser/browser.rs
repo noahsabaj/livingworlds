@@ -5,7 +5,7 @@ use bevy_plugin_builder::define_plugin;
 
 use crate::nations::{get_all_laws, LawRegistry, LawCategory};
 use crate::states::GameState;
-use crate::ui::shortcuts::{ShortcutEvent, ShortcutId};
+use crate::ui::{ShortcutEvent, ShortcutId};
 use crate::ui::styles::{colors, dimensions};
 
 use super::categories::{
@@ -46,7 +46,7 @@ fn setup_law_browser_resources(mut commands: Commands) {
 
 /// Toggle law browser visibility using shortcuts registry
 fn toggle_law_browser(
-    mut shortcut_events: EventReader<ShortcutEvent>,
+    mut shortcut_events: MessageReader<ShortcutEvent>,
     mut state: ResMut<LawBrowserState>,
     mut commands: Commands,
     query: Query<Entity, With<LawBrowserRoot>>,
@@ -86,7 +86,7 @@ pub fn spawn_law_browser(commands: &mut Commands) {
                 ..default()
             },
             BackgroundColor(colors::BACKGROUND_DARKER),
-            BorderColor(colors::BORDER_ACTIVE),
+            BorderColor::all(colors::BORDER_ACTIVE),
             ZIndex(100),
             LawBrowserRoot,
         ))
@@ -135,7 +135,7 @@ fn spawn_header(parent: &mut ChildSpawnerCommands) {
                 ..default()
             },
             BackgroundColor(colors::SURFACE),
-            BorderColor(colors::BORDER),
+            BorderColor::all(colors::BORDER),
         ))
         .with_children(|header| {
             // Title
@@ -161,7 +161,7 @@ fn spawn_header(parent: &mut ChildSpawnerCommands) {
                         ..default()
                     },
                     BackgroundColor(colors::DANGER),
-                    BorderColor(colors::BORDER),
+                    BorderColor::all(colors::BORDER),
                     LawBrowserCloseButton,
                 ))
                 .with_children(|button| {
@@ -206,9 +206,9 @@ fn update_laws_list(
         return;
     }
 
-    if let Ok(container) = container_query.get_single() {
+    if let Ok(container) = container_query.single() {
         // Clear existing laws
-        commands.entity(container).despawn_recursive();
+        commands.entity(container).despawn();
 
         // Get laws for selected category
         if let Some(category) = selected_category.0 {
@@ -242,7 +242,7 @@ fn spawn_law_item(parent: &mut ChildSpawnerCommands, law_id: crate::nations::Law
                 ..default()
             },
             BackgroundColor(colors::SURFACE),
-            BorderColor(colors::BORDER),
+            BorderColor::all(colors::BORDER),
             LawListItem { law_id },
         ))
         .with_children(|item| {

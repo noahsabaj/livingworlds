@@ -19,7 +19,7 @@ pub fn spawn_law_details_panel(parent: &mut ChildSpawnerCommands) {
             ..default()
         },
         BackgroundColor(colors::BACKGROUND_MEDIUM),
-        BorderColor(colors::BORDER),
+        BorderColor::all(colors::BORDER),
         LawDetailsPanel,
     ))
     .with_children(|panel| {
@@ -149,16 +149,16 @@ pub fn update_law_details(
             }
 
             // Clear and rebuild effects container
-            if let Ok(container) = effects_container.get_single() {
-                commands.entity(container).despawn_recursive();
+            if let Ok(container) = effects_container.single() {
+                commands.entity(container).despawn();
                 commands.entity(container).with_children(|parent| {
                     spawn_effect_items(parent, &law.effects);
                 });
             }
 
             // Clear and rebuild prerequisites container
-            if let Ok(container) = prereq_container.get_single() {
-                commands.entity(container).despawn_recursive();
+            if let Ok(container) = prereq_container.single() {
+                commands.entity(container).despawn();
                 commands.entity(container).with_children(|parent| {
                     for prereq in &law.prerequisites {
                         spawn_prerequisite_item(parent, prereq);
@@ -167,8 +167,8 @@ pub fn update_law_details(
             }
 
             // Clear and rebuild conflicts container
-            if let Ok(container) = conflicts_container.get_single() {
-                commands.entity(container).despawn_recursive();
+            if let Ok(container) = conflicts_container.single() {
+                commands.entity(container).despawn();
                 commands.entity(container).with_children(|parent| {
                     for &conflict_id in &law.conflicts_with {
                         if let Some(conflict_law) = registry.get_law(conflict_id) {

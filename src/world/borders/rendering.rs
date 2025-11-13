@@ -10,9 +10,9 @@
 
 use bevy::log::error;
 use bevy::prelude::*;
-use bevy::render::mesh::PrimitiveTopology;
-use bevy::render::render_asset::RenderAssetUsages;
-use bevy::sprite::MeshMaterial2d;
+use bevy::render::render_resource::PrimitiveTopology;
+use bevy::asset::RenderAssetUsages;
+use bevy::prelude::MeshMaterial2d;
 use bevy::window::PrimaryWindow;
 
 use crate::math::{Hexagon, HEX_SIZE as HEX_SIZE_PIXELS};

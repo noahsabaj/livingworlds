@@ -4,12 +4,12 @@
 //! according to their controlling nation.
 
 use bevy::prelude::*;
-use bevy::text::Text2d;
+use bevy::sprite::Text2d;  // Moved from bevy::text in Bevy 0.17
 use std::collections::HashMap;
 
 use super::types::{Nation, NationId};
 use crate::resources::MapMode;
-use crate::ui::shortcuts::ShortcutRegistry;
+use crate::ui::ShortcutRegistry;
 use crate::world::ProvinceStorage;
 
 /// Get text color that contrasts well with the nation color
@@ -195,7 +195,7 @@ pub fn render_nation_borders(
 ) {
     // Get the border toggle key from the shortcuts registry (defaults to B)
     let border_key = registry
-        .get(&crate::ui::shortcuts::ShortcutId::ToggleBorders)
+        .get(&crate::ui::ShortcutId::ToggleBorders)
         .map(|def| def.binding.key)
         .unwrap_or(KeyCode::KeyB);
 
@@ -424,7 +424,7 @@ pub fn update_nation_label_sizes(
     camera_query: Query<(&Camera, &Transform), Changed<Transform>>,
     mut label_query: Query<(&NationLabel, &mut TextFont, &mut TextColor)>,
 ) {
-    let Ok((_, camera_transform)) = camera_query.get_single() else {
+    let Ok((_, camera_transform)) = camera_query.single() else {
         return;
     };
 
@@ -484,7 +484,7 @@ pub fn update_label_visibility(
     camera_query: Query<(&Camera, &Transform), Changed<Transform>>,
     mut label_query: Query<(&NationLabel, &mut Visibility)>,
 ) {
-    let Ok((_, camera_transform)) = camera_query.get_single() else {
+    let Ok((_, camera_transform)) = camera_query.single() else {
         return;
     };
 

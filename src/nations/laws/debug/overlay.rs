@@ -7,7 +7,7 @@ use bevy_plugin_builder::define_plugin;
 use crate::nations::{Nation, laws::NationLaws};
 use crate::ui::{colors, dimensions};
 use crate::ui::SelectedNation;
-use crate::ui::shortcuts::{ShortcutEvent, ShortcutId};
+use crate::ui::{ShortcutEvent, ShortcutId};
 
 /// Marker for law debug overlay
 #[derive(Component)]
@@ -32,7 +32,7 @@ define_plugin!(LawDebugPlugin {
 
 /// Toggle debug overlay using shortcuts registry
 pub fn toggle_law_debug_overlay(
-    mut shortcut_events: EventReader<ShortcutEvent>,
+    mut shortcut_events: MessageReader<ShortcutEvent>,
     mut state: ResMut<LawDebugOverlayState>,
     mut commands: Commands,
     overlay_query: Query<Entity, With<LawDebugOverlay>>,
@@ -48,7 +48,7 @@ pub fn toggle_law_debug_overlay(
             } else {
                 // Remove overlay
                 for entity in &overlay_query {
-                    commands.entity(entity).despawn_recursive();
+                    commands.entity(entity).despawn();
                 }
                 info!("Law debug overlay disabled");
             }
@@ -74,7 +74,7 @@ fn spawn_debug_overlay(commands: &mut Commands) {
                 ..default()
             },
             BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.8)),
-            BorderColor(colors::WARNING),
+            BorderColor::all(colors::WARNING),
             ZIndex(1000), // Always on top
             LawDebugOverlay,
         ))
@@ -158,12 +158,12 @@ fn update_law_debug_overlay(
     if let Some(nation_entity) = selected_nation.entity {
         if let Ok((nation, nation_laws)) = nations_query.get(nation_entity) {
             // Update nation name
-            if let Ok(mut text) = nation_text.get_single_mut() {
+            if let Ok(mut text) = nation_text.single_mut() {
                 text.0 = format!("Nation: {}", nation.name);
             }
 
             // Update active laws count
-            if let Ok(mut text) = active_text.get_single_mut() {
+            if let Ok(mut text) = active_text.single_mut() {
                 text.0 = format!("Active laws: {} (cooldowns: {})",
                     nation_laws.active_laws.len(),
                     nation_laws.proposal_cooldowns.len()
@@ -171,7 +171,7 @@ fn update_law_debug_overlay(
             }
 
             // Update proposed laws info
-            if let Ok(mut text) = proposed_text.get_single_mut() {
+            if let Ok(mut text) = proposed_text.single_mut() {
                 if nation_laws.proposed_laws.is_empty() {
                     text.0 = "Proposed laws: 0".to_string();
                 } else {
@@ -186,7 +186,7 @@ fn update_law_debug_overlay(
             }
 
             // Update combined effects summary
-            if let Ok(mut text) = effects_text.get_single_mut() {
+            if let Ok(mut text) = effects_text.single_mut() {
                 let effects = &nation_laws.combined_effects;
                 let mut effect_parts = Vec::new();
 
@@ -209,16 +209,16 @@ fn update_law_debug_overlay(
         }
     } else {
         // Clear debug info when no nation selected
-        if let Ok(mut text) = nation_text.get_single_mut() {
+        if let Ok(mut text) = nation_text.single_mut() {
             text.0 = "No nation selected".to_string();
         }
-        if let Ok(mut text) = active_text.get_single_mut() {
+        if let Ok(mut text) = active_text.single_mut() {
             text.0 = "Active laws: 0".to_string();
         }
-        if let Ok(mut text) = proposed_text.get_single_mut() {
+        if let Ok(mut text) = proposed_text.single_mut() {
             text.0 = "Proposed laws: 0".to_string();
         }
-        if let Ok(mut text) = effects_text.get_single_mut() {
+        if let Ok(mut text) = effects_text.single_mut() {
             text.0 = "Combined effects: None".to_string();
         }
     }

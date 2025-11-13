@@ -13,7 +13,7 @@ use bevy::prelude::*;
 /// Handles the event to open the mod browser
 pub fn handle_open_mod_browser(
     mut commands: Commands,
-    mut open_events: EventReader<OpenModBrowserEvent>,
+    mut open_events: MessageReader<OpenModBrowserEvent>,
     existing_browser: Query<Entity, With<ModBrowserRoot>>,
     mod_manager: Res<ModManager>,
     browser_state: Res<ModBrowserState>,
@@ -32,13 +32,13 @@ pub fn handle_open_mod_browser(
 /// Handles the event to close the mod browser
 pub fn handle_close_mod_browser(
     mut commands: Commands,
-    mut close_events: EventReader<CloseModBrowserEvent>,
+    mut close_events: MessageReader<CloseModBrowserEvent>,
     browser_query: Query<Entity, With<ModBrowserRoot>>,
 ) {
     for _ in close_events.read() {
         for entity in &browser_query {
             debug!("Closing mod browser UI");
-            commands.entity(entity).despawn_recursive();
+            commands.entity(entity).despawn();
         }
     }
 }
@@ -46,11 +46,11 @@ pub fn handle_close_mod_browser(
 /// Handles clicks on the close button
 pub fn handle_close_button_clicks(
     interaction_query: Query<&Interaction, (Changed<Interaction>, With<CloseModBrowserButton>)>,
-    mut close_events: EventWriter<CloseModBrowserEvent>,
+    mut close_events: MessageWriter<CloseModBrowserEvent>,
 ) {
     for interaction in &interaction_query {
         if *interaction == Interaction::Pressed {
-            close_events.send(CloseModBrowserEvent);
+            close_events.write(CloseModBrowserEvent);
         }
     }
 }

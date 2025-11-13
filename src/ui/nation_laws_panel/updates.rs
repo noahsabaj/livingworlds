@@ -21,12 +21,12 @@ pub fn update_active_laws_list(
         return;
     }
 
-    let Ok(container) = container_query.get_single() else {
+    let Ok(container) = container_query.single() else {
         return;
     };
 
     // Clear existing laws
-    commands.entity(container).despawn_recursive();
+    commands.entity(container).despawn();
 
     // Get nation's laws if selected
     let Some(nation_entity) = selected_nation.entity else {
@@ -60,7 +60,7 @@ pub fn update_active_laws_list(
     };
 
     // Update combined effects text
-    if let Ok(effects_entity) = combined_effects_text.get_single() {
+    if let Ok(effects_entity) = combined_effects_text.single() {
         // Simply despawn and respawn in the container
         commands.entity(effects_entity).despawn();
 
@@ -116,12 +116,12 @@ pub fn update_proposed_laws_list(
         return;
     }
 
-    let Ok(container) = container_query.get_single() else {
+    let Ok(container) = container_query.single() else {
         return;
     };
 
     // Clear existing proposals
-    commands.entity(container).despawn_recursive();
+    commands.entity(container).despawn();
 
     // Get nation's laws if selected
     let Some(nation_entity) = selected_nation.entity else {
@@ -180,7 +180,7 @@ fn spawn_active_law_item(
                 ..default()
             },
             BackgroundColor(colors::SURFACE),
-            BorderColor(colors::BORDER),
+            BorderColor::all(colors::BORDER),
             ActiveLawItem { law_id },
         ))
         .with_children(|item| {
@@ -229,7 +229,7 @@ fn spawn_active_law_item(
                     ..default()
                 },
                 BackgroundColor(colors::DANGER),
-                BorderColor(colors::BORDER),
+                BorderColor::all(colors::BORDER),
                 RepealLawButton { law_id },
             ))
             .with_children(|button| {
@@ -264,7 +264,7 @@ fn spawn_proposed_law_item(
                 ..default()
             },
             BackgroundColor(colors::SURFACE_DARK),
-            BorderColor(colors::BORDER),
+            BorderColor::all(colors::BORDER),
             ProposedLawItem { index },
         ))
         .with_children(|item| {
@@ -287,7 +287,7 @@ fn spawn_proposed_law_item(
                     ..default()
                 },
                 BackgroundColor(colors::BACKGROUND_DARKER),
-                BorderColor(colors::BORDER),
+                BorderColor::all(colors::BORDER),
             ))
             .with_children(|progress| {
                 // Progress fill
@@ -338,7 +338,7 @@ fn spawn_proposed_law_item(
                         ..default()
                     },
                     BackgroundColor(colors::SUCCESS),
-                    BorderColor(colors::BORDER),
+                    BorderColor::all(colors::BORDER),
                     SupportLawButton { proposal_index: index },
                 ))
                 .with_children(|button| {
@@ -363,7 +363,7 @@ fn spawn_proposed_law_item(
                         ..default()
                     },
                     BackgroundColor(colors::DANGER),
-                    BorderColor(colors::BORDER),
+                    BorderColor::all(colors::BORDER),
                     OpposeLawButton { proposal_index: index },
                 ))
                 .with_children(|button| {
