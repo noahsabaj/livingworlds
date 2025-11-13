@@ -10,19 +10,19 @@ use bevy::prelude::*;
 // ============================================================================
 
 /// Event to open the mod browser
-#[derive(Event)]
+#[derive(Message)]
 pub struct OpenModBrowserEvent;
 
 /// Event to close the mod browser
-#[derive(Event)]
+#[derive(Message)]
 pub struct CloseModBrowserEvent;
 
 /// Event to apply mod changes and soft-reset
-#[derive(Event)]
+#[derive(Message)]
 pub struct ApplyModChangesEvent;
 
 /// Event to switch tabs in the mod browser
-#[derive(Event)]
+#[derive(Message)]
 pub struct SwitchModTabEvent {
     pub tab: ModBrowserTab,
 }

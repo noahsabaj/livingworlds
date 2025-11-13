@@ -13,11 +13,11 @@ use bevy::prelude::*;
 /// Handles clicks on the confirm modset button
 pub fn handle_confirm_modset_clicks(
     interaction_query: Query<&Interaction, (Changed<Interaction>, With<ConfirmModsetButton>)>,
-    mut apply_events: EventWriter<ApplyModChangesEvent>,
+    mut apply_events: MessageWriter<ApplyModChangesEvent>,
 ) {
     for interaction in &interaction_query {
         if *interaction == Interaction::Pressed {
-            apply_events.send(ApplyModChangesEvent);
+            apply_events.write(ApplyModChangesEvent);
         }
     }
 }
@@ -72,9 +72,9 @@ pub fn handle_mod_toggles(
 
 /// Handles applying mod changes with a soft reset
 pub fn handle_apply_changes(
-    mut apply_events: EventReader<ApplyModChangesEvent>,
+    mut apply_events: MessageReader<ApplyModChangesEvent>,
     mut loading_state: ResMut<LoadingState>,
-    mut state_events: EventWriter<RequestStateTransition>,
+    mut state_events: MessageWriter<RequestStateTransition>,
 ) {
     for _ in apply_events.read() {
         info!("Applying mod changes and performing soft reset");
@@ -83,7 +83,7 @@ pub fn handle_apply_changes(
         start_mod_application_loading(&mut loading_state);
 
         // Transition to loading state for soft reset
-        state_events.send(RequestStateTransition {
+        state_events.write(RequestStateTransition {
             from: GameState::InGame, // Assuming we're in game when applying mods
             to: GameState::LoadingWorld,
         });

@@ -12,7 +12,7 @@ use notify::{Event as NotifyEvent, RecursiveMode, Watcher};
 use std::path::{Path, PathBuf};
 
 /// Event sent when configuration files change
-#[derive(Event)]
+#[derive(Message)]
 pub struct ConfigReloadEvent {
     pub path: PathBuf,
     pub mod_id: Option<String>,
@@ -95,7 +95,7 @@ impl ConfigWatcher {
 
 /// System to handle configuration hot-reloading
 pub fn handle_config_reload(
-    mut reload_events: EventReader<ConfigReloadEvent>,
+    mut reload_events: MessageReader<ConfigReloadEvent>,
     mut mod_manager: ResMut<ModManager>,
 ) {
     for event in reload_events.read() {
@@ -133,7 +133,7 @@ pub fn handle_config_reload(
 /// System to check for file changes
 pub fn check_config_changes(
     mut watcher: ResMut<ConfigWatcher>,
-    mut reload_events: EventWriter<ConfigReloadEvent>,
+    mut reload_events: MessageWriter<ConfigReloadEvent>,
 ) {
     let events = watcher.check_events();
     for event in events {
