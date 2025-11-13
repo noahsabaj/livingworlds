@@ -21,10 +21,11 @@ mod loading;           // Loading indicators
 mod nation_laws_panel; // Nation laws display
 mod nation_info;       // Nation information panel
 mod nation_selection;  // Nation selection UI
+mod notifications;     // Universal notification system (toasts, banners)
 mod overlay_display;   // Map overlay displays
 mod performance_dashboard; // Performance monitoring
 mod plugin;            // Main UI plugin
-pub mod shortcuts;     // Keyboard shortcuts registry
+mod shortcuts;         // Keyboard shortcuts registry
 mod styles;            // Centralized styling
 mod tile_info;         // Tile information display
 mod tips;              // Game tips system
@@ -98,7 +99,7 @@ pub use dialogs::{
 };
 
 // HUD/Display markers
-pub use hud::HudRoot;
+// pub use hud::HudRoot; // TODO: Define HudRoot component if needed
 pub use interaction::{
     handle_selection_interaction,
     ButtonValue,
@@ -176,13 +177,16 @@ pub use law_browser::{LawBrowserPlugin, spawn_law_browser};
 // Nation laws panel exports
 pub use nation_laws_panel::{NationLawsPanelPlugin, NationLawsPanelState};
 
+// Notification system exports
+pub use notifications::{NotificationPlugin, NotificationPosition, NotificationType, ShowNotification};
+
 // Main plugin (implementation in plugin.rs)
 pub use plugin::UIPlugin;
 
 // Text input components - bevy-ui-builders now handles text input natively
 use bevy::prelude::{Entity, Event};
 
-#[derive(Event, Debug, Clone)]
+#[derive(Message, Debug, Clone)]
 pub struct TextInputSubmitEvent {
     pub entity: Entity,
     pub value: String,

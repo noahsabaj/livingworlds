@@ -2,14 +2,14 @@
 
 use super::{
     animation, hud, law_browser, loading, nation_info, nation_laws_panel,
-    overlay_display, performance_dashboard, shortcuts, tile_info,
+    notifications, overlay_display, performance_dashboard, shortcuts, tile_info,
 };
 use bevy_plugin_builder::define_plugin;
 use bevy_ui_builders::UiBuilderPlugin;
 
 // The main UI plugin orchestrator
 define_plugin!(UIPlugin {
-    events: [
+    messages: [
         super::TextInputSubmitEvent
     ],
 
@@ -18,6 +18,7 @@ define_plugin!(UIPlugin {
         UiBuilderPlugin,
         animation::AnimationPlugin,
         shortcuts::ShortcutPlugin,
+        notifications::NotificationPlugin,
         // Game-specific UI plugins
         loading::LoadingIndicatorPlugin,
         hud::HudPlugin,
