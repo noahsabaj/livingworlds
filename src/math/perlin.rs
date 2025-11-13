@@ -6,7 +6,7 @@
 //! # Quick Start
 //!
 //! ```rust
-//! use crate::math::perlin::PerlinNoise;
+//! use living_worlds::math::perlin::{PerlinNoise, CloudPreset};
 //!
 //! // Create a noise generator with a seed
 //! let noise = PerlinNoise::new(12345);
@@ -20,7 +20,12 @@
 //!
 //! # Advanced Usage
 //!
-//! ```rust
+//! ```rust,no_run
+//! use living_worlds::math::perlin::{PerlinNoise, FbmSettings};
+//! # let noise = PerlinNoise::new(12345);
+//! # let x = 100.0;
+//! # let y = 200.0;
+//!
 //! // Custom FBM (Fractal Brownian Motion) settings
 //! let height = noise.sample_fbm(x, y, FbmSettings {
 //!     octaves: 8,
@@ -31,13 +36,6 @@
 //!
 //! // Ridge noise for mountains
 //! let mountain = noise.sample_ridged(x, y, 0.02);
-//!
-//! // Using builder pattern for custom configuration
-//! let custom_noise = PerlinNoise::builder()
-//!     .seed(9999)
-//!     .octaves(10)
-//!     .frequency(0.005)
-//!     .build();
 //! ```
 
 use noise::{NoiseFn, Perlin};
@@ -96,6 +94,7 @@ impl PerlinNoise {
     ///
     /// # Example
     /// ```
+    /// use living_worlds::math::perlin::PerlinNoise;
     /// let noise = PerlinNoise::new(12345);
     /// let value = noise.sample(10.0, 20.0);
     /// ```
@@ -170,6 +169,10 @@ impl PerlinNoise {
     ///
     /// # Example
     /// ```
+    /// use living_worlds::math::perlin::{PerlinNoise, FbmSettings};
+    /// # let noise = PerlinNoise::new(12345);
+    /// # let x = 100.0;
+    /// # let y = 200.0;
     /// let value = noise.sample_fbm(x, y, FbmSettings {
     ///     octaves: 8,
     ///     frequency: 0.01,

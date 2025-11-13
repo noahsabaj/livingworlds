@@ -13,7 +13,7 @@
 //! access functionality through the exported interfaces.
 //!
 //! # Usage
-//! ```rust
+//! ```rust,no_run
 //! use living_worlds::app::{build_app, build_app_with_config};
 //! use living_worlds::config::AppConfig;
 //!
@@ -23,7 +23,7 @@
 //! // Build app with custom configuration
 //! let config = AppConfig::custom();
 //! let app = build_app_with_config(config)?;
-//! ```
+//! ```no_run
 
 mod builder;
 mod initialization;

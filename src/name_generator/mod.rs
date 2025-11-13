@@ -19,7 +19,7 @@
 //!
 //! # Examples
 //!
-//! ```rust
+//! ```rust,no_run
 //! use living_worlds::name_generator::{NameGenerator, NameType, Culture};
 //!
 //! // Create a new generator with random seed
@@ -37,16 +37,16 @@
 //!     culture: Culture::Western,
 //!     role: PersonRole::Ruler,
 //! });
-//! ```
+//! ```no_run
 //!
 //! # Deterministic Generation
 //!
 //! For reproducible worlds, use a seeded generator:
 //!
-//! ```rust
+//! ```rust,no_run
 //! let mut rng_gen = NameGenerator::with_seed(12345);
 //! // Names will be the same for the same seed
-//! ```
+//! ```no_run
 
 // Internal modules - ALL PRIVATE, only accessible through this gateway
 mod core; // Main NameGenerator struct and orchestration

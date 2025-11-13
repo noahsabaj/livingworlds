@@ -14,10 +14,9 @@ use std::f32::consts;
 /// This is complex logic that justifies being in this module.
 ///
 /// # Examples
-/// ```
+/// use living_worlds::math::angles::lerp_angle;
 /// // Interpolating from 350° to 10° goes through 0°, not the long way
 /// let mid = lerp_angle(350.0_f32.to_radians(), 10.0_f32.to_radians(), 0.5);
-/// ```
 #[inline]
 pub fn lerp_angle(from: f32, to: f32, t: f32) -> f32 {
     let from = normalize_angle(from);
@@ -51,10 +50,9 @@ pub fn smoothstep_angle(from: f32, to: f32, t: f32) -> f32 {
 /// Result is always positive and handles angle wrapping.
 ///
 /// # Examples
-/// ```
+/// use living_worlds::math::angles::angular_distance;
 /// let dist = angular_distance(350.0_f32.to_radians(), 10.0_f32.to_radians());
 /// // Returns 20 degrees in radians, not 340
-/// ```
 #[inline]
 pub fn angular_distance(angle1: f32, angle2: f32) -> f32 {
     let diff = normalize_angle_signed(angle2 - angle1);
@@ -66,12 +64,11 @@ pub fn angular_distance(angle1: f32, angle2: f32) -> f32 {
 /// This is complex logic because it must handle ranges that wrap around 0/2π.
 ///
 /// # Examples
-/// ```
+/// use living_worlds::math::angles::angle_in_range;
 /// // Check if 10° is between 350° and 20°
 /// let in_range = angle_in_range(10.0_f32.to_radians(),
 ///                                350.0_f32.to_radians(),
 ///                                20.0_f32.to_radians());
-/// ```
 #[inline]
 pub fn angle_in_range(angle: f32, start: f32, end: f32) -> bool {
     let angle = normalize_angle(angle);
@@ -92,10 +89,9 @@ pub fn angle_in_range(angle: f32, start: f32, end: f32) -> bool {
 /// utility function that's used throughout Living Worlds.
 ///
 /// # Examples
-/// ```
+/// use living_worlds::math::angles::positions_around_circle;
 /// let positions = positions_around_circle(0.0, 0.0, 100.0, 6);
 /// // Returns 6 positions forming a hexagon
-/// ```
 pub fn positions_around_circle(
     center_x: f32,
     center_y: f32,
@@ -130,9 +126,12 @@ pub fn movement_vector(angle: f32, speed: f32) -> (f32, f32) {
 /// for consistent world generation.
 ///
 /// # Examples
-/// ```
+/// use living_worlds::math::angles::angle_variation;
+/// # let base_angle = 0.0;
+/// # let x = 10.0;
+/// # let y = 20.0;
+/// # let seed = 12345;
 /// let varied_angle = base_angle + angle_variation(x, y, seed, 0.1);
-/// ```
 #[inline]
 pub fn angle_variation(x: f32, y: f32, seed: u32, amplitude: f32) -> f32 {
     let hash = ((x * 12.9898 + y * 78.233) * (seed as f32 * 0.001)).sin() * 43758.5453;

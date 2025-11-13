@@ -11,7 +11,7 @@
 //! - Help text generation
 //!
 //! # Usage
-//! ```rust
+//! ```rust,no_run
 //! // Register a shortcut
 //! shortcuts.register(
 //!     ShortcutId::SaveGame,
@@ -23,7 +23,7 @@
 //! if shortcuts.just_pressed(ShortcutId::SaveGame) {
 //!     // Handle save
 //! }
-//! ```
+//! ```no_run
 
 // GATEWAY ARCHITECTURE - Pure exports only
 

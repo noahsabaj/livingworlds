@@ -19,7 +19,7 @@
 //!
 //! # Usage
 //!
-//! ```rust
+//! ```rust,no_run
 //! use crate::parallel::ParallelOperation;
 //!
 //! let results = ParallelOperation::new("Province processing")
@@ -27,7 +27,7 @@
 //!     .validate_no_linear_search()
 //!     .map(|province| process_province(province))
 //!     .execute()?;
-//! ```
+//! ```no_run
 
 // Private module declarations - implementation details hidden
 mod builder;

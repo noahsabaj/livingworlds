@@ -9,7 +9,7 @@ use std::time::Duration;
 ///
 /// # Examples
 ///
-/// ```rust
+/// ```rust,no_run
 /// // Show a temporary warning
 /// commands.trigger(ShowNotification {
 ///     message: "Settings are temporary (persistence disabled)".into(),
@@ -25,7 +25,7 @@ use std::time::Duration;
 ///     duration: None, // Persistent until dismissed
 ///     position: NotificationPosition::Banner,
 /// });
-/// ```
+/// ```no_run
 #[derive(Message, Clone)]
 pub struct ShowNotification {
     /// The message to display

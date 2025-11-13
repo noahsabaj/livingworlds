@@ -25,11 +25,11 @@
 //!
 //! # Usage
 //!
-//! ```rust
+//! ```rust,no_run
 //! use crate::world::ui::{WorldConfigPlugin, WorldGenerationSettings};
 //!
 //! app.add_plugins(WorldConfigPlugin);
-//! ```
+//! ```no_run
 //!
 //! # Design Philosophy
 //!

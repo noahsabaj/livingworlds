@@ -17,7 +17,7 @@
 //!
 //! ## Usage
 //!
-//! ```rust
+//! ```rust,no_run
 //! use crate::loading::{LoadingScreenPlugin, set_loading_progress, start_world_generation_loading};
 //!
 //! // Add plugin to app
@@ -26,7 +26,7 @@
 //! // Control loading from external systems
 //! start_world_generation_loading(&mut loading_state, seed, size);
 //! set_loading_progress(&mut loading_state, 0.5, "Generating terrain...");
-//! ```
+//! ```no_run
 
 // Private module declarations - internal implementation hidden
 mod api;

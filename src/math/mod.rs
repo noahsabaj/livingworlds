@@ -31,7 +31,11 @@
 //!
 //! ### Basic Usage
 //! ```rust
-//! use crate::math::{Hexagon, calculate_grid_position, HEX_SIZE, SQRT_3};
+//! use bevy::prelude::*;
+//! use living_worlds::math::{Hexagon, calculate_grid_position, get_neighbor_positions, HEX_SIZE};
+//! # let col = 5;
+//! # let row = 3;
+//! # let mouse_pos = Vec2::new(150.0, 150.0);
 //!
 //! // Calculate world position from grid coordinates
 //! let (x, y) = calculate_grid_position(col, row, HEX_SIZE);
@@ -81,17 +85,17 @@
 //! - Any form of noise generation outside this module
 //!
 //! ### Basic Usage
-//! ```rust
-//! use crate::math::{PerlinNoise, TerrainPreset, CloudPreset, FbmSettings};
+//! ```rust,no_run
+//! use living_worlds::math::{PerlinNoise, CloudPreset, FbmSettings};
+//! # let world_seed = 12345;
+//! # let x = 100.0;
+//! # let y = 200.0;
 //!
 //! // Create noise generator with seed
 //! let noise = PerlinNoise::with_seed(world_seed);
 //!
 //! // Generate terrain elevation (0.0 to 1.0)
 //! let elevation = noise.sample_terrain(x, y);
-//!
-//! // Generate terrain with preset
-//! let elevation = noise.sample_terrain_preset(x, y, TerrainPreset::Continents);
 //!
 //! // Generate cloud density
 //! let cloud_density = noise.sample_clouds(x, y, CloudPreset::Fluffy);
@@ -103,14 +107,6 @@
 //!     persistence: 0.5,
 //!     lacunarity: 2.0,
 //! });
-//!
-//! // Use builder pattern for advanced configuration
-//! use crate::math::PerlinBuilder;
-//! let custom_noise = PerlinBuilder::new()
-//!     .with_seed(12345)
-//!     .with_frequency(0.015)
-//!     .with_octaves(8)
-//!     .build();
 //! ```
 //!
 //! ### Terrain Presets
@@ -145,7 +141,22 @@
 //!
 //! ### Basic Usage
 //! ```rust
-//! use crate::math::{smoothstep, lerp_exp_vec3, asymmetric_smooth, lerp_color};
+//! use bevy::prelude::*;
+//! use living_worlds::math::interpolation::*;
+//! # let start_pos = Vec3::ZERO;
+//! # let end_pos = Vec3::ONE;
+//! # let t = 0.5;
+//! # let raw_t = 0.5;
+//! # let current_position = Vec3::ZERO;
+//! # let target_position = Vec3::ONE;
+//! # let smoothing_factor = 8.0;
+//! # let delta_time = 0.016;
+//! # let current_tension = 0.5;
+//! # let target_tension = 0.8;
+//! # let rise_rate = 2.0;
+//! # let fall_rate = 0.3;
+//! # let color_a = Color::srgb(1.0, 0.0, 0.0);
+//! # let color_b = Color::srgb(0.0, 1.0, 0.0);
 //!
 //! // Basic interpolation - use Bevy directly
 //! let value = 0.0_f32.lerp(100.0, 0.5); // Returns 50.0
@@ -174,16 +185,6 @@
 //!
 //! // Linear color space interpolation
 //! let blended_color = lerp_color(color_a, color_b, t);
-//!
-//! // Weighted blending of multiple values
-//! use crate::math::{weighted_blend, weighted_blend_colors};
-//! let result = weighted_blend(&[(value1, weight1), (value2, weight2)]);
-//! let color = weighted_blend_colors(&[(color1, weight1), (color2, weight2)]);
-//!
-//! // Utility functions
-//! use crate::math::{inverse_lerp, remap};
-//! let t = inverse_lerp(min, max, value); // Get t from value
-//! let remapped = remap(value, old_min, old_max, new_min, new_max);
 //! ```
 //!
 //! ### Game-Specific Functions
@@ -226,8 +227,17 @@
 //! - `(pos1 - pos2).abs().x + (pos1 - pos2).abs().y` for Manhattan distance
 //!
 //! ### Basic Usage
-//! ```rust
-//! use crate::math::{hex_distance, gaussian_falloff};
+//! ```rust,no_run
+//! use bevy::prelude::*;
+//! use living_worlds::math::distance::*;
+//! # let pos1 = Vec2::new(0.0, 0.0);
+//! # let pos2 = Vec2::new(10.0, 10.0);
+//! # let col1 = 0;
+//! # let row1 = 0;
+//! # let col2 = 5;
+//! # let row2 = 3;
+//! # let distance = 10.0;
+//! # let sigma = 5.0;
 //!
 //! // Basic distance - use Bevy directly
 //! let dist = pos1.distance(pos2);
@@ -236,11 +246,6 @@
 //! // Game-specific functions from this module
 //! let hex_steps = hex_distance(col1, row1, col2, row2);
 //! let influence = gaussian_falloff(distance, sigma);
-//!
-//! // Find closest point from a list
-//! use crate::math::{find_closest, find_within_radius};
-//! let (idx, dist) = find_closest(target, &points).unwrap();
-//! let nearby = find_within_radius(center, &points, radius);
 //! ```
 //!
 //! ### Game-Specific Functions

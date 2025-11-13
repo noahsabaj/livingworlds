@@ -14,12 +14,17 @@
 //! # Usage
 //! ```rust
 //! use living_worlds::infrastructure::{ThreadPoolManager, LoggingConfig};
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! # let debug_mode = false;
+//! # let thread_count = 4;
 //!
 //! // Initialize logging
 //! LoggingConfig::initialize(debug_mode);
 //!
 //! // Setup thread pool for parallel processing
 //! ThreadPoolManager::initialize(thread_count)?;
+//! # Ok(())
+//! # }
 //! ```
 
 // Private module declarations - implementation details hidden from external code

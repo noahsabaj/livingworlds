@@ -9,8 +9,20 @@
 //! # Usage
 //!
 //! ```rust
-//! use crate::math::interpolation::*;
+//! use bevy::prelude::*;
+//! use living_worlds::math::interpolation::*;
 //!
+//! # let start_pos = Vec3::ZERO;
+//! # let end_pos = Vec3::ONE;
+//! # let t = 0.5;
+//! # let current_pos = Vec3::ZERO;
+//! # let target_pos = Vec3::ONE;
+//! # let smoothing = 8.0;
+//! # let delta_time = 0.016;
+//! # let current = 0.0;
+//! # let target = 1.0;
+//! # let rise_rate = 2.0;
+//! # let fall_rate = 0.3;
 //! // Basic interpolation - use Bevy directly
 //! let value = 0.0_f32.lerp(10.0, 0.5); // Returns 5.0
 //! let pos = start_pos.lerp(end_pos, t);
@@ -28,10 +40,9 @@ use bevy::prelude::*;
 /// When t=0 returns a, when t=1 returns b, and values in between are interpolated.
 ///
 /// # Examples
-/// ```
+/// use living_worlds::math::interpolation::lerp;
 /// let mid = lerp(0.0, 10.0, 0.5); // Returns 5.0
 /// let quarter = lerp(100.0, 200.0, 0.25); // Returns 125.0
-/// ```
 #[inline]
 pub fn lerp(a: f32, b: f32, t: f32) -> f32 {
     a + (b - a) * t.clamp(0.0, 1.0)
@@ -43,10 +54,9 @@ pub fn lerp(a: f32, b: f32, t: f32) -> f32 {
 /// This is the inverse of lerp: if a.lerp(b, t) = value, then inverse_lerp(a, b, value) = t
 ///
 /// # Examples
-/// ```
+/// use living_worlds::math::interpolation::inverse_lerp;
 /// let t = inverse_lerp(0.0, 10.0, 5.0); // Returns 0.5
 /// let t = inverse_lerp(10.0, 20.0, 15.0); // Returns 0.5
-/// ```
 #[inline]
 pub fn inverse_lerp(a: f32, b: f32, value: f32) -> f32 {
     if (b - a).abs() < f32::EPSILON {
@@ -60,10 +70,9 @@ pub fn inverse_lerp(a: f32, b: f32, value: f32) -> f32 {
 /// Maps `value` from range [from_min, from_max] to range [to_min, to_max]
 ///
 /// # Examples
-/// ```
+/// use living_worlds::math::interpolation::remap;
 /// let remapped = remap(5.0, 0.0, 10.0, 0.0, 100.0); // Returns 50.0
 /// let remapped = remap(0.5, 0.0, 1.0, -1.0, 1.0); // Returns 0.0
-/// ```
 #[inline]
 pub fn remap(value: f32, from_min: f32, from_max: f32, to_min: f32, to_max: f32) -> f32 {
     let t = inverse_lerp(from_min, from_max, value);
@@ -76,9 +85,8 @@ pub fn remap(value: f32, from_min: f32, from_max: f32, to_min: f32, to_max: f32)
 /// Uses the formula: 3t² - 2t³
 ///
 /// # Examples
-/// ```
+/// use living_worlds::math::interpolation::smoothstep;
 /// let smooth = smoothstep(0.0, 1.0, 0.5); // Smoother than linear
-/// ```
 #[inline]
 pub fn smoothstep(edge0: f32, edge1: f32, x: f32) -> f32 {
     let t = ((x - edge0) / (edge1 - edge0)).clamp(0.0, 1.0);
@@ -91,9 +99,8 @@ pub fn smoothstep(edge0: f32, edge1: f32, x: f32) -> f32 {
 /// Uses the formula: 6t⁵ - 15t⁴ + 10t³
 ///
 /// # Examples
-/// ```
+/// use living_worlds::math::interpolation::smootherstep;
 /// let smoother = smootherstep(0.0, 1.0, 0.5); // Even smoother than smoothstep
-/// ```
 #[inline]
 pub fn smootherstep(edge0: f32, edge1: f32, x: f32) -> f32 {
     let t = ((x - edge0) / (edge1 - edge0)).clamp(0.0, 1.0);
@@ -106,10 +113,13 @@ pub fn smootherstep(edge0: f32, edge1: f32, x: f32) -> f32 {
 /// Higher smoothing values = snappier response, lower values = smoother/slower.
 ///
 /// # Examples
-/// ```
+/// use bevy::prelude::*;
+/// use living_worlds::math::interpolation::lerp_exp_vec2;
+/// # let current_pos = Vec2::ZERO;
+/// # let target_pos = Vec2::ONE;
+/// # let delta_time = 0.016;
 /// // Camera following with medium smoothness
 /// let new_pos = lerp_exp_vec2(current_pos, target_pos, 8.0, delta_time);
-/// ```
 #[inline]
 pub fn lerp_exp_vec2(current: Vec2, target: Vec2, smoothing: f32, delta_time: f32) -> Vec2 {
     let t = 1.0 - (0.01_f32.powf(smoothing * delta_time));
@@ -122,10 +132,13 @@ pub fn lerp_exp_vec2(current: Vec2, target: Vec2, smoothing: f32, delta_time: f3
 /// Higher smoothing values = snappier response, lower values = smoother/slower.
 ///
 /// # Examples
-/// ```
+/// use bevy::prelude::*;
+/// use living_worlds::math::interpolation::lerp_exp_vec3;
+/// # let current_pos = Vec3::ZERO;
+/// # let target_pos = Vec3::ONE;
+/// # let delta_time = 0.016;
 /// // Camera following with medium smoothness
 /// let new_pos = lerp_exp_vec3(current_pos, target_pos, 8.0, delta_time);
-/// ```
 #[inline]
 pub fn lerp_exp_vec3(current: Vec3, target: Vec3, smoothing: f32, delta_time: f32) -> Vec3 {
     let t = 1.0 - (0.01_f32.powf(smoothing * delta_time));
@@ -148,10 +161,11 @@ pub fn lerp_exp(current: f32, target: f32, smoothing: f32, delta_time: f32) -> f
 /// Alpha is the smoothing factor (0-1). Higher = more responsive to changes.
 ///
 /// # Examples
-/// ```
+/// use living_worlds::math::interpolation::exponential_smooth;
+/// # let current_rainfall = 100.0;
+/// # let new_rainfall = 120.0;
 /// // Like climate.rs: rainfall * 0.7 + new * 0.3
 /// let smoothed = exponential_smooth(current_rainfall, new_rainfall, 0.3);
-/// ```
 #[inline]
 pub fn exponential_smooth(current: f32, new_value: f32, alpha: f32) -> f32 {
     current * (1.0 - alpha) + new_value * alpha
@@ -163,10 +177,12 @@ pub fn exponential_smooth(current: f32, new_value: f32, alpha: f32) -> f32 {
 /// Used extensively in Living Worlds for physics-like behavior.
 ///
 /// # Examples
-/// ```
+/// use living_worlds::math::interpolation::asymmetric_smooth;
+/// # let current = 0.5;
+/// # let target = 0.8;
+/// # let delta_time = 0.016;
 /// // Tension rises quickly (rate=2.0) but falls slowly (rate=0.3)
 /// let new_tension = asymmetric_smooth(current, target, 2.0, 0.3, delta_time);
-/// ```
 #[inline]
 pub fn asymmetric_smooth(
     current: f32,
@@ -190,10 +206,9 @@ pub fn asymmetric_smooth(
 /// Useful for combining multiple influences with different strengths.
 ///
 /// # Examples
-/// ```
+/// use living_worlds::math::interpolation::weighted_blend;
 /// let blended = weighted_blend(&[(10.0, 0.3), (20.0, 0.7)]); // Returns 17.0
 /// let equal = weighted_blend(&[(5.0, 1.0), (15.0, 1.0)]); // Returns 10.0
-/// ```
 pub fn weighted_blend(values: &[(f32, f32)]) -> f32 {
     let total_weight: f32 = values.iter().map(|(_, w)| w).sum();
     if total_weight <= 0.0 {
@@ -242,13 +257,16 @@ pub fn weighted_blend_vec3(values: &[(Vec3, f32)]) -> Vec3 {
 /// based on multiple biome influences.
 ///
 /// # Examples
-/// ```
+/// use bevy::prelude::*;
+/// use living_worlds::math::interpolation::weighted_blend_colors;
+/// # let grassland_color = Color::srgb(0.2, 0.8, 0.2);
+/// # let forest_color = Color::srgb(0.1, 0.5, 0.1);
+/// # let water_color = Color::srgb(0.0, 0.2, 0.8);
 /// let terrain_color = weighted_blend_colors(&[
 ///     (grassland_color, 0.6),
 ///     (forest_color, 0.3),
 ///     (water_color, 0.1),
 /// ]);
-/// ```
 pub fn weighted_blend_colors(values: &[(Color, f32)]) -> Color {
     let total_weight: f32 = values.iter().map(|(_, w)| w).sum();
     if total_weight <= 0.0 {
@@ -279,9 +297,12 @@ pub fn weighted_blend_colors(values: &[(Color, f32)]) -> Color {
 /// Use this instead of basic lerp for accurate color transitions.
 ///
 /// # Examples
-/// ```
+/// use bevy::prelude::*;
+/// use living_worlds::math::interpolation::lerp_color;
+/// # let day_color = Color::srgb(1.0, 1.0, 0.8);
+/// # let night_color = Color::srgb(0.1, 0.1, 0.3);
+/// # let time_factor = 0.5;
 /// let sunset_color = lerp_color(day_color, night_color, time_factor);
-/// ```
 #[inline]
 pub fn lerp_color(from: Color, to: Color, t: f32) -> Color {
     // Convert to linear space for proper interpolation

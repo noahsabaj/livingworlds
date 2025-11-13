@@ -9,7 +9,16 @@
 //! # Examples
 //!
 //! ```rust
-//! use crate::math::{hex_distance, gaussian_falloff};
+//! use bevy::prelude::*;
+//! use living_worlds::math::distance::{hex_distance, gaussian_falloff};
+//! # let col1 = 0;
+//! # let row1 = 0;
+//! # let col2 = 5;
+//! # let row2 = 3;
+//! # let distance = 10.0;
+//! # let sigma = 5.0;
+//! # let pos1 = Vec2::new(0.0, 0.0);
+//! # let pos2 = Vec2::new(10.0, 10.0);
 //!
 //! // Hexagon grid distance (game-specific)
 //! let hex_dist = hex_distance(col1, row1, col2, row2);

@@ -75,12 +75,14 @@ impl ThreadPoolManager {
     /// # Example
     /// ```rust
     /// use living_worlds::infrastructure::ThreadPoolManager;
-    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// // Auto-detect optimal thread count
     /// ThreadPoolManager::initialize(0)?;
     ///
     /// // Use specific thread count
     /// ThreadPoolManager::initialize(8)?;
+    /// # Ok(())
+    /// # }
     /// ```
     pub fn initialize(requested_threads: usize) -> Result<(), InfrastructureError> {
         // Check environment variable first

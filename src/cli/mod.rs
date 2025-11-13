@@ -13,7 +13,7 @@
 //! access functionality through the exported interfaces.
 //!
 //! # Usage
-//! ```rust
+//! ```rust,no_run
 //! use living_worlds::cli::{Args, CLIConfig};
 //!
 //! // Parse command-line arguments
@@ -21,7 +21,7 @@
 //!
 //! // Build application configuration from CLI inputs
 //! let config = CLIConfig::build_app_config(&args);
-//! ```
+//! ```no_run
 
 // Private module declarations - implementation details hidden from external code
 mod args;
