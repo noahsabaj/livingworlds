@@ -34,9 +34,9 @@ pub enum MenuAction {
 }
 
 /// Event to trigger settings menu spawning
-#[derive(Event)]
+#[derive(Message)]
 pub struct SpawnSettingsMenuEvent;
 
 /// Event to trigger save browser spawning
-#[derive(Event)]
+#[derive(Message)]
 pub struct SpawnSaveBrowserEvent;

@@ -11,11 +11,11 @@ define_ui_interactions!(
     handle_menu_buttons(
         MenuButton,
         action,
-        mut state_events: EventWriter<RequestStateTransition>,
+        mut state_events: MessageWriter<RequestStateTransition>,
         current_state: Res<State<GameState>>,
-        mut settings_events: EventWriter<SpawnSettingsMenuEvent>,
-        mut save_browser_events: EventWriter<SpawnSaveBrowserEvent>,
-        mut mod_browser_events: EventWriter<crate::modding::OpenModBrowserEvent>,
+        mut settings_events: MessageWriter<SpawnSettingsMenuEvent>,
+        mut save_browser_events: MessageWriter<SpawnSaveBrowserEvent>,
+        mut mod_browser_events: MessageWriter<crate::modding::OpenModBrowserEvent>,
         mut commands: Commands
     ) => {
         MenuAction::NewWorld => {

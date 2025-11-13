@@ -37,8 +37,8 @@ pub use types::{
 };
 
 // Export menu root markers (needed for queries in other systems)
-pub use main_menu::MainMenuRoot;
-pub use pause_menu::PauseMenuRoot;
+// pub use main_menu::MainMenuRoot; // TODO: Define MainMenuRoot component if needed
+// pub use pause_menu::PauseMenuRoot; // TODO: Define PauseMenuRoot component if needed
 
 // Export UI automation demonstration (for testing and showcasing)
 pub use interactions_example::integrate_with_plugin;
