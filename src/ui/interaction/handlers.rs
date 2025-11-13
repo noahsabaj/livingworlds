@@ -44,9 +44,9 @@ use bevy::prelude::*;
 ///     handle_menu_buttons(
 ///         MenuButton,
 ///         action,
-///         mut state_events: EventWriter<RequestStateTransition>,
+///         mut state_events: MessageWriter<RequestStateTransition>,
 ///         current_state: Res<State<GameState>>,
-///         mut settings_events: EventWriter<SpawnSettingsMenuEvent>
+///         mut settings_events: MessageWriter<SpawnSettingsMenuEvent>
 ///     ) => {
 ///         MenuAction::NewWorld => {
 ///             debug!("New World button pressed - transitioning to WorldConfiguration");
@@ -102,7 +102,7 @@ macro_rules! define_ui_interactions {
 /// ```rust
 /// define_marker_interactions! {
 ///     BackButton => handle_back_button(
-///         mut state_events: EventWriter<RequestStateTransition>
+///         mut state_events: MessageWriter<RequestStateTransition>
 ///     ) {
 ///         debug!("Back button pressed");
 ///         state_events.write(RequestStateTransition {

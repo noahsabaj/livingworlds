@@ -110,8 +110,8 @@ impl Component for Animation {
     const STORAGE_TYPE: bevy::ecs::component::StorageType = bevy::ecs::component::StorageType::Table;
     type Mutability = bevy::ecs::component::Mutable;
 
-    fn on_add() -> Option<bevy::ecs::component::ComponentHook> {
-        Some(|mut world, bevy::ecs::component::HookContext { entity, .. }| {
+    fn on_add() -> Option<bevy::ecs::lifecycle::ComponentHook> {
+        Some(|mut world, bevy::ecs::lifecycle::HookContext { entity, .. }| {
             // Log animation start for debugging
             if let Some(animation) = world.get::<Animation>(entity) {
                 trace!("Animation {:?} started on entity {:?}: {:?}",
@@ -120,8 +120,8 @@ impl Component for Animation {
         })
     }
 
-    fn on_remove() -> Option<bevy::ecs::component::ComponentHook> {
-        Some(|mut world, bevy::ecs::component::HookContext { entity, .. }| {
+    fn on_remove() -> Option<bevy::ecs::lifecycle::ComponentHook> {
+        Some(|mut world, bevy::ecs::lifecycle::HookContext { entity, .. }| {
             // Log animation cleanup for debugging
             if let Some(animation) = world.get::<Animation>(entity) {
                 trace!("Animation {:?} removed from entity {:?} (state: {:?})",

@@ -145,6 +145,7 @@ pub mod layers {
     pub const MENU_BACKGROUND: i32 = 150; // Menu backgrounds
     pub const MENU_CONTENT: i32 = 160; // Menu buttons and content
     pub const SETTINGS: i32 = 200; // Settings menu
+    pub const NOTIFICATION: i32 = 250; // Toast notifications and banners
     pub const MODAL_OVERLAY: i32 = 300; // Modal dialog overlays
     pub const MODAL_CONTENT: i32 = 350; // Modal dialog content
     pub const CRITICAL_DIALOG: i32 = 400; // Exit confirmation, errors
