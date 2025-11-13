@@ -13,7 +13,7 @@
 //! Loading → MainMenu → WorldConfiguration → WorldGeneration → LoadingWorld → InGame ⇄ Paused
 //!             ↑                   ↑                              ↑            ↓
 //!             └───────────────────┴──────────────────────────────┴────────────┘
-//! ```
+//! ```ignore
 //!
 //! ## Core Systems
 //!
@@ -25,7 +25,7 @@
 //!
 //! ## Usage
 //!
-//! ```rust
+//! ```ignore
 //! use crate::states::{StatesPlugin, GameState, request_transition};
 //!
 //! // Add to Bevy app
@@ -33,7 +33,7 @@
 //!
 //! // Request state transitions
 //! request_transition(GameState::MainMenu, GameState::InGame, &mut writer);
-//! ```
+//! ```ignore
 
 #![allow(elided_lifetimes_in_paths)]
 

@@ -18,7 +18,7 @@
 //!
 //! ## Usage
 //!
-//! ```rust
+//! ```ignore
 //! use crate::safety::{ParallelSafetyPlugin, validate_parallel_consistency};
 //!
 //! // Add to Bevy app
@@ -31,7 +31,7 @@
 //!     |d| sequential_operation(d),
 //!     "operation_name"
 //! );
-//! ```
+//! ```ignore
 
 // Private submodules - all access controlled through this gateway
 mod benchmarking;

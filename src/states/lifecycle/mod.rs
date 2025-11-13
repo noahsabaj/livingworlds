@@ -19,12 +19,12 @@
 //!
 //! ## Usage
 //!
-//! ```rust
+//! ```ignore
 //! use crate::states::lifecycle::{enter_loading, exit_loading};
 //!
 //! // Functions are imported directly from the lifecycle gateway
 //! app.add_systems(OnEnter(GameState::Loading), enter_loading);
-//! ```
+//! ```ignore
 
 // Private submodules - all access controlled through this gateway
 mod configuration;

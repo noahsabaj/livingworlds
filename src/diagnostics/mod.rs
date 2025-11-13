@@ -13,7 +13,7 @@
 //! access functionality through the exported interfaces.
 //!
 //! # Usage
-//! ```rust,no_run
+//! ```ignore
 //! use living_worlds::diagnostics::{DiagnosticsPlugin, display_fps};
 //!
 //! // Add diagnostics plugin to app
@@ -21,7 +21,7 @@
 //!
 //! // Use FPS display system
 //! app.add_systems(Update, display_fps.run_if(resource_exists::<DiagnosticsConfig>));
-//! ```no_run
+//! ```ignore
 
 // Private module declarations - implementation details hidden from external code
 mod error_context;

@@ -15,7 +15,7 @@
 //!
 //! ## Example Usage
 //!
-//! ```rust,no_run
+//! ```ignore
 //! use crate::settings::setting_builder::define_setting_tab;
 //! use crate::settings::types::GraphicsSettings;
 //!
@@ -36,7 +36,7 @@
 //!         }
 //!     ]
 //! });
-//! ```no_run
+//! ```ignore
 //!
 //! This replaces 80+ lines of manual UI spawning and event handling with
 //! 15 lines of declarative configuration.

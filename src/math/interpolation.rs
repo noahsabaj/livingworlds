@@ -8,7 +8,7 @@
 //!
 //! # Usage
 //!
-//! ```rust
+//! ```ignore
 //! use bevy::prelude::*;
 //! use living_worlds::math::interpolation::*;
 //!

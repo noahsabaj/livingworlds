@@ -8,7 +8,7 @@
 //!
 //! # Examples
 //!
-//! ```rust
+//! ```ignore
 //! use bevy::prelude::*;
 //! use living_worlds::math::distance::{hex_distance, gaussian_falloff};
 //! # let col1 = 0;

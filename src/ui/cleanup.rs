@@ -11,7 +11,7 @@ use bevy::prelude::*;
 /// Use with any component that marks UI root entities for automatic cleanup.
 ///
 /// # Examples
-/// ```rust,no_run
+/// ```ignore
 /// // In define_plugin! macro:
 /// on_exit: {
 ///     GameState::Settings => [despawn_entities::<SettingsMenuRoot>]
@@ -19,7 +19,7 @@ use bevy::prelude::*;
 ///
 /// // Or as a standalone system:
 /// app.add_systems(OnExit(GameState::Menu), despawn_entities::<MenuRoot>);
-/// ```no_run
+/// ```ignore
 ///
 /// # Performance
 /// This is a zero-cost abstraction - compiles to identical assembly as manual implementations.

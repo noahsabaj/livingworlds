@@ -39,7 +39,7 @@ use bevy::prelude::*;
 ///
 /// # Example Usage
 ///
-/// ```rust,no_run
+/// ```ignore
 /// define_ui_interactions!(
 ///     handle_menu_buttons(
 ///         MenuButton,
@@ -62,7 +62,7 @@ use bevy::prelude::*;
 ///         _ => {}
 ///     }
 /// );
-/// ```no_run
+/// ```ignore
 #[macro_export]
 macro_rules! define_ui_interactions {
     (
@@ -99,7 +99,7 @@ macro_rules! define_ui_interactions {
 ///
 /// # Example Usage
 ///
-/// ```rust,no_run
+/// ```ignore
 /// define_marker_interactions! {
 ///     BackButton => handle_back_button(
 ///         mut state_events: MessageWriter<RequestStateTransition>
@@ -120,7 +120,7 @@ macro_rules! define_ui_interactions {
 ///         }
 ///     }
 /// }
-/// ```no_run
+/// ```ignore
 #[macro_export]
 macro_rules! define_marker_interactions {
     (

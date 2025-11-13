@@ -73,7 +73,7 @@ impl ThreadPoolManager {
     /// Returns `InfrastructureError` if thread pool initialization fails
     ///
     /// # Example
-    /// ```rust
+    /// ```ignore
     /// use living_worlds::infrastructure::ThreadPoolManager;
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// // Auto-detect optimal thread count

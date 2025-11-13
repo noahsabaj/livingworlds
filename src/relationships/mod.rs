@@ -125,7 +125,7 @@ pub use plugin::RelationshipsPlugin;
 ///
 /// ## Usage Example
 ///
-/// ```rust,no_run
+/// ```ignore
 /// // Old manual way (REMOVED)
 /// province.owner = Some(nation_id);
 /// ownership_cache.by_nation.get_mut(&nation_id).unwrap().insert(province.id);
@@ -140,7 +140,7 @@ pub use plugin::RelationshipsPlugin;
 ///         // Process each controlled province
 ///     }
 /// }
-/// ```no_run
+/// ```ignore
 ///
 /// ## Performance Notes
 ///

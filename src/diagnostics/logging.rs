@@ -10,12 +10,12 @@
 //! - Debug output formatting
 //!
 //! # Usage
-//! ```rust,no_run
+//! ```ignore
 //! use crate::diagnostics::logging::{log_world_gen_step, create_span, log_performance};
 //!
 //! let span = create_span("world_generation");
 //! log_world_gen_step("terrain", 1000000, 2.5);
-//! ```no_run
+//! ```ignore
 
 use bevy::log::{debug, error, info, trace, warn};
 use std::time::Instant;

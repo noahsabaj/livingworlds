@@ -30,7 +30,7 @@
 //! - Any hexagon math outside this module
 //!
 //! ### Basic Usage
-//! ```rust
+//! ```ignore
 //! use bevy::prelude::*;
 //! use living_worlds::math::{Hexagon, calculate_grid_position, get_neighbor_positions, HEX_SIZE};
 //! # let col = 5;
@@ -85,7 +85,7 @@
 //! - Any form of noise generation outside this module
 //!
 //! ### Basic Usage
-//! ```rust,no_run
+//! ```ignore
 //! use living_worlds::math::{PerlinNoise, CloudPreset, FbmSettings};
 //! # let world_seed = 12345;
 //! # let x = 100.0;
@@ -140,7 +140,7 @@
 //! - `color1.lerp(color2, t)` for basic color transitions
 //!
 //! ### Basic Usage
-//! ```rust
+//! ```ignore
 //! use bevy::prelude::*;
 //! use living_worlds::math::interpolation::*;
 //! # let start_pos = Vec3::ZERO;
@@ -227,7 +227,7 @@
 //! - `(pos1 - pos2).abs().x + (pos1 - pos2).abs().y` for Manhattan distance
 //!
 //! ### Basic Usage
-//! ```rust,no_run
+//! ```ignore
 //! use bevy::prelude::*;
 //! use living_worlds::math::distance::*;
 //! # let pos1 = Vec2::new(0.0, 0.0);

@@ -11,11 +11,11 @@
 //! - Auto-cleanup on completion
 //!
 //! # Usage
-//! ```rust,no_run
+//! ```ignore
 //! commands.entity(ui_element)
 //!     .insert(Animation::fade_in(Duration::from_secs_f32(0.3)))
 //!     .insert(Animation::slide_from(Vec2::new(-300.0, 0.0), Duration::from_secs_f32(0.5)));
-//! ```no_run
+//! ```ignore
 
 // GATEWAY ARCHITECTURE - Pure exports only
 

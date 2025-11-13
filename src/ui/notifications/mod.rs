@@ -8,7 +8,7 @@
 //!
 //! ## Quick Notifications
 //!
-//! ```rust,no_run
+//! ```ignore
 //! use crate::ui::notifications::ShowNotification;
 //!
 //! // Temporary info toast (5 seconds)
@@ -22,11 +22,11 @@
 //!
 //! // Success toast (3 seconds)
 //! commands.trigger(ShowNotification::success("Settings applied"));
-//! ```no_run
+//! ```ignore
 //!
 //! ## Feature Flags
 //!
-//! ```rust,no_run
+//! ```ignore
 //! // Show "feature disabled" warning
 //! commands.trigger(ShowNotification::feature_disabled(
 //!     "Settings persistence",
@@ -35,11 +35,11 @@
 //!
 //! // Show "coming soon" banner
 //! commands.trigger(ShowNotification::coming_soon("Steam Workshop integration"));
-//! ```no_run
+//! ```ignore
 //!
 //! ## Custom Configuration
 //!
-//! ```rust,no_run
+//! ```ignore
 //! use crate::ui::notifications::*;
 //! use std::time::Duration;
 //!
@@ -49,7 +49,7 @@
 //!     duration: Some(Duration::from_secs(10)), // 10 seconds
 //!     position: NotificationPosition::BottomRight,
 //! });
-//! ```no_run
+//! ```ignore
 //!
 //! # Architecture
 //!

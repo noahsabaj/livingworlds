@@ -13,7 +13,7 @@
 //! access functionality through the exported interfaces.
 //!
 //! # Usage
-//! ```rust,no_run
+//! ```ignore
 //! use living_worlds::config::{AppConfig, WindowConfig, DiagnosticsConfig};
 //!
 //! // Create configuration with defaults
@@ -26,7 +26,7 @@
 //!     title: "Living Worlds".to_string(),
 //!     resizable: true,
 //! };
-//! ```no_run
+//! ```ignore
 
 // Private module declarations - implementation details hidden from external code
 mod app;

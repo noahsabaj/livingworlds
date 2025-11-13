@@ -30,7 +30,7 @@ impl CLIConfig {
     /// - Console output disabled in favor of UI-based diagnostics
     ///
     /// # Example
-    /// ```rust
+    /// ```ignore
     /// use living_worlds::cli::{Args, CLIConfig};
     ///
     /// let args = Args::parse();

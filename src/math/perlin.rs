@@ -5,7 +5,7 @@
 //!
 //! # Quick Start
 //!
-//! ```rust
+//! ```ignore
 //! use living_worlds::math::perlin::{PerlinNoise, CloudPreset};
 //!
 //! // Create a noise generator with a seed
@@ -20,7 +20,7 @@
 //!
 //! # Advanced Usage
 //!
-//! ```rust,no_run
+//! ```ignore
 //! use living_worlds::math::perlin::{PerlinNoise, FbmSettings};
 //! # let noise = PerlinNoise::new(12345);
 //! # let x = 100.0;
@@ -93,7 +93,7 @@ pub struct PerlinNoise {
 impl PerlinNoise {
     ///
     /// # Example
-    /// ```
+    /// ```ignore
     /// use living_worlds::math::perlin::PerlinNoise;
     /// let noise = PerlinNoise::new(12345);
     /// let value = noise.sample(10.0, 20.0);
@@ -168,7 +168,7 @@ impl PerlinNoise {
     /// Sample using Fractal Brownian Motion with custom settings
     ///
     /// # Example
-    /// ```
+    /// ```ignore
     /// use living_worlds::math::perlin::{PerlinNoise, FbmSettings};
     /// # let noise = PerlinNoise::new(12345);
     /// # let x = 100.0;

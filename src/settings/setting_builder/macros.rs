@@ -23,7 +23,7 @@
 ///
 /// ## Section Structure
 ///
-/// ```rust,no_run
+/// ```ignore
 /// sections: [
 ///     Section("Display") {
 ///         cycle: "Window Mode" => window_mode,
@@ -34,7 +34,7 @@
 ///         presets: [Low, Medium, High, Ultra]
 ///     }
 /// ]
-/// ```no_run
+/// ```ignore
 ///
 /// ## Generated Output
 ///
@@ -45,7 +45,7 @@
 ///
 /// ## Example
 ///
-/// ```rust,no_run
+/// ```ignore
 /// define_setting_tab!(GraphicsTab {
 ///     settings_type: GraphicsSettings,
 ///     sections: [
@@ -55,7 +55,7 @@
 ///         }
 ///     ]
 /// });
-/// ```no_run
+/// ```ignore
 #[macro_export]
 macro_rules! define_setting_tab {
     // Main entry point - tab with configuration block

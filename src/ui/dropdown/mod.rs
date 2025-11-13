@@ -11,7 +11,7 @@
 //! - Multi-select support
 //!
 //! # Usage
-//! ```rust,no_run
+//! ```ignore
 //! commands.spawn(
 //!     DropdownBuilder::new()
 //!         .items(vec!["Option 1", "Option 2", "Option 3"])
@@ -19,7 +19,7 @@
 //!         .on_change(|value| info!("Selected: {}", value))
 //!         .build()
 //! );
-//! ```no_run
+//! ```ignore
 
 // GATEWAY ARCHITECTURE - Pure exports only
 

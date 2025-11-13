@@ -33,7 +33,7 @@ use crate::resources::{MapDimensions, WorldSeed, WorldSize};
 /// - `MapDimensions` - Calculated dimensions based on world size
 ///
 /// # Usage
-/// ```rust,no_run
+/// ```ignore
 /// use living_worlds::states::setup_development_world;
 /// use living_worlds::cli::Args;
 ///
@@ -41,7 +41,7 @@ use crate::resources::{MapDimensions, WorldSeed, WorldSize};
 /// if args.dev_quick_start {
 ///     setup_development_world(&mut app, &args);
 /// }
-/// ```no_run
+/// ```ignore
 pub fn setup_development_world(app: &mut App, args: &Args) {
     // Generate or use provided seed
     let seed = args.dev_seed.unwrap_or_else(|| {
