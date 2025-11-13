@@ -37,8 +37,12 @@ pub struct Nation {
 
     // Economic and military strength
     pub treasury: f32,
+    pub tax_rate: f32, // 0.0 to 1.0 (0% to 100%)
     pub military_strength: f32,
     pub stability: f32, // 0.0 to 1.0
+
+    // Cultural identity from nation's capital province
+    pub culture: crate::name_generator::Culture,
 
     // Personality for AI decisions
     pub personality: NationPersonality,
@@ -49,8 +53,9 @@ impl Component for Nation {
     const STORAGE_TYPE: bevy::ecs::component::StorageType = bevy::ecs::component::StorageType::Table;
     type Mutability = bevy::ecs::component::Mutable;
 
-    fn on_remove() -> Option<bevy::ecs::component::ComponentHook> {
-        Some(|mut world, bevy::ecs::component::HookContext { entity, .. }| {
+    fn on_remove() -> Option<bevy::ecs::lifecycle::ComponentHook> {
+        Some(|mut world, context| {
+            let entity = context.entity;
             // Get the nation ID before it's removed
             if let Some(nation) = world.get::<Nation>(entity) {
                 let nation_id = nation.id;

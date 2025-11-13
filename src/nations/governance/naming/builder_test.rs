@@ -8,7 +8,7 @@ mod tests {
 
     #[test]
     fn test_no_grammatical_conflicts() {
-        let mut gen = NameGenerator::new();
+        let mut rng_gen = NameGenerator::new();
 
         // Test cases that were problematic:
         // "Security State of Great Senate of Achaea"
@@ -24,7 +24,7 @@ mod tests {
 
         for (gov, culture) in test_cases {
             for _ in 0..20 {
-                let (name, _ruler) = build_nation_name(&mut gen, culture, gov);
+                let (name, _ruler) = build_nation_name(&mut rng_gen, culture, gov);
 
                 // Check for double political structures
                 assert!(!name.contains("State of") || !name.contains("Senate"));
@@ -47,17 +47,17 @@ mod tests {
 
     #[test]
     fn test_government_appropriate_descriptors() {
-        let mut gen = NameGenerator::new();
+        let mut rng_gen = NameGenerator::new();
 
         // Test theocracies get religious descriptors
         for _ in 0..10 {
-            let (name, _) = build_nation_name(&mut gen, Culture::Western, GovernmentType::Theocracy);
+            let (name, _) = build_nation_name(&mut rng_gen, Culture::Western, GovernmentType::Theocracy);
             assert!(name.contains("Holy State"));
         }
 
         // Test military governments get appropriate names
         for _ in 0..10 {
-            let (name, _) = build_nation_name(&mut gen, Culture::Western, GovernmentType::MilitaryJunta);
+            let (name, _) = build_nation_name(&mut rng_gen, Culture::Western, GovernmentType::MilitaryJunta);
             assert!(name.contains("Military State"));
         }
     }

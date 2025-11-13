@@ -362,7 +362,7 @@ pub fn create_initial_history(
     founding_year: u32,
     rng: &mut impl rand::Rng,
 ) -> NationHistory {
-    let gender = if rng.gen::<bool>() {
+    let gender = if rng.r#gen::<bool>() {
         crate::name_generator::Gender::Male
     } else {
         crate::name_generator::Gender::Female

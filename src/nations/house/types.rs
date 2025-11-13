@@ -46,8 +46,8 @@ impl Component for House {
     const STORAGE_TYPE: bevy::ecs::component::StorageType = bevy::ecs::component::StorageType::Table;
     type Mutability = bevy::ecs::component::Mutable;
 
-    fn on_add() -> Option<bevy::ecs::component::ComponentHook> {
-        Some(|mut world, bevy::ecs::component::HookContext { entity, .. }| {
+    fn on_add() -> Option<bevy::ecs::lifecycle::ComponentHook> {
+        Some(|mut world, bevy::ecs::lifecycle::HookContext { entity, .. }| {
             // Log dynasty creation
             if let Some(house) = world.get::<House>(entity) {
                 info!("Dynasty founded: {} (Nation ID {})", house.full_name, house.nation_id.value());
@@ -55,8 +55,8 @@ impl Component for House {
         })
     }
 
-    fn on_remove() -> Option<bevy::ecs::component::ComponentHook> {
-        Some(|mut world, bevy::ecs::component::HookContext { entity, .. }| {
+    fn on_remove() -> Option<bevy::ecs::lifecycle::ComponentHook> {
+        Some(|mut world, bevy::ecs::lifecycle::HookContext { entity, .. }| {
             // Log dynasty fall
             if let Some(house) = world.get::<House>(entity) {
                 warn!("Dynasty fallen: {} - ruled for {} years",

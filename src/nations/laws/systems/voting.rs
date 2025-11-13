@@ -16,8 +16,8 @@ pub fn process_law_votes_system(
     registry: Res<LawRegistry>,
     time: Res<GameTime>,
     mut active_laws: ResMut<ActiveLaws>,
-    mut enactment_events: EventWriter<LawEnactmentEvent>,
-    mut repeal_events: EventWriter<LawRepealEvent>,
+    mut enactment_events: MessageWriter<LawEnactmentEvent>,
+    mut repeal_events: MessageWriter<LawRepealEvent>,
 ) {
     for (entity, nation, governance, mut nation_laws) in &mut nations {
         // Process completed debates
@@ -47,7 +47,7 @@ pub fn process_law_votes_system(
                         active_laws.on_law_enacted(nation.id, proposed.law_id);
 
                         // Fire event
-                        enactment_events.send(LawEnactmentEvent {
+                        enactment_events.write(LawEnactmentEvent {
                             nation_id: nation.id,
                             nation_name: nation.name.clone(),
                             law_id: proposed.law_id,

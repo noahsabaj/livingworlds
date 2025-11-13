@@ -12,13 +12,13 @@ use crate::simulation::GameTime;
 
 /// System to handle law changes during government transitions
 pub fn handle_government_transitions_system(
-    mut transitions: EventReader<GovernmentTransition>,
+    mut transitions: MessageReader<GovernmentTransition>,
     mut nations: Query<(Entity, &Nation, &mut NationLaws)>,
     registry: Res<LawRegistry>,
     time: Res<GameTime>,
     mut active_laws: ResMut<ActiveLaws>,
-    mut enactment_events: EventWriter<LawEnactmentEvent>,
-    mut repeal_events: EventWriter<LawRepealEvent>,
+    mut enactment_events: MessageWriter<LawEnactmentEvent>,
+    mut repeal_events: MessageWriter<LawRepealEvent>,
 ) {
     for transition in transitions.read() {
         // Find the nation matching the entity
@@ -43,7 +43,7 @@ pub fn handle_government_transitions_system(
                             nation_laws.enact_law(law_id, &law.effects, time.current_year() as i32);
                             active_laws.on_law_enacted(nation.id, law_id);
 
-                            enactment_events.send(LawEnactmentEvent {
+                            enactment_events.write(LawEnactmentEvent {
                                 nation_id: nation.id,
                                 nation_name: nation.name.clone(),
                                 law_id,
@@ -70,7 +70,7 @@ pub fn handle_government_transitions_system(
                             nation_laws.repeal_law(law_id, time.current_year() as i32);
                             active_laws.on_law_repealed(nation.id, law_id);
 
-                            repeal_events.send(LawRepealEvent {
+                            repeal_events.write(LawRepealEvent {
                                 nation_id: nation.id,
                                 nation_name: nation.name.clone(),
                                 law_id,

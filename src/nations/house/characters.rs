@@ -359,7 +359,7 @@ impl Character {
         };
 
         Self {
-            id: CharacterId(rng.gen()),
+            id: CharacterId(rng.r#gen()),
             house_id,
             nation_id,
             name,
@@ -440,8 +440,8 @@ impl Secret {
         use rand::Rng;
 
         let secrets = vec![
-            Secret::Bastard { real_parent: CharacterId(rng.gen()) },
-            Secret::SecretLover { character: CharacterId(rng.gen()) },
+            Secret::Bastard { real_parent: CharacterId(rng.r#gen()) },
+            Secret::SecretLover { character: CharacterId(rng.r#gen()) },
             Secret::MurderedSomeone { victim: "a rival".to_string(), when: rng.gen_range(1..10) },
             Secret::HiddenIllness("slowly going blind".to_string()),
             Secret::DarkPast("was once a pirate".to_string()),

@@ -20,7 +20,7 @@ impl CharacterRegistry {
 }
 
 /// Event when a new character is born
-#[derive(Event)]
+#[derive(Message)]
 pub struct CharacterBornEvent {
     pub character: Entity,
     pub parents: Option<(Entity, Entity)>,
@@ -28,7 +28,7 @@ pub struct CharacterBornEvent {
 }
 
 /// Event when a character dies
-#[derive(Event)]
+#[derive(Message)]
 pub struct CharacterDeathEvent {
     pub character: Entity,
     pub cause: DeathCause,
@@ -47,7 +47,7 @@ pub enum DeathCause {
 }
 
 /// Event when relationships change
-#[derive(Event)]
+#[derive(Message)]
 pub struct RelationshipChangedEvent {
     pub character_a: Entity,
     pub character_b: Entity,

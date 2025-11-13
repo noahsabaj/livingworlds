@@ -276,8 +276,10 @@ fn create_nation_with_house_parallel(
         color,
         capital_province: capital_idx as u32,
         treasury: 1000.0,
+        tax_rate: rng.r#gen_range(0.15..0.35), // Start with 15%-35% tax rate
         military_strength: 100.0,
         stability: 0.75,
+        culture,
         personality,
     };
 
@@ -456,8 +458,10 @@ fn create_nation_with_house(
         color,
         capital_province: capital_idx as u32,
         treasury: 1000.0,
+        tax_rate: rng.r#gen_range(0.15..0.35), // Start with 15%-35% tax rate
         military_strength: 100.0,
         stability: 0.75,
+        culture,
         personality,
     };
 
@@ -469,15 +473,15 @@ fn create_nation_with_house(
         ruler: Ruler {
             name: ruler_name,
             title: ruler_title,
-            age: rng.gen_range(25..65),
-            years_ruling: rng.gen_range(1..15),
+            age: rng.r#gen_range(25..65),
+            years_ruling: rng.r#gen_range(1..15),
             personality: RulerPersonality::random(rng),
         },
         motto,
         traits: house_traits,
-        years_in_power: rng.gen_range(10..200),
-        legitimacy: 0.75 + rng.gen_range(-0.2..0.2),
-        prestige: 0.5 + rng.gen_range(-0.3..0.3),
+        years_in_power: rng.r#gen_range(10..200),
+        legitimacy: 0.75 + rng.r#gen_range(-0.2..0.2),
+        prestige: 0.5 + rng.r#gen_range(-0.3..0.3),
     };
 
     (nation, house, government_type)

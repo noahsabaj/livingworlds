@@ -332,12 +332,12 @@ mod tests {
 
     #[test]
     fn test_no_double_political_structures() {
-        let mut gen = NameGenerator::new();
+        let mut rng_gen = NameGenerator::new();
 
         // Test that we don't get "Security State of Republic" type names
         for _ in 0..100 {
             let (name, _) = build_nation_name(
-                &mut gen,
+                &mut rng_gen,
                 Culture::Western,
                 GovernmentType::PoliceState,
             );
@@ -352,11 +352,11 @@ mod tests {
 
     #[test]
     fn test_government_appropriate_names() {
-        let mut gen = NameGenerator::new();
+        let mut rng_gen = NameGenerator::new();
 
         // Theocracy should have religious terms
         let (name, _) = build_nation_name(
-            &mut gen,
+            &mut rng_gen,
             Culture::Western,
             GovernmentType::Theocracy,
         );
@@ -364,7 +364,7 @@ mod tests {
 
         // Military junta should have military terms
         let (name2, _) = build_nation_name(
-            &mut gen,
+            &mut rng_gen,
             Culture::Western,
             GovernmentType::MilitaryJunta,
         );
@@ -373,12 +373,12 @@ mod tests {
 
     #[test]
     fn test_no_merchant_trade_redundancy() {
-        let mut gen = NameGenerator::new();
+        let mut rng_gen = NameGenerator::new();
 
         // Test 1000 generations to catch probabilistic issues (40% descriptor chance)
         for _ in 0..1000 {
             let (name, _) = build_nation_name(
-                &mut gen,
+                &mut rng_gen,
                 Culture::Southern,
                 GovernmentType::MerchantRepublic,
             );
@@ -399,11 +399,11 @@ mod tests {
 
     #[test]
     fn test_no_socialist_redundancy() {
-        let mut gen = NameGenerator::new();
+        let mut rng_gen = NameGenerator::new();
 
         for _ in 0..1000 {
             let (name, _) = build_nation_name(
-                &mut gen,
+                &mut rng_gen,
                 Culture::Eastern,
                 GovernmentType::DemocraticSocialism,
             );
@@ -420,11 +420,11 @@ mod tests {
 
     #[test]
     fn test_no_holy_divine_redundancy() {
-        let mut gen = NameGenerator::new();
+        let mut rng_gen = NameGenerator::new();
 
         for _ in 0..1000 {
             let (name, _) = build_nation_name(
-                &mut gen,
+                &mut rng_gen,
                 Culture::Ancient,
                 GovernmentType::Theocracy,
             );
@@ -441,11 +441,11 @@ mod tests {
 
     #[test]
     fn test_no_democratic_redundancy() {
-        let mut gen = NameGenerator::new();
+        let mut rng_gen = NameGenerator::new();
 
         for _ in 0..1000 {
             let (name, _) = build_nation_name(
-                &mut gen,
+                &mut rng_gen,
                 Culture::Western,
                 GovernmentType::ParliamentaryDemocracy,
             );
@@ -458,11 +458,11 @@ mod tests {
 
     #[test]
     fn test_culture_aware_variants() {
-        let mut gen = NameGenerator::new();
+        let mut rng_gen = NameGenerator::new();
 
         // Island/Southern cultures should get "Free Port" variant
         let (name, _) = build_nation_name(
-            &mut gen,
+            &mut rng_gen,
             Culture::Island,
             GovernmentType::MerchantRepublic,
         );
@@ -471,7 +471,7 @@ mod tests {
 
         // Western/Eastern cultures should get "Incorporated" variant
         let (name2, _) = build_nation_name(
-            &mut gen,
+            &mut rng_gen,
             Culture::Western,
             GovernmentType::CorporateState,
         );
@@ -479,7 +479,7 @@ mod tests {
 
         // Eastern culture should get "Autonomous Zone" variant
         let (name3, _) = build_nation_name(
-            &mut gen,
+            &mut rng_gen,
             Culture::Eastern,
             GovernmentType::AnarchoSyndicalism,
         );
@@ -488,7 +488,7 @@ mod tests {
 
     #[test]
     fn test_descriptors_are_non_political() {
-        let mut gen = NameGenerator::new();
+        let mut rng_gen = NameGenerator::new();
 
         // Test multiple government types to ensure descriptors don't conflict
         let governments = vec![
@@ -500,7 +500,7 @@ mod tests {
 
         for gov in governments {
             for _ in 0..100 {
-                let (name, _) = build_nation_name(&mut gen, Culture::Western, gov);
+                let (name, _) = build_nation_name(&mut rng_gen, Culture::Western, gov);
 
                 // Descriptors should be geographic, not political
                 assert!(!name.contains("Trade") || !name.contains("Merchant"),

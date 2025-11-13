@@ -15,7 +15,7 @@ use super::events::{CharacterBornEvent, CharacterDeathEvent, DeathCause, Relatio
 pub fn age_characters(
     mut characters: Query<&mut Character>,
     time: Res<crate::simulation::GameTime>,
-    mut death_events: EventWriter<CharacterDeathEvent>,
+    mut death_events: MessageWriter<CharacterDeathEvent>,
 ) {
     let mut rng = rand::thread_rng();
 
@@ -43,7 +43,7 @@ pub fn age_characters(
             * (1.0 + character.stress);
 
         if rng.gen_bool(modified_chance.min(1.0).max(0.0) as f64) {
-            death_events.send(CharacterDeathEvent {
+            death_events.write(CharacterDeathEvent {
                 character: Entity::PLACEHOLDER, // Would need entity in real implementation
                 cause: DeathCause::Natural,
             });
@@ -63,8 +63,8 @@ pub fn age_characters(
 pub fn update_relationships(
     characters: Query<(Entity, &Character)>,
     mut relationships: Query<&mut HasRelationship>,
-    mut drama_events: EventReader<DramaEvent>,
-    mut relationship_events: EventWriter<RelationshipChangedEvent>,
+    mut drama_events: MessageReader<DramaEvent>,
+    mut relationship_events: MessageWriter<RelationshipChangedEvent>,
 ) {
     for event in drama_events.read() {
         for consequence in &event.consequences {
@@ -80,7 +80,7 @@ pub fn update_relationships(
                 }
 
                 // Send change event
-                relationship_events.send(RelationshipChangedEvent {
+                relationship_events.write(RelationshipChangedEvent {
                     character_a: Entity::PLACEHOLDER,
                     character_b: Entity::PLACEHOLDER,
                     old_relationship: None,
@@ -94,8 +94,8 @@ pub fn update_relationships(
 /// Process character-specific events
 pub fn process_character_events(
     mut characters: Query<&mut Character>,
-    mut birth_events: EventReader<CharacterBornEvent>,
-    mut death_events: EventReader<CharacterDeathEvent>,
+    mut birth_events: MessageReader<CharacterBornEvent>,
+    mut death_events: MessageReader<CharacterDeathEvent>,
     mut commands: Commands,
 ) {
     // Handle births
