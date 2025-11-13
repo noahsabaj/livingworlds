@@ -14,7 +14,7 @@ pub fn check_and_trigger_world_generation(
     meshes: ResMut<Assets<Mesh>>,
     materials: ResMut<Assets<ColorMaterial>>,
     settings: Res<crate::world::WorldGenerationSettings>,
-    state_events: EventWriter<RequestStateTransition>,
+    state_events: MessageWriter<RequestStateTransition>,
     loading_state: ResMut<crate::loading::LoadingState>,
 ) {
     if !pending_gen.pending {

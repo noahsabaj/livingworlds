@@ -84,18 +84,18 @@ pub enum SettingsTab {
 pub struct CurrentSettingsTab(pub SettingsTab);
 
 /// Event for requesting state transitions with validation
-#[derive(Event)]
+#[derive(Message)]
 pub struct RequestStateTransition {
     pub to: GameState,
     pub from: GameState,
 }
 
 /// Event triggered when world generation should begin
-#[derive(Event, Default)]
+#[derive(Message, Default)]
 pub struct StartWorldGeneration;
 
 /// Event for menu navigation
-#[derive(Event)]
+#[derive(Message)]
 pub enum MenuEvent {
     Open(MenuState),
     Close,

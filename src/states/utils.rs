@@ -10,7 +10,7 @@ use bevy::prelude::*;
 pub fn request_transition(
     from: GameState,
     to: GameState,
-    writer: &mut EventWriter<RequestStateTransition>,
+    writer: &mut MessageWriter<RequestStateTransition>,
 ) {
     writer.write(RequestStateTransition { from, to });
 }
