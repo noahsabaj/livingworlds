@@ -5,7 +5,8 @@ edition = "2021"
 
 [features]
 default = []
-steam = ["bevy-steamworks"]  # Enable Steam integration
+# TEMPORARILY DISABLED: bevy-steamworks doesn't support Bevy 0.17 yet
+# steam = ["bevy-steamworks"]  # Enable Steam integration
 debug-states = []  # Enable debug state transition logging
 
 [lib]
@@ -18,7 +19,7 @@ path = "src/main.rs"
 
 [dependencies]
 # Full Bevy framework - complete game engine!
-bevy = { version = "0.16.1", default-features = false, features = [
+bevy = { version = "0.17.1", default-features = false, features = [
     "animation",          # Animation system
     "bevy_asset",         # Asset management
     "bevy_audio",         # Audio system
@@ -40,14 +41,15 @@ bevy = { version = "0.16.1", default-features = false, features = [
     "x11",                # Linux X11
     # "wayland",          # Linux Wayland (commented out - requires libwayland-dev)
     "tonemapping_luts",   # Better colors
+    "zstd_rust",          # REQUIRED in Bevy 0.17: zstd backend for image compression
     # "dynamic_linking",    # Faster development builds (disabled for release mode)
 ] }
 
 # Declarative plugin system - our own published crate!
-bevy-plugin-builder = "0.1.2"
+bevy-plugin-builder = "0.2.0"
 
 # UI builders - our own published crate!
-bevy-ui-builders = { version = "0.1.10", features = ["all_builders"] }
+bevy-ui-builders = "0.2.0"
 
 # Keep our procedural approach - no GLTF or external assets needed!
 serde = { version = "1.0", features = ["derive"] }
@@ -62,10 +64,14 @@ zstd = "0.13"  # Compression for save files
 ron = "0.8"    # Rusty Object Notation for serialization
 
 # Steam integration
-bevy-steamworks = { version = "0.13", optional = true }  # Steam SDK integration
+# TEMPORARILY DISABLED: bevy-steamworks doesn't support Bevy 0.17 yet
+# bevy-steamworks = { version = "0.13", optional = true }  # Steam SDK integration
 
 # Settings persistence
-bevy_pkv = "0.13"  # Cross-platform key-value storage for settings (0.13 for Bevy 0.16 compatibility)
+# TEMPORARILY DISABLED: bevy_pkv doesn't have Bevy 0.17 support yet
+# Waiting for bevy_pkv 0.14 release - ETA: 1-2 weeks
+# bevy_pkv = "0.13"  # Cross-platform key-value storage for settings
+# TODO: Re-enable when bevy_pkv 0.14+ is released
 
 # File watching for hot-reload
 notify = "6.1"  # File system event notification for mod hot-reload
