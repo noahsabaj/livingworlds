@@ -14,7 +14,7 @@ pub fn handle_achievement_triggers(
     stats: Res<SteamStats>,
     game_time: Res<crate::resources::GameTime>,
     world_tension: Res<crate::resources::WorldTension>,
-    mut achievement_events: EventWriter<AchievementUnlockedEvent>,
+    mut achievement_events: MessageWriter<AchievementUnlockedEvent>,
 ) {
     let client = &steam.0;
     let user_stats = client.user_stats();
@@ -77,13 +77,13 @@ pub fn handle_achievement_triggers(
 pub fn unlock_achievement(
     user_stats: &UserStats,
     achievement_id: &str,
-    events: &mut EventWriter<AchievementUnlockedEvent>,
+    messages: &mut MessageWriter<AchievementUnlockedEvent>,
 ) {
     if let Ok(achieved) = user_stats.achievement(achievement_id) {
         if !achieved {
             if user_stats.set_achievement(achievement_id).is_ok() {
                 info!("Achievement unlocked: {}", achievement_id);
-                events.write(AchievementUnlockedEvent {
+                messages.write(AchievementUnlockedEvent {
                     achievement_id: achievement_id.to_string(),
                     name: get_achievement_display_name(achievement_id),
                 });

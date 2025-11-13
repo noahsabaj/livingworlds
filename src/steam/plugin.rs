@@ -20,7 +20,7 @@ const STEAM_APP_ID: u32 = 480; // Using Spacewar ID for testing - REPLACE WITH Y
 ///
 // **AUTOMATION ACHIEVEMENT**: 65 lines complex init → 45 lines declarative + custom!
 define_plugin!(SteamPlugin {
-    events: [AchievementUnlockedEvent, WorkshopItemDownloadedEvent],
+    messages: [AchievementUnlockedEvent, WorkshopItemDownloadedEvent],
 
     startup: [
         (callbacks::setup_steam_callbacks, statistics::initialize_stats)

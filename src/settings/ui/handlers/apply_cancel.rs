@@ -2,10 +2,11 @@
 //!
 //! Focused handlers for Apply/Cancel buttons and unsaved changes dialog.
 
-use crate::settings::{components::*, persistence::save_settings, types::*};
-use crate::ui::colors;
+use crate::settings::{components::*, /* persistence::save_settings, */ types::*};
+use crate::ui::{colors, ShowNotification};
 use bevy::prelude::*;
-use bevy_pkv::PkvStore;
+// TEMPORARILY DISABLED: bevy_pkv doesn't support Bevy 0.17 yet
+// use bevy_pkv::PkvStore;
 
 /// Handle Apply and Exit buttons
 pub fn handle_apply_cancel_buttons(
@@ -14,9 +15,11 @@ pub fn handle_apply_cancel_buttons(
     settings_root: Query<Entity, With<SettingsMenuRoot>>,
     mut settings: ResMut<GameSettings>,
     mut temp_settings: ResMut<TempGameSettings>,
-    mut events: EventWriter<SettingsChanged>,
-    mut resolution_events: EventWriter<RequestResolutionConfirm>,
-    mut pkv: ResMut<PkvStore>,
+    mut messages: MessageWriter<SettingsChanged>,
+    mut resolution_events: MessageWriter<RequestResolutionConfirm>,
+    mut notification_events: MessageWriter<ShowNotification>,
+    // TEMPORARILY DISABLED: bevy_pkv doesn't support Bevy 0.17 yet
+    // mut pkv: ResMut<PkvStore>,
     dirty_state: Res<SettingsDirtyState>,
 ) {
     for (interaction, (apply_button, cancel_button)) in &interactions {
@@ -38,9 +41,18 @@ pub fn handle_apply_cancel_buttons(
 
                 // Copy temp settings to actual settings
                 *settings = temp_settings.0.clone();
-                save_settings(&*settings, &mut *pkv);
+                // TEMPORARILY DISABLED: bevy_pkv doesn't support Bevy 0.17 yet
+                // save_settings(&*settings, &mut *pkv);
+                warn!("Settings not persisted - bevy_pkv disabled during Bevy 0.17 upgrade");
+
+                // Show user-facing notification about persistence being disabled
+                notification_events.write(ShowNotification::feature_disabled(
+                    "Settings persistence",
+                    "pending Bevy 0.17 compatibility"
+                ));
+
                 // Fire event to apply settings
-                events.write(SettingsChanged);
+                messages.write(SettingsChanged);
 
                 // Trigger resolution confirmation if needed
                 if resolution_changed {
@@ -89,8 +101,9 @@ pub fn handle_unsaved_changes_dialog(
     settings_root: Query<Entity, With<SettingsMenuRoot>>,
     mut settings: ResMut<GameSettings>,
     temp_settings: Res<TempGameSettings>,
-    mut events: EventWriter<SettingsChanged>,
-    mut pkv: ResMut<PkvStore>,
+    mut messages: MessageWriter<SettingsChanged>,
+    // TEMPORARILY DISABLED: bevy_pkv doesn't support Bevy 0.17 yet
+    // mut pkv: ResMut<PkvStore>,
 ) {
     for (interaction, (save_button, discard_button, cancel_button)) in &interactions {
         if *interaction == Interaction::Pressed {
@@ -102,8 +115,10 @@ pub fn handle_unsaved_changes_dialog(
             if save_button.is_some() {
                 info!("Saving changes and exiting");
                 *settings = temp_settings.0.clone();
-                save_settings(&*settings, &mut *pkv);
-                events.write(SettingsChanged);
+                // TEMPORARILY DISABLED: bevy_pkv doesn't support Bevy 0.17 yet
+                // save_settings(&*settings, &mut *pkv);
+                warn!("Settings not persisted - bevy_pkv disabled during Bevy 0.17 upgrade");
+                messages.write(SettingsChanged);
 
                 // Close settings menu
                 if let Ok(entity) = settings_root.single() {
@@ -179,25 +194,25 @@ pub fn update_apply_exit_button_hover(
                 Interaction::Hovered => {
                     if dirty_state.is_dirty {
                         *bg_color = BackgroundColor(colors::SUCCESS_HOVER);
-                        *border_color = BorderColor(colors::BORDER_SELECTED_HOVER);
+                        *border_color = BorderColor::all(colors::BORDER_SELECTED_HOVER);
                     } else {
                         *bg_color = BackgroundColor(colors::DISABLED_HOVER);
-                        *border_color = BorderColor(colors::BORDER_DISABLED);
+                        *border_color = BorderColor::all(colors::BORDER_DISABLED);
                     }
                 }
                 Interaction::Pressed => {
                     if dirty_state.is_dirty {
                         *bg_color = BackgroundColor(colors::SUCCESS_HOVER);
-                        *border_color = BorderColor(colors::BORDER_SELECTED_HOVER);
+                        *border_color = BorderColor::all(colors::BORDER_SELECTED_HOVER);
                     }
                 }
                 Interaction::None => {
                     if dirty_state.is_dirty {
                         *bg_color = BackgroundColor(colors::SUCCESS);
-                        *border_color = BorderColor(colors::BORDER_SELECTED);
+                        *border_color = BorderColor::all(colors::BORDER_SELECTED);
                     } else {
                         *bg_color = BackgroundColor(colors::DISABLED);
-                        *border_color = BorderColor(colors::BORDER_DISABLED);
+                        *border_color = BorderColor::all(colors::BORDER_DISABLED);
                     }
                 }
             }
@@ -206,15 +221,15 @@ pub fn update_apply_exit_button_hover(
             match *interaction {
                 Interaction::Hovered => {
                     *bg_color = BackgroundColor(colors::DANGER_HOVER);
-                    *border_color = BorderColor(colors::BORDER_DANGER_HOVER);
+                    *border_color = BorderColor::all(colors::BORDER_DANGER_HOVER);
                 }
                 Interaction::Pressed => {
                     *bg_color = BackgroundColor(colors::DANGER_PRESSED);
-                    *border_color = BorderColor(colors::BORDER_DANGER_HOVER);
+                    *border_color = BorderColor::all(colors::BORDER_DANGER_HOVER);
                 }
                 Interaction::None => {
                     *bg_color = BackgroundColor(colors::DANGER);
-                    *border_color = BorderColor(colors::BORDER_DANGER);
+                    *border_color = BorderColor::all(colors::BORDER_DANGER);
                 }
             }
         }

@@ -24,14 +24,14 @@ pub struct SteamStats {
 }
 
 /// Event triggered when an achievement is unlocked
-#[derive(Event)]
+#[derive(Message)]
 pub struct AchievementUnlockedEvent {
     pub achievement_id: String,
     pub name: String,
 }
 
 /// Event triggered when a workshop item is downloaded
-#[derive(Event)]
+#[derive(Message)]
 pub struct WorkshopItemDownloadedEvent {
     pub item_id: PublishedFileId,
     pub title: String,
