@@ -1,7 +1,7 @@
 //! Window focus management for camera
 
 use bevy::prelude::*;
-use bevy::window::PrimaryWindow;
+use bevy::window::{CursorGrabMode, CursorOptions, PrimaryWindow, Window};
 
 /// Tracks window focus state for cursor confinement
 #[derive(Resource, Default)]
@@ -12,29 +12,23 @@ pub struct WindowFocusState {
 
 /// Automatically handle cursor confinement based on window focus
 /// This allows alt-tab and window switching to work properly
-///
-/// TODO: Re-enable when bevy-ui-builders 0.2.0 is updated to properly support Bevy 0.17 Window API
-/// The issue is that bevy-ui-builders re-exports an outdated Window type that doesn't have the cursor field
 pub fn handle_window_focus(
-    _windows: Query<&mut bevy::window::Window, With<PrimaryWindow>>,
+    windows: Query<&Window, With<PrimaryWindow>>,
+    mut cursor_options: Single<&mut CursorOptions>,
     mut focus_state: ResMut<WindowFocusState>,
 ) {
-    // Temporarily disabled due to bevy-ui-builders type conflict
-    // for mut window in &mut windows {
-    //     let is_focused = window.focused;
-    //
-    //     // Detect focus state changes
-    //     if is_focused != focus_state.was_focused {
-    //         focus_state.was_focused = is_focused;
-    //
-    //         window.cursor.grab_mode = if is_focused {
-    //             CursorGrabMode::Confined // Enable edge panning
-    //         } else {
-    //             CursorGrabMode::None // Allow alt-tab and window switching
-    //         };
-    //     }
-    // }
+    if let Ok(window) = windows.single() {
+        let is_focused = window.focused;
 
-    // Keep the state updated even though we're not acting on it
-    focus_state.was_focused = false;
+        // Detect focus state changes
+        if is_focused != focus_state.was_focused {
+            focus_state.was_focused = is_focused;
+
+            cursor_options.grab_mode = if is_focused {
+                CursorGrabMode::Confined // Enable edge panning
+            } else {
+                CursorGrabMode::None // Allow alt-tab and window switching
+            };
+        }
+    }
 }
