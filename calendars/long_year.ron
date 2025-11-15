@@ -1,0 +1,50 @@
+// Long Year Calendar
+// For worlds with slow orbits or different astronomy
+// 16 months of 25 days each = 400 days
+// Demonstrates how calendar affects simulation length
+
+CalendarDefinition(
+    id: "long_year",
+    name: "Long Year Calendar",
+
+    periods: [
+        (name: "Deepwinter", days: 25),
+        (name: "Thawing", days: 25),
+        (name: "Mudmonth", days: 25),
+        (name: "Earlybloom", days: 25),
+        (name: "Highspring", days: 25),
+        (name: "Greentime", days: 25),
+        (name: "Summerpeak", days: 25),
+        (name: "Heatwave", days: 25),
+        (name: "Latesun", days: 25),
+        (name: "Harvest", days: 25),
+        (name: "Browning", days: 25),
+        (name: "Fallchill", days: 25),
+        (name: "Firstfrost", days: 25),
+        (name: "Snowfall", days: 25),
+        (name: "Darkdays", days: 25),
+        (name: "Yearend", days: 25),
+    ],
+
+    week_cycle: Some((
+        day_names: [
+            "Restday",
+            "Workday",
+            "Midweek",
+            "Lightday",
+            "Marketday",
+        ],
+        cycle_length: 5,
+    )),
+
+    seasons: [
+        (name: "Long Winter", start_day: 0, end_day: 99),
+        (name: "Long Spring", start_day: 100, end_day: 199),
+        (name: "Long Summer", start_day: 200, end_day: 299),
+        (name: "Long Autumn", start_day: 300, end_day: 399),
+    ],
+
+    era_name: "Age",
+
+    display_format: "{period} {day}, {era} {year}",
+)

@@ -1,0 +1,49 @@
+// Lunar Calendar (13 Moons)
+// Based on lunar cycles: 13 months x 28 days = 364 days
+// Each month represents a complete lunar cycle
+// Traditional 7-day weeks align perfectly with 28-day months
+
+CalendarDefinition(
+    id: "lunar_364",
+    name: "Lunar Calendar",
+
+    periods: [
+        (name: "First Moon", days: 28),
+        (name: "Second Moon", days: 28),
+        (name: "Third Moon", days: 28),
+        (name: "Fourth Moon", days: 28),
+        (name: "Fifth Moon", days: 28),
+        (name: "Sixth Moon", days: 28),
+        (name: "Seventh Moon", days: 28),
+        (name: "Eighth Moon", days: 28),
+        (name: "Ninth Moon", days: 28),
+        (name: "Tenth Moon", days: 28),
+        (name: "Eleventh Moon", days: 28),
+        (name: "Twelfth Moon", days: 28),
+        (name: "Thirteenth Moon", days: 28),
+    ],
+
+    week_cycle: Some((
+        day_names: [
+            "Moonday",
+            "Tideday",
+            "Starday",
+            "Midweek",
+            "Lightday",
+            "Darkday",
+            "Restday",
+        ],
+        cycle_length: 7,
+    )),
+
+    seasons: [
+        (name: "Waxing Season", start_day: 0, end_day: 90),
+        (name: "Full Season", start_day: 91, end_day: 181),
+        (name: "Waning Season", start_day: 182, end_day: 272),
+        (name: "New Season", start_day: 273, end_day: 363),
+    ],
+
+    era_name: "Lunar Year",
+
+    display_format: "{period}, Day {day} - {era} {year}",
+)

@@ -1,0 +1,43 @@
+// Eternal Spring Calendar
+// A fantasy calendar for a world of perpetual spring
+// 10 months of 36 days each = 360 days
+// Named after flowers and growth
+
+CalendarDefinition(
+    id: "eternal_spring",
+    name: "Eternal Spring Calendar",
+
+    periods: [
+        (name: "Bloomtide", days: 36),
+        (name: "Petalfall", days: 36),
+        (name: "Dewmorn", days: 36),
+        (name: "Verdance", days: 36),
+        (name: "Songbird", days: 36),
+        (name: "Honeydew", days: 36),
+        (name: "Brightleaf", days: 36),
+        (name: "Rainbloom", days: 36),
+        (name: "Starflower", days: 36),
+        (name: "Evergrow", days: 36),
+    ],
+
+    week_cycle: Some((
+        day_names: [
+            "Firstbloom",
+            "Budding",
+            "Opening",
+            "Fullbloom",
+            "Seedfall",
+        ],
+        cycle_length: 5,
+    )),
+
+    seasons: [
+        (name: "Early Spring", start_day: 0, end_day: 119),
+        (name: "High Spring", start_day: 120, end_day: 239),
+        (name: "Late Spring", start_day: 240, end_day: 359),
+    ],
+
+    era_name: "Age of Bloom",
+
+    display_format: "{weekday}, {day} {period} ({era} {year})",
+)

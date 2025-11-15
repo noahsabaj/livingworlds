@@ -1,0 +1,52 @@
+// French Revolutionary Calendar (Calendrier republicain)
+// Created during the French Revolution
+// 12 months of 30 days + 5-6 complementary days
+// 10-day weeks (decades) instead of 7-day weeks
+// For Living Worlds: simplified to exactly 360 days (12 x 30)
+
+CalendarDefinition(
+    id: "french_revolutionary",
+    name: "French Revolutionary Calendar",
+
+    periods: [
+        (name: "Vendemiaire", days: 30),  // Grape harvest
+        (name: "Brumaire", days: 30),     // Fog
+        (name: "Frimaire", days: 30),     // Frost
+        (name: "Nivose", days: 30),       // Snow
+        (name: "Pluviose", days: 30),     // Rain
+        (name: "Ventose", days: 30),      // Wind
+        (name: "Germinal", days: 30),     // Germination
+        (name: "Floreal", days: 30),      // Flower
+        (name: "Prairial", days: 30),     // Meadow
+        (name: "Messidor", days: 30),     // Harvest
+        (name: "Thermidor", days: 30),    // Heat
+        (name: "Fructidor", days: 30),    // Fruit
+    ],
+
+    week_cycle: Some((
+        day_names: [
+            "Primidi",
+            "Duodi",
+            "Tridi",
+            "Quartidi",
+            "Quintidi",
+            "Sextidi",
+            "Septidi",
+            "Octidi",
+            "Nonidi",
+            "Decadi",
+        ],
+        cycle_length: 10,
+    )),
+
+    seasons: [
+        (name: "Autumn", start_day: 0, end_day: 89),
+        (name: "Winter", start_day: 90, end_day: 179),
+        (name: "Spring", start_day: 180, end_day: 269),
+        (name: "Summer", start_day: 270, end_day: 359),
+    ],
+
+    era_name: "Year of the Revolution",
+
+    display_format: "{day} {period}, {era} {year}",
+)
