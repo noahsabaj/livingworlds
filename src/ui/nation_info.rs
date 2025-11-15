@@ -60,6 +60,10 @@ pub struct LegitimacyText;
 #[derive(Component)]
 pub struct ViewLawsButton;
 
+/// Marker for view family tree button
+#[derive(Component)]
+pub struct ViewFamilyTreeButton;
+
 /// Spawn the nation info panel UI
 pub fn spawn_nation_info_panel(mut commands: Commands) {
     commands
@@ -252,6 +256,34 @@ pub fn spawn_nation_info_panel(mut commands: Commands) {
                 .with_children(|button| {
                     button.spawn((
                         Text::new("View Nation Laws"),
+                        TextFont {
+                            font_size: TEXT_SIZE_NORMAL,
+                            ..default()
+                        },
+                        TextColor(TEXT_COLOR_PRIMARY),
+                    ));
+                });
+
+            // View family tree button
+            parent
+                .spawn((
+                    Button,
+                    Node {
+                        width: Val::Percent(100.0),
+                        padding: UiRect::all(Val::Px(10.0)),
+                        justify_content: JustifyContent::Center,
+                        align_items: AlignItems::Center,
+                        border: UiRect::all(Val::Px(2.0)),
+                        margin: UiRect::top(Val::Px(8.0)),
+                        ..default()
+                    },
+                    BackgroundColor(colors::SURFACE),
+                    BorderColor::all(colors::BORDER),
+                    ViewFamilyTreeButton,
+                ))
+                .with_children(|button| {
+                    button.spawn((
+                        Text::new("View Family Tree"),
                         TextFont {
                             font_size: TEXT_SIZE_NORMAL,
                             ..default()
@@ -515,6 +547,34 @@ pub fn update_nation_info_panel(
 
 use bevy_plugin_builder::define_plugin;
 
+/// Handle View Family Tree button click
+pub fn handle_view_family_tree_button(
+    buttons: Query<&Interaction, (Changed<Interaction>, With<ViewFamilyTreeButton>)>,
+    selected_nation: Res<SelectedNation>,
+    nations_query: Query<&Nation>,
+    houses_query: Query<(Entity, &House)>,
+    mut open_events: MessageWriter<crate::ui::family_browser::OpenFamilyTreeEvent>,
+) {
+    for interaction in &buttons {
+        if *interaction == Interaction::Pressed {
+            // Get the selected nation's house
+            if let Some(nation_entity) = selected_nation.entity {
+                if let Ok(nation) = nations_query.get(nation_entity) {
+                    // Find the house entity for this nation
+                    if let Some((house_entity, _)) = houses_query
+                        .iter()
+                        .find(|(_, h)| h.nation_id == nation.id)
+                    {
+                        open_events.write(crate::ui::family_browser::OpenFamilyTreeEvent {
+                            house_entity,
+                        });
+                    }
+                }
+            }
+        }
+    }
+}
+
 /// Plugin for nation information UI
 define_plugin!(NationInfoPlugin {
     resources: [SelectedNation],
@@ -523,6 +583,7 @@ define_plugin!(NationInfoPlugin {
         (
             super::nation_selection::handle_nation_selection,
             update_nation_info_panel,
+            handle_view_family_tree_button,
             super::nation_selection::highlight_selected_nation_territory,
         ).chain().run_if(in_state(GameState::InGame))
     ],

@@ -29,6 +29,9 @@ pub fn setup_hud(mut commands: Commands) {
                 .padding(UiRect::all(Val::Px(8.0)))
                 .background_color(Color::srgba(0.05, 0.05, 0.05, 0.85))
                 .build_with_children(parent, |panel| {
+                    // Add family browser toggle button
+                    crate::ui::family_browser::spawn_toggle_button(panel);
+
                     // Add time display
                     time_display::spawn_time_display(panel);
 

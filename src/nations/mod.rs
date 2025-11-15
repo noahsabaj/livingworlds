@@ -44,8 +44,10 @@ pub use history::{
 pub use house::{
     House, HouseTraits, Ruler, RulerPersonality,
     // Drama engine exports
-    DramaEnginePlugin, Character, DramaEvent, DramaEventType,
-    DramaEventId, EventImportance, EventVisibility,
+    DramaEnginePlugin, Character, CharacterId, CharacterRole,
+    DramaEvent, DramaEventType, DramaEventId, EventImportance, EventVisibility,
+    // Relationship system exports
+    HasRelationship, RelationshipMetadata, RelationshipType,
 };
 pub use laws::{
     Law, LawId, LawCategory, LawComplexity, LawEffects, LawRegistry, NationLaws, LawRepealEvent,

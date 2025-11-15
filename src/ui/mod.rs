@@ -14,6 +14,8 @@ mod animation;         // Declarative animation system
 mod cleanup;           // Generic cleanup utilities
 mod dialogs;           // Game-specific dialogs
 mod dropdown;          // Dropdown component system
+mod family_browser;    // Family browser (prestige-ranked houses)
+mod family_tree;       // Family tree viewer
 mod hud;               // Heads-up display
 mod interaction;       // UI interaction systems
 mod law_browser;       // Law browsing UI

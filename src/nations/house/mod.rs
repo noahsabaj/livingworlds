@@ -31,7 +31,8 @@ pub use mottos::generate_motto;
 
 // Character and drama system exports
 pub use characters::{
-    Character, CharacterId, CharacterRole
+    Character, CharacterId, CharacterRole, HasRelationship,
+    RelationshipMetadata, RelationshipType,
 };
 
 pub use drama::{
