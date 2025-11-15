@@ -32,14 +32,14 @@ use living_worlds::{build_app_with_config, cli, infrastructure, states};
 /// 6. Launch the game
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Parse command line arguments through CLI gateway
-    let args = cli::parse_args();
+    let args = cli::Args::parse();
 
     // Initialize infrastructure through gateway modules
     infrastructure::LoggingConfig::initialize(args.debug);
     infrastructure::ThreadPoolManager::initialize(args.threads)?;
 
     // Build application configuration through CLI gateway
-    let config = cli::CLIConfig::build_app_config(&args);
+    let config = cli::build_app_config(&args);
 
     // Build Bevy application through app module (via lib.rs gateway)
     let mut app = build_app_with_config(config)

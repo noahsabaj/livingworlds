@@ -1,50 +1,26 @@
 //! CLI Configuration Building for Living Worlds
 //!
 //! This module handles building application configuration from
-//! command-line arguments. It provides structured configuration
-//! generation based on CLI inputs.
+//! command-line arguments.
 
 use super::args::Args;
 use crate::{AppConfig, DiagnosticsConfig};
 
-/// CLI configuration builder for Living Worlds
-pub struct CLIConfig;
+/// FPS counter update interval in seconds
+const DEFAULT_FPS_UPDATE_INTERVAL_SECS: f32 = 1.0;
 
-impl CLIConfig {
-    /// Build application configuration from command line arguments
-    ///
-    /// This method takes parsed command-line arguments and constructs
-    /// a complete application configuration with appropriate defaults
-    /// and CLI-driven overrides.
-    ///
-    /// # Arguments
-    /// * `args` - Parsed command-line arguments structure
-    ///
-    /// # Returns
-    /// * `AppConfig` - Complete application configuration
-    ///
-    /// # Configuration Logic
-    /// - Window settings use defaults (can be configured via args in future)
-    /// - FPS display enabled if `--show-fps` or `--debug` flags are set
-    /// - Audio permanently disabled to prevent ALSA underrun errors on Linux
-    /// - Console output disabled in favor of UI-based diagnostics
-    ///
-    /// # Example
-    /// ```ignore
-    /// use living_worlds::cli::{Args, CLIConfig};
-    ///
-    /// let args = Args::parse();
-    /// let config = CLIConfig::build_app_config(&args);
-    /// ```
-    pub fn build_app_config(args: &Args) -> AppConfig {
-        AppConfig {
-            window: Default::default(), // Use default window settings
-            diagnostics: DiagnosticsConfig {
-                show_fps: args.show_fps || args.debug,
-                fps_interval: 1.0,
-                use_console: false, // Always use UI display, not console
-            },
-            enable_audio: false, // Always disabled to prevent ALSA underrun errors
-        }
+/// Build application configuration from command line arguments
+///
+/// Constructs application configuration with CLI-driven overrides.
+/// FPS display is enabled when `--show-fps` or `--debug` flags are set.
+pub fn build_app_config(args: &Args) -> AppConfig {
+    AppConfig {
+        window: Default::default(),
+        diagnostics: DiagnosticsConfig {
+            show_fps: args.show_fps || args.debug,
+            fps_interval: DEFAULT_FPS_UPDATE_INTERVAL_SECS,
+            ..Default::default()
+        },
+        ..Default::default()
     }
 }
