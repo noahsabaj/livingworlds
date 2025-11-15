@@ -17,7 +17,7 @@ define_plugin!(WorldConfigPlugin {
     resources: [WorldGenerationSettings],
 
     update: [
-        // All 14 world config systems beautifully organized!
+        // All world config systems beautifully organized!
         (// Input handlers
          handlers::handle_text_input_changes,
          handlers::handle_random_buttons,
@@ -28,6 +28,7 @@ define_plugin!(WorldConfigPlugin {
          handlers::handle_island_selection,
          handlers::handle_aggression_selection,
          handlers::handle_resource_selection,
+         handlers::handle_calendar_selection,
          // UI interactions
          handlers::handle_preset_hover,
          handlers::handle_advanced_toggle,

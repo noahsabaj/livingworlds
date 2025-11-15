@@ -12,8 +12,9 @@ mod selection;
 pub use input::{handle_random_buttons, handle_text_input_changes};
 
 pub use selection::{
-    handle_aggression_selection, handle_climate_selection, handle_island_selection,
-    handle_preset_selection, handle_resource_selection, handle_size_selection,
+    handle_aggression_selection, handle_calendar_selection, handle_climate_selection,
+    handle_island_selection, handle_preset_selection, handle_resource_selection,
+    handle_size_selection,
 };
 
 pub use navigation::{handle_back_button, handle_generate_button, init_default_settings};

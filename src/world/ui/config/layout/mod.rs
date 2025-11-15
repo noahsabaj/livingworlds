@@ -19,5 +19,8 @@ pub use root::spawn_world_config_ui;
 
 // INTERNAL EXPORTS - For use by sibling modules ONLY through this gateway
 pub(super) use advanced::spawn_advanced_panel;
-pub(super) use basic::{spawn_seed_section, spawn_world_name_section, spawn_world_size_section};
+pub(super) use basic::{
+    spawn_calendar_selection_section, spawn_seed_section, spawn_starting_year_section,
+    spawn_world_name_section, spawn_world_size_section,
+};
 pub(super) use presets::spawn_preset_section;

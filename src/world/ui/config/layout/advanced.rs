@@ -6,7 +6,7 @@ use super::super::components::*;
 use super::super::types::*;
 use crate::ui::{colors, dimensions};
 use crate::ui::SliderBuilder;
-use crate::ui::{PanelBuilder, PanelStyle};
+use crate::ui::{ButtonBuilder, ButtonSize, PanelBuilder, PanelStyle};
 use bevy::prelude::*;
 
 pub fn spawn_advanced_panel(parent: &mut ChildSpawnerCommands) {
@@ -253,7 +253,7 @@ fn spawn_civilizations_column(parent: &mut ChildSpawnerCommands) {
         });
 }
 
-// Generic selection row builder
+// Generic selection row builder - using bevy-ui-builders v0.2.1 selection system
 fn spawn_selection_row<T, F, C>(
     parent: &mut ChildSpawnerCommands,
     label: &str,
@@ -284,6 +284,9 @@ fn spawn_selection_row<T, F, C>(
                 TextColor(colors::TEXT_SECONDARY),
             ));
 
+            // Create group entity for exclusive radio button selection
+            let group = control.commands().spawn(()).id();
+
             // Options row
             control
                 .spawn((Node {
@@ -295,33 +298,16 @@ fn spawn_selection_row<T, F, C>(
                 .with_children(|row| {
                     for (option_label, value) in options {
                         let is_selected = value == default_value;
-                        row.spawn((
-                            Button,
-                            Node {
-                                flex_grow: 1.0,
-                                height: Val::Px(35.0),
-                                justify_content: JustifyContent::Center,
-                                align_items: AlignItems::Center,
-                                ..default()
-                            },
-                            BackgroundColor(if is_selected {
-                                colors::PRIMARY
-                            } else {
-                                Color::srgb(0.15, 0.15, 0.15)
-                            }),
-                            BorderRadius::all(Val::Px(dimensions::CORNER_RADIUS)),
-                            make_component(value.clone()),
-                        ))
-                        .with_children(|button| {
-                            button.spawn((
-                                Text::new(option_label),
-                                TextFont {
-                                    font_size: 14.0,
-                                    ..default()
-                                },
-                                TextColor(Color::WHITE),
-                            ));
-                        });
+
+                        let button = ButtonBuilder::new(option_label)
+                            .size(ButtonSize::Small)
+                            .selected(is_selected)
+                            .in_group(group)
+                            .build(row);
+
+                        row.commands()
+                            .entity(button)
+                            .insert(make_component(value.clone()));
                     }
                 });
         });

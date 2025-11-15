@@ -5,7 +5,7 @@
 use super::super::components::{PresetButton, PresetDescription, PresetDescriptionText};
 use super::super::types::WorldPreset;
 use crate::ui::{colors, dimensions, helpers};
-use crate::ui::{PanelBuilder, PanelStyle};
+use crate::ui::{ButtonBuilder, ButtonSize, PanelBuilder, PanelStyle};
 use bevy::prelude::*;
 
 pub fn spawn_preset_section(parent: &mut ChildSpawnerCommands) {
@@ -46,7 +46,9 @@ pub fn spawn_preset_section(parent: &mut ChildSpawnerCommands) {
                 ));
             });
 
-        // Preset buttons (2 rows)
+        // Preset buttons (2 rows) - using bevy-ui-builders v0.2.1 selection system
+        let preset_group = section.commands().spawn(()).id();
+
         for row_presets in [
             vec![
                 (WorldPreset::Balanced, "Balanced", "Default settings for a well-rounded experience"),
@@ -69,44 +71,18 @@ pub fn spawn_preset_section(parent: &mut ChildSpawnerCommands) {
                 },
             )).with_children(|row| {
                 for (preset, label, desc) in row_presets {
-                    // Create preset button
-                    row.spawn((
-                        Button,
-                        Node {
-                            flex_grow: 1.0,
-                            height: Val::Px(40.0),
-                            justify_content: JustifyContent::Center,
-                            align_items: AlignItems::Center,
-                            border: helpers::standard_border(),
-                            ..default()
-                        },
-                        BackgroundColor(if preset == WorldPreset::Balanced {
-                            colors::PRIMARY
-                        } else {
-                            colors::BACKGROUND_LIGHT
-                        }),
-                        BorderColor::all(if preset == WorldPreset::Balanced {
-                            colors::PRIMARY
-                        } else {
-                            colors::BORDER_DEFAULT
-                        }),
-                        BorderRadius::all(Val::Px(dimensions::CORNER_RADIUS)),
-                        PresetButton(preset),
-                        PresetDescription(desc.to_string()),
-                    )).with_children(|button| {
-                        button.spawn((
-                            Text::new(label),
-                            TextFont {
-                                font_size: 18.0,
-                                ..default()
-                            },
-                            TextColor(if preset == WorldPreset::Balanced {
-                                Color::WHITE
-                            } else {
-                                colors::TEXT_PRIMARY
-                            }),
-                        ));
-                    });
+                    let is_selected = preset == WorldPreset::Balanced;
+
+                    let button = ButtonBuilder::new(label)
+                        .size(ButtonSize::Medium)
+                        .width(Val::Percent(33.0))  // Equal width for 3 buttons per row
+                        .selected(is_selected)
+                        .in_group(preset_group)
+                        .build(row);
+
+                    row.commands()
+                        .entity(button)
+                        .insert((PresetButton(preset), PresetDescription(desc.to_string())));
                 }
             });
         }
