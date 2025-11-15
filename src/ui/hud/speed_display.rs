@@ -29,9 +29,6 @@ pub fn update_speed_display(
 ) {
     // Only update if GameTime has changed
     if game_time.is_changed() {
-        debug!("🎛️ Speed display updating: paused={}, speed={}",
-            game_time.is_paused(), game_time.get_speed().name());
-
         // Find the speed display entity and get its children
         if let Ok(children) = speed_display_query.single() {
             // Look for the Text component in the children
@@ -43,12 +40,9 @@ pub fn update_speed_display(
                         game_time.get_speed().name().to_string()
                     };
                     **text = format!("Speed: {}", speed_text);
-                    debug!("🎛️ Speed display updated to: {}", text.as_str());
                     break; // Found and updated the text
                 }
             }
-        } else {
-            warn!("🎛️ Speed display component not found!");
         }
     }
 }

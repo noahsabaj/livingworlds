@@ -161,10 +161,10 @@ async fn generate_world_async(
     // Choose between GPU-accelerated and CPU-only generation
     let world_result = if let Some(gpu_res) = gpu_resources.as_ref() {
         if gpu_res.compute_supported && gpu_res.use_gpu {
-            info!("🚀 Using GPU-accelerated world generation");
+            info!("Using GPU-accelerated world generation");
             generate_world_with_gpu_acceleration(settings.clone(), gpu_res.clone(), progress_sender.clone())
         } else {
-            info!("🖥️ GPU available but disabled - using CPU generation");
+            info!("GPU available but disabled - using CPU generation");
             WorldBuilder::new(
                 settings.seed,
                 settings.world_size,
@@ -176,7 +176,7 @@ async fn generate_world_async(
             .build_with_progress(Some(progress_callback))
         }
     } else {
-        info!("🖥️ GPU not available - using CPU generation");
+        info!("GPU not available - using CPU generation");
         WorldBuilder::new(
             settings.seed,
             settings.world_size,
@@ -252,7 +252,7 @@ fn generate_world_with_gpu_acceleration(
 
     // Step 1: Generate provinces with GPU acceleration
     send_progress("Generating provinces with GPU acceleration...", 0.1);
-    info!("⚡ GPU-accelerating province generation...");
+    info!("GPU-accelerating province generation...");
 
     // Create a simplified GPU status for the async context
     let gpu_status = crate::world::gpu::GpuComputeStatus {
@@ -286,7 +286,7 @@ fn generate_world_with_gpu_acceleration(
             None, // No validation config in async context
         );
 
-    info!("✅ GPU province generation completed");
+    info!("GPU province generation completed");
 
     // Step 2-6: Continue with CPU-based processing for other world features
     // (These steps are not yet GPU-accelerated)

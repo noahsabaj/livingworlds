@@ -79,7 +79,7 @@ pub fn log_safety_metrics(
     if time.elapsed_secs_f64() - *last_log > 30.0 {
         let summary = safety_metrics.summary();
         info!(
-            "🛡️ Parallel Safety Summary: {} operations validated, {} integrity checks passed, {:.2}ms time saved, {} race conditions detected",
+            "Parallel Safety Summary: {} operations validated, {} integrity checks passed, {:.2}ms time saved, {} race conditions detected",
             summary.operations_validated,
             summary.integrity_checks_passed,
             summary.time_saved_ms,

@@ -6,7 +6,7 @@ use crate::menus::types::{MenuAction, MenuButton, SpawnSaveBrowserEvent, SpawnSe
 use crate::states::{GameState, RequestStateTransition};
 use crate::ui::define_ui_interactions;
 
-// 🚀 WORKING EXAMPLE: This replaces 40+ lines of manual button interaction code!
+// WORKING EXAMPLE: This replaces 40+ lines of manual button interaction code!
 define_ui_interactions!(
     handle_menu_buttons(
         MenuButton,

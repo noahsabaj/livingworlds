@@ -2,7 +2,7 @@
 //!
 //! This module is the **EXCLUSIVE** source for all mathematical operations in Living Worlds.
 //!
-//! ## ⚠️ CRITICAL DIRECTIVES
+//! ## CRITICAL DIRECTIVES
 //!
 //! - **NO parallel implementations** - All math MUST come from this module
 //! - **NO local copies** - Import from `crate::math`, never reimplement

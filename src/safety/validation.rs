@@ -42,7 +42,7 @@ where
 
     if results_match {
         info!(
-            "✅ Parallel consistency validated for {}: {} items processed",
+            "Parallel consistency validated for {}: {} items processed",
             operation_name,
             data.len()
         );
@@ -50,7 +50,7 @@ where
         if parallel_time < sequential_time {
             let speedup = sequential_time.as_secs_f64() / parallel_time.as_secs_f64();
             info!(
-                "🚀 Performance improvement: {:.2}x speedup ({:.2}ms vs {:.2}ms)",
+                "Performance improvement: {:.2}x speedup ({:.2}ms vs {:.2}ms)",
                 speedup,
                 sequential_time.as_secs_f64() * 1000.0,
                 parallel_time.as_secs_f64() * 1000.0
@@ -58,7 +58,7 @@ where
         }
     } else {
         error!(
-            "❌ Parallel consistency FAILED for {}: results differ! Parallel: {} items, Sequential: {} items",
+            "Parallel consistency FAILED for {}: results differ! Parallel: {} items, Sequential: {} items",
             operation_name,
             parallel_result.len(),
             sequential_result.len()
@@ -102,13 +102,13 @@ where
 
     if errors == 0 {
         info!(
-            "✅ Thread safety validated for {}: {}/{} operations successful",
+            "Thread safety validated for {}: {}/{} operations successful",
             operation_name, successes, total
         );
         true
     } else {
         error!(
-            "❌ Thread safety FAILED for {}: {}/{} operations failed",
+            "Thread safety FAILED for {}: {}/{} operations failed",
             operation_name, errors, total
         );
         false

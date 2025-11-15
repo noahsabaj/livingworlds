@@ -60,7 +60,7 @@ impl GpuProvinceBuilder {
     ) -> Vec<Province> {
         let total_provinces = self.dimensions.provinces_per_row * self.dimensions.provinces_per_col;
         info!(
-            "🚀 Starting GPU-accelerated province generation for {} provinces",
+            "Starting GPU-accelerated province generation for {} provinces",
             total_provinces
         );
 
@@ -78,7 +78,7 @@ impl GpuProvinceBuilder {
         // Run validation if enabled
         if self.enable_validation {
             if let Some(validation_config) = validation_config {
-                info!("🧪 Running GPU-CPU validation before generation");
+                info!("Running GPU-CPU validation before generation");
                 let validation_result = validate_gpu_cpu_elevation_generation(
                     self.dimensions,
                     self.seed,
@@ -89,17 +89,17 @@ impl GpuProvinceBuilder {
                 );
 
                 if !validation_result.passed {
-                    warn!("⚠️ GPU validation failed - using CPU fallback");
+                    warn!("GPU validation failed - using CPU fallback");
                     return self.build_with_cpu_fallback();
                 }
 
-                info!("✅ GPU validation passed - proceeding with GPU generation");
+                info!("GPU validation passed - proceeding with GPU generation");
             }
         }
 
         // Attempt GPU-accelerated elevation generation
         let elevations = if gpu_status.compute_supported && gpu_config.use_gpu {
-            info!("⚡ Using GPU elevation generation");
+            info!("Using GPU elevation generation");
 
             match self.try_gpu_elevation_generation(
                 &positions,
@@ -110,16 +110,16 @@ impl GpuProvinceBuilder {
                 &mut gpu_metrics,
             ) {
                 Some(elevations) => {
-                    info!("🎯 GPU elevation generation successful");
+                    info!("GPU elevation generation successful");
                     elevations
                 }
                 None => {
-                    warn!("💥 GPU generation failed - falling back to CPU");
+                    warn!("GPU generation failed - falling back to CPU");
                     self.generate_elevations_cpu(&positions, &continent_seeds)
                 }
             }
         } else {
-            info!("🖥️ GPU not available - using CPU generation");
+            info!("GPU not available - using CPU generation");
             self.generate_elevations_cpu(&positions, &continent_seeds)
         };
 
@@ -130,7 +130,7 @@ impl GpuProvinceBuilder {
         let final_provinces = self.apply_post_processing(provinces);
 
         info!(
-            "✨ Province generation complete with {} provinces",
+            "Province generation complete with {} provinces",
             final_provinces.len()
         );
         final_provinces
@@ -306,7 +306,7 @@ impl GpuProvinceBuilder {
 
     /// CPU fallback that uses the original ProvinceBuilder
     fn build_with_cpu_fallback(&self) -> Vec<Province> {
-        info!("🖥️ Using CPU fallback generation");
+        info!("Using CPU fallback generation");
 
         let mut rng = StdRng::seed_from_u64(self.seed as u64);
         ProvinceBuilder::new(self.dimensions, &mut rng, self.seed)

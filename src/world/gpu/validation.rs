@@ -159,20 +159,20 @@ pub fn validate_gpu_cpu_elevation_generation(
     // Log results
     if result.passed {
         info!(
-            "✅ GPU-CPU validation PASSED: {}/{} positions match within tolerance {:.6}",
+            "GPU-CPU validation PASSED: {}/{} positions match within tolerance {:.6}",
             result.total_tested - result.mismatched_count,
             result.total_tested,
             config.tolerance
         );
         info!(
-            "⚡ Performance: GPU {:.2}s vs CPU {:.2}s ({:.1}x speedup)",
+            "Performance: GPU {:.2}s vs CPU {:.2}s ({:.1}x speedup)",
             gpu_time.as_secs_f32(),
             cpu_time.as_secs_f32(),
             result.speedup_factor
         );
     } else {
         error!(
-            "❌ GPU-CPU validation FAILED: {}/{} positions mismatched (max diff: {:.6})",
+            "GPU-CPU validation FAILED: {}/{} positions mismatched (max diff: {:.6})",
             result.mismatched_count, result.total_tested, result.max_difference
         );
 

@@ -418,7 +418,7 @@ mod presets {
                     BackgroundColor(Color::NONE),
                 ));
 
-                ButtonBuilder::new("⚙")
+                ButtonBuilder::new("Settings")
                     .style(ButtonStyle::Ghost)
                     .size(ButtonSize::Small)
                     .build(toolbar);

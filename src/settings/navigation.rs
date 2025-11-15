@@ -25,13 +25,13 @@ pub fn handle_keyboard_navigation(
     // Only process input if settings menu is actually open
     let settings_entity = match settings_root.single() {
         Ok(entity) => {
-            debug!("⚙️ Settings menu open, processing navigation input");
+            debug!("Settings menu open, processing navigation input");
             // Set the shortcut context to Settings
             shortcut_registry.set_context(ShortcutContext::Settings);
             entity
         },
         Err(_) => {
-            trace!("⚙️ No settings menu open, skipping navigation input");
+            trace!("No settings menu open, skipping navigation input");
             return; // No settings menu open, skip all input processing
         }
     };
@@ -67,7 +67,7 @@ pub fn handle_keyboard_navigation(
             // Enter/Space to activate focused element
             ShortcutId::SettingsActivate | ShortcutId::SettingsActivateSpace => {
                 if event.shortcut_id == ShortcutId::SettingsActivateSpace {
-                    debug!("⚙️ Space key detected in settings navigation");
+                    debug!("Space key detected in settings navigation");
                 }
                 // First find the focused entity
                 let mut focused_entity = None;

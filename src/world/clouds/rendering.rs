@@ -300,7 +300,7 @@ pub fn update_weather_system(
                 weather.transition_progress = 0.0;
                 weather.time_since_change = 0.0;
                 debug!(
-                    "☁️ Weather changing from {:?} to {:?}",
+                    "Weather changing from {:?} to {:?}",
                     weather.current_state.description(),
                     weather.target_state.description()
                 );
@@ -374,7 +374,7 @@ pub fn dynamic_cloud_spawn_system(
         // Need to spawn more clouds
         let to_spawn = target_count - current_count;
         info!(
-            "🌤️ Spawning {} new clouds for {:?} weather",
+            "Spawning {} new clouds for {:?} weather",
             to_spawn, weather.current_state
         );
 

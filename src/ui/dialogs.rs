@@ -196,7 +196,7 @@ pub mod presets {
 
         // Add generation metrics if available
         if let Some(ref metrics) = context.generation_metrics {
-            body_text.push_str("📊 Generation Statistics:\n");
+            body_text.push_str("Generation Statistics:\n");
             body_text.push_str(&format!("• Ocean Coverage: {:.1}%\n", metrics.ocean_percentage));
             body_text.push_str(&format!("• Land Coverage: {:.1}%\n", metrics.land_percentage));
             body_text.push_str(&format!("• Sea Level: {:.3}\n", metrics.sea_level));
@@ -209,7 +209,7 @@ pub mod presets {
 
         // Add recovery suggestions
         if !context.recovery_suggestions.is_empty() {
-            body_text.push_str("💡 Suggested Solutions:\n");
+            body_text.push_str("Suggested Solutions:\n");
             for suggestion in &context.recovery_suggestions {
                 body_text.push_str(&format!("• {}\n", suggestion));
             }
