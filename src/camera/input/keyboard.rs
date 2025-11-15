@@ -1,9 +1,24 @@
 //! Camera keyboard controls using shortcuts registry for rebindable keys
 
+use crate::camera::movement::CameraBounds;
 use crate::camera::CameraController;
 use crate::constants::*;
 use crate::ui::{ShortcutRegistry, ShortcutId, ShortcutEvent};
 use bevy::prelude::*;
+
+/// Zoom factor when zooming in via keyboard (multiply by this)
+const KEYBOARD_ZOOM_IN_FACTOR: f32 = 0.9;
+/// Zoom factor when zooming out via keyboard (multiply by this)
+const KEYBOARD_ZOOM_OUT_FACTOR: f32 = 1.1;
+
+/// Helper function to check if a key from registry or fallback is pressed
+fn is_key_pressed(
+    keyboard: &ButtonInput<KeyCode>,
+    registry_key: Option<KeyCode>,
+    fallback_key: KeyCode,
+) -> bool {
+    registry_key.map_or(false, |k| keyboard.pressed(k)) || keyboard.pressed(fallback_key)
+}
 
 /// Handle camera movement with continuous key press detection
 /// Movement keys are rebindable through the shortcuts registry
@@ -24,14 +39,10 @@ pub fn handle_keyboard_movement(
     let right_key = registry.get(&ShortcutId::CameraRight).map(|def| def.binding.key);
 
     // Check if any movement keys are pressed (including arrow keys as fallback)
-    let any_movement = up_key.map_or(false, |k| keyboard.pressed(k))
-        || down_key.map_or(false, |k| keyboard.pressed(k))
-        || left_key.map_or(false, |k| keyboard.pressed(k))
-        || right_key.map_or(false, |k| keyboard.pressed(k))
-        || keyboard.pressed(KeyCode::ArrowUp)
-        || keyboard.pressed(KeyCode::ArrowDown)
-        || keyboard.pressed(KeyCode::ArrowLeft)
-        || keyboard.pressed(KeyCode::ArrowRight);
+    let any_movement = is_key_pressed(&keyboard, up_key, KeyCode::ArrowUp)
+        || is_key_pressed(&keyboard, down_key, KeyCode::ArrowDown)
+        || is_key_pressed(&keyboard, left_key, KeyCode::ArrowLeft)
+        || is_key_pressed(&keyboard, right_key, KeyCode::ArrowRight);
 
     if !any_movement {
         return;
@@ -48,16 +59,16 @@ pub fn handle_keyboard_movement(
         controller.pan_speed_base * controller.current_zoom * time.delta_secs() * speed_multiplier;
 
     // Handle movement based on registered keys or arrow fallbacks
-    if up_key.map_or(false, |k| keyboard.pressed(k)) || keyboard.pressed(KeyCode::ArrowUp) {
+    if is_key_pressed(&keyboard, up_key, KeyCode::ArrowUp) {
         controller.target_position.y += pan_speed;
     }
-    if down_key.map_or(false, |k| keyboard.pressed(k)) || keyboard.pressed(KeyCode::ArrowDown) {
+    if is_key_pressed(&keyboard, down_key, KeyCode::ArrowDown) {
         controller.target_position.y -= pan_speed;
     }
-    if left_key.map_or(false, |k| keyboard.pressed(k)) || keyboard.pressed(KeyCode::ArrowLeft) {
+    if is_key_pressed(&keyboard, left_key, KeyCode::ArrowLeft) {
         controller.target_position.x -= pan_speed;
     }
-    if right_key.map_or(false, |k| keyboard.pressed(k)) || keyboard.pressed(KeyCode::ArrowRight) {
+    if is_key_pressed(&keyboard, right_key, KeyCode::ArrowRight) {
         controller.target_position.x += pan_speed;
     }
 }
@@ -66,6 +77,7 @@ pub fn handle_keyboard_movement(
 pub fn handle_camera_shortcuts(
     mut query: Query<&mut CameraController>,
     mut shortcut_events: MessageReader<ShortcutEvent>,
+    bounds: Res<CameraBounds>,
 ) {
     let Ok(mut controller) = query.single_mut() else {
         return;
@@ -76,13 +88,14 @@ pub fn handle_camera_shortcuts(
             ShortcutId::CameraReset => {
                 controller.target_position = Vec3::ZERO;
                 controller.target_zoom = 1.0;
-                info!("Camera reset to origin");
             }
             ShortcutId::CameraZoomIn => {
-                controller.target_zoom = (controller.target_zoom * 0.9).max(0.1);
+                controller.target_zoom =
+                    (controller.target_zoom * KEYBOARD_ZOOM_IN_FACTOR).clamp(bounds.min_zoom, bounds.max_zoom);
             }
             ShortcutId::CameraZoomOut => {
-                controller.target_zoom = (controller.target_zoom * 1.1).min(10.0);
+                controller.target_zoom =
+                    (controller.target_zoom * KEYBOARD_ZOOM_OUT_FACTOR).clamp(bounds.min_zoom, bounds.max_zoom);
             }
             _ => {}
         }

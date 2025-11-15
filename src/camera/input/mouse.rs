@@ -7,6 +7,41 @@ use bevy::input::mouse::{MouseMotion, MouseScrollUnit, MouseWheel};
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
+/// Conversion factor for pixel-based scroll events
+const PIXEL_SCROLL_FACTOR: f32 = 0.01;
+/// How aggressively the camera moves toward cursor when zooming in (0.0-1.0)
+const ZOOM_TO_CURSOR_STRENGTH: f32 = 0.7;
+
+/// Calculate camera position offset to zoom toward cursor position
+fn calculate_zoom_offset_for_cursor(
+    cursor_pos: Vec2,
+    window: &Window,
+    current_transform: &Transform,
+    current_zoom: f32,
+    new_zoom: f32,
+) -> Vec2 {
+    // Convert cursor position to normalized device coordinates
+    let cursor_ndc = Vec2::new(
+        (cursor_pos.x / window.width()) * 2.0 - 1.0,
+        -((cursor_pos.y / window.height()) * 2.0 - 1.0),
+    );
+
+    // Calculate world position before zoom
+    let world_pos_before = Vec2::new(
+        cursor_ndc.x * current_zoom * window.width() / 2.0 + current_transform.translation.x,
+        cursor_ndc.y * current_zoom * window.height() / 2.0 + current_transform.translation.y,
+    );
+
+    // Calculate world position after zoom
+    let world_pos_after = Vec2::new(
+        cursor_ndc.x * new_zoom * window.width() / 2.0 + current_transform.translation.x,
+        cursor_ndc.y * new_zoom * window.height() / 2.0 + current_transform.translation.y,
+    );
+
+    // Return offset scaled by zoom-to-cursor strength
+    (world_pos_before - world_pos_after) * ZOOM_TO_CURSOR_STRENGTH
+}
+
 /// Handle mouse wheel zoom with zoom-to-cursor
 pub fn handle_mouse_wheel_zoom(
     mut query: Query<(&mut CameraController, &Transform, &Projection)>,
@@ -14,10 +49,6 @@ pub fn handle_mouse_wheel_zoom(
     windows: Query<&Window, With<PrimaryWindow>>,
     bounds: Res<CameraBounds>,
 ) {
-    if mouse_wheel.is_empty() {
-        return;
-    }
-
     let Ok(window) = windows.single() else {
         return;
     };
@@ -32,7 +63,7 @@ pub fn handle_mouse_wheel_zoom(
     for event in mouse_wheel.read() {
         let zoom_delta = match event.unit {
             MouseScrollUnit::Line => event.y,
-            MouseScrollUnit::Pixel => event.y * 0.01,
+            MouseScrollUnit::Pixel => event.y * PIXEL_SCROLL_FACTOR,
         };
 
         let zoom_factor = 1.0 - zoom_delta * CAMERA_ZOOM_SPEED;
@@ -46,29 +77,15 @@ pub fn handle_mouse_wheel_zoom(
         if is_zooming_in {
             // Zoom toward cursor position if cursor is over window
             if let Some(cursor_pos) = window.cursor_position() {
-                // Convert cursor position to world coordinates before zoom
-                let cursor_ndc = Vec2::new(
-                    (cursor_pos.x / window.width()) * 2.0 - 1.0,
-                    -((cursor_pos.y / window.height()) * 2.0 - 1.0),
+                let offset = calculate_zoom_offset_for_cursor(
+                    cursor_pos,
+                    window,
+                    transform,
+                    ortho.scale,
+                    new_zoom,
                 );
-
-                let world_pos_before = Vec2::new(
-                    cursor_ndc.x * ortho.scale * window.width() / 2.0 + transform.translation.x,
-                    cursor_ndc.y * ortho.scale * window.height() / 2.0 + transform.translation.y,
-                );
-
-                let world_pos_after = Vec2::new(
-                    cursor_ndc.x * new_zoom * window.width() / 2.0 + transform.translation.x,
-                    cursor_ndc.y * new_zoom * window.height() / 2.0 + transform.translation.y,
-                );
-
-                // Adjust target position to keep cursor at same world position
-                // Use a factor to make it less aggressive (0.5 = 50% of the movement)
-                let zoom_to_cursor_strength = 0.7; // Adjust this to taste
-                controller.target_position.x +=
-                    (world_pos_before.x - world_pos_after.x) * zoom_to_cursor_strength;
-                controller.target_position.y +=
-                    (world_pos_before.y - world_pos_after.y) * zoom_to_cursor_strength;
+                controller.target_position.x += offset.x;
+                controller.target_position.y += offset.y;
             }
         }
         // When zooming OUT, just zoom from current center (no camera movement)

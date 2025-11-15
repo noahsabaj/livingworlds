@@ -6,6 +6,9 @@ use crate::resources::MapDimensions;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
+/// Allow camera center to go this factor beyond map edges for better panning when zoomed out
+const CAMERA_BOUNDS_MARGIN_FACTOR: f32 = 0.5;
+
 /// Cached camera bounds to avoid recalculation every frame
 #[derive(Resource, Default)]
 pub struct CameraBounds {
@@ -37,17 +40,13 @@ pub fn calculate_camera_bounds(
 
 /// Apply camera bounds with clamping
 pub fn apply_camera_bounds(
-    mut query: Query<(&mut Transform, &mut CameraController, &Projection)>,
+    mut query: Query<(&mut Transform, &mut CameraController)>,
     bounds: Res<CameraBounds>,
-    _windows: Query<&Window, With<PrimaryWindow>>,
-    _map_dimensions: Res<MapDimensions>,
 ) {
-    for (mut transform, mut controller, _projection) in query.iter_mut() {
+    for (mut transform, mut controller) in query.iter_mut() {
         // Simple center-only constraints
-        // Allow camera center to go 50% beyond map edges for better panning when zoomed out
-        let margin_factor = 0.5;
-        let max_x = bounds.half_map_width * (1.0 + margin_factor);
-        let max_y = bounds.max_y * (1.0 + margin_factor);
+        let max_x = bounds.half_map_width * (1.0 + CAMERA_BOUNDS_MARGIN_FACTOR);
+        let max_y = bounds.max_y * (1.0 + CAMERA_BOUNDS_MARGIN_FACTOR);
 
         // Clamp camera center position
         transform.translation.x = transform.translation.x.clamp(-max_x, max_x);
