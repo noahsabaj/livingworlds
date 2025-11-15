@@ -19,7 +19,7 @@
 use bevy::log::info;
 
 // Import from our library through controlled gateways
-use living_worlds::{build_app_with_config, cli, infrastructure, states};
+use living_worlds::{build_app_with_config, cli::{self, Parser}, infrastructure, states};
 
 /// Main entry point with proper error handling
 ///

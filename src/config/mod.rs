@@ -26,7 +26,7 @@
 //!     title: "Living Worlds".to_string(),
 //!     resizable: true,
 //! };
-//! ```ignore
+//! ```
 
 // Private module declarations - implementation details hidden from external code
 mod app;

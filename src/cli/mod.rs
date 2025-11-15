@@ -29,4 +29,5 @@ mod config;
 
 // Public exports - controlled API surface following gateway pattern
 pub use args::Args;
+pub use clap::Parser;
 pub use config::build_app_config;

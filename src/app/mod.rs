@@ -21,7 +21,7 @@
 //! let app = build_app()?;
 //!
 //! // Build app with custom configuration
-//! let config = AppConfig::custom();
+//! let config = AppConfig::default();
 //! let app = build_app_with_config(config)?;
 //! ```
 
