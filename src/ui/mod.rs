@@ -94,6 +94,8 @@ pub use bevy_ui_builders::{
     PanelBuilder, PanelStyle,
     // Progress bar system
     ProgressBar, ProgressBarBuilder,
+    // Scroll view system
+    ScrollViewBuilder,
     // Separator system
     SeparatorBuilder, Orientation,
     // Slider system
@@ -101,6 +103,9 @@ pub use bevy_ui_builders::{
     // Text input system
     TextInputBuilder, FocusGroupId, text_input,
 };
+
+// ScrollbarVisibility is in a nested scroll_view module
+pub use bevy_ui_builders::scroll_view::ScrollbarVisibility;
 
 // TextBuffer is in a nested module, needs separate import
 pub use bevy_ui_builders::text_input::native_input::TextBuffer;

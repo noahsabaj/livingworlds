@@ -33,6 +33,12 @@ pub struct SeedInput;
 #[derive(Component)]
 pub struct SeedText;
 
+#[derive(Component)]
+pub struct StartingYearInput;
+
+#[derive(Component)]
+pub struct StartingYearText;
+
 // Button markers
 #[derive(Component)]
 pub struct GenerateButton;
@@ -77,6 +83,28 @@ pub struct PresetDescription(pub String);
 
 #[derive(Component)]
 pub struct GenerationTimeEstimate;
+
+// Calendar selection markers
+#[derive(Component)]
+pub struct CalendarDropdown;
+
+#[derive(Component)]
+pub struct CalendarDropdownText;
+
+#[derive(Component)]
+pub struct CalendarPreviewPanel;
+
+#[derive(Component)]
+pub struct CalendarPreviewName;
+
+#[derive(Component)]
+pub struct CalendarPreviewDays;
+
+#[derive(Component)]
+pub struct CalendarPreviewPeriods;
+
+#[derive(Component)]
+pub struct CalendarButton(pub String); // Calendar ID
 
 // Slider markers
 #[derive(Component)]
@@ -154,5 +182,12 @@ impl SelectionComponent for SizeButton {
     type Value = WorldSize;
     fn value(&self) -> Self::Value {
         self.0
+    }
+}
+
+impl SelectionComponent for CalendarButton {
+    type Value = String;
+    fn value(&self) -> Self::Value {
+        self.0.clone()
     }
 }

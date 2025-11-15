@@ -12,7 +12,7 @@ use bevy_plugin_builder::define_plugin;
 
 /// Plugin that manages the simulation time system using AUTOMATION FRAMEWORK
 define_plugin!(SimulationPlugin {
-    resources: [GameTime, PressureSystemTimer, VisualTime],
+    resources: [PressureSystemTimer, VisualTime],
 
     messages: [
         SimulationSpeedChanged,
@@ -20,6 +20,10 @@ define_plugin!(SimulationPlugin {
         super::history_update::BattleEvent,
         super::history_update::WarStatusEvent,
         crate::nations::NationActionEvent
+    ],
+
+    startup: [
+        super::calendar::setup_calendar_system
     ],
 
     // DETERMINISTIC SIMULATION: Time advances in FixedUpdate at consistent rate
@@ -45,6 +49,9 @@ define_plugin!(SimulationPlugin {
     ],
 
     on_enter: {
-        GameState::InGame => [resume_from_pause_menu]
+        GameState::InGame => [
+            super::calendar::apply_world_time_settings,
+            resume_from_pause_menu
+        ]
     }
 });

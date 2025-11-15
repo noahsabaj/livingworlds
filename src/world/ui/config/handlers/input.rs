@@ -18,6 +18,16 @@ pub fn handle_text_input_changes(
         (
             With<SeedInput>,
             Without<WorldNameInput>,
+            Without<StartingYearInput>,
+            Changed<TextBuffer>,
+        ),
+    >,
+    year_inputs: Query<
+        &TextBuffer,
+        (
+            With<StartingYearInput>,
+            Without<WorldNameInput>,
+            Without<SeedInput>,
             Changed<TextBuffer>,
         ),
     >,
@@ -34,6 +44,15 @@ pub fn handle_text_input_changes(
             if let Ok(seed) = buffer.content.parse::<u32>() {
                 settings.seed = seed;
                 debug!("Seed changed to: {}", settings.seed);
+            }
+        }
+    }
+
+    for buffer in &year_inputs {
+        if !buffer.content.is_empty() {
+            if let Ok(year) = buffer.content.parse::<u32>() {
+                settings.starting_year = year;
+                debug!("Starting year changed to: {}", settings.starting_year);
             }
         }
     }

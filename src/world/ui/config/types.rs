@@ -16,6 +16,10 @@ pub struct WorldGenerationSettings {
     pub seed: u32,
     pub preset: WorldPreset,
 
+    // Time Settings
+    pub calendar_id: String,
+    pub starting_year: u32,
+
     // Advanced - Geography
     pub continent_count: u32,
     pub island_frequency: IslandFrequency,
@@ -46,6 +50,9 @@ impl Default for WorldGenerationSettings {
             custom_dimensions: None,
             seed: rand::thread_rng().r#gen(),
             preset: WorldPreset::Balanced,
+
+            calendar_id: "gregorian".to_string(),
+            starting_year: 1000,
 
             continent_count: 7,
             island_frequency: IslandFrequency::Moderate,

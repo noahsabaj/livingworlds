@@ -17,6 +17,9 @@ pub struct GameTime {
     speed: SimulationSpeed,
     speed_before_pause: SimulationSpeed,
 
+    // Starting year for this world
+    starting_year: u32,
+
     // Frame accumulator for smooth tick generation
     #[serde(skip)]
     accumulated_time: f32,
@@ -28,6 +31,22 @@ pub struct GameTime {
 }
 
 impl GameTime {
+    /// Create a new GameTime with a custom starting year
+    pub fn new(starting_year: u32) -> Self {
+        let mut time = Self {
+            current_tick: GameTick::default(),
+            speed: SimulationSpeed::Normal,
+            speed_before_pause: SimulationSpeed::Normal,
+            starting_year,
+            accumulated_time: 0.0,
+            cached_year: starting_year,
+            cached_day_of_year: 0,
+            cached_total_days: 0,
+        };
+        time.update_cache();
+        time
+    }
+
     /// Get the current simulation tick
     pub fn current_tick(&self) -> GameTick {
         self.current_tick
@@ -110,23 +129,13 @@ impl GameTime {
     /// Update cached values after tick change
     fn update_cache(&mut self) {
         self.cached_total_days = self.current_tick.to_days();
-        self.cached_year = crate::constants::SIMULATION_STARTING_YEAR + self.current_tick.to_years();
+        self.cached_year = self.starting_year + self.current_tick.to_years();
         self.cached_day_of_year = self.current_tick.day_of_year();
     }
 }
 
 impl Default for GameTime {
     fn default() -> Self {
-        let mut time = Self {
-            current_tick: GameTick::default(),
-            speed: SimulationSpeed::Normal,
-            speed_before_pause: SimulationSpeed::Normal,
-            accumulated_time: 0.0,
-            cached_year: crate::constants::SIMULATION_STARTING_YEAR,
-            cached_day_of_year: 0,
-            cached_total_days: 0,
-        };
-        time.update_cache();
-        time
+        Self::new(crate::constants::SIMULATION_STARTING_YEAR)
     }
 }

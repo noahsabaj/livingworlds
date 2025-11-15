@@ -15,6 +15,7 @@
 //! This creates a hierarchical gateway system ensuring clean module boundaries.
 
 // PRIVATE modules - internal implementation details
+mod calendar;
 mod history_update;
 mod input;
 mod plugin;
@@ -33,6 +34,12 @@ pub use tension::WorldTension;
 
 // Time-related exports that other systems need
 pub use time::{GameTime, GameTick, SimulationSpeed, SimulationSpeedChanged};
+
+// Calendar system exports
+pub use calendar::{
+    CalendarDefinition, CalendarPeriod, WeekCycle, Season, DateDisplay,
+    CalendarRegistry, NationCalendar,
+};
 
 // Pressure system exports for civilization behaviors
 pub use pressures::{
