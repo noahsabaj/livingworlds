@@ -1,6 +1,5 @@
 //! Game Plugins Aggregator
 
-use bevy::prelude::*;
 use bevy_plugin_builder::define_plugin;
 
 // Import all game plugins
@@ -181,7 +180,6 @@ define_plugin!(GamePlugins {
         // Add parallel safety validation in debug builds
         #[cfg(debug_assertions)]
         {
-            info!("Debug mode: Adding parallel safety validation");
             app.add_plugins(crate::safety::ParallelSafetyPlugin);
         }
     }

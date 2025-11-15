@@ -23,7 +23,7 @@
 //! // Build app with custom configuration
 //! let config = AppConfig::custom();
 //! let app = build_app_with_config(config)?;
-//! ```ignore
+//! ```
 
 mod builder;
 mod initialization;
