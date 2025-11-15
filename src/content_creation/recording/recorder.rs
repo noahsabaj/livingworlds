@@ -7,6 +7,10 @@ use crate::content_creation::types::{OutputFormat, RecordingMode};
 use super::buffer::FrameBuffer;
 use super::types::RecordingConfig;
 
+// Recording constants
+const DEFAULT_BUFFER_DURATION_SECS: f32 = 30.0;
+const AUTO_RECORD_VIRAL_THRESHOLD: f32 = 0.8;
+
 /// Resource for managing gameplay recording
 #[derive(Resource)]
 pub struct ContentRecorder {
@@ -26,7 +30,7 @@ impl Default for ContentRecorder {
             recording_mode: RecordingMode::Highlights,
             output_format: OutputFormat::MP4,
             config: RecordingConfig::default(),
-            frame_buffer: FrameBuffer::new(30.0), // 30 second buffer
+            frame_buffer: FrameBuffer::new(DEFAULT_BUFFER_DURATION_SECS),
             recording_start_time: None,
             auto_record_viral: true,
         }
@@ -55,7 +59,7 @@ impl ContentRecorder {
 
     /// Check if we should auto-record this moment
     pub fn should_auto_record(&self, viral_score: f32) -> bool {
-        self.auto_record_viral && viral_score >= 0.8
+        self.auto_record_viral && viral_score >= AUTO_RECORD_VIRAL_THRESHOLD
     }
 
     /// Save the current buffer to file

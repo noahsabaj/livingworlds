@@ -24,6 +24,5 @@ pub use plugin::ContentCreationPlugin;
 // Recording API - minimal public interface
 
 // Export API - external export triggers
-pub use export::recommend_platforms;
 
 // Highlights API - reel management

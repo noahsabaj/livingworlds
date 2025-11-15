@@ -2,6 +2,10 @@
 
 use crate::content_creation::types::OutputFormat;
 
+// Size thresholds for format selection (MB)
+const SMALL_FILE_LIMIT_MB: f32 = 3.0;
+const MEDIUM_FILE_LIMIT_MB: f32 = 10.0;
+
 /// Convert content from one format to another
 pub fn convert_format(from: OutputFormat, to: OutputFormat) -> Result<(), String> {
     if from == to {
@@ -27,10 +31,12 @@ pub fn convert_format(from: OutputFormat, to: OutputFormat) -> Result<(), String
 
 /// Get the best format for a given file size limit (in MB)
 pub fn format_for_size_limit(size_limit_mb: f32) -> OutputFormat {
-    match size_limit_mb {
-        s if s < 3.0 => OutputFormat::GIF,
-        s if s < 10.0 => OutputFormat::WebM,
-        _ => OutputFormat::MP4,
+    if size_limit_mb < SMALL_FILE_LIMIT_MB {
+        OutputFormat::GIF
+    } else if size_limit_mb < MEDIUM_FILE_LIMIT_MB {
+        OutputFormat::WebM
+    } else {
+        OutputFormat::MP4
     }
 }
 

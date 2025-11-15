@@ -97,14 +97,3 @@ impl HighlightReel {
         sorted.into_iter().take(count).collect()
     }
 }
-
-/// Helper function to add a highlight
-pub fn add_highlight(
-    reel: &mut HighlightReel,
-    event: DramaEvent,
-    viral_score: f32,
-    caption: String,
-    timestamp: f32,
-) -> u32 {
-    reel.add(event, viral_score, caption, timestamp)
-}

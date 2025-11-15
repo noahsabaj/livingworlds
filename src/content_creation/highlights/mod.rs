@@ -8,5 +8,5 @@ mod reel;
 mod tracking;
 
 // CONTROLLED PUBLIC EXPORTS
-pub use reel::{HighlightReel, add_highlight};
+pub use reel::HighlightReel;
 pub use tracking::{track_highlights, update_highlight_reel};

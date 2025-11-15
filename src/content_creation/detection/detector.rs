@@ -3,12 +3,20 @@
 use bevy::prelude::*;
 use std::collections::VecDeque;
 
+use crate::content_creation::export::captions::generate_caption;
+use crate::content_creation::export::platforms::recommend_platforms;
 use crate::content_creation::types::{ViralMomentDetected, ViralPotential};
-use crate::nations::{Character, DramaEvent, EventImportance};
+use crate::nations::DramaEvent;
 
 use super::patterns::ViralPattern;
-use super::scoring::calculate_viral_score;
+use super::scoring::{calculate_base_viral_score, calculate_viral_score};
 use super::types::DetectionConfig;
+
+// Viral potential thresholds
+const LEGENDARY_THRESHOLD: f32 = 0.9;
+const HIGH_THRESHOLD: f32 = 0.7;
+const MEDIUM_THRESHOLD: f32 = 0.5;
+const LOW_THRESHOLD: f32 = 0.3;
 
 /// Resource that detects potentially viral moments in gameplay
 #[derive(Resource)]
@@ -48,10 +56,10 @@ impl ViralMomentDetector {
     /// Get viral potential level from score
     pub fn get_potential(&self, score: f32) -> ViralPotential {
         match score {
-            s if s >= 0.9 => ViralPotential::Legendary,
-            s if s >= 0.7 => ViralPotential::High,
-            s if s >= 0.5 => ViralPotential::Medium,
-            s if s >= 0.3 => ViralPotential::Low,
+            s if s >= LEGENDARY_THRESHOLD => ViralPotential::Legendary,
+            s if s >= HIGH_THRESHOLD => ViralPotential::High,
+            s if s >= MEDIUM_THRESHOLD => ViralPotential::Medium,
+            s if s >= LOW_THRESHOLD => ViralPotential::Low,
             _ => ViralPotential::None,
         }
     }
@@ -62,21 +70,14 @@ pub fn detect_viral_moments(
     mut detector: ResMut<ViralMomentDetector>,
     mut drama_events: MessageReader<DramaEvent>,
     mut viral_events: MessageWriter<ViralMomentDetected>,
-    characters: Query<&Character>,
     time: Res<Time>,
 ) {
     for event in drama_events.read() {
         // Add to buffer for pattern analysis
         detector.add_event(event.clone());
 
-        // Calculate viral score
-        let base_score = match event.importance {
-            EventImportance::Legendary => 1.0,
-            EventImportance::Major => 0.7,
-            EventImportance::Significant => 0.4,
-            EventImportance::Notable => 0.2,
-            EventImportance::Trivial => 0.0,
-        };
+        // Calculate base viral score from event type
+        let base_score = calculate_base_viral_score(event);
 
         // Check patterns and calculate final score
         let matched_patterns: Vec<_> = detector.patterns.iter()
@@ -94,7 +95,7 @@ pub fn detect_viral_moments(
 
         // Check if it meets viral threshold
         if detector.is_viral(final_score) {
-            let caption = generate_caption(event, &characters);
+            let caption = generate_caption(event);
             let platforms = recommend_platforms(event, final_score);
 
             viral_events.write(ViralMomentDetected {
@@ -107,56 +108,4 @@ pub fn detect_viral_moments(
             });
         }
     }
-}
-
-// Helper functions for caption and platform generation
-fn generate_caption(event: &DramaEvent, characters: &Query<&Character>) -> String {
-    use crate::nations::DramaEventType;
-
-    match &event.event_type {
-        DramaEventType::BabyRuler { baby, action, age_months } => {
-            format!(
-                "{}-month-old ruler {} just {} 👑👶 #LivingWorlds #BabyRuler",
-                age_months, baby, action
-            )
-        }
-        DramaEventType::DescentIntoMadness { character, first_sign, .. } => {
-            format!(
-                "{} has lost it! They just {} 🤪 #LivingWorlds #MadRuler",
-                character, first_sign
-            )
-        }
-        _ => "Something incredible just happened in Living Worlds! #LivingWorlds".to_string(),
-    }
-}
-
-fn recommend_platforms(event: &DramaEvent, viral_score: f32) -> Vec<crate::content_creation::types::SocialPlatform> {
-    use crate::content_creation::types::SocialPlatform;
-    use crate::nations::DramaEventType;
-
-    let mut platforms = Vec::new();
-
-    // TikTok loves absurd short moments
-    if viral_score > 0.8 {
-        platforms.push(SocialPlatform::TikTok);
-    }
-
-    // Reddit loves detailed drama
-    if matches!(event.event_type,
-        DramaEventType::Betrayal { .. } |
-        DramaEventType::SuccessionCrisis { .. } |
-        DramaEventType::SecretExposed { .. }
-    ) {
-        platforms.push(SocialPlatform::Reddit);
-    }
-
-    // Twitter for quick viral moments
-    if matches!(event.event_type,
-        DramaEventType::BabyRuler { .. } |
-        DramaEventType::AbsurdEvent { .. }
-    ) {
-        platforms.push(SocialPlatform::Twitter);
-    }
-
-    platforms
 }
