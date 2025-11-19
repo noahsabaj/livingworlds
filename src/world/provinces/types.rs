@@ -7,7 +7,6 @@ use super::super::terrain::TerrainType;
 use crate::world::MineralType;
 use crate::constants::PROVINCE_MIN_POPULATION;
 use crate::name_generator::Culture;
-use crate::nations::NationId;
 use bevy::prelude::*;
 use bevy::reflect::Reflect;
 use serde::{Deserialize, Serialize};
@@ -264,8 +263,8 @@ pub struct Province {
     /// World position in 2D space
     pub position: Vec2,
 
-    /// Nation that owns/controls this province
-    pub owner: Option<NationId>,
+    /// Nation entity that owns/controls this province
+    pub owner_entity: Option<Entity>,
 
     /// Cultural identity of this province (assigned based on geography)
     pub culture: Option<Culture>,
@@ -334,7 +333,7 @@ impl Default for Province {
         Self {
             id: ProvinceId::default(),
             position: Vec2::ZERO,
-            owner: None,
+            owner_entity: None,
             culture: None,
             population: PROVINCE_MIN_POPULATION,
             max_population: PROVINCE_MIN_POPULATION * 10,

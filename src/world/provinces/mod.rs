@@ -4,9 +4,11 @@
 
 // PRIVATE MODULES
 mod agriculture;
+mod coastal;
 mod elevation;
 mod events;
 mod generation;  // Now points to the new generation/ subfolder
+mod naval_range;
 mod spatial;
 mod types;
 
@@ -30,3 +32,7 @@ pub use events::{
     ProvinceAgricultureChanged, ProvinceFreshWaterChanged, ProvinceChanged,
     BatchPopulationUpdate, BatchMineralDiscovery, ProvinceEventsPlugin,
 };
+
+// Coastal and naval range systems
+pub use coastal::{CoastalProvinceCache, initialize_coastal_cache};
+pub use naval_range::{NavalRangeCalculator, NAVAL_RANGE_HEXES};

@@ -469,6 +469,11 @@ pub fn poll_async_world_generation(
                 // Store world seed for overlay rendering system
                 commands.insert_resource(crate::world::WorldSeed(world.seed));
 
+                // Initialize GameTime with the configured starting year
+                let game_time = crate::simulation::GameTime::new(generation.settings.starting_year);
+                info!("Initializing game time with starting year: {}", generation.settings.starting_year);
+                commands.insert_resource(game_time.clone());
+
                 // Create spatial index
                 let spatial_index =
                     ProvincesSpatialIndex::build(&province_storage.provinces, &map_dimensions);
@@ -509,23 +514,14 @@ pub fn poll_async_world_generation(
                 // Build territories from provinces (groups of contiguous provinces)
                 info!("Building territories from {} provinces...", province_storage.provinces.len());
 
-                // TEMPORARY: Skip complex territory building to isolate state transition issue
-                // TODO: Implement optimized parallel territory building for 1M+ provinces
-                info!("Temporarily creating simplified territories to fix state transition");
-                let mut territories_by_nation = std::collections::HashMap::new();
+                let territories_by_nation = crate::nations::build_territories_from_provinces(
+                    &province_storage.provinces
+                );
 
-                // Create one simplified territory per nation for now
-                for nation in &nations {
-                    let simplified_territory = crate::nations::Territory {
-                        provinces: std::collections::HashSet::new(), // Empty for now
-                        nation_id: nation.id,
-                        center: Vec2::new(0.0, 0.0), // Placeholder
-                        is_core: true,
-                    };
-                    territories_by_nation.insert(nation.id, vec![simplified_territory]);
-                }
-
-                info!("Simplified territories created successfully");
+                info!("Built {} territory groups for {} nations",
+                    territories_by_nation.values().map(|v| v.len()).sum::<usize>(),
+                    territories_by_nation.len()
+                );
 
                 // Analyze and generate infrastructure data
                 info!("Analyzing infrastructure networks...");
@@ -555,8 +551,8 @@ pub fn poll_async_world_generation(
                                 pressure_vector: crate::simulation::PressureVector::default(),
                                 history: crate::nations::create_initial_history(
                                     &nation.name,
-                                    "Western".to_string(), // TODO: Use actual culture
-                                    0, // TODO: Use actual game year
+                                    crate::nations::culture_to_display_name(nation.culture).to_string(),
+                                    game_time.current_year(),
                                     &mut rand::thread_rng(),
                                 ),
                                 laws: crate::nations::NationLaws::default(),
@@ -614,6 +610,12 @@ pub fn poll_async_world_generation(
                     commands.spawn(house);
                 }
                 info!("House entities spawned successfully");
+
+                // Initialize coastal province cache for naval systems (before moving province_storage)
+                let mut coastal_cache = crate::world::CoastalProvinceCache::default();
+                coastal_cache.build(&province_storage);
+                commands.insert_resource(coastal_cache);
+                info!("Coastal province cache initialized");
 
                 // Insert the updated province storage (with nation ownership)
                 info!("Inserting province storage with {} provinces...", province_storage.provinces.len());

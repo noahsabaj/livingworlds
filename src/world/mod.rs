@@ -66,6 +66,7 @@ pub use provinces::{
     calculate_agriculture_values, calculate_ocean_depths, Abundance, Agriculture, Distance,
     Elevation, Province, ProvinceBuilder, ProvinceEntity, ProvinceId,
     ProvincesSpatialIndex, ProvinceEventsPlugin,
+    CoastalProvinceCache, initialize_coastal_cache, NavalRangeCalculator, NAVAL_RANGE_HEXES,
 };
 
 // === Rivers Feature ===

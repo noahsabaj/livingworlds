@@ -4,7 +4,7 @@ use bevy_plugin_builder::define_plugin;
 
 // Import from sibling modules through super (gateway pattern)
 use super::{BorderPlugin, CloudPlugin, OverlayPlugin, TerrainPlugin, WorldConfigPlugin};
-use super::{ProvincesSpatialIndex};
+use super::{ProvincesSpatialIndex, CoastalProvinceCache};
 use super::events::{WorldGeneratedEvent, ProvinceSelectedEvent};
 
 /// Main world plugin using REVOLUTIONARY plugin aggregation automation!
@@ -19,7 +19,7 @@ define_plugin!(WorldPlugin {
         WorldConfigPlugin
     ],
 
-    resources: [ProvincesSpatialIndex],
+    resources: [ProvincesSpatialIndex, CoastalProvinceCache],
 
     messages: [WorldGeneratedEvent, ProvinceSelectedEvent]
 });

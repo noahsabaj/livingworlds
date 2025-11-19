@@ -6,14 +6,15 @@
 use bevy::prelude::*;
 use std::collections::HashSet;
 
-use super::types::{NationId, ProvinceOwnershipCache};
+// NationId and ProvinceOwnershipCache deleted - now using Entity and ECS queries
 use crate::world::{ProvinceId, ProvinceStorage};
 
 /// Computed territory metrics for a nation
-#[derive(Debug, Clone)]
+///
+/// This is now a Component attached to nation entities rather than a cached resource.
+#[derive(Debug, Clone, Component, Reflect)]
+#[reflect(Component)]
 pub struct TerritoryMetrics {
-    /// Nation this data belongs to
-    pub nation_id: NationId,
     /// Bounding box of all controlled provinces (min, max)
     pub bounds: (Vec2, Vec2),
     /// Geographic centroid of the territory
@@ -29,7 +30,7 @@ pub struct TerritoryMetrics {
 }
 
 /// A contiguous cluster of provinces (for handling disconnected territories)
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Reflect)]
 pub struct TerritoryCluster {
     /// Provinces in this cluster
     pub province_ids: HashSet<u32>,
@@ -114,7 +115,6 @@ impl TerritoryMetrics {
         let is_contiguous = clusters.len() <= 1;
 
         Some(TerritoryMetrics {
-            nation_id,
             bounds,
             centroid,
             province_count: valid_provinces,
@@ -257,52 +257,4 @@ fn detect_territory_clusters(
     });
 
     clusters
-}
-
-/// Cache for territory metrics to avoid recalculation every frame
-#[derive(Resource, Default)]
-pub struct TerritoryMetricsCache {
-    /// Cached metrics by nation ID
-    pub metrics: std::collections::HashMap<NationId, TerritoryMetrics>,
-    /// Version counter from ProvinceOwnershipCache for invalidation
-    pub cache_version: u32,
-}
-
-impl TerritoryMetricsCache {
-    /// Get or calculate metrics for a nation
-    pub fn get_or_calculate(
-        &mut self,
-        nation_id: NationId,
-        ownership_cache: &ProvinceOwnershipCache,
-        province_storage: &ProvinceStorage,
-    ) -> Option<&TerritoryMetrics> {
-        // Check if cache needs invalidation
-        if self.cache_version != ownership_cache.version {
-            self.metrics.clear();
-            self.cache_version = ownership_cache.version;
-        }
-
-        // Calculate if not cached
-        if !self.metrics.contains_key(&nation_id) {
-            if let Some(metrics) = TerritoryMetrics::calculate(
-                nation_id,
-                ownership_cache,
-                province_storage,
-            ) {
-                self.metrics.insert(nation_id, metrics);
-            }
-        }
-
-        self.metrics.get(&nation_id)
-    }
-
-    /// Force recalculation for a specific nation
-    pub fn invalidate_nation(&mut self, nation_id: NationId) {
-        self.metrics.remove(&nation_id);
-    }
-
-    /// Clear entire cache
-    pub fn clear(&mut self) {
-        self.metrics.clear();
-    }
 }

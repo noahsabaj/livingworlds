@@ -6,7 +6,7 @@
 
 use super::types::MapMode;
 use crate::math::VERTICES_PER_HEX;
-use crate::nations::NationColorRegistry;
+// NationColorRegistry deleted - now using NationColor component
 use crate::world::minerals::calculate_total_richness;
 use crate::world::{Province, ProvinceStorage, WorldColors};
 use bevy::log::{debug, info};
