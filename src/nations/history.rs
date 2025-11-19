@@ -17,7 +17,7 @@ pub struct NationHistory {
     pub ruler: RulerInfo,
 
     /// War and peace tracking
-    pub war_status: WarStatus,
+    // NOTE: War status is now queried via AttackedBy relationship component
     pub years_at_peace: u32,
     pub years_at_war: u32,
     pub total_wars: u32,
@@ -53,7 +53,6 @@ impl Default for NationHistory {
     fn default() -> Self {
         Self {
             ruler: RulerInfo::default(),
-            war_status: WarStatus::AtPeace,
             years_at_peace: 0,
             years_at_war: 0,
             total_wars: 0,
@@ -146,24 +145,70 @@ impl NationHistory {
         recent_defeats >= 2
     }
 
+    /// Count recent defeats weighted by magnitude and time (exponential decay)
+    ///
+    /// Returns weighted defeat count (0.0 to 3.0+).
+    /// - Defeat magnitude (0.0-1.0) weights the severity
+    /// - Exponential time decay: most recent = full weight, older = 0.5^n
+    ///
+    /// Examples:
+    /// - 3 recent crushing defeats (1.0 magnitude each): ~1.75
+    /// - 1 recent minor defeat (0.3 magnitude): ~0.3
+    /// - 3 old defeats: ~0.44 (heavily decayed)
+    pub fn calculate_weighted_recent_defeats(&self) -> f32 {
+        const DECAY_RATE: f32 = 0.5; // Exponential decay factor
+
+        let mut weighted_defeats = 0.0;
+
+        for (idx, battle) in self.recent_battles.iter().rev().enumerate() {
+            if let BattleOutcome::Defeat(magnitude) = battle {
+                // Exponential time decay: most recent = full weight, older = decay^idx
+                let time_weight = DECAY_RATE.powi(idx as i32);
+                weighted_defeats += magnitude * time_weight;
+            }
+        }
+
+        weighted_defeats
+    }
+
+    /// Count recent defeats (integer count for backward compatibility)
+    pub fn count_recent_defeats(&self) -> u32 {
+        self.calculate_weighted_recent_defeats().ceil() as u32
+    }
+
+    /// Count recent victories weighted by magnitude and time
+    pub fn calculate_weighted_recent_victories(&self) -> f32 {
+        const DECAY_RATE: f32 = 0.5;
+
+        let mut weighted_victories = 0.0;
+
+        for (idx, battle) in self.recent_battles.iter().rev().enumerate() {
+            if let BattleOutcome::Victory(magnitude) = battle {
+                let time_weight = DECAY_RATE.powi(idx as i32);
+                weighted_victories += magnitude * time_weight;
+            }
+        }
+
+        weighted_victories
+    }
+
     /// Check if the ruler is experienced
     pub fn has_experienced_ruler(&self) -> bool {
         self.ruler.years_ruling > 10
     }
 
     /// Update yearly statistics
-    pub fn yearly_update(&mut self) {
+    ///
+    /// `is_at_war` should be determined by querying the AttackedBy relationship
+    pub fn yearly_update(&mut self, is_at_war: bool) {
         self.ruler.age += 1;
         self.ruler.years_ruling += 1;
 
-        match self.war_status {
-            WarStatus::AtWar(_) => {
-                self.years_at_war += 1;
-                self.years_at_peace = 0;
-            }
-            WarStatus::AtPeace => {
-                self.years_at_peace += 1;
-            }
+        if is_at_war {
+            self.years_at_war += 1;
+            self.years_at_peace = 0;
+        } else {
+            self.years_at_peace += 1;
         }
 
         // Natural legitimacy decay/recovery
@@ -234,13 +279,6 @@ impl Default for RulerTraits {
             ambitious: 0.0,
         }
     }
-}
-
-/// Current war status of a nation
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
-pub enum WarStatus {
-    AtPeace,
-    AtWar(Vec<super::NationId>),  // List of enemies
 }
 
 /// Outcome of a battle

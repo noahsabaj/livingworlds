@@ -40,6 +40,7 @@ pub fn setup_calendar_system(mut commands: Commands) {
 pub fn apply_world_time_settings(
     mut commands: Commands,
     settings: Option<Res<WorldGenerationSettings>>,
+    existing_game_time: Option<Res<GameTime>>,
     mut calendar_registry: ResMut<CalendarRegistry>,
 ) {
     if let Some(settings) = settings {
@@ -54,12 +55,16 @@ pub fn apply_world_time_settings(
             );
         }
 
-        // Initialize GameTime with the configured starting year
-        let game_time = GameTime::new(settings.starting_year);
-        info!("Initializing game time with starting year: {}", settings.starting_year);
-        commands.insert_resource(game_time);
-    } else {
-        // Fallback if no settings available
+        // Only create GameTime if it doesn't already exist
+        if existing_game_time.is_none() {
+            let game_time = GameTime::new(settings.starting_year);
+            info!("Initializing game time with starting year: {}", settings.starting_year);
+            commands.insert_resource(game_time);
+        } else {
+            info!("GameTime already initialized during world generation, skipping creation");
+        }
+    } else if existing_game_time.is_none() {
+        // Fallback if no settings available and GameTime doesn't exist
         warn!("No WorldGenerationSettings found, using default GameTime");
         commands.insert_resource(GameTime::default());
     }

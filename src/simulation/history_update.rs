@@ -4,11 +4,12 @@
 
 use bevy::prelude::*;
 use crate::nations::{Nation, NationHistory};
+use crate::nations::relationships::AttackedBy;
 use crate::simulation::GameTime;
 
 /// Update nation histories each game year
 pub fn update_nation_histories(
-    mut nations_query: Query<(&Nation, &mut NationHistory)>,
+    mut nations_query: Query<(Entity, &Nation, &mut NationHistory, Option<&AttackedBy>)>,
     game_time: Res<GameTime>,
     mut last_year: Local<u32>,
 ) {
@@ -20,9 +21,12 @@ pub fn update_nation_histories(
     }
     *last_year = current_year;
 
-    for (nation, mut history) in &mut nations_query {
+    for (entity, nation, mut history, attacked_by) in &mut nations_query {
+        // Check if at war via AttackedBy relationship
+        let is_at_war = attacked_by.is_some() && !attacked_by.unwrap().0.is_empty();
+
         // Update yearly statistics
-        history.yearly_update();
+        history.yearly_update(is_at_war);
 
         // Update treasury tracking
         if nation.treasury > history.peak_treasury {
@@ -114,6 +118,9 @@ pub struct BattleEvent {
 }
 
 /// System to track war declarations and peace
+///
+/// NOTE: War status is now managed via AttackedBy relationship components.
+/// This system only records historical events.
 pub fn track_war_status(
     mut war_events: MessageReader<WarStatusEvent>,
     mut nations_query: Query<(&Nation, &mut NationHistory)>,
@@ -127,9 +134,6 @@ pub fn track_war_status(
 
                 // Update aggressor's history
                 if let Ok((nation, mut history)) = nations_query.get_mut(*aggressor) {
-                    history.war_status = crate::nations::WarStatus::AtWar(vec![
-                        crate::nations::NationId::new(0) // TODO: Convert entity to nation ID properly
-                    ]);
                     history.total_wars += 1;
                     history.years_at_war = 0;
 
@@ -144,9 +148,6 @@ pub fn track_war_status(
 
                 // Update defender's history
                 if let Ok((nation, mut history)) = nations_query.get_mut(*defender) {
-                    history.war_status = crate::nations::WarStatus::AtWar(vec![
-                        crate::nations::NationId::new(0) // TODO: Convert entity to nation ID properly
-                    ]);
                     history.total_wars += 1;
                     history.years_at_war = 0;
 
@@ -166,7 +167,6 @@ pub fn track_war_status(
 
                 // Update nation A's history
                 if let Ok((nation, mut history)) = nations_query.get_mut(*nation_a) {
-                    history.war_status = crate::nations::WarStatus::AtPeace;
                     history.years_at_peace = 0;
 
                     if let Some(enemy_name) = nation_b_name.clone() {
@@ -180,7 +180,6 @@ pub fn track_war_status(
 
                 // Update nation B's history
                 if let Ok((nation, mut history)) = nations_query.get_mut(*nation_b) {
-                    history.war_status = crate::nations::WarStatus::AtPeace;
                     history.years_at_peace = 0;
 
                     if let Some(enemy_name) = nation_a_name {
