@@ -115,7 +115,6 @@ pub fn process_character_events(
 pub fn spawn_house_family(
     commands: &mut Commands,
     house_entity: Entity,
-    nation_id: crate::nations::NationId,
     culture: crate::name_generator::Culture,
     name_gen: &mut crate::name_generator::NameGenerator,
 ) -> Vec<Entity> {
@@ -125,7 +124,6 @@ pub fn spawn_house_family(
     // Create ruler
     let ruler = Character::generate(
         house_entity,
-        nation_id,
         culture,
         CharacterRole::Ruler,
         name_gen,
@@ -146,7 +144,6 @@ pub fn spawn_house_family(
     if rng.gen_bool(0.5) {
         let spouse = Character::generate(
             house_entity,
-            nation_id,
             culture,
             CharacterRole::Spouse,
             name_gen,
@@ -185,7 +182,6 @@ pub fn spawn_house_family(
 
         let child = Character::generate(
             house_entity,
-            nation_id,
             culture,
             role,
             name_gen,
@@ -217,7 +213,6 @@ pub fn spawn_house_family(
     if rng.gen_bool(0.3) {
         let advisor = Character::generate(
             house_entity,
-            nation_id,
             culture,
             CharacterRole::Advisor,
             name_gen,
@@ -239,7 +234,6 @@ pub fn spawn_house_family(
     if rng.gen_bool(0.1) {
         let bastard = Character::generate(
             house_entity,
-            nation_id,
             culture,
             CharacterRole::Bastard,
             name_gen,

@@ -12,7 +12,6 @@ use super::characters::{
     Character, CharacterId, CharacterRole, RelationshipType,
     Secret, Scandal, Quirk
 };
-use crate::nations::NationId;
 use crate::simulation::GameTime;
 
 /// A dramatic event that creates shareable moments
@@ -333,8 +332,8 @@ pub enum EventConsequence {
 
     // War and conflict
     WarDeclared {
-        nation_a: NationId,
-        nation_b: NationId,
+        nation_a: Entity,
+        nation_b: Entity,
         casus_belli: String,
     },
 

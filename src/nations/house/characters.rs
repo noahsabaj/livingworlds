@@ -8,14 +8,13 @@ use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::name_generator::{Culture, Gender, NameGenerator, NameType, PersonRole};
-use crate::nations::NationId;
 
 /// A full character with personality, relationships, and drama potential
 #[derive(Debug, Clone, Component, Serialize, Deserialize, Reflect)]
 pub struct Character {
     pub id: CharacterId,
     pub house_id: Entity, // The house this character belongs to
-    pub nation_id: NationId,
+    // NOTE: Nation can be determined via house_id → House → RulesOver relationship
 
     // Basic info
     pub name: String,
@@ -150,7 +149,7 @@ pub enum Secret {
 
     // Crimes
     MurderedSomeone { victim: String, when: u32 },
-    Traitor { allied_with: NationId },
+    Traitor { allied_with: Entity },
     Embezzler { amount: u32 },
 
     // Personal
@@ -310,7 +309,6 @@ impl Character {
     /// Generate a new character with randomized traits
     pub fn generate(
         house_id: Entity,
-        nation_id: NationId,
         culture: Culture,
         role: CharacterRole,
         name_gen: &mut NameGenerator,
@@ -360,7 +358,6 @@ impl Character {
         Self {
             id: CharacterId(rng.r#gen()),
             house_id,
-            nation_id,
             name,
             title: None,
             age,

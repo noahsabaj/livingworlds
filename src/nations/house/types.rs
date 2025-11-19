@@ -7,15 +7,13 @@ use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use super::traits::HouseTraits;
-use crate::nations::NationId;
 
 /// A ruling house (dynasty/family) that controls a nation
 ///
-/// Uses Bevy 0.16 Component Hooks for automatic cleanup tracking
+/// Uses Bevy 0.17 Component Hooks for automatic cleanup tracking.
+/// The nation ruled is tracked via the RulesOver relationship component.
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
 pub struct House {
-    pub nation_id: NationId,
-
     /// The house name (e.g., "Blackwater", "Ironhold", "Jalindan-Gatha")
     pub name: String,
 
@@ -50,7 +48,7 @@ impl Component for House {
         Some(|world, bevy::ecs::lifecycle::HookContext { entity, .. }| {
             // Log dynasty creation
             if let Some(house) = world.get::<House>(entity) {
-                info!("Dynasty founded: {} (Nation ID {})", house.full_name, house.nation_id.value());
+                info!("Dynasty founded: {} (Entity {:?})", house.full_name, entity);
             }
         })
     }
