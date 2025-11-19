@@ -22,8 +22,10 @@ pub fn update_nation_pressures(
         &crate::nations::OwnsTerritory,
         Option<&crate::nations::NationHistory>,
     )>,
+    all_nations_query: Query<&Nation>,  // For neighbor strength lookup
     territories_query: Query<&crate::nations::Territory>,
     province_storage: Res<ProvinceStorage>,
+    neighbor_cache: Res<crate::nations::NationNeighborCache>,  // For neighbor detection
     time: Res<Time>,
 ) {
     // NOTE: Bevy queries should not be manually parallelized with Rayon
@@ -71,12 +73,21 @@ pub fn update_nation_pressures(
                 econ_pressure.treasury_shortage,
             );
 
-            // Calculate military pressures (simplified for now)
+            // Calculate military pressures
+            let neighbor_strengths = crate::nations::get_neighbor_strengths(
+                &nation,
+                &neighbor_cache,
+                &all_nations_query,
+            );
+            let recent_defeats = history_opt
+                .map(|h| h.calculate_weighted_recent_defeats())
+                .unwrap_or(0.0);
+
             let mil_pressure = calculate_military_pressure(
                 &nation,
-                &[], // Neighbor strengths - TODO: implement neighbor lookup
+                &neighbor_strengths,
                 controlled_provinces.len(),
-                0, // Recent defeats - TODO: track in nation history
+                recent_defeats,
             );
             pressures.set_pressure(
                 PressureType::MilitaryVulnerability,
@@ -286,6 +297,8 @@ struct NationPressureData {
     nation: Nation,
     pressures: PressureVector,
     territory_entities: Vec<Entity>,
+    neighbor_strengths: Vec<f32>,  // Pre-computed neighbor strengths
+    recent_defeats: f32,            // Pre-computed weighted defeats
 }
 
 /// Run pressure systems on a timer with parallel processing
@@ -298,11 +311,14 @@ pub fn run_pressure_systems_on_timer(
             &mut Nation,
             &mut PressureVector,
             &crate::nations::OwnsTerritory,
+            Option<&crate::nations::NationHistory>,  // For defeat tracking
         ),
         Without<crate::nations::Territory>,
     >,
+    all_nations_query: Query<&Nation>,  // For neighbor strength lookup
     territories_query: Query<&crate::nations::Territory>,
     province_storage: Res<ProvinceStorage>,
+    neighbor_cache: Res<crate::nations::NationNeighborCache>,  // For neighbor detection
     mut _commands: Commands,
 ) {
     timer.timer.tick(time.delta());
@@ -313,12 +329,26 @@ pub fn run_pressure_systems_on_timer(
         let nation_count = nations_query.iter().len();
         let mut nation_data: Vec<NationPressureData> = Vec::with_capacity(nation_count);
 
-        for (entity, nation, pressures, owns_territory) in nations_query.iter() {
+        for (entity, nation, pressures, owns_territory, history_opt) in nations_query.iter() {
+            // Pre-compute neighbor strengths (can't do in parallel - needs query access)
+            let neighbor_strengths = crate::nations::get_neighbor_strengths(
+                &nation,
+                &neighbor_cache,
+                &all_nations_query,
+            );
+
+            // Pre-compute weighted recent defeats
+            let recent_defeats = history_opt
+                .map(|h| h.calculate_weighted_recent_defeats())
+                .unwrap_or(0.0);
+
             nation_data.push(NationPressureData {
                 entity,
                 nation: nation.clone(),
                 pressures: pressures.clone(),
                 territory_entities: owns_territory.territories().to_vec(),
+                neighbor_strengths,  // Pre-computed
+                recent_defeats,       // Pre-computed
             });
         }
 
@@ -373,9 +403,9 @@ pub fn run_pressure_systems_on_timer(
                     // Military pressures
                     let mil_pressure = calculate_military_pressure(
                         &data.nation,
-                        &[], // TODO: Neighbor strengths
+                        &data.neighbor_strengths,  // Pre-computed from neighbor cache
                         controlled_provinces.len(),
-                        0, // TODO: Recent defeats
+                        data.recent_defeats,        // Pre-computed weighted defeats
                     );
                     new_pressures.set_pressure(
                         PressureType::MilitaryVulnerability,
@@ -415,7 +445,7 @@ pub fn run_pressure_systems_on_timer(
 
         // Apply calculated pressures back to entities
         for (entity, new_pressures) in calculated_pressures {
-            if let Ok((_, _, mut pressures, _)) = nations_query.get_mut(entity) {
+            if let Ok((_, _, mut pressures, _, _)) = nations_query.get_mut(entity) {
                 *pressures = new_pressures;
             }
         }

@@ -23,7 +23,7 @@ pub fn calculate_military_pressure(
     nation: &Nation,
     neighbor_strengths: &[f32],
     province_count: usize,
-    recent_defeats: u32,
+    recent_defeats: f32,  // Now accepts weighted defeats (magnitude × exponential decay)
 ) -> MilitaryPressure {
     // External threat from stronger neighbors
     let avg_neighbor_strength = if !neighbor_strengths.is_empty() {
@@ -57,9 +57,9 @@ pub fn calculate_military_pressure(
         PressureLevel::NONE
     };
 
-    // Recent defeats create lasting pressure
-    let defeat_trauma = if recent_defeats > 0 {
-        PressureLevel::new((recent_defeats as f32 / 3.0).min(1.0)) // Max trauma at 3 defeats
+    // Recent defeats create lasting pressure (weighted by magnitude & recency)
+    let defeat_trauma = if recent_defeats > 0.0 {
+        PressureLevel::new((recent_defeats / 3.0).min(1.0)) // Max trauma at 3 weighted defeats
     } else {
         PressureLevel::NONE
     };
