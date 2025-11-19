@@ -104,7 +104,7 @@ pub use version::version_string;
 pub use world::{Province, ProvinceId, TerrainType, ClimateZone};
 
 // Nation types (for external access if needed)
-pub use nations::{Nation, NationId};
+pub use nations::Nation;
 
 // Game states (already in prelude, but explicit re-export for clarity)
 pub use states::{GameState, MenuState};

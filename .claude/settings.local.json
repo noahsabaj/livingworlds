@@ -30,12 +30,13 @@
       "WebFetch(domain:bevyengine.org)",
       "WebFetch(domain:bevy.org)",
       "WebFetch(domain:crates.io)",
-      "Bash(cargo tree:*)"
+      "Bash(cargo tree:*)",
+      "Bash(xargs ls:*)"
     ]
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "github-server"
   ],
-  "outputStyle": "default",
-  "enableAllProjectMcpServers": true
+  "outputStyle": "default"
 }

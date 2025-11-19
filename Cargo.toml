@@ -150,14 +150,14 @@ style = { level = "warn", priority = -1 }
 pedantic = { level = "warn", priority = -1 }
 
 # Specific lints we really care about
-print_stdout = "warn"        # Catch those 221 println! statements
-print_stderr = "warn"        # Also catch eprintln!
-unwrap_used = "warn"         # Catch the 10 unwrap() calls that could panic
-expect_used = "warn"         # Expect can also panic
-panic = "warn"               # Direct panic! calls
-todo = "warn"                # TODOs should be tracked properly
-unimplemented = "warn"       # Unimplemented code shouldn't ship
-dbg_macro = "warn"           # dbg! shouldn't be in production
+print_stdout = "forbid"        # Catch those 221 println! statements
+print_stderr = "forbid"        # Also catch eprintln!
+unwrap_used = "forbid"         # Catch the 10 unwrap() calls that could panic
+expect_used = "forbid"         # Expect can also panic
+panic = "forbid"               # Direct panic! calls
+todo = "forbid"                # TODOs should be tracked properly
+unimplemented = "forbid"       # Unimplemented code shouldn't ship
+dbg_macro = "forbid"           # dbg! shouldn't be in production
 
 # Performance issues
 inefficient_to_string = "warn"
