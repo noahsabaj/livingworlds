@@ -13,6 +13,6 @@ mod types;
 // Public exports - controlled API surface
 pub use global::LawRegistry;
 pub use nation::NationLaws;
-pub use tracking::ActiveLaws;
+// ActiveLaws deleted - now using EnactedLaws relationship component
 pub use history::LawHistory;
 pub use types::{ProposedLaw, LawChange, LawChangeType};

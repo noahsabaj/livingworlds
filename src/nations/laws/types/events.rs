@@ -5,12 +5,11 @@
 use bevy::prelude::*;
 
 use super::core::{LawId, LawCategory};
-use crate::nations::NationId;
 
 /// Event fired when a law is enacted
 #[derive(Message, Debug, Clone)]
 pub struct LawEnactmentEvent {
-    pub nation_id: NationId,
+    pub nation_entity: Entity,
     pub nation_name: String,
     pub law_id: LawId,
     pub law_name: String,
@@ -20,7 +19,7 @@ pub struct LawEnactmentEvent {
 /// Event fired when a law is repealed
 #[derive(Message, Debug, Clone)]
 pub struct LawRepealEvent {
-    pub nation_id: NationId,
+    pub nation_entity: Entity,
     pub nation_name: String,
     pub law_id: LawId,
     pub law_name: String,

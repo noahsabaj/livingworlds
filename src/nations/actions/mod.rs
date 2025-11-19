@@ -5,6 +5,7 @@
 //! 2. Execution: Actually perform the actions and update game state
 
 // Private modules
+mod events;
 mod resolution;
 mod execution;
 
@@ -15,6 +16,11 @@ pub use resolution::{
     PublicWorkType,
     NationAction,
     ActionType,
+};
+
+pub use events::{
+    TerritoryOwnershipChanged,
+    OwnershipChangeType,
 };
 
 // Public exports - systems

@@ -48,7 +48,7 @@ pub fn process_law_votes_system(
 
                         // Fire event
                         enactment_events.write(LawEnactmentEvent {
-                            nation_id: nation.id,
+                            nation_entity: entity,
                             nation_name: nation.name.clone(),
                             law_id: proposed.law_id,
                             law_name: law.name.clone(),

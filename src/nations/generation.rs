@@ -71,9 +71,9 @@ pub fn spawn_nations(
     ensure_unique_nation_names(&mut nation_data, &capital_provinces, provinces, settings);
 
     let mut governments = Vec::new();
-    for (nation, house, government) in nation_data {
-        debug!("Created nation: {} (ID: {}) with house {} and {:?} government",
-               nation.name, nation.id.value(), house.name, government);
+    for (idx, (nation, house, government)) in nation_data.into_iter().enumerate() {
+        debug!("Created nation: {} (index: {}) with house {} and {:?} government",
+               nation.name, idx, house.name, government);
         nations.push(nation);
         houses.push(house);
         governments.push(government);
@@ -347,15 +347,15 @@ fn ensure_unique_nation_names(
             let capital_position = provinces[capital_idx].position;
 
             // Generate new unique name with modified seed
-            let base_seed = nation.id.value() as u64;
+            let base_seed = idx as u64;
             let mut attempt = 0;
             const MAX_ATTEMPTS: u32 = 100;
 
             let (new_name, new_adjective, new_ruler_title) = loop {
                 attempt += 1;
                 if attempt > MAX_ATTEMPTS {
-                    warn!("Failed to generate unique name after {} attempts for nation ID {}",
-                          MAX_ATTEMPTS, nation.id.value());
+                    warn!("Failed to generate unique name after {} attempts for nation index {}",
+                          MAX_ATTEMPTS, idx);
                     // Fallback: original name + number
                     let fallback_name = format!("{} {}", original_name, attempt);
                     let fallback_adj = generate_adjective(&fallback_name);
@@ -597,19 +597,20 @@ fn assign_territory_to_nations(
         Arc::new((0..provinces.len()).map(|_| AtomicU32::new(0)).collect());
 
     // Initialize capitals with atomic ownership
-    for nation in nations.iter() {
+    for (nation_idx, nation) in nations.iter().enumerate() {
         let capital_idx = nation.capital_province as usize;
-        atomic_owners[capital_idx].store(nation.id.value() + 1, Ordering::SeqCst);
+        atomic_owners[capital_idx].store((nation_idx as u32) + 1, Ordering::SeqCst);
     }
 
     // Parallel territory expansion for all nations
     let nation_claims: Vec<Vec<u32>> = nations
         .par_iter()
-        .map(|nation| {
+        .enumerate()
+        .map(|(nation_idx, nation)| {
             let mut claimed_provinces = vec![nation.capital_province];
             let mut frontier = VecDeque::new();
             frontier.push_back(nation.capital_province);
-            let nation_id_atomic = nation.id.value() + 1; // +1 because 0 means unclaimed
+            let nation_id_atomic = (nation_idx as u32) + 1; // +1 because 0 means unclaimed
 
             while claimed_provinces.len() < growth_limit && !frontier.is_empty() {
                 // Process current frontier level
@@ -703,17 +704,17 @@ fn assign_territory_to_nations(
 }
 
 /// Build Territory entities from contiguous province regions (parallel version)
-/// Returns a map of nation_id -> vec of territories for that nation
+/// Returns a map of nation_entity -> vec of territories for that nation
 pub fn build_territories_from_provinces(
     provinces: &[Province],
-) -> HashMap<NationId, Vec<Territory>> {
+) -> HashMap<Entity, Vec<Territory>> {
     // Parallel grouping: Group provinces by owner nation first
-    let provinces_by_nation: HashMap<NationId, Vec<usize>> = provinces
+    let provinces_by_nation: HashMap<Entity, Vec<usize>> = provinces
         .par_iter()
         .enumerate()
-        .filter_map(|(idx, province)| province.owner.map(|owner| (owner, idx)))
-        .fold(HashMap::new, |mut acc, (nation_id, province_idx)| {
-            acc.entry(nation_id)
+        .filter_map(|(idx, province)| province.owner_entity.map(|owner| (owner, idx)))
+        .fold(HashMap::new, |mut acc, (nation_entity, province_idx)| {
+            acc.entry(nation_entity)
                 .or_insert_with(Vec::new)
                 .push(province_idx);
             acc
@@ -736,9 +737,9 @@ pub fn build_territories_from_provinces(
     let province_lookup = Arc::new(province_lookup);
 
     // Parallel territory building: Process each nation's provinces in parallel
-    let nation_territories: HashMap<NationId, Vec<Territory>> = provinces_by_nation
+    let nation_territories: HashMap<Entity, Vec<Territory>> = provinces_by_nation
         .par_iter()
-        .map(|(&nation_id, province_indices)| {
+        .map(|(&nation_entity, province_indices)| {
             let province_map = Arc::clone(&province_lookup);
             let mut territories = Vec::new();
             let mut visited = HashSet::with_capacity(province_indices.len());
@@ -768,7 +769,7 @@ pub fn build_territories_from_provinces(
 
                     // O(1) HashMap lookup instead of O(n) linear search!
                     if let Some(&current_province) = province_map.get(&current_id) {
-                        if current_province.owner == Some(nation_id) {
+                        if current_province.owner_entity == Some(nation_entity) {
                             visited.insert(current_id);
                             territory_provinces.insert(current_id);
 
@@ -796,24 +797,26 @@ pub fn build_territories_from_provinces(
                         provinces: territory_provinces,
                         nation_id,
                         center,
-                        is_core: true, // TODO: Determine core vs conquered based on culture/history
+                        // All territories are core at world generation
+                        // Future conquest mechanics will create non-core (conquered) territories during gameplay
+                        is_core: true,
                     };
 
                     territories.push(territory);
                 }
             }
 
-            (nation_id, territories)
+            (nation_entity, territories)
         })
         .collect();
 
     info!("Built territories for {} nations", nation_territories.len());
 
-    for (nation_id, territories) in &nation_territories {
+    for (nation_entity, territories) in &nation_territories {
         let total_provinces: usize = territories.iter().map(|t| t.provinces.len()).sum();
         info!(
-            "Nation {} has {} territories with {} total provinces",
-            nation_id.value(),
+            "Nation entity {:?} has {} territories with {} total provinces",
+            nation_entity,
             territories.len(),
             total_provinces
         );

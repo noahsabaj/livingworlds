@@ -4,7 +4,7 @@
 
 use bevy::prelude::*;
 use crate::nations::laws::{LawId, NationLaws, LawRegistry, LawEnactmentEvent, LawRepealEvent};
-use crate::nations::{Nation, NationId};
+use crate::nations::Nation;
 use crate::simulation::PressureType;
 
 /// Debug commands for manipulating laws

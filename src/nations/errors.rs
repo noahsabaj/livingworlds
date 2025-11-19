@@ -6,7 +6,7 @@
 use thiserror::Error;
 use bevy::prelude::Entity;
 
-use super::types::NationId;
+// NationId deleted - now using Entity directly
 use super::governance::{GovernmentType, GovernmentCategory};
 use super::laws::{LawId, LawPrerequisite};
 

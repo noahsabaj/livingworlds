@@ -8,26 +8,11 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fmt;
 
-/// Unique identifier for a nation
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Component, Reflect)]
-pub struct NationId(pub u32);
-
-impl NationId {
-    pub fn new(id: u32) -> Self {
-        Self(id)
-    }
-
-    pub fn value(&self) -> u32 {
-        self.0
-    }
-}
-
 /// A political entity that controls territory and has a ruling house
 ///
 /// Uses Bevy 0.16 Component Hooks for automatic cache cleanup when removed
-#[derive(Debug, Clone, Serialize, Deserialize, Reflect)]
+#[derive(Debug, Clone, Serialize, Deserialize, Reflect, Component)]
 pub struct Nation {
-    pub id: NationId,
     pub name: String,
     pub adjective: String, // "French" for "France"
     pub color: Color,
@@ -46,43 +31,6 @@ pub struct Nation {
 
     // Personality for AI decisions
     pub personality: NationPersonality,
-}
-
-// Manual Component implementation to register lifecycle hooks (Bevy 0.16)
-impl Component for Nation {
-    const STORAGE_TYPE: bevy::ecs::component::StorageType = bevy::ecs::component::StorageType::Table;
-    type Mutability = bevy::ecs::component::Mutable;
-
-    fn on_remove() -> Option<bevy::ecs::lifecycle::ComponentHook> {
-        Some(|mut world, context| {
-            let entity = context.entity;
-            // Get the nation ID before it's removed
-            if let Some(nation) = world.get::<Nation>(entity) {
-                let nation_id = nation.id;
-                let nation_name = nation.name.clone();
-
-                info!("Nation '{}' (ID {}) removed - cleaning up caches", nation_name, nation_id.value());
-
-                // Clean up territory metrics cache
-                let mut cache = world.resource_mut::<super::territory_analysis::TerritoryMetricsCache>();
-                cache.invalidate_nation(nation_id);
-                debug!("  ✓ Invalidated territory metrics for {}", nation_name);
-
-                // Clean up ownership cache (will be rebuilt on next frame if needed)
-                let mut ownership = world.resource_mut::<ProvinceOwnershipCache>();
-                ownership.by_nation.remove(&nation_id);
-                ownership.version += 1;
-                debug!("  ✓ Removed ownership records for {}", nation_name);
-
-                // Clean up color registry
-                let mut colors = world.resource_mut::<NationColorRegistry>();
-                colors.colors.remove(&nation_id);
-                debug!("  ✓ Removed color mapping for {}", nation_name);
-
-                debug!("Nation cleanup complete for '{}'", nation_name);
-            }
-        })
-    }
 }
 
 /// Personality traits that drive nation behavior
@@ -148,54 +96,6 @@ impl NationRegistry {
             .nation_id_counter
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         NationId::new(id)
-    }
-}
-
-/// Cached index of province ownership for efficient queries
-/// This is rebuilt from Province.owner when territory changes
-#[derive(Resource, Default)]
-pub struct ProvinceOwnershipCache {
-    /// Map from nation ID to set of owned province IDs
-    pub by_nation: std::collections::HashMap<NationId, std::collections::HashSet<u32>>,
-    /// Version counter to track when cache needs rebuilding
-    pub version: u32,
-}
-
-/// Registry of nation colors for rendering
-#[derive(Resource, Default)]
-pub struct NationColorRegistry {
-    /// Map from nation ID to color
-    pub colors: std::collections::HashMap<NationId, Color>,
-}
-
-impl ProvinceOwnershipCache {
-    /// Get all provinces owned by a nation
-    pub fn get_nation_provinces(
-        &self,
-        nation_id: NationId,
-    ) -> Option<&std::collections::HashSet<u32>> {
-        self.by_nation.get(&nation_id)
-    }
-
-    /// Count provinces owned by a nation
-    pub fn count_nation_provinces(&self, nation_id: NationId) -> usize {
-        self.by_nation.get(&nation_id).map_or(0, |set| set.len())
-    }
-
-    /// Rebuild cache from province data
-    pub fn rebuild(&mut self, provinces: &[crate::world::Province]) {
-        self.by_nation.clear();
-
-        for province in provinces {
-            if let Some(owner) = province.owner {
-                self.by_nation
-                    .entry(owner)
-                    .or_insert_with(std::collections::HashSet::new)
-                    .insert(province.id.value());
-            }
-        }
-
-        self.version += 1;
     }
 }
 

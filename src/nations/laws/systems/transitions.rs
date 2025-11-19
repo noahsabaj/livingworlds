@@ -44,7 +44,7 @@ pub fn handle_government_transitions_system(
                             active_laws.on_law_enacted(nation.id, law_id);
 
                             enactment_events.write(LawEnactmentEvent {
-                                nation_id: nation.id,
+                                nation_entity: entity,
                                 nation_name: nation.name.clone(),
                                 law_id,
                                 law_name: law.name.clone(),
@@ -71,7 +71,7 @@ pub fn handle_government_transitions_system(
                             active_laws.on_law_repealed(nation.id, law_id);
 
                             repeal_events.write(LawRepealEvent {
-                                nation_id: nation.id,
+                                nation_entity: entity,
                                 nation_name: nation.name.clone(),
                                 law_id,
                                 law_name: law.name.clone(),

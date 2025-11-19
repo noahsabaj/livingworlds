@@ -7,14 +7,14 @@ use bevy::prelude::*;
 use crate::diagnostics::{log_nation_decision, log_nation_state_change};
 use crate::simulation::{PressureType, PressureLevel};
 use crate::world::{ProvinceId, ProvinceStorage};
-use crate::nations::{Nation, NationId, NationHistory};
+use crate::nations::{Nation, NationHistory};
 
 /// Actions that nations can take to relieve pressures
 #[derive(Debug, Clone, Message)]
 pub enum NationActionEvent {
     /// Nation attempts to expand into neighboring territory
     ExpansionAttempt {
-        nation_id: NationId,
+        nation_entity: Entity,
         nation_name: String,
         target_provinces: Vec<ProvinceId>,
         pressure_level: f32,
@@ -22,7 +22,7 @@ pub enum NationActionEvent {
 
     /// Nation increases taxes to address economic pressure
     TaxIncrease {
-        nation_id: NationId,
+        nation_entity: Entity,
         nation_name: String,
         old_rate: f32,
         new_rate: f32,
@@ -31,15 +31,15 @@ pub enum NationActionEvent {
 
     /// Nation attempts to raid neighbors for resources
     RaidAttempt {
-        nation_id: NationId,
+        nation_entity: Entity,
         nation_name: String,
-        target_nation: NationId,
+        target_nation: Entity,
         pressure_level: f32,
     },
 
     /// Nation recruits additional military forces
     MilitaryRecruitment {
-        nation_id: NationId,
+        nation_entity: Entity,
         nation_name: String,
         units_recruited: u32,
         pressure_level: f32,
@@ -47,15 +47,15 @@ pub enum NationActionEvent {
 
     /// Nation seeks alliance for protection
     AllianceSeek {
-        nation_id: NationId,
+        nation_entity: Entity,
         nation_name: String,
-        target_nation: Option<NationId>,
+        target_nation: Option<Entity>,
         pressure_level: f32,
     },
 
     /// Nation implements reforms to improve legitimacy
     ReformImplementation {
-        nation_id: NationId,
+        nation_entity: Entity,
         nation_name: String,
         reform_type: ReformType,
         pressure_level: f32,
@@ -63,7 +63,7 @@ pub enum NationActionEvent {
 
     /// Nation builds public works to improve stability
     PublicWorks {
-        nation_id: NationId,
+        nation_entity: Entity,
         nation_name: String,
         project_type: PublicWorkType,
         pressure_level: f32,
@@ -103,7 +103,7 @@ pub struct NationAction {
 pub enum ActionType {
     Expand(Vec<ProvinceId>),
     RaiseTaxes(f32),
-    Raid(NationId),
+    Raid(Entity),
     RecruitArmy(u32),
     SeekAlliance,
     ImplementReform(ReformType),
@@ -139,6 +139,7 @@ pub fn resolve_nation_actions(
             match pressure_type {
                 PressureType::PopulationOvercrowding => {
                     handle_population_pressure(
+                        entity,
                         &mut nation,
                         &history,
                         level,
@@ -148,6 +149,7 @@ pub fn resolve_nation_actions(
                 }
                 PressureType::EconomicStrain => {
                     handle_economic_pressure(
+                        entity,
                         &mut nation,
                         &history,
                         level,
@@ -156,6 +158,7 @@ pub fn resolve_nation_actions(
                 }
                 PressureType::MilitaryVulnerability => {
                     handle_military_pressure(
+                        entity,
                         &mut nation,
                         &history,
                         level,
@@ -164,6 +167,7 @@ pub fn resolve_nation_actions(
                 }
                 PressureType::LegitimacyCrisis => {
                     handle_legitimacy_pressure(
+                        entity,
                         &mut nation,
                         &history,
                         level,
@@ -181,6 +185,7 @@ pub fn resolve_nation_actions(
 
 /// Handle population pressure with expansion attempts
 pub fn handle_population_pressure(
+    nation_entity: Entity,
     nation: &mut Nation,
     history: &NationHistory,
     pressure: PressureLevel,
@@ -196,7 +201,7 @@ pub fn handle_population_pressure(
     let expansion_desire = calculate_expansion_desire(nation, history, pressure);
 
     log_nation_decision(
-        nation.id.value(),
+        nation_entity.index(),
         &nation.name,
         "Population Pressure Response",
         &format!("Expansion desire: {:.2}, Pressure: {:.1}", expansion_desire, pressure.value())
@@ -204,25 +209,25 @@ pub fn handle_population_pressure(
 
     if expansion_desire > 0.5 {
         // Find suitable target provinces
-        let targets = find_expansion_targets(nation, province_storage);
+        let targets = find_expansion_targets(nation_entity, province_storage);
 
         if !targets.is_empty() {
             log_nation_decision(
-                nation.id.value(),
+                nation_entity.index(),
                 &nation.name,
                 "Expansion Decision",
                 &format!("Targeting {} provinces for expansion", targets.len())
             );
 
             messages.write(NationActionEvent::ExpansionAttempt {
-                nation_id: nation.id,
+                nation_entity,
                 nation_name: nation.name.clone(),
                 target_provinces: targets.clone(),
                 pressure_level: pressure.value(),
             });
 
             log_nation_state_change(
-                nation.id.value(),
+                nation_entity.index(),
                 &nation.name,
                 "Peaceful",
                 "Expanding",
@@ -249,6 +254,7 @@ pub fn handle_population_pressure(
 
 /// Handle economic pressure with tax increases or raids
 pub fn handle_economic_pressure(
+    nation_entity: Entity,
     nation: &mut Nation,
     history: &NationHistory,
     pressure: PressureLevel,
@@ -265,7 +271,7 @@ pub fn handle_economic_pressure(
     let recent_defeats = history.has_recent_defeats();
 
     log_nation_decision(
-        nation.id.value(),
+        nation_entity.index(),
         &nation.name,
         "Economic Pressure Analysis",
         &format!("Aggression: {:.2}, Military: {:.2}, Recent defeats: {}",
@@ -275,21 +281,21 @@ pub fn handle_economic_pressure(
     if is_aggressive && has_military_strength && !recent_defeats {
         // Attempt to raid neighbors
         log_nation_decision(
-            nation.id.value(),
+            nation_entity.index(),
             &nation.name,
             "Economic Response",
             "Choosing aggressive approach - will attempt raids"
         );
 
         messages.write(NationActionEvent::RaidAttempt {
-            nation_id: nation.id,
+            nation_entity,
             nation_name: nation.name.clone(),
-            target_nation: NationId::new(0), // TODO: Find actual target
+            target_nation: Entity::PLACEHOLDER, // TODO Phase 7: Find actual target via neighbor relationships
             pressure_level: pressure.value(),
         });
 
         log_nation_state_change(
-            nation.id.value(),
+            nation_entity.index(),
             &nation.name,
             "Economically Stressed",
             "Raiding",
@@ -303,7 +309,7 @@ pub fn handle_economic_pressure(
         let new_rate = (old_rate * 1.2).min(0.5); // 20% increase, max 50%
 
         log_nation_decision(
-            nation.id.value(),
+            nation_entity.index(),
             &nation.name,
             "Economic Response",
             &format!("Choosing peaceful approach - raising taxes from {:.1}% to {:.1}%",
@@ -311,7 +317,7 @@ pub fn handle_economic_pressure(
         );
 
         messages.write(NationActionEvent::TaxIncrease {
-            nation_id: nation.id,
+            nation_entity,
             nation_name: nation.name.clone(),
             old_rate,
             new_rate,
@@ -327,6 +333,7 @@ pub fn handle_economic_pressure(
 
 /// Handle military pressure with recruitment or alliances
 pub fn handle_military_pressure(
+    nation_entity: Entity,
     nation: &mut Nation,
     history: &NationHistory,
     pressure: PressureLevel,
@@ -346,7 +353,7 @@ pub fn handle_military_pressure(
         let units_to_recruit = (pressure.value() * 10.0) as u32;
 
         messages.write(NationActionEvent::MilitaryRecruitment {
-            nation_id: nation.id,
+            nation_entity,
             nation_name: nation.name.clone(),
             units_recruited: units_to_recruit,
             pressure_level: pressure.value(),
@@ -359,9 +366,9 @@ pub fn handle_military_pressure(
     } else {
         // Seek alliance for protection
         messages.write(NationActionEvent::AllianceSeek {
-            nation_id: nation.id,
+            nation_entity,
             nation_name: nation.name.clone(),
-            target_nation: None, // TODO: Find suitable ally
+            target_nation: None, // TODO Phase 8: Find suitable ally via alliance system
             pressure_level: pressure.value(),
         });
 
@@ -371,6 +378,7 @@ pub fn handle_military_pressure(
 
 /// Handle legitimacy pressure with reforms or public works
 pub fn handle_legitimacy_pressure(
+    nation_entity: Entity,
     nation: &mut Nation,
     history: &NationHistory,
     pressure: PressureLevel,
@@ -390,7 +398,7 @@ pub fn handle_legitimacy_pressure(
         let reform = choose_reform_type(nation, history);
 
         messages.write(NationActionEvent::ReformImplementation {
-            nation_id: nation.id,
+            nation_entity,
             nation_name: nation.name.clone(),
             reform_type: reform,
             pressure_level: pressure.value(),
@@ -403,7 +411,7 @@ pub fn handle_legitimacy_pressure(
         let project = choose_public_work(nation, history);
 
         messages.write(NationActionEvent::PublicWorks {
-            nation_id: nation.id,
+            nation_entity,
             nation_name: nation.name.clone(),
             project_type: project,
             pressure_level: pressure.value(),
@@ -448,7 +456,7 @@ fn calculate_expansion_desire(
 /// Find suitable provinces for expansion
 /// Returns unclaimed land provinces adjacent to nation's current territory
 fn find_expansion_targets(
-    nation: &Nation,
+    nation_entity: Entity,
     province_storage: &ProvinceStorage,
 ) -> Vec<ProvinceId> {
     use std::collections::HashSet;
@@ -456,11 +464,11 @@ fn find_expansion_targets(
 
     // Get all provinces owned by this nation
     let owned_provinces: Vec<&crate::world::Province> = province_storage.provinces.iter()
-        .filter(|p| p.owner == Some(nation.id))
+        .filter(|p| p.owner_entity == Some(nation_entity))
         .collect();
 
     if owned_provinces.is_empty() {
-        debug!("{}: No owned provinces found for expansion", nation.name);
+        debug!("Nation entity {:?}: No owned provinces found for expansion", nation_entity);
         return Vec::new();
     }
 
@@ -473,7 +481,7 @@ fn find_expansion_targets(
             if let Some(neighbor_id) = neighbor_id_opt {
                 if let Some(neighbor) = province_storage.provinces.get(neighbor_id.value() as usize) {
                     // Target unclaimed land provinces only (not ocean/river, not owned by anyone)
-                    if neighbor.owner.is_none() &&
+                    if neighbor.owner_entity.is_none() &&
                        !matches!(neighbor.terrain, TerrainType::Ocean | TerrainType::River) {
                         potential_targets.insert(*neighbor_id);
                     }
@@ -483,7 +491,7 @@ fn find_expansion_targets(
     }
 
     if potential_targets.is_empty() {
-        debug!("{}: No expansion targets available (surrounded by ocean/owned land)", nation.name);
+        debug!("Nation entity {:?}: No expansion targets available (surrounded by ocean/owned land)", nation_entity);
         return Vec::new();
     }
 
@@ -495,8 +503,8 @@ fn find_expansion_targets(
         .take(max_expansion)
         .collect();
 
-    debug!("{}: Found {} expansion targets (owns {} provinces, max expansion {})",
-           nation.name, targets.len(), owned_count, max_expansion);
+    debug!("Nation entity {:?}: Found {} expansion targets (owns {} provinces, max expansion {})",
+           nation_entity, targets.len(), owned_count, max_expansion);
 
     targets
 }

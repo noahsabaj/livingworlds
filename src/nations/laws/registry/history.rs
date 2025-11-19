@@ -4,7 +4,7 @@
 
 use bevy::prelude::*;
 use std::collections::VecDeque;
-use crate::nations::NationId;
+// NationId deleted - now using Entity directly
 use crate::nations::laws::types::LawId;
 use super::types::LawChangeType;
 
