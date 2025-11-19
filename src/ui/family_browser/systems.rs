@@ -18,13 +18,19 @@ pub fn update_prestige_cache(
 ) {
     let current_time = time.elapsed_secs_f64();
 
-    // Only update every CACHE_UPDATE_INTERVAL seconds
-    if current_time - cache.last_update < CACHE_UPDATE_INTERVAL {
+    // Always update on first run (when last_update is 0.0), then throttle
+    let should_update = cache.last_update == 0.0
+        || (current_time - cache.last_update >= CACHE_UPDATE_INTERVAL);
+
+    if !should_update {
         return;
     }
 
     cache.houses.clear();
     cache.last_update = current_time;
+
+    let house_count = houses.iter().count();
+    info!("Updating prestige cache for {} houses", house_count);
 
     for (house_entity, house) in &houses {
         let prestige = calculate_house_prestige(
@@ -42,6 +48,8 @@ pub fn update_prestige_cache(
             .partial_cmp(&a.total_prestige)
             .unwrap_or(std::cmp::Ordering::Equal)
     });
+
+    info!("Prestige cache updated: {} houses ranked", cache.houses.len());
 }
 
 /// Calculate prestige for a single house

@@ -198,7 +198,7 @@ pub fn update_house_list(
         return;
     };
 
-    // Despawn existing entries
+    // Despawn existing entries (both house entries and empty state messages)
     for entry in &existing_entries {
         commands.entity(entry).despawn();
     }
@@ -225,6 +225,7 @@ pub fn update_house_list(
                     margin: UiRect::all(Val::Px(20.0)),
                     ..default()
                 },
+                HouseEntry { house_entity: Entity::PLACEHOLDER }, // Mark for cleanup
             ));
         }
     });

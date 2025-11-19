@@ -6,7 +6,7 @@
 use bevy::prelude::*;
 use bevy::sprite::Text2d;  // Moved from bevy::text in Bevy 0.17
 
-use super::types::{Nation, NationId};
+use super::types::Nation;
 use crate::resources::MapMode;
 use crate::ui::ShortcutRegistry;
 use crate::world::ProvinceStorage;
@@ -32,7 +32,7 @@ fn check_label_collision(
     label_text: &str,
     font_size: f32,
     position: Vec2,
-    owner_nation_id: NationId,
+    owner_entity: Entity,
     province_storage: &ProvinceStorage,
     spatial_index: &crate::world::ProvincesSpatialIndex,
 ) -> bool {
@@ -67,7 +67,7 @@ fn check_label_collision(
             {
                 // Collision detected if this province belongs to a different nation
                 if let Some(owner) = province.owner {
-                    if owner != owner_nation_id {
+                    if owner != owner_entity {
                         return true; // COLLISION!
                     }
                 }
@@ -85,7 +85,7 @@ fn find_non_colliding_position(
     font_size: f32,
     centroid: Vec2,
     territory_bounds: (Vec2, Vec2),
-    owner_nation_id: NationId,
+    owner_entity: Entity,
     province_storage: &ProvinceStorage,
     spatial_index: &crate::world::ProvincesSpatialIndex,
 ) -> (Vec2, f32) {
@@ -121,7 +121,7 @@ fn find_non_colliding_position(
             label_text,
             font_size,
             pos,
-            owner_nation_id,
+            owner_entity,
             province_storage,
             spatial_index,
         ) {
@@ -137,7 +137,7 @@ fn find_non_colliding_position(
 /// This wrapper ensures labels only spawn when MapMode changes TO Political
 pub fn spawn_nation_labels_on_mode_enter(
     commands: Commands,
-    nations: Query<&Nation>,
+    nations: Query<(Entity, &Nation)>,
     province_storage: Res<ProvinceStorage>,
     spatial_index: Res<crate::world::ProvincesSpatialIndex>,
     ownership_cache: Res<super::types::ProvinceOwnershipCache>,
@@ -261,7 +261,7 @@ pub fn render_nation_borders(
 /// System to spawn territory-spanning nation labels with dynamic sizing
 pub fn spawn_nation_labels(
     mut commands: Commands,
-    nations: Query<&Nation>,
+    nations: Query<(Entity, &Nation)>,
     province_storage: Res<ProvinceStorage>,
     spatial_index: Res<crate::world::ProvincesSpatialIndex>,
     ownership_cache: Res<super::types::ProvinceOwnershipCache>,
@@ -279,9 +279,9 @@ pub fn spawn_nation_labels(
     }
 
     // Create labels for each nation based on territory analysis
-    for nation in nations.iter() {
+    for (nation_entity, nation) in nations.iter() {
         let Some(metrics) = territory_cache.get_or_calculate(
-            nation.id,
+            nation_entity,
             &ownership_cache,
             &province_storage,
         ) else {
@@ -318,7 +318,7 @@ pub fn spawn_nation_labels(
                         cluster_font_size,
                         cluster.centroid,
                         cluster.bounds,
-                        nation.id,
+                        nation_entity,
                         &province_storage,
                         &spatial_index,
                     );
@@ -354,7 +354,7 @@ pub fn spawn_nation_labels(
                             150.0, // Above borders (z=100)
                         )),
                         NationLabel {
-                            nation_id: nation.id,
+                            nation_id: nation_entity,
                             base_font_size: cluster_font_size,
                             territory_bounds: cluster.bounds,
                             centroid: label_position, // Use collision-adjusted position
@@ -371,7 +371,7 @@ pub fn spawn_nation_labels(
                 base_font_size,
                 metrics.centroid,
                 metrics.bounds,
-                nation.id,
+                nation_entity,
                 &province_storage,
                 &spatial_index,
             );
@@ -406,7 +406,7 @@ pub fn spawn_nation_labels(
                     150.0, // Above borders (z=100)
                 )),
                 NationLabel {
-                    nation_id: nation.id,
+                    nation_id: nation_entity,
                     base_font_size,
                     territory_bounds: metrics.bounds,
                     centroid: label_position, // Use collision-adjusted position
@@ -514,8 +514,8 @@ pub fn update_label_visibility(
 /// Enhanced nation label component with territory awareness
 #[derive(Component)]
 pub struct NationLabel {
-    /// The nation this label represents
-    pub nation_id: super::types::NationId,
+    /// The nation this label represents (Entity reference)
+    pub nation_id: Entity,
     /// Base font size calculated from territory
     pub base_font_size: f32,
     /// Territory bounds for this nation

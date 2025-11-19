@@ -3,7 +3,7 @@
 //! Shows detailed information about the currently selected nation including
 //! ruler, House, statistics, and controlled provinces.
 
-use crate::nations::{House, Nation, NationId, get_structure_name};
+use crate::nations::{House, Nation, get_structure_name};
 use crate::states::GameState;
 use crate::ui::*;
 use crate::ui::styles::colors;
