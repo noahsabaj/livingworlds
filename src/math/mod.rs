@@ -301,8 +301,9 @@ mod perlin;
 
 // Hexagon geometry exports
 pub use hexagon::{
-    calculate_grid_position, get_neighbor_positions, Hexagon, CORNERS, HEX_SIZE, INDICES_PER_HEX, SQRT_3, TRIANGLES_PER_HEX,
-    VERTICES_PER_HEX,
+    calculate_grid_position, get_edge_corners_for_neighbor, get_edge_positions_for_neighbor,
+    get_neighbor_positions, neighbor_direction, Hexagon, CORNERS, DEGREES_PER_CORNER, HEX_SIZE,
+    INDICES_PER_HEX, SQRT_3, TRIANGLES_PER_HEX, VERTICES_PER_HEX,
 };
 
 // Perlin noise generation exports

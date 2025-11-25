@@ -5,15 +5,15 @@
 use bevy::prelude::*;
 use rand::Rng;
 use super::characters::{
-    Character, CharacterRole, FamilyBranch, FamilyMember, HasRelationship,
-    RelationshipMetadata, RelationshipType
+    Character, CharacterRole, CharacterRelationshipBundle, FamilyBranch, FamilyMember,
+    HasRelationship, RelationshipType,
 };
 use super::drama::{DramaEvent, EventConsequence};
 use super::events::{CharacterBornEvent, CharacterDeathEvent, DeathCause, RelationshipChangedEvent};
 
 /// System to age characters over time
 pub fn age_characters(
-    mut characters: Query<&mut Character>,
+    mut characters: Query<(Entity, &mut Character)>,
     time: Res<crate::simulation::GameTime>,
     mut death_events: MessageWriter<CharacterDeathEvent>,
 ) {
@@ -25,7 +25,7 @@ pub fn age_characters(
         return;
     }
 
-    for mut character in &mut characters {
+    for (entity, mut character) in &mut characters {
         character.age += 1;
 
         // Check for natural death (increases with age)
@@ -44,7 +44,7 @@ pub fn age_characters(
 
         if rng.gen_bool(modified_chance.min(1.0).max(0.0) as f64) {
             death_events.write(CharacterDeathEvent {
-                character: Entity::PLACEHOLDER, // Would need entity in real implementation
+                character: entity,
                 cause: DeathCause::Natural,
             });
         }
@@ -60,32 +60,56 @@ pub fn age_characters(
 }
 
 /// System to update relationships based on events
+/// NOTE: Relationship components are immutable in Bevy. To change relationships,
+/// we remove the old relationship and insert a new one via Commands.
 pub fn update_relationships(
-    characters: Query<(Entity, &Character)>,
-    mut relationships: Query<&mut HasRelationship>,
+    characters: Query<(Entity, &super::characters::CharacterId)>,
+    mut commands: Commands,
     mut drama_events: MessageReader<DramaEvent>,
     mut relationship_events: MessageWriter<RelationshipChangedEvent>,
 ) {
+    // Build lookup map from CharacterId to Entity
+    let character_lookup: std::collections::HashMap<super::characters::CharacterId, Entity> =
+        characters.iter().map(|(entity, id)| (*id, entity)).collect();
+
     for event in drama_events.read() {
         for consequence in &event.consequences {
             if let EventConsequence::RelationshipChange {
                 character_a,
                 character_b,
                 new_relationship,
-            } = consequence {
-                // Find existing relationship
-                for relationship in &mut relationships {
-                    // Update relationship (would need proper entity lookup in real implementation)
-                    // This is simplified for the example
-                }
+            } = consequence
+            {
+                // Look up entities from CharacterIds
+                let entity_a = character_lookup.get(character_a).copied();
+                let entity_b = character_lookup.get(character_b).copied();
 
-                // Send change event
-                relationship_events.write(RelationshipChangedEvent {
-                    character_a: Entity::PLACEHOLDER,
-                    character_b: Entity::PLACEHOLDER,
-                    old_relationship: None,
-                    new_relationship: new_relationship.clone(),
-                });
+                // Only process if both characters exist
+                if let (Some(entity_a), Some(entity_b)) = (entity_a, entity_b) {
+                    // To change a relationship:
+                    // 1. Remove old HasRelationship component (Bevy auto-cleans RelatedTo)
+                    // 2. Insert new relationship bundle
+                    commands.entity(entity_a).remove::<HasRelationship>();
+                    commands.entity(entity_a).insert(CharacterRelationshipBundle::new(
+                        entity_b,
+                        new_relationship.clone(),
+                        0.5, // Default strength for new relationships
+                        true,
+                    ));
+
+                    // Send change event with resolved entities
+                    relationship_events.write(RelationshipChangedEvent {
+                        character_a: entity_a,
+                        character_b: entity_b,
+                        old_relationship: None,
+                        new_relationship: new_relationship.clone(),
+                    });
+                } else {
+                    warn!(
+                        "Could not find entities for relationship change event: {:?} -> {:?}",
+                        character_a, character_b
+                    );
+                }
             }
         }
     }
@@ -160,15 +184,10 @@ pub fn spawn_house_family(
         )).id();
         family_entities.push(spouse_entity);
 
-        // Create marriage relationship with metadata
-        commands.entity(ruler_entity).insert((
-            HasRelationship(spouse_entity),
-            RelationshipMetadata {
-                relationship_type: RelationshipType::Spouse,
-                strength: rng.gen_range(0.3..1.0),
-                public_knowledge: true,
-            }
-        ));
+        // Create marriage relationship using the bundle (automatic bidirectional tracking)
+        commands.entity(ruler_entity).insert(
+            CharacterRelationshipBundle::spouse(spouse_entity, rng.gen_range(0.3..1.0))
+        );
     }
 
     // Create 1-4 children
@@ -198,15 +217,10 @@ pub fn spawn_house_family(
         )).id();
         family_entities.push(child_entity);
 
-        // Create parent-child relationship with metadata
-        commands.entity(ruler_entity).insert((
-            HasRelationship(child_entity),
-            RelationshipMetadata {
-                relationship_type: RelationshipType::Child,
-                strength: rng.gen_range(0.5..1.0),
-                public_knowledge: true,
-            }
-        ));
+        // Create parent-child relationship using the bundle (automatic bidirectional tracking)
+        commands.entity(ruler_entity).insert(
+            CharacterRelationshipBundle::child(child_entity, rng.gen_range(0.5..1.0))
+        );
     }
 
     // Maybe add an advisor (30% chance)

@@ -251,6 +251,80 @@ pub fn get_neighbor_positions(col: i32, row: i32, _hex_size: f32) -> [(i32, i32)
     }
 }
 
+// =============================================================================
+// NEIGHBOR EDGE MAPPING - Maps neighbor direction indices to hexagon edges
+// =============================================================================
+
+/// Neighbor direction indices as used in Province.neighbors array.
+/// Order: NE=0, E=1, SE=2, SW=3, W=4, NW=5
+/// This is the canonical ordering defined in spatial.rs and used throughout.
+pub mod neighbor_direction {
+    pub const NE: usize = 0;
+    pub const E: usize = 1;
+    pub const SE: usize = 2;
+    pub const SW: usize = 3;
+    pub const W: usize = 4;
+    pub const NW: usize = 5;
+}
+
+/// Returns the corner indices that form the edge facing a given neighbor direction.
+///
+/// For a flat-top hexagon with corners at 0, 60, 120, 180, 240, 300 degrees:
+/// - Corner 0: 0 degrees (East/right)
+/// - Corner 1: 60 degrees (Northeast/upper-right)
+/// - Corner 2: 120 degrees (Northwest/upper-left)
+/// - Corner 3: 180 degrees (West/left)
+/// - Corner 4: 240 degrees (Southwest/lower-left)
+/// - Corner 5: 300 degrees (Southeast/lower-right)
+///
+/// The Province.neighbors array uses odd-q offset directions (NE, E, SE, SW, W, NW).
+/// This function maps each direction to the two corner indices forming that shared edge.
+///
+/// Returns (start_corner, end_corner) where corners are numbered 0-5 clockwise from East.
+#[inline]
+pub const fn get_edge_corners_for_neighbor(neighbor_index: usize) -> (usize, usize) {
+    match neighbor_index {
+        0 => (0, 1), // NE neighbor: upper-right edge (corners at 0 and 60 degrees)
+        1 => (5, 0), // E neighbor: lower-right edge (corners at 300 and 0 degrees)
+        2 => (4, 5), // SE neighbor: bottom edge (corners at 240 and 300 degrees)
+        3 => (3, 4), // SW neighbor: lower-left edge (corners at 180 and 240 degrees)
+        4 => (2, 3), // W neighbor: upper-left edge (corners at 120 and 180 degrees)
+        5 => (1, 2), // NW neighbor: top edge (corners at 60 and 120 degrees)
+        _ => (0, 0), // Invalid index, return degenerate edge
+    }
+}
+
+/// Returns the world-space positions of the two corners that form the edge
+/// facing a given neighbor direction.
+///
+/// This is the canonical way to get edge geometry for border rendering.
+/// Use this instead of calculating edge positions ad-hoc to ensure consistency.
+///
+/// # Arguments
+/// * `center` - The center position of the hexagon in world space
+/// * `hex_size` - The hexagon size (radius from center to corner)
+/// * `neighbor_index` - The neighbor direction index (0-5: NE, E, SE, SW, W, NW)
+///
+/// # Returns
+/// (corner1_pos, corner2_pos) in world coordinates
+#[inline]
+pub fn get_edge_positions_for_neighbor(center: Vec2, hex_size: f32, neighbor_index: usize) -> (Vec2, Vec2) {
+    let (corner1_idx, corner2_idx) = get_edge_corners_for_neighbor(neighbor_index);
+
+    // Calculate corner positions using the standard flat-top hexagon formula
+    let angle1 = (corner1_idx as f32 * DEGREES_PER_CORNER).to_radians();
+    let angle2 = (corner2_idx as f32 * DEGREES_PER_CORNER).to_radians();
+
+    let pos1 = center + Vec2::new(angle1.cos(), angle1.sin()) * hex_size;
+    let pos2 = center + Vec2::new(angle2.cos(), angle2.sin()) * hex_size;
+
+    (pos1, pos2)
+}
+
+// =============================================================================
+// VALIDATION UTILITIES
+// =============================================================================
+
 /// Validate that a position is finite (not NaN or infinite)
 pub fn validate_position(pos: Vec2) -> Result<(), String> {
     if !pos.x.is_finite() || !pos.y.is_finite() {

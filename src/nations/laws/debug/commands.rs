@@ -5,6 +5,7 @@
 use bevy::prelude::*;
 use crate::nations::laws::{LawId, NationLaws, LawRegistry, LawEnactmentEvent, LawRepealEvent};
 use crate::nations::Nation;
+use crate::nations::NationId;
 use crate::simulation::PressureType;
 
 /// Debug commands for manipulating laws
@@ -24,7 +25,7 @@ impl LawDebugCommands {
             nation_laws.enact_law(law_id, &law.effects, 0);
 
             messages.write(LawEnactmentEvent {
-                nation_id: NationId(0), // Debug nation ID
+                nation_entity: Entity::from_bits(0), // Debug nation ID
                 nation_name: format!("Debug Nation {:?}", nation_entity),
                 law_id,
                 law_name: law.name.clone(),
@@ -50,7 +51,7 @@ impl LawDebugCommands {
 
             if let Some(law) = registry.get_law(law_id) {
                 messages.write(LawRepealEvent {
-                    nation_id: NationId(0), // Debug nation ID
+                    nation_entity: Entity::from_bits(0), // Debug nation ID
                     nation_name: format!("Debug Nation {:?}", nation_entity),
                     law_id,
                     law_name: law.name.clone(),

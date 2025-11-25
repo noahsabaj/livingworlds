@@ -6,6 +6,7 @@ use bevy::prelude::*;
 use std::collections::VecDeque;
 // NationId deleted - now using Entity directly
 use crate::nations::laws::types::LawId;
+use crate::nations::NationId;
 use super::types::LawChangeType;
 
 /// Resource tracking historical law trends

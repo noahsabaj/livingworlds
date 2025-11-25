@@ -45,7 +45,7 @@ fn calculate_basic_infrastructure(
                 let neighbor = &all_provinces[neighbor_idx];
 
                 // Count as road if both provinces are owned by same nation
-                if province.owner.is_some() && province.owner == neighbor.owner {
+                if province.owner_entity.is_some() && province.owner_entity == neighbor.owner_entity {
                     road_connections += 1;
                 }
 

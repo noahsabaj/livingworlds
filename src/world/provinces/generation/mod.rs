@@ -21,5 +21,6 @@ mod gpu_accelerator;
 
 // PUBLIC exports - controlled API surface
 pub use builder::ProvinceBuilder;
+pub use builder::{provinces_to_bundles, set_neighbor_entities};
 pub use ocean_systems::calculate_ocean_depths;
 pub use neighbor_calculator::precompute_neighbor_indices;

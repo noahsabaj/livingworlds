@@ -12,24 +12,14 @@ mod governance;
 mod history;
 mod house;
 mod laws;
-// mod migration;  // DISABLED: Uses NationId and ProvinceOwnershipCache which are deleted
 mod neighbors;
+mod ownership;
 mod plugin;
 pub mod relationships;  // Public for relationship component access
 mod rendering;
 mod territory_analysis;
 mod types;
 mod warfare;
-
-// Test modules disabled - require comprehensive updates to match current APIs
-// benches.rs: Uses ProvinceOwnershipCache, TerritoryMetricsCache (deprecated)
-// integration_tests.rs: Uses NationBundle, spawn_nations_with_relationships, old PressureType
-// property_tests: File not found - may have been removed
-// Re-enabling requires updating to current Nation/Law/Pressure APIs throughout
-// #[cfg(test)]
-// mod benches;
-// #[cfg(test)]
-// mod integration_tests;
 
 pub use actions::{
     // Resolution systems - decide what to do
@@ -73,6 +63,13 @@ pub use diplomacy::{
     evaluate_available_casus_belli,
     evaluate_war_triggers_from_pressure,
 };
+pub use ownership::{
+    // O(1) ECS-based ownership queries using Controls/ControlledBy relationships
+    get_nation_provinces, get_nation_province_count, nation_has_territory,
+    nation_owns_province, get_province_owner, get_nation_bounds, get_nation_centroid,
+};
+pub use territory_analysis::TerritoryMetrics;
+pub use rendering::{NationLabel, NationLabelShadow};
 pub use plugin::NationPlugin;
 pub use relationships::*;
 pub use types::*;

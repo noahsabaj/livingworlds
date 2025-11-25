@@ -3,7 +3,7 @@
 //! Shows detailed information about the currently selected nation including
 //! ruler, House, statistics, and controlled provinces.
 
-use crate::nations::{House, Nation, get_structure_name};
+use crate::nations::{House, Nation, get_structure_name, NationId};
 use crate::states::GameState;
 use crate::ui::*;
 use crate::ui::styles::colors;
@@ -14,6 +14,13 @@ use bevy::prelude::*;
 pub struct SelectedNation {
     pub entity: Option<Entity>,
     pub nation_id: Option<NationId>,
+}
+
+/// Message fired when nation selection changes
+#[derive(Message, Debug, Clone)]
+pub struct NationSelectionChanged {
+    pub previous: Option<Entity>,
+    pub current: Option<Entity>,
 }
 
 /// Marker for the nation info panel root
@@ -294,253 +301,310 @@ pub fn spawn_nation_info_panel(mut commands: Commands) {
         });
 }
 
-/// Update nation info panel with selected nation data
-pub fn update_nation_info_panel(
+/// Watch for changes to SelectedNation and fire messages
+pub fn watch_nation_selection(
     selected_nation: Res<SelectedNation>,
-    nations_query: Query<&Nation>,
-    houses_query: Query<&House>,
-    governance_query: Query<&crate::nations::Governance>,
-    ownership_cache: Res<crate::nations::ProvinceOwnershipCache>,
+    mut messages: MessageWriter<NationSelectionChanged>,
+    mut last_selection: Local<Option<Entity>>,
+) {
+    if selected_nation.is_changed() {
+        let current = selected_nation.entity;
+        if *last_selection != current {
+            messages.write(NationSelectionChanged {
+                previous: *last_selection,
+                current,
+            });
+            *last_selection = current;
+        }
+    }
+}
+
+/// Update panel visibility based on selection
+pub fn update_panel_visibility(
+    mut messages: MessageReader<NationSelectionChanged>,
     mut panel_visibility: Query<&mut Visibility, With<NationInfoPanel>>,
-    mut name_text: Query<
-        &mut Text,
-        (
-            With<NationNameText>,
-            Without<HouseText>,
-            Without<RulerText>,
-            Without<ProvinceCountText>,
-            Without<TreasuryText>,
-            Without<StabilityText>,
-            Without<MilitaryText>,
-            Without<GovernmentText>,
-            Without<LegitimacyText>,
-        ),
-    >,
-    mut House_text: Query<
-        &mut Text,
-        (
-            With<HouseText>,
-            Without<NationNameText>,
-            Without<RulerText>,
-            Without<ProvinceCountText>,
-            Without<TreasuryText>,
-            Without<StabilityText>,
-            Without<MilitaryText>,
-            Without<GovernmentText>,
-            Without<LegitimacyText>,
-        ),
-    >,
-    mut ruler_text: Query<
-        &mut Text,
-        (
-            With<RulerText>,
-            Without<NationNameText>,
-            Without<HouseText>,
-            Without<ProvinceCountText>,
-            Without<TreasuryText>,
-            Without<StabilityText>,
-            Without<MilitaryText>,
-            Without<GovernmentText>,
-            Without<LegitimacyText>,
-        ),
-    >,
-    mut government_text: Query<
-        &mut Text,
-        (
-            With<GovernmentText>,
-            Without<NationNameText>,
-            Without<HouseText>,
-            Without<RulerText>,
-            Without<ProvinceCountText>,
-            Without<TreasuryText>,
-            Without<StabilityText>,
-            Without<MilitaryText>,
-            Without<LegitimacyText>,
-        ),
-    >,
+) {
+    for message in messages.read() {
+        if let Ok(mut visibility) = panel_visibility.single_mut() {
+            *visibility = if message.current.is_some() {
+                Visibility::Visible
+            } else {
+                Visibility::Hidden
+            };
+        }
+    }
+}
+
+/// Update nation name display
+pub fn update_nation_basic_info(
+    mut messages: MessageReader<NationSelectionChanged>,
+    nations_query: Query<&Nation>,
+    mut name_text: Query<&mut Text, With<NationNameText>>,
+) {
+    for message in messages.read() {
+        let Ok(mut text) = name_text.single_mut() else {
+            continue;
+        };
+
+        if let Some(entity) = message.current {
+            if let Ok(nation) = nations_query.get(entity) {
+                text.0 = nation.name.clone();
+            } else {
+                text.0 = "Invalid Nation Data".to_string();
+                warn!("Selected nation entity {:?} missing Nation component", entity);
+            }
+        } else {
+            text.0 = "No Nation Selected".to_string();
+        }
+    }
+}
+
+/// Update House and ruler information display
+pub fn update_house_ruler_info(
+    mut messages: MessageReader<NationSelectionChanged>,
+    nations_query: Query<Option<&crate::relationships::RuledBy>>,
+    houses_query: Query<&House>,
+    mut house_text: Query<&mut Text, (With<HouseText>, Without<RulerText>)>,
+    mut ruler_text: Query<&mut Text, With<RulerText>>,
+) {
+    for message in messages.read() {
+        let Ok(mut house_text) = house_text.single_mut() else {
+            continue;
+        };
+        let Ok(mut ruler_text) = ruler_text.single_mut() else {
+            continue;
+        };
+
+        if let Some(entity) = message.current {
+            if let Ok(ruled_by_opt) = nations_query.get(entity) {
+                if let Some(ruled_by) = ruled_by_opt {
+                    if let Some(ruler_entity) = ruled_by.current_ruler() {
+                        if let Ok(house) = houses_query.get(ruler_entity) {
+                            house_text.0 = format!("House: {}", house.name);
+                            ruler_text.0 = format!("Ruler: {} {}", house.ruler.title, house.ruler.name);
+                        } else {
+                            house_text.0 = "House: Invalid Data".to_string();
+                            ruler_text.0 = "Ruler: Invalid Data".to_string();
+                        }
+                    } else {
+                        house_text.0 = "House: No Ruler".to_string();
+                        ruler_text.0 = "Ruler: None".to_string();
+                    }
+                } else {
+                    house_text.0 = "House: Unruled".to_string();
+                    ruler_text.0 = "Ruler: None".to_string();
+                }
+            } else {
+                house_text.0 = "House: Invalid Data".to_string();
+                ruler_text.0 = "Ruler: Invalid Data".to_string();
+            }
+        } else {
+            house_text.0 = "House: Unknown".to_string();
+            ruler_text.0 = "Ruler: Unknown".to_string();
+        }
+    }
+}
+
+/// Update nation statistics display (provinces, treasury, stability, military)
+pub fn update_nation_statistics(
+    mut messages: MessageReader<NationSelectionChanged>,
+    nations_query: Query<&Nation>,
+    controls_query: Query<&crate::relationships::Controls>,
     mut province_text: Query<
         &mut Text,
         (
             With<ProvinceCountText>,
-            Without<NationNameText>,
-            Without<HouseText>,
-            Without<RulerText>,
             Without<TreasuryText>,
             Without<StabilityText>,
             Without<MilitaryText>,
-            Without<GovernmentText>,
-            Without<LegitimacyText>,
         ),
     >,
     mut treasury_text: Query<
         &mut Text,
         (
             With<TreasuryText>,
-            Without<NationNameText>,
-            Without<HouseText>,
-            Without<RulerText>,
             Without<ProvinceCountText>,
             Without<StabilityText>,
             Without<MilitaryText>,
-            Without<GovernmentText>,
-            Without<LegitimacyText>,
         ),
     >,
     mut stability_text: Query<
         &mut Text,
         (
             With<StabilityText>,
-            Without<NationNameText>,
-            Without<HouseText>,
-            Without<RulerText>,
             Without<ProvinceCountText>,
             Without<TreasuryText>,
             Without<MilitaryText>,
-            Without<GovernmentText>,
-            Without<LegitimacyText>,
         ),
     >,
     mut military_text: Query<
         &mut Text,
         (
             With<MilitaryText>,
-            Without<NationNameText>,
-            Without<HouseText>,
-            Without<RulerText>,
             Without<ProvinceCountText>,
             Without<TreasuryText>,
             Without<StabilityText>,
-            Without<GovernmentText>,
-            Without<LegitimacyText>,
-        ),
-    >,
-    mut legitimacy_text: Query<
-        &mut Text,
-        (
-            With<LegitimacyText>,
-            Without<NationNameText>,
-            Without<HouseText>,
-            Without<RulerText>,
-            Without<ProvinceCountText>,
-            Without<TreasuryText>,
-            Without<StabilityText>,
-            Without<MilitaryText>,
-            Without<GovernmentText>,
         ),
     >,
 ) {
-    // Show/hide panel based on selection
-    if let Ok(mut visibility) = panel_visibility.single_mut() {
-        if selected_nation.entity.is_some() {
-            *visibility = Visibility::Visible;
+    for message in messages.read() {
+        if let Some(entity) = message.current {
+            if let Ok(nation) = nations_query.get(entity) {
+                // Update all statistics
+                let province_count = crate::nations::get_nation_province_count(&controls_query, entity);
+
+                if let Ok(mut text) = province_text.single_mut() {
+                    text.0 = format!("Provinces: {}", province_count);
+                }
+                if let Ok(mut text) = treasury_text.single_mut() {
+                    text.0 = format!("Treasury: {:.0} gold", nation.treasury);
+                }
+                if let Ok(mut text) = stability_text.single_mut() {
+                    text.0 = format!("Stability: {:.0}%", nation.stability * 100.0);
+                }
+                if let Ok(mut text) = military_text.single_mut() {
+                    text.0 = format!("Military: {:.0} strength", nation.military_strength);
+                }
+            } else {
+                // Invalid nation data
+                if let Ok(mut text) = province_text.single_mut() {
+                    text.0 = "Provinces: Invalid Data".to_string();
+                }
+                if let Ok(mut text) = treasury_text.single_mut() {
+                    text.0 = "Treasury: Invalid Data".to_string();
+                }
+                if let Ok(mut text) = stability_text.single_mut() {
+                    text.0 = "Stability: Invalid Data".to_string();
+                }
+                if let Ok(mut text) = military_text.single_mut() {
+                    text.0 = "Military: Invalid Data".to_string();
+                }
+            }
         } else {
-            *visibility = Visibility::Hidden;
-            return;
-        }
-    }
-
-    // Get selected nation data
-    let Some(entity) = selected_nation.entity else {
-        return;
-    };
-    let Ok(nation) = nations_query.get(entity) else {
-        return;
-    };
-
-    // Update nation name
-    if let Ok(mut text) = name_text.single_mut() {
-        text.0 = nation.name.clone();
-    }
-
-    // Find and update House/ruler info
-    for house in houses_query.iter() {
-        if house.nation_id == nation.id {
-            if let Ok(mut text) = House_text.single_mut() {
-                text.0 = format!("House: {}", house.name);
+            // No nation selected
+            if let Ok(mut text) = province_text.single_mut() {
+                text.0 = "Provinces: 0".to_string();
             }
-            if let Ok(mut text) = ruler_text.single_mut() {
-                text.0 = format!("Ruler: {} {}", house.ruler.title, house.ruler.name);
+            if let Ok(mut text) = treasury_text.single_mut() {
+                text.0 = "Treasury: 0 gold".to_string();
             }
-            break;
+            if let Ok(mut text) = stability_text.single_mut() {
+                text.0 = "Stability: 0%".to_string();
+            }
+            if let Ok(mut text) = military_text.single_mut() {
+                text.0 = "Military: 0 strength".to_string();
+            }
         }
     }
+}
 
-    // Update statistics
-    let province_count = ownership_cache.count_nation_provinces(nation.id);
+/// Update government type display
+pub fn update_government_display(
+    mut messages: MessageReader<NationSelectionChanged>,
+    governance_query: Query<&crate::nations::Governance>,
+    mut government_text: Query<&mut Text, With<GovernmentText>>,
+) {
+    for message in messages.read() {
+        let Ok(mut text) = government_text.single_mut() else {
+            continue;
+        };
 
-    if let Ok(mut text) = province_text.single_mut() {
-        text.0 = format!("Provinces: {}", province_count);
-    }
-
-    if let Ok(mut text) = treasury_text.single_mut() {
-        text.0 = format!("Treasury: {:.0} gold", nation.treasury);
-    }
-
-    if let Ok(mut text) = stability_text.single_mut() {
-        text.0 = format!("Stability: {:.0}%", nation.stability * 100.0);
-    }
-
-    if let Ok(mut text) = military_text.single_mut() {
-        text.0 = format!("Military: {:.0} strength", nation.military_strength);
-    }
-
-    // Update government type if governance component exists
-    if let Ok(governance) = governance_query.get(entity) {
-        if let Ok(mut text) = government_text.single_mut() {
-            text.0 = format!("Government: {}", get_structure_name(&governance.government_type));
+        if let Some(entity) = message.current {
+            if let Ok(governance) = governance_query.get(entity) {
+                text.0 = format!("Government: {}", get_structure_name(&governance.government_type));
+            } else {
+                text.0 = "Government: Unknown".to_string();
+            }
+        } else {
+            text.0 = "Government: Unknown".to_string();
         }
+    }
+}
 
-        // Calculate and display legitimacy with rich breakdown
-        let calculated_legitimacy = governance
+/// Calculate and cache legitimacy in Governance component
+/// This runs less frequently and updates the cached value
+pub fn update_cached_legitimacy(
+    mut governance_query: Query<&mut crate::nations::Governance, Changed<crate::nations::Governance>>,
+) {
+    for mut governance in governance_query.iter_mut() {
+        // Recalculate legitimacy when governance changes
+        let calculated = governance
             .legitimacy_factors
             .calculate_legitimacy(governance.government_type);
 
-        if let Ok(mut text) = legitimacy_text.single_mut() {
-            // Build a rich display showing legitimacy sources
-            let mut legitimacy_display = format!("Legitimacy: {:.0}%", calculated_legitimacy * 100.0);
+        // Update cached value
+        governance.legitimacy = calculated;
 
-            // Add color indicator based on legitimacy level
-            let color_indicator = match calculated_legitimacy {
-                x if x >= 0.8 => " ✓", // Strong legitimacy
-                x if x >= 0.6 => " ⚬", // Moderate legitimacy
-                x if x >= 0.4 => " ⚠", // Weak legitimacy
-                _ => " ✗",              // Critical legitimacy
-            };
-            legitimacy_display.push_str(color_indicator);
+        // Could also update trend here if needed
+        // governance.legitimacy_trend = ...
+    }
+}
 
-            // Show primary legitimacy source based on government type
-            use crate::nations::GovernmentCategory;
-            let primary_source = match governance.government_type.category() {
-                GovernmentCategory::Democratic => {
-                    if let Some(electoral) = &governance.legitimacy_factors.electoral_mandate {
-                        format!(" ({}% vote)", (electoral.vote_percentage * 100.0) as u32)
-                    } else {
-                        String::new()
-                    }
-                }
-                GovernmentCategory::Theocratic | GovernmentCategory::Monarchic => {
-                    if let Some(divine) = &governance.legitimacy_factors.divine_approval {
-                        format!(" ({}% clergy)", (divine.clergy_support * 100.0) as u32)
-                    } else {
-                        String::new()
-                    }
-                }
-                GovernmentCategory::Socialist | GovernmentCategory::Anarchist => {
-                    if let Some(revolutionary) = &governance.legitimacy_factors.revolutionary_fervor {
-                        format!(" ({}% fervor)", (revolutionary.revolutionary_zeal * 100.0) as u32)
-                    } else {
-                        String::new()
-                    }
-                }
-                _ => {
-                    // For other types, show prosperity or efficiency
-                    format!(" ({}% efficiency)",
-                        (governance.legitimacy_factors.administrative_efficiency * 100.0) as u32)
-                }
-            };
+/// Format and display cached legitimacy value
+pub fn update_legitimacy_display(
+    mut messages: MessageReader<NationSelectionChanged>,
+    governance_query: Query<&crate::nations::Governance>,
+    mut legitimacy_text: Query<&mut Text, With<LegitimacyText>>,
+) {
+    for message in messages.read() {
+        let Ok(mut text) = legitimacy_text.single_mut() else {
+            continue;
+        };
 
-            legitimacy_display.push_str(&primary_source);
-            text.0 = legitimacy_display;
+        if let Some(entity) = message.current {
+            if let Ok(governance) = governance_query.get(entity) {
+                // Use cached legitimacy value
+                let legitimacy = governance.legitimacy;
+
+                // Build rich display
+                let mut display = format!("Legitimacy: {:.0}%", legitimacy * 100.0);
+
+                // Add indicator (NO EMOJIS - using text symbols)
+                let indicator = match legitimacy {
+                    x if x >= 0.8 => " [High]",
+                    x if x >= 0.6 => " [Mod]",
+                    x if x >= 0.4 => " [Low]",
+                    _ => " [Critical]",
+                };
+                display.push_str(indicator);
+
+                // Show primary legitimacy source
+                use crate::nations::GovernmentCategory;
+                let source = match governance.government_type.category() {
+                    GovernmentCategory::Democratic => {
+                        if let Some(electoral) = &governance.legitimacy_factors.electoral_mandate {
+                            format!(" ({}% vote)", (electoral.vote_percentage * 100.0) as u32)
+                        } else {
+                            String::new()
+                        }
+                    }
+                    GovernmentCategory::Theocratic | GovernmentCategory::Monarchic => {
+                        if let Some(divine) = &governance.legitimacy_factors.divine_approval {
+                            format!(" ({}% clergy)", (divine.clergy_support * 100.0) as u32)
+                        } else {
+                            String::new()
+                        }
+                    }
+                    GovernmentCategory::Socialist | GovernmentCategory::Anarchist => {
+                        if let Some(revolutionary) = &governance.legitimacy_factors.revolutionary_fervor {
+                            format!(" ({}% fervor)", (revolutionary.revolutionary_zeal * 100.0) as u32)
+                        } else {
+                            String::new()
+                        }
+                    }
+                    _ => {
+                        format!(" ({}% efficiency)",
+                            (governance.legitimacy_factors.administrative_efficiency * 100.0) as u32)
+                    }
+                };
+
+                display.push_str(&source);
+                text.0 = display;
+            } else {
+                text.0 = "Legitimacy: Unknown".to_string();
+            }
+        } else {
+            text.0 = "Legitimacy: 0%".to_string();
         }
     }
 }
@@ -551,7 +615,7 @@ use bevy_plugin_builder::define_plugin;
 pub fn handle_view_family_tree_button(
     buttons: Query<&Interaction, (Changed<Interaction>, With<ViewFamilyTreeButton>)>,
     selected_nation: Res<SelectedNation>,
-    nations_query: Query<&Nation>,
+    nations_query: Query<(&Nation, &crate::nations::NationId, Option<&crate::relationships::RuledBy>)>,
     houses_query: Query<(Entity, &House)>,
     mut open_events: MessageWriter<crate::ui::family_browser::OpenFamilyTreeEvent>,
 ) {
@@ -559,15 +623,14 @@ pub fn handle_view_family_tree_button(
         if *interaction == Interaction::Pressed {
             // Get the selected nation's house
             if let Some(nation_entity) = selected_nation.entity {
-                if let Ok(nation) = nations_query.get(nation_entity) {
+                if let Ok((_, _, ruled_by)) = nations_query.get(nation_entity) {
                     // Find the house entity for this nation
-                    if let Some((house_entity, _)) = houses_query
-                        .iter()
-                        .find(|(_, h)| h.nation_id == nation.id)
-                    {
-                        open_events.write(crate::ui::family_browser::OpenFamilyTreeEvent {
-                            house_entity,
-                        });
+                    if let Some(ruled_by) = ruled_by {
+                        if let Some(house_entity) = ruled_by.current_ruler() {
+                            open_events.write(crate::ui::family_browser::OpenFamilyTreeEvent {
+                                house_entity,
+                            });
+                        }
                     }
                 }
             }
@@ -578,14 +641,29 @@ pub fn handle_view_family_tree_button(
 /// Plugin for nation information UI
 define_plugin!(NationInfoPlugin {
     resources: [SelectedNation],
+    messages: [NationSelectionChanged],
 
     update: [
-        (
-            super::nation_selection::handle_nation_selection,
-            update_nation_info_panel,
-            handle_view_family_tree_button,
-            super::nation_selection::highlight_selected_nation_territory,
-        ).chain().run_if(in_state(GameState::InGame))
+        // Handle user input and update SelectedNation resource
+        super::nation_selection::handle_nation_selection.run_if(in_state(GameState::InGame)),
+
+        // Watch for changes and emit messages
+        watch_nation_selection.run_if(in_state(GameState::InGame)),
+
+        // React to selection changes
+        update_panel_visibility.run_if(in_state(GameState::InGame)),
+        update_nation_basic_info.run_if(in_state(GameState::InGame)),
+        update_house_ruler_info.run_if(in_state(GameState::InGame)),
+        update_nation_statistics.run_if(in_state(GameState::InGame)),
+        update_government_display.run_if(in_state(GameState::InGame)),
+        update_legitimacy_display.run_if(in_state(GameState::InGame)),
+
+        // Update cached legitimacy when governance changes (independent of selection)
+        update_cached_legitimacy.run_if(in_state(GameState::InGame)),
+
+        // Other UI interactions
+        handle_view_family_tree_button.run_if(in_state(GameState::InGame)),
+        super::nation_selection::highlight_selected_nation_territory.run_if(in_state(GameState::InGame))
     ],
 
     on_enter: {

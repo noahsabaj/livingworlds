@@ -5,7 +5,10 @@
 
 use crate::modding::manager::ModManager;
 use crate::modding::ui::types::{ModCard, ModToggle};
-use crate::ui::{colors, ButtonBuilder, ButtonSize, ButtonStyle};
+use crate::ui::{
+    colors, ButtonBuilder, ButtonSize, ButtonStyle, CheckboxBuilder, LabelBuilder, LabelStyle,
+    PanelBuilder, PanelStyle, ScrollViewBuilder, ScrollbarVisibility,
+};
 use bevy::prelude::*;
 
 /// Spawns the installed mods tab content
@@ -14,28 +17,35 @@ pub fn spawn_installed_tab(
     mod_manager: &ModManager,
     search_query: &str,
 ) {
-    // Grid for mod cards
-    parent
-        .spawn(Node {
-            display: Display::Grid,
-            width: Val::Percent(100.0),
-            grid_template_columns: vec![GridTrack::fr(1.0); 3],
-            row_gap: Val::Px(20.0),
-            column_gap: Val::Px(20.0),
-            ..default()
-        })
-        .with_children(|grid| {
-            // Filter mods based on search query
-            let filtered_mods: Vec<_> = mod_manager
-                .available_mods
-                .iter()
-                .filter(|m| filter_mod(m, search_query))
-                .collect();
+    // Wrap the grid in a ScrollView for scrolling support
+    ScrollViewBuilder::new()
+        .width(Val::Percent(100.0))
+        .height(Val::Percent(100.0))
+        .scrollbar_visibility(ScrollbarVisibility::AutoHide { timeout_secs: 2.0 })
+        .build_with_children(parent, |scroll_content| {
+            // Grid for mod cards
+            scroll_content
+                .spawn(Node {
+                    display: Display::Grid,
+                    width: Val::Percent(100.0),
+                    grid_template_columns: vec![GridTrack::fr(1.0); 3],
+                    row_gap: Val::Px(20.0),
+                    column_gap: Val::Px(20.0),
+                    ..default()
+                })
+                .with_children(|grid| {
+                    // Filter mods based on search query
+                    let filtered_mods: Vec<_> = mod_manager
+                        .available_mods
+                        .iter()
+                        .filter(|m| filter_mod(m, search_query))
+                        .collect();
 
-            // Generate mod cards for each filtered mod
-            for loaded_mod in filtered_mods {
-                spawn_mod_card(grid, loaded_mod);
-            }
+                    // Generate mod cards for each filtered mod
+                    for loaded_mod in filtered_mods {
+                        spawn_mod_card(grid, loaded_mod);
+                    }
+                });
         });
 }
 
@@ -57,24 +67,20 @@ fn filter_mod(loaded_mod: &&crate::modding::types::LoadedMod, search_query: &str
 /// Spawns a single mod card in the grid
 fn spawn_mod_card(grid: &mut ChildSpawnerCommands, loaded_mod: &crate::modding::types::LoadedMod) {
     // Mod card container
-    grid.spawn((
-        Node {
-            flex_direction: FlexDirection::Column,
-            padding: UiRect::all(Val::Px(15.0)),
-            border: UiRect::all(Val::Px(2.0)),
-            ..default()
-        },
-        BackgroundColor(colors::BACKGROUND_MEDIUM),
-        BorderColor::all(colors::BORDER_DEFAULT),
-        ModCard {
-            mod_id: loaded_mod.manifest.id.clone(),
-            workshop_id: None,
-        },
-    ))
-    .with_children(|card| {
-        spawn_mod_thumbnail(card);
-        spawn_mod_info(card, loaded_mod);
-        spawn_mod_toggle(card, loaded_mod);
+    let panel = PanelBuilder::new()
+        .style(PanelStyle::Card)
+        .padding(UiRect::all(Val::Px(15.0)))
+        .flex_direction(FlexDirection::Column)
+        .build_with_children(grid, |card| {
+            spawn_mod_thumbnail(card);
+            spawn_mod_info(card, loaded_mod);
+            spawn_mod_toggle(card, loaded_mod);
+        });
+        
+    // Add marker manually
+    grid.commands().entity(panel).insert(ModCard {
+        mod_id: loaded_mod.manifest.id.clone(),
+        workshop_id: None,
     });
 }
 
@@ -112,91 +118,44 @@ fn spawn_mod_info(card: &mut ChildSpawnerCommands, loaded_mod: &crate::modding::
     let manifest = &loaded_mod.manifest;
 
     // Mod name
-    card.spawn((
-        Text::new(&manifest.name),
-        TextFont {
-            font_size: 18.0,
-            ..default()
-        },
-        TextColor(colors::TEXT_PRIMARY),
-        Node {
-            margin: UiRect::bottom(Val::Px(5.0)),
-            ..default()
-        },
-    ));
+    LabelBuilder::new(&manifest.name)
+        .style(LabelStyle::Heading)
+        .margin(UiRect::bottom(Val::Px(5.0)))
+        .build(card);
 
     // Author
-    card.spawn((
-        Text::new(format!("by {}", manifest.author)),
-        TextFont {
-            font_size: 14.0,
-            ..default()
-        },
-        TextColor(colors::TEXT_SECONDARY),
-        Node {
-            margin: UiRect::bottom(Val::Px(5.0)),
-            ..default()
-        },
-    ));
+    LabelBuilder::new(format!("by {}", manifest.author))
+        .style(LabelStyle::Caption)
+        .margin(UiRect::bottom(Val::Px(5.0)))
+        .build(card);
 
     // Version and compatibility
-    card.spawn((
-        Text::new(format!(
-            "v{} | Game v{}",
-            manifest.version, manifest.compatible_game_version
-        )),
-        TextFont {
-            font_size: 12.0,
-            ..default()
-        },
-        TextColor(colors::TEXT_TERTIARY),
-        Node {
-            margin: UiRect::bottom(Val::Px(10.0)),
-            ..default()
-        },
-    ));
+    LabelBuilder::new(format!(
+        "v{} | Game v{}",
+        manifest.version, manifest.compatible_game_version
+    ))
+    .style(LabelStyle::Caption)
+    .margin(UiRect::bottom(Val::Px(10.0)))
+    .build(card);
 
     // Description
-    card.spawn((
-        Text::new(&manifest.description),
-        TextFont {
-            font_size: 14.0,
-            ..default()
-        },
-        TextColor(colors::TEXT_SECONDARY),
-        Node {
-            margin: UiRect::bottom(Val::Px(10.0)),
-            ..default()
-        },
-    ));
+    LabelBuilder::new(&manifest.description)
+        .style(LabelStyle::Body)
+        .margin(UiRect::bottom(Val::Px(10.0)))
+        .build(card);
 }
 
 /// Spawns the enable/disable toggle for a mod
 fn spawn_mod_toggle(card: &mut ChildSpawnerCommands, loaded_mod: &crate::modding::types::LoadedMod) {
-    card.spawn(Node {
-        flex_direction: FlexDirection::Row,
-        align_items: AlignItems::Center,
-        column_gap: Val::Px(10.0),
-        ..default()
-    })
-    .with_children(|toggle_row| {
-        // Checkbox button
-        ButtonBuilder::new(if loaded_mod.enabled { "[X]" } else { "[ ]" })
-            .style(ButtonStyle::Secondary)
-            .size(ButtonSize::Small)
-            .with_marker(ModToggle {
-                mod_id: loaded_mod.manifest.id.clone(),
-            })
-            .build(toggle_row);
-
-        // Label
-        toggle_row.spawn((
-            Text::new("Enabled"),
-            TextFont {
-                font_size: 14.0,
-                ..default()
-            },
-            TextColor(colors::TEXT_PRIMARY),
-        ));
+    // Checkbox button using CheckboxBuilder
+    let checkbox = CheckboxBuilder::new()
+        .checked(loaded_mod.enabled)
+        .with_label("Enabled")
+        .label_on_right(true)
+        .build(card);
+        
+    // Add marker manually
+    card.commands().entity(checkbox).insert(ModToggle {
+        mod_id: loaded_mod.manifest.id.clone(),
     });
 }

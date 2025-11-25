@@ -6,17 +6,25 @@
 use bevy::prelude::*;
 use crate::simulation::{PressureVector, PressureType};
 use crate::nations::{Nation, NationHistory, Governance};
-// NationNeighborCache deleted - now using LandNeighbors/NavalNeighbors relationship components
 use crate::nations::warfare::{DeclareWarEvent, WarGoal, CasusBelli};
 use super::casus_belli::CasusBelliExt;
 
 /// System to check if high military pressure should trigger war
+/// System to check if high military pressure should trigger war
 pub fn evaluate_war_triggers_from_pressure(
-    nations_query: Query<(Entity, &Nation, &PressureVector, &NationHistory, &Governance)>,
-    neighbor_cache: Res<NationNeighborCache>,
+    nations_query: Query<(
+        Entity,
+        &crate::nations::NationId,
+        &Nation,
+        &PressureVector,
+        &NationHistory,
+        &Governance,
+        Option<&crate::nations::relationships::LandNeighbors>,
+        Option<&crate::nations::relationships::NavalNeighbors>,
+    )>,
     mut war_events: MessageWriter<DeclareWarEvent>,
 ) {
-    for (entity, nation, pressures, history, _governance) in &nations_query {
+    for (entity, nation_id, nation, pressures, history, _governance, land_neighbors, naval_neighbors) in &nations_query {
         // Check if military pressure is critical
         let Some(&mil_pressure) = pressures.pressures.get(&PressureType::MilitaryVulnerability) else {
             continue;
@@ -34,16 +42,22 @@ pub fn evaluate_war_triggers_from_pressure(
 
         if is_aggressive && can_afford && !has_recent_defeats {
             // Look for weak neighbor to attack
-            if let Some(target) = find_weakest_neighbor(nation, &neighbor_cache, &nations_query) {
+            if let Some(target) = find_weakest_neighbor(
+                land_neighbors,
+                naval_neighbors,
+                &nations_query
+            ) {
                 // Determine war goal and CB
                 let war_goal = WarGoal::Conquest {
                     target_provinces: vec![], // TODO: Select specific provinces
                 };
-                let casus_belli = if neighbor_cache
-                    .get_land_neighbors(nation.id)
-                    .map(|n| n.contains(&target.1.id))
-                    .unwrap_or(false)
-                {
+                
+                // Check if it's a land neighbor for Border Dispute CB
+                let is_land_neighbor = land_neighbors
+                    .map(|n| n.neighbors().contains(&target.0))
+                    .unwrap_or(false);
+                    
+                let casus_belli = if is_land_neighbor {
                     CasusBelli::BorderDispute
                 } else {
                     CasusBelli::FabricatedClaim
@@ -58,7 +72,7 @@ pub fn evaluate_war_triggers_from_pressure(
 
                 info!(
                     "{} declares war on {} due to critical military pressure",
-                    nation.name, target.1.name
+                    nation.name, target.2.name
                 );
             }
         }
@@ -67,21 +81,41 @@ pub fn evaluate_war_triggers_from_pressure(
 
 /// Find weakest neighboring nation
 fn find_weakest_neighbor(
-    nation: &Nation,
-    neighbor_cache: &NationNeighborCache,
-    nations_query: &Query<(Entity, &Nation, &PressureVector, &NationHistory, &Governance)>,
-) -> Option<(Entity, Nation)> {
-    let Some(neighbor_ids) = neighbor_cache.get_neighbors(nation.id) else {
-        return None;
+    land_neighbors: Option<&crate::nations::relationships::LandNeighbors>,
+    naval_neighbors: Option<&crate::nations::relationships::NavalNeighbors>,
+    nations_query: &Query<(
+        Entity,
+        &crate::nations::NationId,
+        &Nation,
+        &PressureVector,
+        &NationHistory,
+        &Governance,
+        Option<&crate::nations::relationships::LandNeighbors>,
+        Option<&crate::nations::relationships::NavalNeighbors>,
+    )>,
+) -> Option<(Entity, crate::nations::NationId, Nation)> {
+    let mut best_target: Option<(Entity, crate::nations::NationId, Nation)> = None;
+    let mut min_strength = f32::MAX;
+
+    // Helper to process a list of neighbor entities
+    let mut process_neighbors = |entities: &[Entity]| {
+        for &neighbor_entity in entities {
+            if let Ok((_, neighbor_id, neighbor_nation, _, _, _, _, _)) = nations_query.get(neighbor_entity) {
+                if neighbor_nation.military_strength < min_strength {
+                    min_strength = neighbor_nation.military_strength;
+                    best_target = Some((neighbor_entity, *neighbor_id, neighbor_nation.clone()));
+                }
+            }
+        }
     };
 
-    nations_query
-        .iter()
-        .filter(|(_, n, _, _, _)| neighbor_ids.contains(&n.id))
-        .min_by(|(_, a, _, _, _), (_, b, _, _, _)| {
-            a.military_strength
-                .partial_cmp(&b.military_strength)
-                .unwrap()
-        })
-        .map(|(e, n, _, _, _)| (e, n.clone()))
+    if let Some(land) = land_neighbors {
+        process_neighbors(land.neighbors());
+    }
+    
+    if let Some(naval) = naval_neighbors {
+        process_neighbors(naval.neighbors());
+    }
+
+    best_target
 }

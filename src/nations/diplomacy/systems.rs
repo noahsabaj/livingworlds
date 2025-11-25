@@ -4,24 +4,20 @@
 
 use bevy::prelude::*;
 use crate::nations::{Nation, Governance};
-// NationNeighborCache deleted - now using LandNeighbors/NavalNeighbors relationship components
 use crate::nations::warfare::CasusBelli;
 use super::casus_belli::CasusBelliExt;
 
 /// Evaluate available casus belli for a nation against all neighbors
 pub fn evaluate_available_casus_belli(
+    nation_id: crate::nations::NationId,
     nation: &Nation,
     governance: &Governance,
+    target_id: crate::nations::NationId,
     target: &Nation,
     target_governance: &Governance,
-    neighbor_cache: &NationNeighborCache,
+    is_neighbor: bool,
 ) -> Vec<CasusBelli> {
     let mut available = Vec::new();
-
-    let is_neighbor = neighbor_cache
-        .get_neighbors(nation.id)
-        .map(|n| n.contains(&target.id))
-        .unwrap_or(false);
 
     // Check each CB type
     if CasusBelli::can_justify(

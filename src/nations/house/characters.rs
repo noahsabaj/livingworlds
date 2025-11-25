@@ -9,6 +9,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::name_generator::{Culture, Gender, NameGenerator, NameType, PersonRole};
 
+// Re-export relationship types from the relationships module for convenience
+pub use crate::relationships::{
+    CharacterRelationshipBundle, HasRelationship, RelatedTo, RelationshipMetadata, RelationshipType,
+};
+
 /// A full character with personality, relationships, and drama potential
 #[derive(Debug, Clone, Component, Serialize, Deserialize, Reflect)]
 pub struct Character {
@@ -219,73 +224,9 @@ pub enum Scandal {
     BetrayalExposed { betrayed: String },
 }
 
-/// Character has a relationship with another character
-/// Following the same pattern as our political relationships in /src/relationships/political.rs
-/// When applied to a Character entity, automatically creates `RelatedTo` on the target entity
-#[derive(Component, Debug, Clone)]
-pub struct HasRelationship(pub Entity);
-
-/// Additional relationship metadata stored separately
-#[derive(Component, Debug, Clone)]
-pub struct RelationshipMetadata {
-    pub relationship_type: RelationshipType,
-    pub strength: f32, // -1.0 to 1.0
-    pub public_knowledge: bool,
-}
-
-/// Reverse relationship: A character is related to by other characters
-/// Must be maintained manually when `HasRelationship` is added
-#[derive(Component, Debug, Clone, Default)]
-pub struct RelatedTo(pub Vec<Entity>); // Public since we need to maintain it manually
-
-impl RelatedTo {
-    /// Get read-only access to characters that have relationships with this one
-    pub fn characters(&self) -> &[Entity] {
-        &self.0
-    }
-
-    /// Check if a specific character has a relationship with this one
-    pub fn has_relationship_with(&self, character: Entity) -> bool {
-        self.0.contains(&character)
-    }
-
-    /// Get the number of relationships
-    pub fn relationship_count(&self) -> usize {
-        self.0.len()
-    }
-}
-
-/// Types of relationships between characters
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Reflect)]
-pub enum RelationshipType {
-    // Family
-    Parent,
-    Child,
-    Sibling,
-    Spouse,
-    ExSpouse,
-
-    // Romance
-    Lover,
-    SecretLover,
-    Betrothed,
-    Crush, // One-sided
-
-    // Social
-    BestFriend,
-    Friend,
-    Rival,
-    Nemesis,
-    Mentor,
-    Student,
-
-    // Political
-    Ally,
-    Conspirator,
-    Blackmailer,
-    Puppet,
-    PuppetMaster,
-}
+// NOTE: HasRelationship, RelationshipMetadata, RelatedTo, and RelationshipType
+// are now defined in crate::relationships::familial and re-exported above.
+// They use Bevy's #[relationship] attribute for automatic bidirectional tracking.
 
 /// Component tracking family tree membership
 #[derive(Component, Debug, Clone)]

@@ -434,3 +434,262 @@ impl Province {
         }
     }
 }
+
+// ================================================================================================
+// ECS PROVINCE COMPONENTS - For full entity-based province system
+// ================================================================================================
+
+/// Marker component for province entities
+///
+/// Used to identify province entities in queries without loading data.
+/// All province entities must have this component.
+#[derive(Component, Debug, Clone, Copy, Default, Reflect)]
+pub struct ProvinceMarker;
+
+/// ALL province data in a single component (cache-optimal for 3M entities)
+///
+/// This consolidates all province data into a single component to minimize
+/// archetype fragmentation and maximize cache efficiency during iteration.
+/// Minerals are embedded directly rather than as separate components.
+#[derive(Component, Debug, Clone, Reflect, Serialize, Deserialize)]
+pub struct ProvinceData {
+    /// Unique identifier for this province
+    pub id: ProvinceId,
+
+    /// World position in 2D space
+    pub position: Vec2,
+
+    /// Terrain type determining base characteristics
+    pub terrain: TerrainType,
+
+    /// Elevation from 0.0 (sea level) to 1.0 (highest peaks)
+    pub elevation: Elevation,
+
+    /// Food production capacity
+    pub agriculture: Agriculture,
+
+    /// Distance to nearest river/delta in hexagon units
+    pub fresh_water_distance: Distance,
+
+    /// Current population
+    pub population: u32,
+
+    /// Maximum population this province can support
+    pub max_population: u32,
+
+    /// Cultural identity of this province
+    pub culture: Option<Culture>,
+
+    // === Mineral Resources (embedded for cache efficiency) ===
+    /// Iron abundance - Common, used for tools and weapons
+    pub iron: Abundance,
+
+    /// Copper abundance - Common, used for bronze
+    pub copper: Abundance,
+
+    /// Tin abundance - Rare, essential for bronze
+    pub tin: Abundance,
+
+    /// Gold abundance - Rare, used for currency
+    pub gold: Abundance,
+
+    /// Coal abundance - Common in lowlands, fuel source
+    pub coal: Abundance,
+
+    /// Stone abundance - Ubiquitous, building material
+    pub stone: Abundance,
+
+    /// Gems abundance - Very rare, luxury goods
+    pub gems: Abundance,
+}
+
+impl ProvinceData {
+    /// Create new province data from a Province struct
+    pub fn from_province(province: &Province) -> Self {
+        Self {
+            id: province.id,
+            position: province.position,
+            terrain: province.terrain,
+            elevation: province.elevation,
+            agriculture: province.agriculture,
+            fresh_water_distance: province.fresh_water_distance,
+            population: province.population,
+            max_population: province.max_population,
+            culture: province.culture,
+            iron: province.iron,
+            copper: province.copper,
+            tin: province.tin,
+            gold: province.gold,
+            coal: province.coal,
+            stone: province.stone,
+            gems: province.gems,
+        }
+    }
+
+    /// Check if this province is habitable
+    pub fn is_habitable(&self) -> bool {
+        self.terrain != TerrainType::Ocean
+    }
+
+    /// Check if this province has fresh water access
+    pub fn has_fresh_water(&self) -> bool {
+        self.terrain == TerrainType::River || self.fresh_water_distance.within(2.0)
+    }
+
+    /// Calculate population growth multiplier based on terrain and resources
+    pub fn growth_multiplier(&self) -> f32 {
+        let base = match self.terrain {
+            TerrainType::River => 2.5,
+            TerrainType::TropicalRainforest | TerrainType::TemperateRainforest => 1.5,
+            TerrainType::TemperateGrassland | TerrainType::Savanna => 1.2,
+            TerrainType::Ocean => 0.0,
+            TerrainType::PolarDesert | TerrainType::TropicalDesert => 0.3,
+            _ => 1.0,
+        };
+
+        // Modify by agriculture
+        base * (0.5 + self.agriculture.value() / 3.0)
+    }
+
+    /// Get mineral abundance for a specific mineral type
+    pub fn get_mineral_abundance(&self, mineral_type: MineralType) -> Option<u8> {
+        let abundance = match mineral_type {
+            MineralType::Iron => self.iron.value(),
+            MineralType::Copper => self.copper.value(),
+            MineralType::Tin => self.tin.value(),
+            MineralType::Gold => self.gold.value(),
+            MineralType::Coal => self.coal.value(),
+            MineralType::Stone => self.stone.value(),
+            MineralType::Gems => self.gems.value(),
+            _ => 0,
+        };
+
+        if abundance > 0 {
+            Some(abundance)
+        } else {
+            None
+        }
+    }
+}
+
+impl Default for ProvinceData {
+    fn default() -> Self {
+        Self {
+            id: ProvinceId::default(),
+            position: Vec2::ZERO,
+            terrain: TerrainType::TemperateGrassland,
+            elevation: Elevation::default(),
+            agriculture: Agriculture::default(),
+            fresh_water_distance: Distance::infinite(),
+            population: PROVINCE_MIN_POPULATION,
+            max_population: PROVINCE_MIN_POPULATION * 10,
+            culture: None,
+            iron: Abundance::default(),
+            copper: Abundance::default(),
+            tin: Abundance::default(),
+            gold: Abundance::default(),
+            coal: Abundance::default(),
+            stone: Abundance::default(),
+            gems: Abundance::default(),
+        }
+    }
+}
+
+/// Neighbor entity references for a province
+///
+/// Stores direct Entity references to neighboring provinces for O(1) lookups.
+/// Uses the standard hexagonal direction order: NE, E, SE, SW, W, NW.
+#[derive(Component, Debug, Clone, Default, Reflect)]
+pub struct ProvinceNeighbors {
+    /// Entity references to the 6 neighboring provinces
+    /// Order: NE, E, SE, SW, W, NW (matches HexDirection enum)
+    /// None if neighbor is off-map or ocean
+    pub neighbors: [Option<Entity>; 6],
+}
+
+impl ProvinceNeighbors {
+    /// Create new neighbor component from entity array
+    pub fn new(neighbors: [Option<Entity>; 6]) -> Self {
+        Self { neighbors }
+    }
+
+    /// Get neighbor in a specific direction
+    pub fn get(&self, direction: HexDirection) -> Option<Entity> {
+        self.neighbors[direction as usize]
+    }
+
+    /// Get all valid neighbors as an iterator
+    pub fn iter_valid(&self) -> impl Iterator<Item = Entity> + '_ {
+        self.neighbors.iter().filter_map(|&n| n)
+    }
+
+    /// Count of valid neighbors
+    pub fn count(&self) -> usize {
+        self.neighbors.iter().filter(|n| n.is_some()).count()
+    }
+}
+
+/// Bundle for spawning a province entity
+///
+/// Contains all components needed for a province entity.
+/// Use with `spawn_batch` for efficient bulk spawning of 3M provinces.
+#[derive(Bundle, Default)]
+pub struct ProvinceBundle {
+    /// Marker for province queries
+    pub marker: ProvinceMarker,
+
+    /// All province data consolidated
+    pub data: ProvinceData,
+
+    /// Neighbor entity references (populated in second pass after all entities spawned)
+    pub neighbors: ProvinceNeighbors,
+}
+
+impl ProvinceBundle {
+    /// Create a bundle from a Province struct
+    /// Note: neighbors must be set separately after all provinces are spawned
+    pub fn from_province(province: &Province) -> Self {
+        Self {
+            marker: ProvinceMarker,
+            data: ProvinceData::from_province(province),
+            neighbors: ProvinceNeighbors::default(), // Set in second pass
+        }
+    }
+}
+
+/// Resource maintaining spawn order of province entities
+///
+/// Critical for mesh vertex alignment - vertex N corresponds to entity N.
+/// Inserted after spawn_batch completes.
+#[derive(Resource, Debug, Clone)]
+pub struct ProvinceEntityOrder {
+    /// Ordered list of province entities matching spawn order
+    pub entities: Vec<Entity>,
+}
+
+impl ProvinceEntityOrder {
+    /// Create from entity list
+    pub fn new(entities: Vec<Entity>) -> Self {
+        Self { entities }
+    }
+
+    /// Get entity by province index (vertex index)
+    pub fn get(&self, index: usize) -> Option<Entity> {
+        self.entities.get(index).copied()
+    }
+
+    /// Get index by entity (for reverse lookups)
+    pub fn index_of(&self, entity: Entity) -> Option<usize> {
+        self.entities.iter().position(|&e| e == entity)
+    }
+
+    /// Total count of provinces
+    pub fn len(&self) -> usize {
+        self.entities.len()
+    }
+
+    /// Check if empty
+    pub fn is_empty(&self) -> bool {
+        self.entities.is_empty()
+    }
+}

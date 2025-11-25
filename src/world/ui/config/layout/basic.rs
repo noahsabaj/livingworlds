@@ -276,34 +276,35 @@ pub fn spawn_calendar_selection_section(
             // Create a group entity for exclusive radio button selection
             let calendar_group = section.commands().spawn(()).id();
 
-            section.spawn((
-                Node {
-                    width: Val::Percent(100.0),
-                    flex_direction: FlexDirection::Row,
-                    flex_wrap: FlexWrap::Wrap,  // Enable multi-row wrapping
-                    justify_content: JustifyContent::FlexStart,
-                    column_gap: Val::Px(8.0),
-                    row_gap: Val::Px(8.0),  // Spacing between wrapped rows
-                    ..default()
-                },
-            )).with_children(|grid| {
-                // Create selectable buttons using bevy-ui-builders v0.2.1 selection system
-                for (cal_id, calendar) in &calendar_registry.calendars {
-                    let is_selected = cal_id == calendar_id;
+            // Collect calendars and chunk into rows of 3 (matching Quick Presets layout)
+            let calendars: Vec<_> = calendar_registry.calendars.iter().collect();
+            for row_calendars in calendars.chunks(3) {
+                section.spawn((
+                    Node {
+                        width: Val::Percent(100.0),
+                        flex_direction: FlexDirection::Row,
+                        column_gap: Val::Px(8.0),
+                        margin: UiRect::bottom(Val::Px(5.0)),
+                        ..default()
+                    },
+                )).with_children(|row| {
+                    for (cal_id, calendar) in row_calendars {
+                        let is_selected = *cal_id == calendar_id;
 
-                    let button = ButtonBuilder::new(&calendar.name)
-                        .size(ButtonSize::Small)
-                        .width(Val::Px(220.0))
-                        .height(Val::Px(40.0))
-                        .selected(is_selected)  // Set initial selection
-                        .in_group(calendar_group)  // Radio button group (exclusive selection)
-                        .build(grid);
+                        let button = ButtonBuilder::new(&calendar.name)
+                            .size(ButtonSize::Small)
+                            .width(Val::Percent(33.0))  // Equal width for 3 buttons per row
+                            .height(Val::Px(40.0))
+                            .selected(is_selected)
+                            .in_group(calendar_group)
+                            .build(row);
 
-                    grid.commands()
-                        .entity(button)
-                        .insert(CalendarButton(cal_id.clone()));
-                }
-            });
+                        row.commands()
+                            .entity(button)
+                            .insert(CalendarButton((*cal_id).clone()));
+                    }
+                });
+            }
 
             // Calendar preview panel
             if let Some(calendar) = calendar_registry.get_calendar(calendar_id) {

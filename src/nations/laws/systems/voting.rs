@@ -5,7 +5,7 @@
 use bevy::prelude::*;
 
 use crate::nations::laws::passage::{trigger_law_vote, LawVoteResult};
-use crate::nations::laws::registry::{LawRegistry, NationLaws, ActiveLaws};
+use crate::nations::laws::registry::{LawRegistry, NationLaws};
 use crate::nations::laws::types::{LawEnactmentEvent, LawRepealEvent, LawStatus};
 use crate::nations::{Nation, Governance};
 use crate::simulation::GameTime;
@@ -15,7 +15,6 @@ pub fn process_law_votes_system(
     mut nations: Query<(Entity, &Nation, &Governance, &mut NationLaws)>,
     registry: Res<LawRegistry>,
     time: Res<GameTime>,
-    mut active_laws: ResMut<ActiveLaws>,
     mut enactment_events: MessageWriter<LawEnactmentEvent>,
     repeal_events: MessageWriter<LawRepealEvent>,
 ) {
@@ -44,7 +43,7 @@ pub fn process_law_votes_system(
                         );
 
                         // Update global tracking
-                        active_laws.on_law_enacted(nation.id, proposed.law_id);
+                        // active_laws.on_law_enacted(nation.id, proposed.law_id);
 
                         // Fire event
                         enactment_events.write(LawEnactmentEvent {

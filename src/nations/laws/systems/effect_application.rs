@@ -3,7 +3,7 @@
 //! Applies the combined effects of enacted laws to nation attributes every frame.
 
 use bevy::prelude::*;
-use crate::nations::{Nation, Governance};
+use crate::nations::{Economy, Nation, Governance};
 use crate::nations::laws::{NationLaws, LawEffects};
 use crate::relationships::{EnactedLaws, LawEntity};
 
@@ -162,24 +162,4 @@ pub fn apply_law_effects_with_relationships(
     }
 }
 
-/// Economy component for nations (if not already defined)
-#[derive(Component, Debug, Clone)]
-pub struct Economy {
-    pub tax_efficiency: f32,
-    pub industrial_multiplier: f32,
-    pub agricultural_multiplier: f32,
-    pub trade_multiplier: f32,
-    pub maintenance_cost: f32,
-}
-
-impl Default for Economy {
-    fn default() -> Self {
-        Self {
-            tax_efficiency: 1.0,
-            industrial_multiplier: 1.0,
-            agricultural_multiplier: 1.0,
-            trade_multiplier: 1.0,
-            maintenance_cost: 100.0,
-        }
-    }
-}
+// NOTE: Economy component is now defined in crate::nations::types and imported above

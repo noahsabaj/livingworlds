@@ -23,7 +23,7 @@ pub fn update_nation_histories(
 
     for (entity, nation, mut history, attacked_by) in &mut nations_query {
         // Check if at war via AttackedBy relationship
-        let is_at_war = attacked_by.is_some() && !attacked_by.unwrap().0.is_empty();
+        let is_at_war = attacked_by.is_some() && attacked_by.unwrap().is_under_attack();
 
         // Update yearly statistics
         history.yearly_update(is_at_war);

@@ -17,6 +17,9 @@ mod utils; // Shared utilities // Generation plugin
 // Re-export the WorldBuilder from builder.rs
 pub use builder::WorldBuilder;
 
+// Re-export population initialization for use in GPU generation path
+pub use builder::initialize_province_populations;
+
 // Re-export error types for generation failures
 pub use errors::{WorldGenerationError, WorldGenerationErrorType};
 

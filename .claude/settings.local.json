@@ -31,7 +31,9 @@
       "WebFetch(domain:bevy.org)",
       "WebFetch(domain:crates.io)",
       "Bash(cargo tree:*)",
-      "Bash(xargs ls:*)"
+      "Bash(xargs ls:*)",
+      "mcp__filesystem__write_file",
+      "mcp__filesystem__list_directory"
     ]
   },
   "enableAllProjectMcpServers": true,

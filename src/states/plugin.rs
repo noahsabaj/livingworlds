@@ -36,6 +36,8 @@ define_plugin!(StatesPlugin {
         (
             check_and_trigger_world_generation,
             crate::world::poll_async_world_generation,
+            crate::world::spawn_province_entities,
+            crate::world::setup_province_neighbors,
             crate::world::handle_world_generation_transition_delay
         ).run_if(in_state(GameState::LoadingWorld)),
         handle_error_dialog_buttons.run_if(in_state(GameState::WorldGenerationFailed)),

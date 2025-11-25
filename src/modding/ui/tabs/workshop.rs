@@ -3,7 +3,7 @@
 //! This module handles the Steam Workshop browser interface,
 //! allowing users to browse and subscribe to community mods.
 
-use crate::ui::colors;
+use crate::ui::{colors, LabelBuilder, LabelStyle};
 use bevy::prelude::*;
 
 /// Spawns the workshop tab content

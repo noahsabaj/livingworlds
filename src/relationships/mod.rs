@@ -32,6 +32,7 @@ mod administrative; // Governor and provincial administration relationships
 mod cultural; // Cultural region and provincial cultural membership
 mod debug; // Debug utilities for relationship system
 mod diplomatic; // Inter-nation diplomatic relationships
+mod familial; // Character family and social relationships
 mod infrastructure; // Roads, trade routes, and physical connections
 mod legislative; // Legislative and law enactment relationships
 mod military; // Army positioning and military structures
@@ -52,6 +53,8 @@ pub use political::{
     ControlledBy,
     Controls,
     HasCapital,
+    RulesOver,
+    RuledBy,
 };
 
 // ================================================================================================
@@ -99,6 +102,26 @@ pub use legislative::{
 // POPULATION RELATIONSHIPS - Demographics and residence
 // ================================================================================================
 
+
+// ================================================================================================
+// FAMILIAL RELATIONSHIPS - Character family and social bonds
+// ================================================================================================
+
+pub use familial::{
+    // Character relationship components
+    HasRelationship,
+    RelatedTo,
+    RelationshipMetadata,
+    RelationshipType,
+    // Relationship bundle
+    CharacterRelationshipBundle,
+    // Query helpers
+    find_children,
+    find_parents,
+    find_siblings,
+    find_spouses,
+    get_relationship_between,
+};
 
 // ================================================================================================
 // BEVY PLUGIN INTEGRATION

@@ -60,6 +60,7 @@ pub use shortcuts::{
 };
 
 // Dropdown system exports
+pub use dropdown::DropdownBuilder;
 
 // Marker components for queries
 pub use dialogs::{
@@ -88,6 +89,8 @@ pub use nation_info::SelectedNation;
 pub use bevy_ui_builders::{
     // Button system - now with native with_marker support in v0.1.4!
     ButtonBuilder, ButtonSize, ButtonStyle, StyledButton,
+    // Checkbox system
+    CheckboxBuilder,
     // Dialog system
     DialogBuilder, DialogType,
     // Label system

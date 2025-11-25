@@ -4,8 +4,8 @@
 
 use super::super::components::*;
 use super::super::types::*;
-use crate::ui::{colors, dimensions};
-use crate::ui::SliderBuilder;
+use crate::ui::colors;
+use crate::ui::{SliderBuilder, ValueFormat};
 use crate::ui::{ButtonBuilder, ButtonSize, PanelBuilder, PanelStyle};
 use bevy::prelude::*;
 
@@ -26,7 +26,7 @@ pub fn spawn_advanced_panel(parent: &mut ChildSpawnerCommands) {
                 },
                 TextColor(colors::TEXT_PRIMARY),
                 Node {
-                    margin: UiRect::bottom(Val::Px(15.0)),
+                    margin: UiRect::bottom(Val::Px(10.0)),
                     ..default()
                 },
             ));
@@ -40,18 +40,20 @@ pub fn spawn_advanced_panel(parent: &mut ChildSpawnerCommands) {
                 },
                 TextColor(colors::TEXT_MUTED),
                 Node {
-                    margin: UiRect::bottom(Val::Px(20.0)),
+                    margin: UiRect::bottom(Val::Px(15.0)),
                     ..default()
                 },
             ));
 
-            // Two columns
-            PanelBuilder::new()
-                .style(PanelStyle::Transparent)
-                .width(Val::Percent(100.0))
-                .flex_direction(FlexDirection::Row)
-                .column_gap(Val::Px(40.0))
-                .build_with_children(panel, |columns| {
+            // Two columns layout
+            panel
+                .spawn((Node {
+                    width: Val::Percent(100.0),
+                    flex_direction: FlexDirection::Row,
+                    column_gap: Val::Px(30.0),
+                    ..default()
+                },))
+                .with_children(|columns| {
                     // Left column: World Geography
                     spawn_geography_column(columns);
 
@@ -65,83 +67,95 @@ pub fn spawn_advanced_panel(parent: &mut ChildSpawnerCommands) {
 }
 
 fn spawn_geography_column(parent: &mut ChildSpawnerCommands) {
-    PanelBuilder::new()
-        .style(PanelStyle::Transparent)
-        .flex_basis(Val::Percent(50.0))
-        .flex_direction(FlexDirection::Column)
-        .row_gap(Val::Px(dimensions::MARGIN_MEDIUM))
-        .build_with_children(parent, |column| {
-            // Section header using PanelBuilder
-            PanelBuilder::new()
-                .style(PanelStyle::Elevated)
-                .width(Val::Percent(100.0))
-                .padding(UiRect::all(Val::Px(10.0)))
-                .margin(UiRect::bottom(Val::Px(10.0)))
-                .build_with_children(column, |header| {
-                    header.spawn((
-                        Text::new("World Geography"),
-                        TextFont {
-                            font_size: 18.0,
-                            ..default()
-                        },
-                        TextColor(colors::TEXT_PRIMARY),
-                    ));
-                    header.spawn((
-                        Text::new("Shape the physical world: continents, oceans, and terrain."),
-                        TextFont {
-                            font_size: 13.0,
-                            ..default()
-                        },
-                        TextColor(colors::TEXT_MUTED),
-                    ));
-                });
+    parent
+        .spawn((Node {
+            width: Val::Percent(50.0),
+            flex_direction: FlexDirection::Column,
+            ..default()
+        },))
+        .with_children(|column| {
+            // Section header
+            column.spawn((
+                Text::new("World Geography"),
+                TextFont {
+                    font_size: 18.0,
+                    ..default()
+                },
+                TextColor(colors::TEXT_PRIMARY),
+                Node {
+                    margin: UiRect::bottom(Val::Px(5.0)),
+                    ..default()
+                },
+            ));
+            column.spawn((
+                Text::new("Shape the physical world: continents, oceans, and terrain."),
+                TextFont {
+                    font_size: 13.0,
+                    ..default()
+                },
+                TextColor(colors::TEXT_MUTED),
+                Node {
+                    margin: UiRect::bottom(Val::Px(15.0)),
+                    ..default()
+                },
+            ));
 
-            // Use our slider builders
+            // Continent count slider
             let slider_entity = SliderBuilder::new(1.0..12.0)
+                .label("Continents")
+                .value(7.0)
+                .step(1.0)
+                .format(ValueFormat::Integer)
+                .width(Val::Percent(100.0))
                 .build(column);
             column.commands().entity(slider_entity).insert(ContinentSlider);
 
+            // Ocean coverage slider
             let slider_entity = SliderBuilder::new(30.0..80.0)
+                .label("Ocean Coverage")
+                .value(60.0)
+                .step(5.0)
+                .format(ValueFormat::Custom(|v| format!("{}%", v as i32)))
+                .width(Val::Percent(100.0))
                 .build(column);
             column.commands().entity(slider_entity).insert(OceanSlider);
 
+            // River density slider
             let slider_entity = SliderBuilder::new(0.5..2.0)
+                .label("River Density")
+                .value(1.0)
+                .step(0.1)
+                .format(ValueFormat::Custom(|v| format!("{:.1}x", v)))
+                .width(Val::Percent(100.0))
                 .build(column);
             column.commands().entity(slider_entity).insert(RiverSlider);
 
             // Climate Type Selection
-            PanelBuilder::new()
-                .style(PanelStyle::Transparent)
-                .width(Val::Percent(100.0))
-                .flex_direction(FlexDirection::Column)
-                .row_gap(Val::Px(3.0))
-                .build_with_children(column, |climate_section| {
-                    spawn_selection_row(
-                        climate_section,
-                        "Climate Type",
-                        vec![
-                            ("Arctic", ClimateType::Arctic),
-                            ("Temperate", ClimateType::Temperate),
-                            ("Tropical", ClimateType::Tropical),
-                            ("Desert", ClimateType::Desert),
-                            ("Mixed", ClimateType::Mixed),
-                        ],
-                        ClimateType::Mixed,
-                        |climate| ClimateButton(climate),
-                    );
-                    climate_section.spawn((
-                        Text::new("Affects temperature, rainfall, and biome distribution."),
-                        TextFont {
-                            font_size: 12.0,
-                            ..default()
-                        },
-                        TextColor(colors::TEXT_MUTED),
-                        Node {
-                            margin: UiRect::horizontal(Val::Px(5.0)),
-                            ..default()
-                        },
-                    ));
-                });
+            spawn_selection_row(
+                column,
+                "Climate Type",
+                vec![
+                    ("Arctic", ClimateType::Arctic),
+                    ("Temperate", ClimateType::Temperate),
+                    ("Tropical", ClimateType::Tropical),
+                    ("Desert", ClimateType::Desert),
+                    ("Mixed", ClimateType::Mixed),
+                ],
+                ClimateType::Mixed,
+                |climate| ClimateButton(climate),
+            );
+            column.spawn((
+                Text::new("Affects temperature, rainfall, and biome distribution."),
+                TextFont {
+                    font_size: 12.0,
+                    ..default()
+                },
+                TextColor(colors::TEXT_MUTED),
+                Node {
+                    margin: UiRect::bottom(Val::Px(10.0)),
+                    ..default()
+                },
+            ));
 
             // Island Frequency Selection
             spawn_selection_row(
@@ -162,80 +176,82 @@ fn spawn_geography_column(parent: &mut ChildSpawnerCommands) {
 fn spawn_civilizations_column(parent: &mut ChildSpawnerCommands) {
     parent
         .spawn((Node {
-            flex_basis: Val::Percent(50.0),
+            width: Val::Percent(50.0),
             flex_direction: FlexDirection::Column,
-            row_gap: Val::Px(dimensions::MARGIN_MEDIUM),
             ..default()
         },))
         .with_children(|column| {
-            // Section header using PanelBuilder
-            PanelBuilder::new()
-                .style(PanelStyle::Elevated)
-                .width(Val::Percent(100.0))
-                .padding(UiRect::all(Val::Px(10.0)))
-                .margin(UiRect::bottom(Val::Px(10.0)))
-                .build_with_children(column, |header| {
-                    header.spawn((
-                        Text::new("Civilizations & Resources"),
-                        TextFont {
-                            font_size: 18.0,
-                            ..default()
-                        },
-                        TextColor(colors::TEXT_PRIMARY),
-                    ));
-                    header.spawn((
-                        Text::new("Configure nations, their behavior, and available resources."),
-                        TextFont {
-                            font_size: 13.0,
-                            ..default()
-                        },
-                        TextColor(colors::TEXT_MUTED),
-                    ));
-                });
+            // Section header
+            column.spawn((
+                Text::new("Civilizations & Resources"),
+                TextFont {
+                    font_size: 18.0,
+                    ..default()
+                },
+                TextColor(colors::TEXT_PRIMARY),
+                Node {
+                    margin: UiRect::bottom(Val::Px(5.0)),
+                    ..default()
+                },
+            ));
+            column.spawn((
+                Text::new("Configure nations, their behavior, and available resources."),
+                TextFont {
+                    font_size: 13.0,
+                    ..default()
+                },
+                TextColor(colors::TEXT_MUTED),
+                Node {
+                    margin: UiRect::bottom(Val::Px(15.0)),
+                    ..default()
+                },
+            ));
 
-            // Use our slider builders
+            // Starting nations slider
             let slider_entity = SliderBuilder::new(2.0..20.0)
+                .label("Starting Nations")
+                .value(8.0)
+                .step(1.0)
+                .format(ValueFormat::Integer)
+                .width(Val::Percent(100.0))
                 .build(column);
             column.commands().entity(slider_entity).insert(StartingNationsSlider);
 
+            // Tech progression speed slider
             let slider_entity = SliderBuilder::new(0.5..2.0)
+                .label("Tech Speed")
+                .value(1.0)
+                .step(0.1)
+                .format(ValueFormat::Custom(|v| format!("{:.1}x", v)))
+                .width(Val::Percent(100.0))
                 .build(column);
             column.commands().entity(slider_entity).insert(TechSpeedSlider);
 
             // Aggression Level Selection
-            column
-                .spawn((Node {
-                    width: Val::Percent(100.0),
-                    flex_direction: FlexDirection::Column,
-                    row_gap: Val::Px(3.0),
+            spawn_selection_row(
+                column,
+                "Aggression",
+                vec![
+                    ("Peaceful", AggressionLevel::Peaceful),
+                    ("Balanced", AggressionLevel::Balanced),
+                    ("Warlike", AggressionLevel::Warlike),
+                    ("Chaotic", AggressionLevel::Chaotic),
+                ],
+                AggressionLevel::Balanced,
+                |aggr| AggressionButton(aggr),
+            );
+            column.spawn((
+                Text::new("How likely nations are to declare war and expand."),
+                TextFont {
+                    font_size: 12.0,
                     ..default()
-                },))
-                .with_children(|aggression_section| {
-                    spawn_selection_row(
-                        aggression_section,
-                        "Aggression",
-                        vec![
-                            ("Peaceful", AggressionLevel::Peaceful),
-                            ("Balanced", AggressionLevel::Balanced),
-                            ("Warlike", AggressionLevel::Warlike),
-                            ("Chaotic", AggressionLevel::Chaotic),
-                        ],
-                        AggressionLevel::Balanced,
-                        |aggr| AggressionButton(aggr),
-                    );
-                    aggression_section.spawn((
-                        Text::new("How likely nations are to declare war and expand."),
-                        TextFont {
-                            font_size: 12.0,
-                            ..default()
-                        },
-                        TextColor(colors::TEXT_MUTED),
-                        Node {
-                            margin: UiRect::horizontal(Val::Px(5.0)),
-                            ..default()
-                        },
-                    ));
-                });
+                },
+                TextColor(colors::TEXT_MUTED),
+                Node {
+                    margin: UiRect::bottom(Val::Px(10.0)),
+                    ..default()
+                },
+            ));
 
             // Resource Abundance Selection
             spawn_selection_row(

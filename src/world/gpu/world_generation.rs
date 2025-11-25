@@ -485,7 +485,7 @@ impl GpuProvinceBuilder {
                 Province {
                     id: ProvinceId::new(index as u32),
                     position,
-                    owner: None,
+                    owner_entity: None,
                     culture: None,
                     elevation: Elevation::new(elevation),
                     terrain,

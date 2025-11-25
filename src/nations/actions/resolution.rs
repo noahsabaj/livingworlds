@@ -148,20 +148,26 @@ pub fn resolve_nation_actions(
                     );
                 }
                 PressureType::EconomicStrain => {
+                    // Note: raid_target is None here - resolve_pressure_actions in simulation
+                    // module handles the raid target selection with ParamSet for query access
                     handle_economic_pressure(
                         entity,
                         &mut nation,
                         &history,
                         level,
+                        None, // No raid target available in this context
                         &mut messages,
                     );
                 }
                 PressureType::MilitaryVulnerability => {
+                    // Note: ally_target is None here - resolve_pressure_actions in simulation
+                    // module handles the ally target selection with ParamSet for query access
                     handle_military_pressure(
                         entity,
                         &mut nation,
                         &history,
                         level,
+                        None, // No ally target available in this context
                         &mut messages,
                     );
                 }
@@ -253,11 +259,15 @@ pub fn handle_population_pressure(
 }
 
 /// Handle economic pressure with tax increases or raids
+///
+/// If raid_target is Some, the nation will attempt to raid that target.
+/// If raid_target is None, the nation will raise taxes instead.
 pub fn handle_economic_pressure(
     nation_entity: Entity,
     nation: &mut Nation,
     history: &NationHistory,
     pressure: PressureLevel,
+    raid_target: Option<Entity>,
     messages: &mut MessageWriter<NationActionEvent>,
 ) {
     info!(
@@ -279,30 +289,38 @@ pub fn handle_economic_pressure(
     );
 
     if is_aggressive && has_military_strength && !recent_defeats {
-        // Attempt to raid neighbors
-        log_nation_decision(
-            nation_entity.index(),
-            &nation.name,
-            "Economic Response",
-            "Choosing aggressive approach - will attempt raids"
-        );
+        // Attempt to raid neighbors - use provided target
+        if let Some(target_entity) = raid_target {
+            log_nation_decision(
+                nation_entity.index(),
+                &nation.name,
+                "Economic Response",
+                "Choosing aggressive approach - will attempt raids"
+            );
 
-        messages.write(NationActionEvent::RaidAttempt {
-            nation_entity,
-            nation_name: nation.name.clone(),
-            target_nation: Entity::PLACEHOLDER, // TODO Phase 7: Find actual target via neighbor relationships
-            pressure_level: pressure.value(),
-        });
+            messages.write(NationActionEvent::RaidAttempt {
+                nation_entity,
+                nation_name: nation.name.clone(),
+                target_nation: target_entity,
+                pressure_level: pressure.value(),
+            });
 
-        log_nation_state_change(
-            nation_entity.index(),
-            &nation.name,
-            "Economically Stressed",
-            "Raiding",
-            &format!("Economic pressure ({:.1}) triggered raiding", pressure.value())
-        );
+            log_nation_state_change(
+                nation_entity.index(),
+                &nation.name,
+                "Economically Stressed",
+                "Raiding",
+                &format!("Economic pressure ({:.1}) triggered raiding", pressure.value())
+            );
 
-        info!("{} considers raiding neighbors for resources", nation.name);
+            info!("{} considers raiding neighbors for resources", nation.name);
+        } else {
+            // No valid raid target - fall back to taxes
+            let old_rate: f32 = nation.tax_rate;
+            let new_rate = (old_rate * 1.15).min(0.4);
+            nation.tax_rate = new_rate;
+            info!("{} raises taxes (no raid targets available)", nation.name);
+        }
     } else {
         // Raise taxes
         let old_rate: f32 = nation.tax_rate;
@@ -332,11 +350,15 @@ pub fn handle_economic_pressure(
 }
 
 /// Handle military pressure with recruitment or alliances
+///
+/// If ally_target is Some, the nation will seek alliance with that target.
+/// If ally_target is None but the nation is diplomatic, it will still seek alliances (just without a specific target).
 pub fn handle_military_pressure(
     nation_entity: Entity,
     nation: &mut Nation,
     history: &NationHistory,
     pressure: PressureLevel,
+    ally_target: Option<Entity>,
     messages: &mut MessageWriter<NationActionEvent>,
 ) {
     info!(
@@ -368,11 +390,15 @@ pub fn handle_military_pressure(
         messages.write(NationActionEvent::AllianceSeek {
             nation_entity,
             nation_name: nation.name.clone(),
-            target_nation: None, // TODO Phase 8: Find suitable ally via alliance system
+            target_nation: ally_target,
             pressure_level: pressure.value(),
         });
 
-        info!("{} seeks alliances for military protection", nation.name);
+        if ally_target.is_some() {
+            info!("{} seeks alliance with specific target for military protection", nation.name);
+        } else {
+            info!("{} seeks alliances for military protection", nation.name);
+        }
     }
 }
 

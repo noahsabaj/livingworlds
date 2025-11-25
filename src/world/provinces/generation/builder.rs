@@ -12,6 +12,7 @@ use crate::world::generation::GenerationUtils;
 use crate::world::gpu::extract_province_positions;
 use crate::world::provinces::{
     Province, ProvinceId, Elevation, Agriculture, Distance, Abundance,
+    ProvinceBundle, ProvinceData, ProvinceMarker, ProvinceNeighbors,
 };
 use crate::world::terrain::TerrainType;
 
@@ -167,7 +168,7 @@ impl<'a> ProvinceBuilder<'a> {
                 Province {
                     id: province_id,
                     position: *position,
-                    owner: None,
+                    owner_entity: None,
                     culture: None,
                     elevation: Elevation::new(*elevation),
                     terrain,
@@ -191,4 +192,72 @@ impl<'a> ProvinceBuilder<'a> {
             "province_generation",
         )
     }
+}
+
+// ================================================================================================
+// BUNDLE GENERATION - Convert provinces to ECS bundles for spawn_batch
+// ================================================================================================
+
+/// Convert a slice of Province structs to ProvinceBundle for ECS spawning
+///
+/// This creates bundles without neighbor entity references - those must be set
+/// in a second pass after all entities are spawned via `set_neighbor_entities`.
+pub fn provinces_to_bundles(provinces: &[Province]) -> Vec<ProvinceBundle> {
+    provinces
+        .iter()
+        .map(|province| ProvinceBundle {
+            marker: ProvinceMarker,
+            data: ProvinceData::from_province(province),
+            neighbors: ProvinceNeighbors::default(), // Set in second pass
+        })
+        .collect()
+}
+
+/// Set neighbor entity references after all provinces are spawned
+///
+/// This is the second pass that populates ProvinceNeighbors with actual Entity references.
+/// Must be called after spawn_batch completes and entities are available.
+///
+/// # Arguments
+/// * `world` - Bevy World for entity access
+/// * `entity_order` - Ordered list of province entities (index = ProvinceId)
+/// * `provinces` - Original province data with neighbor_indices
+pub fn set_neighbor_entities(
+    world: &mut bevy::prelude::World,
+    entity_order: &[bevy::prelude::Entity],
+    provinces: &[Province],
+) {
+    use bevy::prelude::Entity;
+
+    // Build lookup from entity to province index
+    let entity_to_index: std::collections::HashMap<Entity, usize> = entity_order
+        .iter()
+        .enumerate()
+        .map(|(idx, &entity)| (entity, idx))
+        .collect();
+
+    // Update each province's neighbor entities
+    for (idx, province) in provinces.iter().enumerate() {
+        if idx >= entity_order.len() {
+            log::warn!("Province index {} out of bounds for entity_order", idx);
+            continue;
+        }
+
+        let entity = entity_order[idx];
+
+        // Convert neighbor indices to entities
+        let neighbor_entities: [Option<Entity>; 6] = province
+            .neighbor_indices
+            .map(|opt_idx| opt_idx.and_then(|i| entity_order.get(i).copied()));
+
+        // Update the ProvinceNeighbors component
+        if let Some(mut neighbors) = world.get_mut::<ProvinceNeighbors>(entity) {
+            neighbors.neighbors = neighbor_entities;
+        }
+    }
+
+    info!(
+        "Set neighbor entities for {} provinces",
+        entity_order.len()
+    );
 }

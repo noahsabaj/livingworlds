@@ -5,7 +5,7 @@
 use bevy::prelude::*;
 
 use crate::nations::laws::passage::{revolutionary_law_changes, RevolutionLawAction};
-use crate::nations::laws::registry::{LawRegistry, NationLaws, ActiveLaws};
+use crate::nations::laws::registry::{LawRegistry, NationLaws};
 use crate::nations::laws::types::{LawEnactmentEvent, LawRepealEvent, LawStatus};
 use crate::nations::{Nation, GovernmentTransition};
 use crate::simulation::GameTime;
@@ -16,7 +16,6 @@ pub fn handle_government_transitions_system(
     mut nations: Query<(Entity, &Nation, &mut NationLaws)>,
     registry: Res<LawRegistry>,
     time: Res<GameTime>,
-    mut active_laws: ResMut<ActiveLaws>,
     mut enactment_events: MessageWriter<LawEnactmentEvent>,
     mut repeal_events: MessageWriter<LawRepealEvent>,
 ) {
@@ -41,7 +40,7 @@ pub fn handle_government_transitions_system(
                     RevolutionLawAction::Enact(law_id) => {
                         if let Some(law) = registry.get_law(law_id) {
                             nation_laws.enact_law(law_id, &law.effects, time.current_year() as i32);
-                            active_laws.on_law_enacted(nation.id, law_id);
+
 
                             enactment_events.write(LawEnactmentEvent {
                                 nation_entity: entity,
@@ -68,7 +67,7 @@ pub fn handle_government_transitions_system(
                             };
 
                             nation_laws.repeal_law(law_id, time.current_year() as i32);
-                            active_laws.on_law_repealed(nation.id, law_id);
+
 
                             repeal_events.write(LawRepealEvent {
                                 nation_entity: entity,

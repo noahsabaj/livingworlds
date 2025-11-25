@@ -3,18 +3,20 @@
 //! Handles clicking on provinces to select their owning nation
 
 use crate::nations::Nation;
+use crate::relationships::ControlledBy;
 use crate::resources::MapMode;
 use crate::ui::nation_info::SelectedNation;
 use crate::ui::SelectedProvinceInfo;
-use crate::world::ProvinceStorage;
+use crate::world::ProvinceEntityOrder;
 use bevy::prelude::*;
 
 /// System to handle nation selection when clicking on provinces
 pub fn handle_nation_selection(
     mouse_button: Res<ButtonInput<MouseButton>>,
     selected_province_info: Res<SelectedProvinceInfo>,
-    provinces: Res<ProvinceStorage>,
-    nations_query: Query<(Entity, &Nation)>,
+    province_entity_order: Option<Res<ProvinceEntityOrder>>,
+    controlled_by_query: Query<&ControlledBy>,
+    nations_query: Query<(Entity, &Nation, &crate::nations::NationId)>,
     mut selected_nation: ResMut<SelectedNation>,
     map_mode: Res<MapMode>,
 ) {
@@ -42,33 +44,35 @@ pub fn handle_nation_selection(
             return;
         };
 
-        // Get province data
-        let province_id_typed = crate::world::ProvinceId::new(province_id);
-        let Some(&province_idx) = provinces.province_by_id.get(&province_id_typed) else {
-            warn!("Province ID {} not found in storage", province_id);
+        // Get province entity from entity order
+        let Some(entity_order) = province_entity_order.as_ref() else {
+            warn!("ProvinceEntityOrder not available");
             return;
         };
-        let province = &provinces.provinces[province_idx];
 
-        // Check if province has an owner
-        if let Some(owner_id) = province.owner {
+        let Some(province_entity) = entity_order.get(province_id as usize) else {
+            warn!("Province ID {} not found in entity order", province_id);
+            return;
+        };
+
+        // Check if province has an owner via ControlledBy relationship
+        if let Ok(controlled_by) = controlled_by_query.get(province_entity) {
+            let owner_entity = controlled_by.0;
             // Find nation entity with this ID
-            for (entity, nation) in nations_query.iter() {
-                if nation.id == owner_id {
-                    // Select this nation
-                    if selected_nation.nation_id != Some(owner_id) {
-                        selected_nation.entity = Some(entity);
-                        selected_nation.nation_id = Some(owner_id);
-                        info!("Selected nation: {} (ID: {:?})", nation.name, owner_id);
-                    }
-                    return;
+            if let Ok((entity, nation, nation_id)) = nations_query.get(owner_entity) {
+                // Select this nation
+                if selected_nation.entity != Some(entity) {
+                    selected_nation.entity = Some(entity);
+                    selected_nation.nation_id = Some(*nation_id);
+                    info!("Selected nation: {} (Entity: {:?})", nation.name, entity);
                 }
+                return;
             }
 
             // Owner not found in entities (shouldn't happen)
             warn!(
-                "Province owned by nation {:?} but entity not found",
-                owner_id
+                "Province owned by entity {:?} but entity not found",
+                owner_entity
             );
         } else {
             // Clicked on unclaimed province - clear selection
@@ -84,9 +88,7 @@ pub fn handle_nation_selection(
 /// System to highlight selected nation's territory
 pub fn highlight_selected_nation_territory(
     selected_nation: Res<SelectedNation>,
-    provinces: Res<ProvinceStorage>,
-    ownership_cache: Res<crate::nations::ProvinceOwnershipCache>,
-    cached_colors: ResMut<crate::resources::CachedOverlayColors>,
+    controls_query: Query<&crate::relationships::Controls>,
     map_mode: Res<MapMode>,
 ) {
     // Only highlight in political mode
@@ -99,11 +101,10 @@ pub fn highlight_selected_nation_territory(
         return;
     }
 
-    if let Some(nation_id) = selected_nation.nation_id {
-        // Get provinces owned by selected nation
-        if let Some(owned_provinces) = ownership_cache.get_nation_provinces(nation_id) {
-            debug!("Selected nation owns {} provinces", owned_provinces.len());
-            // Future: Add highlight border or brightness boost
-        }
+    if let Some(nation_entity) = selected_nation.entity {
+        // Get province count owned by selected nation using Controls relationship (O(1))
+        let province_count = crate::nations::get_nation_province_count(&controls_query, nation_entity);
+        debug!("Selected nation owns {} provinces", province_count);
+        // Future: Add highlight border or brightness boost
     }
 }

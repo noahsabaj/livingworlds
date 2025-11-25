@@ -6,7 +6,8 @@
 
 use super::MapMode;
 use crate::constants::MS_PER_SECOND;
-use crate::world::ProvinceStorage;
+use crate::relationships::{Controls, ControlledBy};
+use crate::world::{ProvinceData, ProvinceEntityOrder};
 use bevy::log::{debug, trace, warn};
 use bevy::prelude::*;
 use bevy::prelude::Mesh;
@@ -20,12 +21,15 @@ const BYTES_PER_MB: f32 = 1024.0 * 1024.0;
 pub fn update_province_colors(
     overlay: Res<MapMode>,
     mut cached_colors: ResMut<crate::resources::CachedOverlayColors>,
-    province_storage: Res<ProvinceStorage>,
+    province_entity_order: Option<Res<ProvinceEntityOrder>>,
+    province_data_query: Query<&ProvinceData>,
+    controlled_by_query: Query<&ControlledBy>,
     world_seed: Res<crate::world::WorldSeed>,
     mesh_handle: Res<crate::world::WorldMeshHandle>,
     mut meshes: ResMut<Assets<Mesh>>,
     time: Res<Time>,
-    nation_colors: Option<Res<crate::nations::NationColorRegistry>>,
+    nations_query: Query<(Entity, &crate::nations::Nation)>,
+    controls_query: Query<&Controls>,
     climate_storage: Option<Res<crate::world::terrain::ClimateStorage>>,
     infrastructure_storage: Option<Res<crate::world::InfrastructureStorage>>,
 ) {
@@ -36,7 +40,11 @@ pub fn update_province_colors(
         time.elapsed_secs()
     );
 
-    // System already only runs when overlay changes due to run_if condition
+    // Need province entity order for ECS-based color calculation
+    let Some(entity_order) = province_entity_order.as_ref() else {
+        trace!("ProvinceEntityOrder not available yet, skipping overlay update");
+        return;
+    };
 
     let Some(mesh) = meshes.get_mut(&mesh_handle.0) else {
         warn!("Failed to get world mesh for overlay update");
@@ -45,12 +53,14 @@ pub fn update_province_colors(
 
     let mesh_lookup_time = start.elapsed();
 
-    // Get Arc to colors - NO CLONING, just reference counting!
-    let colors_arc = cached_colors.get_or_calculate_with_nations(
+    // Get Arc to colors using ECS queries - NO CLONING, just reference counting!
+    let colors_arc = cached_colors.get_or_calculate_ecs(
         *overlay,
-        &province_storage,
+        entity_order.as_ref(),
+        &province_data_query,
         world_seed.0,
-        nation_colors.as_ref().map(|r| r.as_ref()),
+        &nations_query,
+        &controls_query,
         climate_storage.as_ref().map(|r| r.as_ref()),
         infrastructure_storage.as_ref().map(|r| r.as_ref()),
     );
@@ -126,16 +136,16 @@ fn force_initial_overlay_update(mut mode: ResMut<MapMode>) {
     debug!("Forced initial overlay update for mode: {}", mode.display_name());
 }
 
-/// Initialize the overlay system with current MapMode and pre-calculate common modes
-/// If ProvinceStorage doesn't exist (cancelled generation), skip initialization
+/// Initialize the overlay system with current MapMode
+/// Pre-calculation happens on-demand when overlay mode changes
 pub fn initialize_overlay_colors(
-    province_storage: Option<Res<ProvinceStorage>>,
+    province_entity_order: Option<Res<ProvinceEntityOrder>>,
     world_seed: Option<Res<crate::world::WorldSeed>>,
     current_mode: Res<MapMode>,
     mut cached_colors: ResMut<crate::resources::CachedOverlayColors>,
 ) {
-    let Some(province_storage) = province_storage else {
-        debug!("Skipping overlay initialization - world generation was cancelled");
+    let Some(entity_order) = province_entity_order else {
+        debug!("Skipping overlay initialization - province entities not spawned yet");
         return;
     };
 
@@ -145,31 +155,10 @@ pub fn initialize_overlay_colors(
     };
 
     info!(
-        "Initializing overlay system for {} provinces",
-        province_storage.provinces.len()
+        "Overlay system ready for {} provinces (calculation happens on-demand)",
+        entity_order.len()
     );
-    let start = std::time::Instant::now();
 
-    // Don't pre-calculate Political mode here - it needs nation colors which aren't available yet
-    // Political will be calculated on-demand by update_province_colors with proper nation data
-    // This prevents caching gray fallback colors before nations are loaded
-    if *current_mode != MapMode::Political {
-        info!("Pre-calculating initial overlay mode: {}", current_mode.display_name());
-        cached_colors.get_or_calculate(*current_mode, &province_storage, world_seed.0);
-    } else {
-        info!("Skipping Political mode pre-calculation - will be calculated with nation colors");
-    }
-
-    // Pre-calculate common overlays for instant switching
-    cached_colors.pre_calculate_common_modes(&province_storage, world_seed.0);
-
-    let elapsed = start.elapsed();
-    let memory_mb = cached_colors.memory_usage_mb();
-
-    info!(
-        "Overlay system initialized in {:.2}s (using {:.1}MB, {} modes pre-calculated)",
-        elapsed.as_secs_f32(),
-        memory_mb,
-        cached_colors.cache.len() + 1 // +1 for current
-    );
+    // Note: Pre-calculation removed - overlays are now calculated on-demand
+    // This is more efficient with ECS as we don't need to hold query results
 }

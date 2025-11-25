@@ -22,6 +22,7 @@ pub fn evaluate_law_passage(
     nation_laws: &NationLaws,
     registry: &LawRegistry,
     current_year: i32,
+    province_count: usize,
 ) -> Option<LawProposal> {
     // Don't propose new laws if too many are already being debated
     if nation_laws.proposed_laws.len() >= 3 {
@@ -63,7 +64,7 @@ pub fn evaluate_law_passage(
         }
 
         // Check prerequisites
-        if !check_prerequisites(&law.prerequisites, nation, governance, current_year) {
+        if !check_prerequisites(&law.prerequisites, nation, governance, current_year, province_count) {
             continue;
         }
 
@@ -104,6 +105,7 @@ pub fn check_prerequisites(
     nation: &Nation,
     governance: &Governance,
     current_year: i32,
+    province_count: usize,
 ) -> bool {
     for prereq in prerequisites {
         match prereq {
@@ -116,9 +118,10 @@ pub fn check_prerequisites(
                 // TODO: Check if nation has this law active
                 // For now, skip this check
             }
-            LawPrerequisite::TechnologyLevel(_level) => {
-                // TODO: Check nation's tech level when tech system is implemented
-                // For now, assume all tech requirements are met
+            LawPrerequisite::TechnologyLevel(level) => {
+                if nation.technology_level < *level {
+                    return false;
+                }
             }
             LawPrerequisite::MinimumStability(min_stability) => {
                 if nation.stability < *min_stability {
@@ -135,9 +138,10 @@ pub fn check_prerequisites(
                     return false;
                 }
             }
-            LawPrerequisite::MinimumProvinces(_count) => {
-                // TODO: Check nation's province count when available
-                // For now, assume met
+            LawPrerequisite::MinimumProvinces(count) => {
+                if province_count < (*count as usize) {
+                    return false;
+                }
             }
             LawPrerequisite::Custom(_description) => {
                 // Custom prerequisites need special handling

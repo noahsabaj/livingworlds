@@ -10,7 +10,7 @@ use super::super::provinces::{Province, ProvinceId};
 use super::super::terrain::TerrainType;
 use super::RiverSystem;
 use crate::constants::*;
-use crate::math::get_neighbor_positions;
+use crate::math::{get_neighbor_positions, HEX_SIZE};
 use crate::resources::MapDimensions;
 use crate::world::generation::GenerationUtils;
 
@@ -403,7 +403,7 @@ fn create_delta_distributaries(
     apply_terrain_if_not_ocean(&mut provinces[delta_idx], TerrainType::River);
 
     // Get all neighbors
-    let neighbors = get_neighbor_positions(delta_col, delta_row, 50.0);
+    let neighbors = get_neighbor_positions(delta_col, delta_row, HEX_SIZE);
 
     // Create branches radiating from delta
     let mut branch_count = 0;

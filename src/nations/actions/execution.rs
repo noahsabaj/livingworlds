@@ -3,27 +3,33 @@
 //! This is where nation actions are actually performed - provinces change hands,
 //! treasuries are modified, military forces are recruited, etc.
 //!
-//! This is THE critical missing piece that makes the game state actually change!
+//! Uses ECS relationships (ControlledBy) for province ownership.
 
 use bevy::prelude::*;
 use super::resolution::NationActionEvent;
 use crate::nations::{Nation, NationHistory};
-use crate::world::{ProvinceStorage, MapMode, CachedOverlayColors};
+use crate::relationships::ControlledBy;
+use crate::world::{ProvinceEntityOrder, MapMode, CachedOverlayColors};
 use crate::simulation::GameTime;
 
 /// Execute expansion events - THIS IS WHERE PROVINCES ACTUALLY CHANGE HANDS
 ///
-/// Uses reactive cache invalidation instead of polling (Bevy 0.17 best practice)
+/// Uses ControlledBy relationships for ownership and reactive cache invalidation
 pub fn execute_expansion_events(
     mut commands: Commands,
     mut messages: MessageReader<NationActionEvent>,
     mut ownership_events: MessageWriter<super::TerritoryOwnershipChanged>,
-    mut province_storage: ResMut<ProvinceStorage>,
+    province_entity_order: Option<Res<ProvinceEntityOrder>>,
+    controlled_by_query: Query<&ControlledBy>,
     mut overlay_colors: ResMut<CachedOverlayColors>,
     mut nations_query: Query<(&mut Nation, &mut NationHistory)>,
     game_time: Res<GameTime>,
     current_mode: Res<MapMode>,
 ) {
+    let Some(entity_order) = province_entity_order else {
+        return;
+    };
+
     for event in messages.read() {
         if let NationActionEvent::ExpansionAttempt {
             nation_entity,
@@ -37,18 +43,20 @@ pub fn execute_expansion_events(
                 continue;
             };
 
-            // Take ownership of target provinces
+            // Take ownership of target provinces using ControlledBy relationship
             let mut provinces_claimed = 0;
 
             for province_id in target_provinces {
-                if let Some(province) = province_storage.provinces.get_mut(province_id.value() as usize) {
-                    // Only claim unclaimed provinces
-                    if province.owner_entity.is_none() {
-                        province.owner_entity = Some(*nation_entity);
+                let province_idx = province_id.value() as usize;
+                if let Some(province_entity) = entity_order.get(province_idx) {
+                    // Only claim unclaimed provinces (no ControlledBy component)
+                    if controlled_by_query.get(province_entity).is_err() {
+                        // Insert ControlledBy relationship - Bevy auto-updates Controls on nation!
+                        commands.entity(province_entity).insert(ControlledBy(*nation_entity));
                         provinces_claimed += 1;
 
-                        debug!("{} claims province {} at {:?}",
-                               nation_name, province_id.value(), province.position);
+                        debug!("{} claims province {} (entity {:?})",
+                               nation_name, province_id.value(), province_entity);
                     }
                 }
             }
@@ -90,9 +98,6 @@ pub fn execute_expansion_events(
 
                 // Small stability boost from successful expansion
                 nation.stability = (nation.stability + 0.02).min(1.0);
-
-                // TODO Phase 7: Recalculate TerritoryMetrics component here
-                // commands.entity(*nation_entity).insert(recalculated_metrics);
             } else {
                 debug!("{} expansion attempt found no claimable provinces", nation_name);
             }

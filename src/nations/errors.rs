@@ -9,6 +9,8 @@ use bevy::prelude::Entity;
 // NationId deleted - now using Entity directly
 use super::governance::{GovernmentType, GovernmentCategory};
 use super::laws::{LawId, LawPrerequisite};
+use crate::nations::NationId;
+
 
 /// Main error type for nation operations
 #[derive(Error, Debug)]

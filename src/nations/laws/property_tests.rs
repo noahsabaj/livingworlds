@@ -307,9 +307,9 @@ mod tests {
             adjective: "Test".to_string(),
             color: Color::srgb(0.5, 0.5, 0.5),
             capital_province: 0,
-            treasury: 1000.0,
-            military_strength: 100.0,
-            stability: 0.5,
+            stability: 0.8,
+            culture: crate::name_generator::Culture::Western,
+            technology_level: 1,
             personality: crate::nations::NationPersonality::balanced(),
         }
     }

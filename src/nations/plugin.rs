@@ -4,7 +4,6 @@
 //! rendering, and simulation.
 
 use super::types::NationRegistry;
-// TerritoryMetricsCache and ProvinceOwnershipCache deleted - now using components and ECS queries
 use crate::states::GameState;
 use bevy::prelude::*;
 use bevy_plugin_builder::define_plugin;
@@ -18,8 +17,6 @@ define_plugin!(NationPlugin {
 
     resources: [
         NationRegistry
-        // NOTE: ProvinceOwnershipCache, TerritoryMetricsCache, and NationNeighborCache
-        // have been deleted and replaced with ECS queries and relationship components
     ],
 
     messages: [

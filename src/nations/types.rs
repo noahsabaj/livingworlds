@@ -8,17 +8,53 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fmt;
 
+/// Unique identifier for a nation
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Reflect, Component)]
+pub struct NationId(pub u32);
+
+impl NationId {
+    pub fn new(id: u32) -> Self {
+        Self(id)
+    }
+
+    pub fn value(&self) -> u32 {
+        self.0
+    }
+}
+
+impl fmt::Display for NationId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 /// A political entity that controls territory and has a ruling house
 ///
 /// Uses Bevy 0.16 Component Hooks for automatic cache cleanup when removed
 #[derive(Debug, Clone, Serialize, Deserialize, Reflect, Component)]
+/// A nation in the world with territory, government, and economy.
+///
+/// ## Province Ownership vs Territory Grouping
+///
+/// Living Worlds uses a two-level ownership model:
+///
+/// - **Province.owner_entity**: Source of truth for "who owns this province"
+///   - Direct field on each Province struct in ProvinceStorage
+///   - Used for rendering (map colors), AI decisions, and game logic
+///   - Query with `crate::nations::ownership` utilities
+///
+/// - **OwnedBy/OwnsTerritory**: For Territory component relationships
+///   - Territory = contiguous group of provinces (uses Bevy relationships)
+///   - One nation can have multiple territories (mainland + colonies)
+///   - Used for pathfinding, naval connections, territorial integrity checks
+///
+/// This separation allows efficient queries (provinces by direct lookup)
+/// while maintaining logical groupings (territories for game mechanics).
 pub struct Nation {
     pub name: String,
     pub adjective: String, // "French" for "France"
     pub color: Color,
     pub capital_province: u32,
-    // NOTE: Province ownership is stored in Province.owner, not here
-    // Use ProvinceOwnershipCache resource for efficient queries
 
     // Economic and military strength
     pub treasury: f32,
@@ -28,6 +64,9 @@ pub struct Nation {
 
     // Cultural identity from nation's capital province
     pub culture: crate::name_generator::Culture,
+
+    // Technological advancement
+    pub technology_level: u32,
 
     // Personality for AI decisions
     pub personality: NationPersonality,
@@ -40,6 +79,37 @@ pub struct NationPersonality {
     pub expansionism: f32, // -1.0 (isolationist) to 1.0 (imperialist)
     pub diplomacy: f32,    // -1.0 (hostile) to 1.0 (friendly)
     pub mercantilism: f32, // -1.0 (closed) to 1.0 (free trade)
+}
+
+/// Economy component for nations
+///
+/// Stores economic modifiers that affect tax collection, production,
+/// and trade. These values are multipliers applied to base calculations.
+/// Law effects modify these values to implement economic policies.
+#[derive(Component, Debug, Clone, Reflect)]
+pub struct Economy {
+    /// Efficiency of tax collection (0.0 = no tax, 1.0 = base, 2.0 = double)
+    pub tax_efficiency: f32,
+    /// Industrial production multiplier
+    pub industrial_multiplier: f32,
+    /// Agricultural production multiplier
+    pub agricultural_multiplier: f32,
+    /// Trade income multiplier
+    pub trade_multiplier: f32,
+    /// Base maintenance cost per turn
+    pub maintenance_cost: f32,
+}
+
+impl Default for Economy {
+    fn default() -> Self {
+        Self {
+            tax_efficiency: 1.0,
+            industrial_multiplier: 1.0,
+            agricultural_multiplier: 1.0,
+            trade_multiplier: 1.0,
+            maintenance_cost: 100.0,
+        }
+    }
 }
 
 impl NationPersonality {
@@ -66,6 +136,7 @@ impl NationPersonality {
 #[derive(Bundle)]
 pub struct NationBundle {
     pub nation: Nation,
+    pub economy: Economy,
     pub transform: Transform,
     pub visibility: Visibility,
     pub pressure_vector: crate::simulation::PressureVector,
@@ -148,7 +219,6 @@ pub enum StartingDevelopment {
 #[derive(Component, Debug, Clone)]
 pub struct Territory {
     pub provinces: HashSet<u32>, // The province IDs in this territory
-    pub nation_id: NationId,
     pub center: Vec2,  // Geographic center
     pub is_core: bool, // Core territory vs conquered
 }
@@ -180,3 +250,4 @@ impl OwnsTerritory {
         self.0.len()
     }
 }
+

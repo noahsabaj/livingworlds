@@ -1,6 +1,7 @@
 //! Data types for family browser
 
 use bevy::prelude::*;
+use crate::nations::NationId;
 // NationId deleted - now using Entity directly
 
 /// Prestige information for a house

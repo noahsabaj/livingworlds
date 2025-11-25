@@ -17,24 +17,27 @@ pub fn propose_laws_system(
         &Governance,
         &PressureVector,
         &mut NationLaws,
+        Option<&crate::nations::OwnsTerritory>,
     )>,
     registry: Res<LawRegistry>,
     time: Res<GameTime>,
 ) {
-    for (entity, nation, governance, pressures, mut nation_laws) in &mut nations {
+    for (entity, nation, governance, pressures, mut nation_laws, owns_territory) in &mut nations {
         // Check if it's time to consider new laws (every 30 days)
         if (time.current_day() as i32) % 30 != 0 {
             continue;
         }
 
         // Evaluate potential law proposals
+        let province_count = owns_territory.map(|ot| ot.territory_count()).unwrap_or(0);
         if let Some(proposal) = evaluate_law_passage(
             nation,
             governance,
             pressures,
             &nation_laws,
             &registry,
-            (time.current_year()) as i32,
+            time.current_year() as i32,
+            province_count,
         ) {
             // Propose the law with pressure tracking
             nation_laws.propose_law(

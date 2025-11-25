@@ -19,6 +19,6 @@ pub use types::{PressureLevel, PressureType, PressureVector};
 
 
 pub use systems::{
-    apply_pressure_effects, resolve_pressure_actions,
-    run_pressure_systems_on_timer, update_nation_pressures, PressureSystemTimer,
+    apply_pressure_effects, resolve_pressure_actions, run_pressure_systems_on_timer,
+    PressureSystemTimer,
 };

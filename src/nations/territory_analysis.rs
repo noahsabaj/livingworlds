@@ -6,13 +6,12 @@
 use bevy::prelude::*;
 use std::collections::HashSet;
 
-// NationId and ProvinceOwnershipCache deleted - now using Entity and ECS queries
-use crate::world::{ProvinceId, ProvinceStorage};
+use crate::world::ProvinceStorage;
 
 /// Computed territory metrics for a nation
 ///
 /// This is now a Component attached to nation entities rather than a cached resource.
-#[derive(Debug, Clone, Component, Reflect)]
+#[derive(Debug, Clone, Component, Reflect, Resource, Default)]
 #[reflect(Component)]
 pub struct TerritoryMetrics {
     /// Bounding box of all controlled provinces (min, max)
@@ -44,33 +43,36 @@ pub struct TerritoryCluster {
 
 impl TerritoryMetrics {
     /// Calculate territory metrics for a nation
+    ///
+    /// Uses direct province iteration instead of ownership cache for single source of truth.
     pub fn calculate(
-        nation_id: NationId,
-        ownership_cache: &ProvinceOwnershipCache,
+        nation_entity: Entity,
         province_storage: &ProvinceStorage,
     ) -> Option<Self> {
-        // Get all provinces owned by this nation
-        let province_ids = ownership_cache.get_nation_provinces(nation_id)?;
+        // Collect province IDs owned by this nation directly from province storage
+        let province_ids: HashSet<u32> = province_storage
+            .provinces
+            .iter()
+            .filter(|p| p.owner_entity == Some(nation_entity))
+            .map(|p| p.id.value())
+            .collect();
 
         if province_ids.is_empty() {
             return None;
         }
 
-        // Calculate bounds and centroid
+        // Calculate bounds and centroid in a single pass
         let mut min_x = f32::INFINITY;
         let mut max_x = f32::NEG_INFINITY;
         let mut min_y = f32::INFINITY;
         let mut max_y = f32::NEG_INFINITY;
         let mut sum_x = 0.0;
         let mut sum_y = 0.0;
-        let mut valid_provinces = 0;
+        let mut max_radius: f32 = 0.0;
 
-        for &province_id in province_ids {
-            if let Some(province) = province_storage
-                .province_by_id
-                .get(&ProvinceId::new(province_id))
-                .and_then(|&idx| province_storage.provinces.get(idx))
-            {
+        // First pass: calculate bounds and centroid
+        for province in province_storage.provinces.iter() {
+            if province.owner_entity == Some(nation_entity) {
                 let pos = province.position;
                 min_x = min_x.min(pos.x);
                 max_x = max_x.max(pos.x);
@@ -78,28 +80,19 @@ impl TerritoryMetrics {
                 max_y = max_y.max(pos.y);
                 sum_x += pos.x;
                 sum_y += pos.y;
-                valid_provinces += 1;
             }
         }
 
-        if valid_provinces == 0 {
-            return None;
-        }
-
+        let valid_provinces = province_ids.len();
         let bounds = (Vec2::new(min_x, min_y), Vec2::new(max_x, max_y));
         let centroid = Vec2::new(
             sum_x / valid_provinces as f32,
             sum_y / valid_provinces as f32,
         );
 
-        // Calculate max radius from centroid
-        let mut max_radius: f32 = 0.0;
-        for &province_id in province_ids {
-            if let Some(province) = province_storage
-                .province_by_id
-                .get(&ProvinceId::new(province_id))
-                .and_then(|&idx| province_storage.provinces.get(idx))
-            {
+        // Second pass: calculate max radius from centroid
+        for province in province_storage.provinces.iter() {
+            if province.owner_entity == Some(nation_entity) {
                 let distance = centroid.distance(province.position);
                 max_radius = max_radius.max(distance);
             }
@@ -107,7 +100,7 @@ impl TerritoryMetrics {
 
         // Detect clusters for disconnected territories
         let clusters = detect_territory_clusters(
-            province_ids,
+            &province_ids,
             province_storage,
             valid_provinces,
         );
@@ -212,11 +205,8 @@ fn detect_territory_clusters(
 
             cluster_provinces.insert(current_id);
 
-            if let Some(province) = province_storage
-                .province_by_id
-                .get(&ProvinceId::new(current_id))
-                .and_then(|&idx| province_storage.provinces.get(idx))
-            {
+            // Direct array access - province_id IS the array index
+            if let Some(province) = province_storage.provinces.get(current_id as usize) {
                 // Update cluster metrics
                 let pos = province.position;
                 cluster_min = cluster_min.min(pos);

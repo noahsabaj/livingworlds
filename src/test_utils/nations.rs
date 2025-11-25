@@ -22,9 +22,10 @@ pub fn spawn_test_nation(
             treasury: 1000.0,
             tax_rate: 0.2,
             military_strength: 100.0,
-            stability: 0.5,
-            culture: Culture::Western, // Default test culture
-            personality: NationPersonality::balanced(),
+            stability: 1.0,
+            culture: crate::name_generator::Culture::Western,
+            technology_level: 1,
+            personality: crate::nations::NationPersonality::balanced(),
         },
         NationLaws::default(),
     )).id()

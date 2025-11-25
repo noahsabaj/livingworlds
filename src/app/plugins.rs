@@ -110,7 +110,7 @@ define_plugin!(GamePlugins {
         // NationPlugin: Territory, governance, laws, history
         // DEPENDENCIES: WorldPlugin (needs provinces), RelationshipsPlugin
         // DEPENDENTS: DramaEnginePlugin, SimulationPlugin, UIPlugin
-        // PROVIDES: NationRegistry, ProvinceOwnershipCache resources
+        // PROVIDES: NationRegistry resource
         NationPlugin,
 
         // DramaEnginePlugin: Royal houses, characters, drama events

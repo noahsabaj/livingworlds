@@ -12,7 +12,8 @@ use crate::modding::ui::types::{
     ModBrowserTabButton,
 };
 use crate::ui::{
-    colors, helpers, layers, ButtonBuilder, ButtonSize, ButtonStyle, PanelBuilder, PanelStyle,
+    colors, helpers, layers, ButtonBuilder, ButtonSize, ButtonStyle, CheckboxBuilder, DropdownBuilder,
+    LabelBuilder, LabelStyle, PanelBuilder, PanelStyle,
 };
 use bevy::prelude::*;
 
@@ -30,9 +31,14 @@ pub fn spawn_mod_browser(
     );
 
     // Add our root marker and configure for column layout
+    // FIX: Explicitly set width/height to 100% to ensure full screen coverage
+    // The previous implementation relied on default() which reset these values
     commands.entity(overlay_entity).insert((
         Node {
             flex_direction: FlexDirection::Column,
+            width: Val::Percent(100.0),
+            height: Val::Percent(100.0),
+            position_type: PositionType::Absolute,
             ..default()
         },
         ModBrowserRoot,
@@ -157,18 +163,15 @@ fn spawn_main_content(
 
 /// Spawns the left sidebar with filters
 fn spawn_sidebar(content: &mut ChildSpawnerCommands) {
-    content
-        .spawn((
-            Node {
-                width: Val::Px(250.0),
-                padding: UiRect::all(Val::Px(20.0)),
-                flex_direction: FlexDirection::Column,
-                row_gap: Val::Px(20.0),
-                ..default()
-            },
-            BackgroundColor(colors::BACKGROUND_MEDIUM),
-        ))
-        .with_children(|sidebar| {
+    // Use PanelBuilder for the sidebar container
+    PanelBuilder::new()
+        .style(PanelStyle::Card) // Changed Solid to Card
+        .width(Val::Px(280.0))
+        .padding(UiRect::all(Val::Px(20.0)))
+        .flex_direction(FlexDirection::Column)
+        .row_gap(Val::Px(20.0))
+        .background_color(colors::BACKGROUND_MEDIUM)
+        .build_with_children(content, |sidebar| {
             spawn_filter_section(sidebar);
             spawn_stats_section(sidebar);
             spawn_sort_dropdown(sidebar);
@@ -178,29 +181,48 @@ fn spawn_sidebar(content: &mut ChildSpawnerCommands) {
 /// Spawns the filter section in the sidebar
 fn spawn_filter_section(sidebar: &mut ChildSpawnerCommands) {
     // Filter header
-    sidebar.spawn((
-        Text::new("FILTER MODS"),
-        TextFont {
-            font_size: 18.0,
-            ..default()
-        },
-        TextColor(colors::TEXT_PRIMARY),
-        Node {
-            margin: UiRect::bottom(Val::Px(15.0)),
-            ..default()
-        },
-    ));
+    // Filter header
+    LabelBuilder::new("FILTER MODS")
+        .style(LabelStyle::Title)
+        .margin(UiRect::bottom(Val::Px(15.0)))
+        .build(sidebar);
 
-    // Filter checkboxes would go here
-    // For now, just placeholders
-    sidebar.spawn((
-        Text::new("[ ] Enabled\n[ ] Disabled\n[ ] Local\n[ ] Workshop"),
-        TextFont {
-            font_size: 14.0,
-            ..default()
-        },
-        TextColor(colors::TEXT_SECONDARY),
-    ));
+    // Filter checkboxes using CheckboxBuilder
+    // Wrap in a Node for margin since CheckboxBuilder doesn't support it directly
+    sidebar.spawn(Node {
+        margin: UiRect::bottom(Val::Px(8.0)),
+        ..default()
+    }).with_children(|parent| {
+        CheckboxBuilder::new()
+            .with_label("Enabled")
+            .checked(true)
+            .build(parent);
+    });
+
+    sidebar.spawn(Node {
+        margin: UiRect::bottom(Val::Px(8.0)),
+        ..default()
+    }).with_children(|parent| {
+        CheckboxBuilder::new()
+            .with_label("Disabled")
+            .checked(false)
+            .build(parent);
+    });
+
+    sidebar.spawn(Node {
+        margin: UiRect::bottom(Val::Px(8.0)),
+        ..default()
+    }).with_children(|parent| {
+        CheckboxBuilder::new()
+            .with_label("Local")
+            .checked(false)
+            .build(parent);
+    });
+
+    CheckboxBuilder::new()
+        .with_label("Workshop")
+        .checked(false)
+        .build(sidebar);
 }
 
 /// Spawns the stats section in the sidebar
@@ -233,43 +255,21 @@ fn spawn_stats_section(sidebar: &mut ChildSpawnerCommands) {
 /// Spawns the sort dropdown in the sidebar
 fn spawn_sort_dropdown(sidebar: &mut ChildSpawnerCommands) {
     // Sort by label
-    sidebar.spawn((
-        Text::new("SORT BY"),
-        TextFont {
-            font_size: 18.0,
-            ..default()
-        },
-        TextColor(colors::TEXT_PRIMARY),
-        Node {
-            margin: UiRect::bottom(Val::Px(10.0)),
-            ..default()
-        },
-    ));
+    LabelBuilder::new("SORT BY")
+        .style(LabelStyle::Title)
+        .margin(UiRect::bottom(Val::Px(10.0)))
+        .build(sidebar);
 
-    // Dropdown placeholder
-    sidebar
-        .spawn((
-            Node {
-                width: Val::Percent(100.0),
-                height: Val::Px(35.0),
-                padding: UiRect::all(Val::Px(10.0)),
-                border: UiRect::all(Val::Px(1.0)),
-                align_items: AlignItems::Center,
-                ..default()
-            },
-            BackgroundColor(colors::BACKGROUND_LIGHT),
-            BorderColor::all(colors::BORDER_DEFAULT),
-        ))
-        .with_children(|dropdown| {
-            dropdown.spawn((
-                Text::new("Name (A-Z)"),
-                TextFont {
-                    font_size: 14.0,
-                    ..default()
-                },
-                TextColor(colors::TEXT_SECONDARY),
-            ));
-        });
+    // Dropdown using DropdownBuilder
+    DropdownBuilder::new()
+        .items(vec![
+            "Name (A-Z)".to_string(),
+            "Name (Z-A)".to_string(),
+            "Date Added".to_string(),
+            "Size".to_string(),
+        ])
+        .selected(0)
+        .build();
 }
 
 /// Spawns the main content area

@@ -267,6 +267,9 @@ impl WorldBounds {
 ///
 /// Returns the 6 neighboring province IDs in order: NE, E, SE, SW, W, NW
 /// None values indicate off-map or non-existent neighbors.
+///
+/// Uses crate::math::get_neighbor_positions as the single source of truth
+/// for hex neighbor coordinate calculations.
 pub fn calculate_hex_neighbors(
     col: u32,
     row: u32,
@@ -275,42 +278,16 @@ pub fn calculate_hex_neighbors(
 ) -> [Option<ProvinceId>; 6] {
     let mut neighbors = [None; 6];
 
-    // Odd-q offset coordinate system adjustments
-    let is_odd_col = col % 2 == 1;
+    // Use the canonical neighbor positions from math module
+    let neighbor_coords = crate::math::get_neighbor_positions(col as i32, row as i32, 0.0);
 
-    // Define neighbor offsets based on column parity
-    let offsets = if is_odd_col {
-        // Odd columns are shifted down
-        [
-            (1, 0),  // NE
-            (1, 1),  // E
-            (0, 1),  // SE
-            (-1, 1), // SW
-            (-1, 0), // W
-            (0, -1), // NW
-        ]
-    } else {
-        // Even columns
-        [
-            (1, -1),  // NE
-            (1, 0),   // E
-            (0, 1),   // SE
-            (-1, 0),  // SW
-            (-1, -1), // W
-            (0, -1),  // NW
-        ]
-    };
-
-    for (i, (dc, dr)) in offsets.iter().enumerate() {
-        let new_col = col as i32 + dc;
-        let new_row = row as i32 + dr;
-
-        if new_col >= 0
-            && new_col < provinces_per_row as i32
-            && new_row >= 0
-            && new_row < provinces_per_col as i32
+    for (i, (new_col, new_row)) in neighbor_coords.iter().enumerate() {
+        if *new_col >= 0
+            && *new_col < provinces_per_row as i32
+            && *new_row >= 0
+            && *new_row < provinces_per_col as i32
         {
-            let neighbor_id = (new_row as u32) * provinces_per_row + (new_col as u32);
+            let neighbor_id = (*new_row as u32) * provinces_per_row + (*new_col as u32);
             neighbors[i] = Some(ProvinceId::new(neighbor_id));
         }
     }

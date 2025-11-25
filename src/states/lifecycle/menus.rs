@@ -3,6 +3,7 @@
 //! This module handles the enter/exit lifecycle for menu-related states,
 //! including MainMenu and Paused states with entity cleanup and camera management.
 
+use crate::nations::{NationLabel, NationLabelShadow};
 use crate::states::definitions::*;
 use bevy::prelude::*;
 
@@ -19,6 +20,7 @@ pub fn enter_main_menu(
             With<WorldMeshEntity>,
         )>,
     >,
+    nation_labels_query: Query<Entity, Or<(With<NationLabel>, With<NationLabelShadow>)>>,
     mut camera_query: Query<&mut Transform, With<Camera2d>>,
 ) {
     #[cfg(feature = "debug-states")]
@@ -33,6 +35,18 @@ pub fn enter_main_menu(
         debug!(
             "Cleaned up {} game world entities",
             game_world_query.iter().count()
+        );
+    }
+
+    // Clean up nation labels (Text2d entities that aren't part of the world mesh)
+    for entity in &nation_labels_query {
+        commands.entity(entity).despawn();
+    }
+    if !nation_labels_query.is_empty() {
+        #[cfg(feature = "debug-states")]
+        debug!(
+            "Cleaned up {} nation label entities",
+            nation_labels_query.iter().count()
         );
     }
 

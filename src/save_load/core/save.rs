@@ -28,7 +28,7 @@ pub fn handle_save_game(
     world_tension: Option<Res<WorldTension>>,
     map_mode: Option<Res<MapMode>>,
     province_storage: Option<Res<ProvinceStorage>>,
-    nations_query: Query<(&Nation, &NationLaws)>,
+    nations_query: Query<(Entity, &Nation, &crate::nations::NationId, &NationLaws)>,
 ) {
     for event in save_events.read() {
         info!("Saving game to slot: {}", event.slot_name);
@@ -65,7 +65,7 @@ pub fn handle_save_game(
             // Collect nation laws data
             nation_laws: nations_query
                 .iter()
-                .map(|(nation, laws)| (nation.id, laws.clone()))
+                .map(|(_, _, nation_id, laws)| (*nation_id, laws.clone()))
                 .collect(),
         };
 

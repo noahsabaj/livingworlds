@@ -67,7 +67,7 @@ pub fn handle_repeal_buttons(
                     if let Some(law) = registry.get_law(button.law_id) {
                         // Send repeal event with all required fields
                         messages.write(crate::nations::LawRepealEvent {
-                            nation_id: crate::nations::NationId(0), // TODO: Get actual nation ID
+                            nation_entity,
                             nation_name: "Selected Nation".to_string(), // TODO: Get actual nation name
                             law_id: button.law_id,
                             law_name: law.name.clone(),

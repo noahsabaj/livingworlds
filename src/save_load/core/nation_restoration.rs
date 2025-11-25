@@ -27,6 +27,9 @@ pub fn restore_nations_with_laws(
                     treasury: 1000.0,
                     stability: 0.5,
                     military_strength: 100.0,
+                    technology_level: 1,
+                    culture: crate::name_generator::Culture::Western,
+                    personality: crate::nations::NationPersonality::balanced(),
                     // ... other fields would be restored from save
                 },
                 nation_laws.clone(),

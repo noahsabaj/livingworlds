@@ -67,6 +67,9 @@ pub use provinces::{
     Elevation, Province, ProvinceBuilder, ProvinceEntity, ProvinceId,
     ProvincesSpatialIndex, ProvinceEventsPlugin,
     CoastalProvinceCache, initialize_coastal_cache, NavalRangeCalculator, NAVAL_RANGE_HEXES,
+    // ECS province components and utilities
+    ProvinceMarker, ProvinceData, ProvinceNeighbors, ProvinceBundle, ProvinceEntityOrder,
+    provinces_to_bundles, set_neighbor_entities,
 };
 
 // === Rivers Feature ===
@@ -109,5 +112,9 @@ pub use setup::{
     poll_async_world_generation,  // Progress polling system
     start_async_world_generation, // Async generation starter
     handle_world_generation_transition_delay, // Transition delay handler
+    setup_province_neighbors,     // Deferred province neighbor setup
+    spawn_province_entities,      // Province entity spawning (exclusive system)
     AsyncWorldGeneration,
+    PendingNeighborSetup,
+    PendingProvinceSpawn,
 };

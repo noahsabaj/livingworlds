@@ -9,7 +9,7 @@ use rand::{rngs::StdRng, SeedableRng};
 use super::errors::{WorldGenerationError, WorldGenerationErrorType};
 use crate::diagnostics::{TimedOperation, log_world_gen_step, log_world_gen_progress, log_memory_usage};
 use crate::resources::{MapDimensions, WorldSize};
-use crate::world::World;
+use crate::world::{Province, World};
 
 // Import utilities
 
@@ -160,7 +160,23 @@ impl WorldBuilder {
         let agriculture_time = agriculture_timer.complete();
         log_world_gen_step("Agriculture Calculation", provinces.len(), agriculture_time);
 
-        // Step 7: Generate cloud system and finalize
+        // Step 7: Generate mineral resources
+        report_progress(&format!("Generating mineral deposits across {} provinces...", provinces.len()), 0.65);
+
+        let mineral_timer = TimedOperation::start("Mineral Generation");
+        crate::world::generate_world_minerals(self.seed, &mut provinces);
+        let mineral_time = mineral_timer.complete();
+        log_world_gen_step("Mineral Generation", provinces.len(), mineral_time);
+
+        // Step 8: Initialize population based on terrain and agriculture
+        report_progress(&format!("Calculating initial population for {} provinces...", provinces.len()), 0.7);
+
+        let population_timer = TimedOperation::start("Population Initialization");
+        initialize_province_populations(&mut provinces);
+        let population_time = population_timer.complete();
+        log_world_gen_step("Population Initialization", provinces.len(), population_time);
+
+        // Step 9: Generate cloud system and finalize
         let cloud_count = 90; // Default cloud count
         report_progress(&format!("Generating {} procedural clouds and finalizing world...", cloud_count), 0.75);
 
@@ -201,4 +217,81 @@ impl WorldBuilder {
             seed: self.seed,
         })
     }
+}
+
+/// Initialize province populations based on terrain suitability and agriculture
+///
+/// Population is distributed based on:
+/// - Terrain habitability (grasslands, forests > deserts, mountains)
+/// - Agriculture potential
+/// - Fresh water access
+pub fn initialize_province_populations(provinces: &mut [Province]) {
+    use crate::world::terrain::TerrainType;
+    use rayon::prelude::*;
+
+    provinces.par_iter_mut().for_each(|province| {
+        // Base population depends on terrain type
+        let terrain_multiplier = match province.terrain {
+            // Ocean and water have no population
+            TerrainType::Ocean | TerrainType::River => 0.0,
+
+            // Highly habitable terrain
+            TerrainType::TemperateGrassland => 1.0,
+            TerrainType::Savanna => 0.9,
+
+            // Moderate habitability
+            TerrainType::TemperateDeciduousForest | TerrainType::MediterraneanForest => 0.7,
+            TerrainType::TropicalSeasonalForest => 0.6,
+
+            // Lower habitability
+            TerrainType::BorealForest | TerrainType::Taiga => 0.4,
+            TerrainType::TropicalRainforest | TerrainType::TemperateRainforest => 0.35,
+
+            // Harsh terrain
+            TerrainType::Wetlands | TerrainType::Mangrove => 0.25,
+            TerrainType::SubtropicalDesert | TerrainType::TropicalDesert => 0.15,
+            TerrainType::ColdDesert | TerrainType::Tundra => 0.1,
+            TerrainType::Alpine | TerrainType::PolarDesert => 0.05,
+
+            // Special terrain
+            TerrainType::Beach | TerrainType::Chaparral => 0.5,
+        };
+
+        if terrain_multiplier == 0.0 {
+            province.population = 0;
+            province.max_population = 0;
+            return;
+        }
+
+        // Agriculture bonus (0.0 to 3.0 agriculture value)
+        let agriculture_bonus = 1.0 + (province.agriculture.value() * 0.5);
+
+        // Water access bonus
+        let water_bonus = if province.fresh_water_distance.value() < 2.0 {
+            1.5 // Near river/lake
+        } else if province.fresh_water_distance.value() < 5.0 {
+            1.2 // Reasonable distance
+        } else {
+            1.0 // Far from water
+        };
+
+        // Calculate max population (base of 10000 for ideal conditions)
+        let base_max_pop = 10000.0;
+        let max_pop = (base_max_pop * terrain_multiplier * agriculture_bonus * water_bonus) as u32;
+        province.max_population = max_pop.max(100); // Minimum 100 for habitable land
+
+        // Initial population is 20-40% of max
+        let initial_ratio = 0.2 + (terrain_multiplier * 0.2);
+        province.population = ((max_pop as f32) * initial_ratio) as u32;
+    });
+
+    // Log population statistics
+    let total_pop: u64 = provinces.iter().map(|p| p.population as u64).sum();
+    let populated_provinces = provinces.iter().filter(|p| p.population > 0).count();
+    info!(
+        "Population initialized: {} total across {} provinces (avg: {})",
+        total_pop,
+        populated_provinces,
+        if populated_provinces > 0 { total_pop / populated_provinces as u64 } else { 0 }
+    );
 }

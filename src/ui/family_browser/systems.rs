@@ -11,8 +11,8 @@ const CACHE_UPDATE_INTERVAL: f64 = 5.0;
 /// Calculate prestige scores for all houses
 pub fn update_prestige_cache(
     mut cache: ResMut<HousePrestigeCache>,
-    houses: Query<(Entity, &House)>,
-    nations: Query<&Nation>,
+    houses: Query<(Entity, &House, Option<&crate::relationships::RulesOver>)>,
+    nations: Query<(Entity, &Nation, &crate::nations::NationId)>,
     characters: Query<&Character>,
     time: Res<Time>,
 ) {
@@ -32,10 +32,11 @@ pub fn update_prestige_cache(
     let house_count = houses.iter().count();
     info!("Updating prestige cache for {} houses", house_count);
 
-    for (house_entity, house) in &houses {
+    for (house_entity, house, rules_over) in &houses {
         let prestige = calculate_house_prestige(
             house_entity,
             house,
+            rules_over,
             &nations,
             &characters,
         );
@@ -56,7 +57,8 @@ pub fn update_prestige_cache(
 fn calculate_house_prestige(
     house_entity: Entity,
     house: &House,
-    nations: &Query<&Nation>,
+    rules_over: Option<&crate::relationships::RulesOver>,
+    nations: &Query<(Entity, &Nation, &crate::nations::NationId)>,
     characters: &Query<&Character>,
 ) -> HousePrestige {
     // Base prestige from house
@@ -94,16 +96,22 @@ fn calculate_house_prestige(
         .iter()
         .any(|c| c.house_id == house_entity);
 
-    // Get nation name - find the nation with matching ID
-    let nation_name = nations
-        .iter()
-        .find(|n| n.id == house.nation_id)
-        .map(|n| n.name.clone());
+    // Get nation info via RulesOver relationship
+    let mut nation_id = None;
+    let mut nation_name = None;
+
+    if let Some(rules_over) = rules_over {
+        let nation_entity = rules_over.0;
+        if let Ok((_, nation, nid)) = nations.get(nation_entity) {
+            nation_id = Some(*nid);
+            nation_name = Some(nation.name.clone());
+        }
+    }
 
     HousePrestige {
         house_entity,
         house_name: house.name.clone(),
-        nation_id: Some(house.nation_id),
+        nation_id,
         nation_name,
         total_prestige,
         wealth_score,
