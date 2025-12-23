@@ -10,7 +10,7 @@
 
 ## Overview
 
-Living Worlds is a fully procedural civilization OBSERVER - like Fantasy Map Simulator, you have zero control over the civilizations. You can only watch as they emerge, grow, fight, and collapse. Every texture, sound, and piece of text is generated at runtime. Observe as civilizations develop organically, advance through technologies at their own pace, build infrastructure that permanently marks the landscape, and manage complex economies based on Austrian economic principles. There is no victory condition and no player interaction - only the eternal cycle of rise and fall that you witness as a passive observer.
+Living Worlds is a fully procedural civilization OBSERVER - like Fantasy Map Simulator, you have zero control over the civilizations. You can only watch as they emerge, grow, fight, and collapse. Every texture, sound, and piece of text is generated at runtime. Observe as civilizations develop organically, advance through technologies at their own pace, build infrastructure that permanently marks the landscape, and manage complex economies. There is no victory condition and no player interaction - only the eternal cycle of rise and fall that you witness as a passive observer.
 
 ## Features
 
@@ -131,35 +131,8 @@ cargo clippy
 - **Infinite Replayability**: Every world tells unique stories
 - **Performance First**: Optimized for simulating thousands of entities
 
-## Roadmap
-
-### Near Term
-- [ ] Individual agent simulation (every person as an entity)
-- [ ] Austrian economics implementation
-- [ ] Cultural emergence and language evolution
-- [ ] Technology tree progression
-- [ ] Infrastructure that modifies terrain
-
-### Long Term
-- [ ] Save/load system with Bevy Scenes
-- [ ] Steam integration (achievements, cloud saves)
-- [ ] Mod support through dynamic plugins
-- [ ] Multiplayer observer mode
-- [ ] Historical record export
-
-## Contributing
-
-Living Worlds welcomes contributions! Please see `CLAUDE.md` for technical details.
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Run tests (`cargo test`)
-5. Submit a pull request
-
 ## Documentation
 
-- **CLAUDE.md**: Comprehensive technical documentation
 - **Code Comments**: Extensive inline documentation
 - **Bevy Book**: https://bevyengine.org/learn/
 
@@ -170,7 +143,6 @@ Living Worlds welcomes contributions! Please see `CLAUDE.md` for technical detai
 ## Acknowledgments
 
 - Built with [Bevy](https://bevyengine.org/) - A refreshingly simple data-driven game engine
-- Inspired by Fantasy Map Simulator and similar observer games
 - Hexagon math from [Red Blob Games](https://www.redblobgames.com/grids/hexagons/)
 
 ---
